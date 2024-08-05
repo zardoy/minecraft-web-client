@@ -8,6 +8,7 @@ import { WorldRendererCommon, WorldRendererConfig } from './worldrendererCommon'
 import * as tweenJs from '@tweenjs/tween.js'
 import { BloomPass, RenderPass, UnrealBloomPass, EffectComposer, WaterPass, GlitchPass } from 'three-stdlib'
 import { disposeObject } from './threeJsUtils'
+import { Water } from 'three-latest/examples/jsm/objects/Water2.js'
 
 export class WorldRendererThree extends WorldRendererCommon {
     outputFormat = 'threeJs' as const
@@ -58,6 +59,34 @@ export class WorldRendererThree extends WorldRendererCommon {
             if (!value) continue
             this.updatePosDataChunk(key)
         }
+    }
+
+    addWater () {
+        // offset 0, -2, 0
+        const chunkPos = new THREE.Vector3(...this.camera.position.clone().toArray().map(x => Math.floor(x / 16) * 16) as [number, number, number])
+        const x = 0
+        const z = 0
+        const y = this.camera.position.y - chunkPos[1]
+
+        // const posChunkMiddle = chunkPos.map((x, i) => i === 0 ? 0 : 0) as [number, number, number]
+        const posChunkMiddle = chunkPos.toArray()
+        const waterGeometry = new THREE.PlaneGeometry(20, 20)
+        const textureLoader = new THREE.TextureLoader()
+        const water = new Water(waterGeometry, {
+            scale: 1,
+            flowDirection: new THREE.Vector2(1, 1),
+            textureWidth: 1024,
+            textureHeight: 1024,
+            normalMap0: textureLoader.load('https://threejs.org/examples/textures/water/Water_1_M_Normal.jpg'),
+            normalMap1: textureLoader.load('https://threejs.org/examples/textures/water/Water_2_M_Normal.jpg'),
+        })
+        const scale = 20 / 16 / 16
+        water.scale.set(scale, scale, 1)
+        //@ts-ignore
+        water.material.uniforms['color'].value.set(new THREE.Color(117, 202, 255).getHex())
+        water.rotation.x = Math.PI * - 0.5
+        water.position.set(...posChunkMiddle)
+        this.scene.add(water)
     }
 
     handleWorkerMessage (data: any): void {

@@ -151,6 +151,7 @@
     "rimraf": "^5.0.1",
     "storybook": "^7.4.6",
     "stream-browserify": "^3.0.0",
+    "three-latest": "npm:three@latest",
     "three": "0.154.0",
     "timers-browserify": "^2.0.12",
     "typescript": "5.5.4",
