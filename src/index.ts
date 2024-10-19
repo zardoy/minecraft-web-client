@@ -98,6 +98,9 @@ import { signInMessageState } from './react/SignInMessageProvider'
 import { updateAuthenticatedAccountData, updateLoadedServerData } from './react/ServersListProvider'
 import { versionToNumber } from 'prismarine-viewer/viewer/prepare/utils'
 import packetsPatcher from './packetsPatcher'
+import { initWebgpuRenderer } from 'prismarine-viewer/examples/webgpuRendererMain'
+import { addNewStat } from 'prismarine-viewer/examples/newStats'
+// import { ViewerBase } from 'prismarine-viewer/viewer/lib/viewerWrapper'
 import { mainMenuState } from './react/MainMenuRenderApp'
 import { ItemsRenderer } from 'mc-assets/dist/itemsRenderer'
 import './mobileShim'
@@ -419,10 +422,15 @@ async function connect (connectOptions: ConnectOptions) {
       viewer.setVersion(version, options.useVersionsTextures === 'latest' ? version : options.useVersionsTextures)
     }
 
+    // serverOptions.version = '1.18.1'
     const downloadVersion = connectOptions.botVersion || (singleplayer ? serverOptions.version : undefined)
     if (downloadVersion) {
       await downloadMcData(downloadVersion)
     }
+    await initWebgpuRenderer(() => {
+      renderWrapper.postRender()
+    })
+    addNewStat('loaded-chunks')
 
     if (singleplayer) {
       // SINGLEPLAYER EXPLAINER:

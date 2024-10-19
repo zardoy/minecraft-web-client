@@ -106,6 +106,8 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
 
   abstract outputFormat: 'threeJs' | 'webgpu'
 
+  abstract changeBackgroundColor (color: [number, number, number]): void
+
   constructor (public config: WorldRendererConfig) {
     // this.initWorkers(1) // preload script on page load
     this.snapshotInitialValues()
@@ -156,13 +158,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
               this.finishedChunks[`${chunkCoords[0]},${chunkCoords[2]}`] = true
             }
           }
-          if (this.sectionsOutstanding.size === 0) {
-            const allFinished = Object.keys(this.finishedChunks).length === this.chunksLength
-            if (allFinished) {
-              this.allChunksLoaded?.()
-              this.allChunksFinished = true
-            }
-          }
+          this.checkAllFinished()
 
           this.renderUpdateEmitter.emit('update')
           if (data.processTime) {
@@ -182,6 +178,16 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       }
       if (worker.on) worker.on('message', (data) => { worker.onmessage({ data }) })
       this.workers.push(worker)
+    }
+  }
+
+  checkAllFinished () {
+    if (this.sectionsOutstanding.size === 0) {
+      const allFinished = Object.keys(this.finishedChunks).length === this.chunksLength
+      if (allFinished) {
+        this.allChunksLoaded?.()
+        this.allChunksFinished = true
+      }
     }
   }
 

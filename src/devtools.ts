@@ -19,6 +19,7 @@ window.inspectPlayer = () => require('fs').promises.readFile('/world/playerdata/
 
 Object.defineProperty(window, 'debugSceneChunks', {
   get () {
+    if (!(viewer.world instanceof WorldRendererThree)) return
     return (viewer.world as WorldRendererThree).getLoadedChunksRelative?.(bot.entity.position, true)
   },
 })

@@ -25,10 +25,20 @@
             },
         },
         {
-            "label": "viewer server+esbuild",
+            "label": "webgl-worker",
+            "type": "shell",
+            "command": "node buildWorkers.mjs -w",
+            "problemMatcher": "$esbuild-watch",
+            "presentation": {
+                "reveal": "silent"
+            },
+        },
+        {
+            "label": "viewer server+esbuild+workers",
             "dependsOn": [
                 "viewer-server",
-                "viewer-esbuild"
+                "viewer-esbuild",
+                "webgl-worker"
             ],
             "dependsOrder": "parallel",
         }

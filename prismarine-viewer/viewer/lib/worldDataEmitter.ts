@@ -208,6 +208,8 @@ export class WorldDataEmitter extends EventEmitter {
         //@ts-expect-error
         this.emitter.emit('loadChunk', { x: pos.x, z: pos.z, chunk, blockEntities: column.blockEntities, worldConfig, isLightUpdate })
         this.loadedChunks[`${pos.x},${pos.z}`] = true
+      } else {
+        this.emitter.emit('markAsLoaded', { x: pos.x, z: pos.z })
       }
     } else {
       // console.debug('skipped loading chunk', dx, dz, '>', this.viewDistance)
@@ -227,6 +229,7 @@ export class WorldDataEmitter extends EventEmitter {
   }
 
   async updatePosition (pos: Vec3, force = false) {
+    return
     const [lastX, lastZ] = chunkPos(this.lastPos)
     const [botX, botZ] = chunkPos(pos)
     if (lastX !== botX || lastZ !== botZ || force) {

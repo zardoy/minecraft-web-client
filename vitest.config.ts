@@ -7,7 +7,8 @@ export default defineConfig({
       '../../src/botUtils.test.ts',
       '../../src/markdownToFormattedText.test.ts',
       'lib/mesher/test/tests.test.ts',
-      'sign-renderer/tests.test.ts'
+      'sign-renderer/tests.test.ts', // prismarine-viewer/viewer/sign-renderer/tests.test.ts
+      '../examples/chunksStorage.test.ts'
     ],
   },
 })

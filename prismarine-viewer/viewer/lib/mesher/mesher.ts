@@ -125,7 +125,7 @@ const handleMessage = data => {
 
       break
     }
-  // No default
+    // No default
   }
 }
 

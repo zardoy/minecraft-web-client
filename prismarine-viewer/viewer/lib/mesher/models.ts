@@ -126,7 +126,7 @@ const isCube = (block: Block) => {
   }))
 }
 
-function renderLiquid (world: World, cursor: Vec3, texture: any | undefined, type: number, biome: string, water: boolean, attr: Record<string, any>) {
+function renderLiquid (world, cursor, texture, type, biome, water, attr) {
   const heights: number[] = []
   for (let z = -1; z <= 1; z++) {
     for (let x = -1; x <= 1; x++) {
@@ -146,7 +146,7 @@ function renderLiquid (world: World, cursor: Vec3, texture: any | undefined, typ
     const { dir, corners } = elemFaces[face]
     const isUp = dir[1] === 1
 
-    const neighborPos = cursor.offset(...dir as [number, number, number])
+    const neighborPos = cursor.offset(...dir)
     const neighbor = world.getBlock(neighborPos)
     if (!neighbor) continue
     if (neighbor.type === type) continue
@@ -356,7 +356,7 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
         block: block.name,
         faces: [],
       }
-      const needsOnlyOneFace = false
+      const needsOnlyOneFace = true
       const isTilesEmpty = tiles[`${cursor.x},${cursor.y},${cursor.z}`].faces.length < 1
       if (isTilesEmpty || !needsOnlyOneFace) {
         tiles[`${cursor.x},${cursor.y},${cursor.z}`].faces.push({

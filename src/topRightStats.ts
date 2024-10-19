@@ -39,7 +39,7 @@ if (hasRamPanel) {
   addStat(stats2.dom)
 }
 
-const hideStats = localStorage.hideStats || isCypress()
+const hideStats = localStorage.hideStats || isCypress() || true
 if (hideStats) {
   stats.dom.style.display = 'none'
   stats2.dom.style.display = 'none'
