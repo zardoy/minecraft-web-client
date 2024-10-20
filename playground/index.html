@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Renderer Playground</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'>
+    <style type="text/css">
+      html {
+        overflow: hidden;
+        background: black;
+      }
+
+      html, body {
+        height: 100%;
+
+        margin: 0;
+        padding: 0;
+      }
+
+      canvas {
+        height: 100%;
+        width: 100%;
+        font-size: 0;
+
+        margin: 0;
+        padding: 0;
+      }
+      @font-face {
+          font-family: mojangles;
+          src: url(../../../assets/mojangles.ttf);
+      }
+    </style>
+    <script>
+      if (window.location.pathname.endsWith('playground')) {
+        // add trailing slash
+        window.location.href = `${window.location.origin}${window.location.pathname}/${window.location.search}`
+      }
+    </script>
+  <meta charset="UTF-8"><script defer src="./static/js/lib-polyfill.b0fb4827.js"></script><script defer src="./static/js/lib-react.ad28f5bd.js"></script><script defer src="./static/js/lib-lodash.da5a12e1.js"></script><script defer src="./static/js/198.bdd0b70e.js"></script><script defer src="./static/js/index.fdc9ae47.js"></script><link href="./static/css/index.0918aa3b.css" rel="stylesheet"></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="darkreader-lock">
+    <script>
+      window.startLoad = Date.now()
+    </script>
+    <!-- // #region initial loader -->
+    <script async>
+      const loadingDiv = /* html */ `
+      <div class="initial-loader" style="position: fixed;transition:opacity 0.2s;inset: 0;background:black;display: flex;justify-content: center;align-items: center;font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', Arial, Helvetica, sans-serif;gap: 15px;" ontransitionend="this.remove()">
+    <div>
+        <img src="./loading-bg.jpg" alt="Prismarine Web Client" style="position:fixed;inset:0;width:100%;height:100%;z-index: -2;object-fit: cover;filter: blur(3px);">
+        <div style="position: fixed;inset: 0;z-index: -1;background-color: rgba(0, 0, 0, 0.8);"></div>
+    </div>
+    <div>
+        <div style="font-size: calc(var(--font-size) * 1.8);color: lightgray;" class="title">Loading...</div>
+        <div style="font-size: var(--font-size);color: rgb(176, 176, 176);margin-top: 3px;text-align: center" class="subtitle">A true Minecraft client in your browser!</div>
+    </div>
+</div>
+`
+      const insertLoadingDiv = () => {
+          const loadingDivElem = document.createElement('div')
+          loadingDivElem.innerHTML = loadingDiv
+          if (!window.pageLoaded) {
+            document.documentElement.appendChild(loadingDivElem)
+          }
+          // load error handling
+          const onError = (message) => {
+            console.log(message)
+            if (document.querySelector('.initial-loader') && document.querySelector('.initial-loader').querySelector('.title').textContent !== 'Error') {
+              document.querySelector('.initial-loader').querySelector('.title').textContent = 'Error'
+              document.querySelector('.initial-loader').querySelector('.subtitle').textContent = message
+              if (window.navigator.maxTouchPoints > 1) window.location.hash = '#dev' // show eruda
+            }
+          }
+          window.addEventListener('unhandledrejection', (e) => onError(e.reason))
+          window.addEventListener('error', (e) => onError(e.message))
+        }
+        insertLoadingDiv()
+        document.addEventListener('DOMContentLoaded', () => {
+          // move loading div to the end of body
+          const loadingDivElem = document.querySelector('.initial-loader');
+          const newContainer = document.body; // replace with your new container
+          if (loadingDivElem) newContainer.appendChild(loadingDivElem);
+        })
+    </script>
+    <script type="module" async>
+      const checkLoadEruda = () => {
+        if (window.location.hash === '#dev') {
+          // todo precache (check offline)?
+          import('https://cdn.skypack.dev/eruda').then(({ default: eruda }) => {
+            eruda.init()
+          })
+        }
+      }
+      checkLoadEruda()
+      window.addEventListener('hashchange', (e) => {
+        setTimeout(() => {
+          checkLoadEruda()
+        })
+      })
+    </script>
+    <style>
+      html {
+        background: black;
+      }
+      .initial-loader {
+          --font-size: 20px;
+      }
+      @media screen and (min-width: 550px) {
+          .initial-loader {
+              --font-size: 30px;
+          }
+      }
+      @media screen and (min-width: 950px) {
+          .initial-loader {
+              --font-size: 50px;
+          }
+      }
+    </style>
+    <!-- // #endregion -->
+    <!-- <script type="module">
+      window.loadPluginScript = async ({ pluginName, script }) => {
+        window.loadedPlugins[pluginName] = await import(script)
+      }
+    </script> -->
+    <title>Prismarine Web Client</title>
+    <link rel="favicon" href="favicon.png">
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="canonical" href="https://mcraft.fun">
+    <meta name="description" content="Minecraft web client running in your browser">
+    <meta name="keywords" content="Play, Minecraft, Online, Web, Java, Server, Single player, Javascript, PrismarineJS, Voxel, WebGL, Three.js">
+    <meta name="date" content="2024-07-11" scheme="YYYY-MM-DD">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#349474">
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'>
+    <meta property="og:title" content="Prismarine Web Client" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="favicon.png" />
+    <meta name="format-detection" content="telephone=no">
+    <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
+  <meta charset="UTF-8"><script defer src="./static/js/lib-polyfill.4c3d4bb4.js"></script><script defer src="./static/js/lib-lodash.6ca29103.js"></script><script defer src="./static/js/lib-react.23d1c0e4.js"></script><script defer src="./static/js/42.15cbe297.js"></script><script defer src="./static/js/index.85340c77.js"></script><link href="./static/css/42.fdd8e9b7.css" rel="stylesheet"><link href="./static/css/index.d7143c33.css" rel="stylesheet"></head>
+  <body>
+    <div id="react-root"></div>
+    <div id="ui-root"></div>
+    <!-- inject script -->
+  </body>
+</html>

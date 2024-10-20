@@ -1,0 +1,6 @@
+import{j as o}from"./jsx-runtime-37f7df21.js";import{r as c}from"./index-f1f2c4b1.js";import{S as m}from"./SharedHudVars-63c800bd.js";const f=({oxygen:e})=>{const l=c.useRef(null);return c.useEffect(()=>{const a=l.current;if(a&&e<20){a.style.display="flex",a.classList.toggle("low",e<=5);const s=a.children;for(const r of s)r.classList.remove("full"),r.classList.remove("half");for(let r=0;r<Math.ceil(e/2)&&!(r>=s.length);r++)e%2!==0&&Math.ceil(e/2)===r+1?s[r].classList.add("half"):s[r].classList.add("full")}else a&&e>=20&&(a.style.display="none")},[e]),o(m,{children:o("div",{ref:l,className:"breathbar",children:Array.from({length:10},()=>0).map((a,s)=>o("div",{className:"breath"},`breath-${s}`))})})};try{BreathBar.displayName="BreathBar",BreathBar.__docgenInfo={description:"",displayName:"BreathBar",props:{oxygen:{defaultValue:null,description:"",name:"oxygen",required:!0,type:{name:"number"}}}}}catch{}const B={component:f},t={args:{oxygen:20}};var n,i,d;t.parameters={...t.parameters,docs:{...(n=t.parameters)==null?void 0:n.docs,source:{originalSource:`{
+  args: {
+    oxygen: 20
+  }
+}`,...(d=(i=t.parameters)==null?void 0:i.docs)==null?void 0:d.source}}};const b=["Primary"];export{t as Primary,b as __namedExportsOrder,B as default};
+//# sourceMappingURL=BreathBar.stories-713fce00.js.map
