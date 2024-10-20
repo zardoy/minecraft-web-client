@@ -9,6 +9,7 @@ import { options } from './optionsStorage'
 import { showOptionsModal } from './react/SelectOption'
 import { appStatusState } from './react/AppStatusProvider'
 import { appReplacableResources, resourcesContentOriginal } from './generated/resources'
+import { loadedGameState } from './globalState'
 
 export const resourcePackState = proxy({
   resourcePackInstalled: false,
@@ -24,9 +25,14 @@ const getLoadedImage = async (url: string) => {
   return img
 }
 
-const texturePackBasePath2 = '/data/resourcePacks/'
+const texturePackBasePath = '/data/resourcePacks/'
 export const uninstallTexturePack = async (name = 'default') => {
-  const basePath = texturePackBasePath2 + name
+  if (await existsAsync('/resourcepack/pack.mcmeta')) {
+    await removeFileRecursiveAsync('/resourcepack')
+    loadedGameState.usingServerResourcePack = false
+  }
+  const basePath = texturePackBasePath + name
+  if (!(await existsAsync(basePath))) return
   await removeFileRecursiveAsync(basePath)
   options.enabledResourcepack = null
   await updateTexturePackInstalledState()
@@ -35,7 +41,7 @@ export const uninstallTexturePack = async (name = 'default') => {
 export const getResourcePackNames = async () => {
   // TODO
   try {
-    return { [await fs.promises.readFile(join(texturePackBasePath2, 'default', 'name.txt'), 'utf8')]: true }
+    return { [await fs.promises.readFile(join(texturePackBasePath, 'default', 'name.txt'), 'utf8')]: true }
   } catch (err) {
     return {}
   }
@@ -47,7 +53,7 @@ export const fromTexturePackPath = (path) => {
 
 export const updateTexturePackInstalledState = async () => {
   try {
-    resourcePackState.resourcePackInstalled = await existsAsync(texturePackBasePath2 + 'default')
+    resourcePackState.resourcePackInstalled = await existsAsync(texturePackBasePath + 'default')
   } catch {
   }
 }
@@ -58,31 +64,36 @@ export const installTexturePackFromHandle = async () => {
   // await completeTexturePackInstall()
 }
 
-export const installTexturePack = async (file: File | ArrayBuffer, displayName = file['name'], name = 'default') => {
+export const installTexturePack = async (file: File | ArrayBuffer, displayName = file['name'], name = 'default', isServer = false) => {
+  const installPath = isServer ? '/resourcepack/' : texturePackBasePath + name
   try {
     await uninstallTexturePack(name)
   } catch (err) {
   }
+  const showLoader = !isServer
   const status = 'Installing resource pack: copying all files'
-  setLoadingScreenStatus(status)
+
+  if (showLoader) {
+    setLoadingScreenStatus(status)
+  }
   // extract the zip and write to fs every file in it
   const zip = new JSZip()
   const zipFile = await zip.loadAsync(file)
   if (!zipFile.file('pack.mcmeta')) throw new Error('Not a resource pack: missing /pack.mcmeta')
-  const basePath = texturePackBasePath2 + name
-  await mkdirRecursive(basePath)
+  await mkdirRecursive(installPath)
 
   const allFilesArr = Object.entries(zipFile.files)
+    .filter(([path]) => !path.startsWith('.') && !path.startsWith('_') && !path.startsWith('/')) // ignore dot files and __MACOSX
   let done = 0
   const upStatus = () => {
-    setLoadingScreenStatus(`${status} ${Math.round(done / allFilesArr.length * 100)}%`)
+    if (showLoader) {
+      setLoadingScreenStatus(`${status} ${Math.round(done / allFilesArr.length * 100)}%`)
+    }
   }
   const createdDirs = new Set<string>()
   const copyTasks = [] as Array<Promise<void>>
   await Promise.all(allFilesArr.map(async ([path, file]) => {
-    // ignore dot files and __MACOSX
-    if (path.startsWith('.') || path.startsWith('_') || path.startsWith('/')) return
-    const writePath = join(basePath, path)
+    const writePath = join(installPath, path)
     if (path.endsWith('/')) return
     const dir = dirname(writePath)
     if (!createdDirs.has(dir)) {
@@ -100,19 +111,25 @@ export const installTexturePack = async (file: File | ArrayBuffer, displayName =
     upStatus()
   }))
   console.log('done')
-  await completeTexturePackInstall(displayName, name)
+  await completeTexturePackInstall(displayName, name, isServer)
 }
 
 // or enablement
-export const completeTexturePackInstall = async (displayName: string, name: string) => {
-  const basePath = texturePackBasePath2 + name
-  await fs.promises.writeFile(join(basePath, 'name.txt'), displayName, 'utf8')
+export const completeTexturePackInstall = async (displayName: string | undefined, name: string, isServer: boolean) => {
+  const basePath = isServer ? '/resourcepack/' : texturePackBasePath + name
+  if (displayName) {
+    await fs.promises.writeFile(join(basePath, 'name.txt'), displayName, 'utf8')
+  }
 
   await updateTextures()
   setLoadingScreenStatus(undefined)
   showNotification('Texturepack installed & enabled')
   await updateTexturePackInstalledState()
-  options.enabledResourcepack = name
+  if (isServer) {
+    loadedGameState.usingServerResourcePack = true
+  } else {
+    options.enabledResourcepack = name
+  }
 }
 
 const existsAsync = async (path) => {
@@ -138,8 +155,8 @@ const getSizeFromImage = async (filePath: string) => {
 }
 
 export const getActiveTexturepackBasePath = async () => {
-  if (await existsAsync('/data/resourcePacks/server/pack.mcmeta')) {
-    return '/data/resourcePacks/server'
+  if (await existsAsync('/resourcepack/pack.mcmeta')) {
+    return '/resourcepack'
   }
   const { enabledResourcepack } = options
   // const enabledResourcepack = 'default'
@@ -262,16 +279,23 @@ const prepareBlockstatesAndModels = async () => {
   }
 }
 
-const downloadAndUseResourcePack = async (url) => {
-  console.log('downloadAndUseResourcePack', url)
+const downloadAndUseResourcePack = async (url: string): Promise<void> => {
+  console.log('Downloading server resource pack', url)
+  const response = await fetch(url)
+  const resourcePackData = await response.arrayBuffer()
+  showNotification('Installing resource pack...')
+  installTexturePack(resourcePackData, undefined, undefined, true).catch((err) => {
+    console.error(err)
+    showNotification('Failed to install resource pack: ' + err.message)
+  })
 }
 
 export const onAppLoad = () => {
-  customEvents.on('gameLoaded', () => {
+  customEvents.on('mineflayerBotCreated', () => {
     // todo also handle resourcePack
-    bot._client.on('resource_pack_send', async (packet) => {
+    const handleResourcePackRequest = async (packet) => {
       if (options.serverResourcePacks === 'never') return
-      const promptMessage = 'promptMessage' in packet ? JSON.stringify(packet.promptMessage) : 'Do you want to use server resource pack?'
+      const promptMessage = ('promptMessage' in packet && packet.promptMessage) ? JSON.stringify(packet.promptMessage) : 'Do you want to use server resource pack?'
       // TODO!
       const hash = 'hash' in packet ? packet.hash : '-'
       const forced = 'forced' in packet ? packet.forced : false
@@ -281,9 +305,14 @@ export const onAppLoad = () => {
           cancel: !forced
         })
       if (!choice) return
-      await downloadAndUseResourcePack(packet.url)
       bot.acceptResourcePack()
-    })
+      await downloadAndUseResourcePack(packet.url).catch((err) => {
+        console.error(err)
+        showNotification('Failed to download resource pack: ' + err.message)
+      })
+    }
+    bot._client.on('resource_pack_send', handleResourcePackRequest)
+    bot._client.on('add_resource_pack' as any, handleResourcePackRequest)
   })
 
   subscribe(resourcePackState, () => {
