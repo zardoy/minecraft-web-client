@@ -1,6 +1,7 @@
 //@ts-check
 
 import { proxy, ref, subscribe } from 'valtio'
+import { WorldWarp } from 'flying-squid/dist/lib/modules/warps'
 import { pointerLock } from './utils'
 import type { OptionsGroupType } from './optionsGuiScheme'
 
@@ -153,6 +154,7 @@ export const gameAdditionalState = proxy({
   isFlying: false,
   isSprinting: false,
   isSneaking: false,
+  warps: [] as WorldWarp[]
 })
 
 window.gameAdditionalState = gameAdditionalState

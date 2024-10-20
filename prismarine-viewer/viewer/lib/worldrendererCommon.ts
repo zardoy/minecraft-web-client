@@ -14,9 +14,10 @@ import TypedEmitter from 'typed-emitter'
 import { dynamicMcDataFiles } from '../../buildMesherConfig.mjs'
 import { toMajorVersion } from '../../../src/utils'
 import { buildCleanupDecorator } from './cleanupDecorator'
-import { MesherGeometryOutput, defaultMesherConfig } from './mesher/shared'
+import { defaultMesherConfig } from './mesher/shared'
 import { chunkPos } from './simpleUtils'
 import { HandItemBlock } from './holdingBlock'
+import { HighestBlockInfo, MesherGeometryOutput} from './mesher/shared'
 import { updateStatText } from './ui/newStats'
 
 function mod (x, n) {
@@ -62,6 +63,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
     dirty (pos: Vec3, value: boolean): void
     update (/* pos: Vec3, value: boolean */): void
     textureDownloaded (): void
+    chunkFinished (key: string): void
   }>
   customTexturesDataUrl = undefined as string | undefined
   @worldCleanup()
@@ -81,7 +83,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
   handleResize = () => { }
   mesherConfig = defaultMesherConfig
   camera: THREE.PerspectiveCamera
-  highestBlocks: Record<string, { y: number, name: string }> = {}
+  highestBlocks = new Map<string, HighestBlockInfo>()
   blockstatesModels: any
   customBlockStates: Record<string, any> | undefined
   customModels: Record<string, any> | undefined
@@ -134,10 +136,10 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
         this.handleWorkerMessage(data)
         if (data.type === 'geometry') {
           const geometry = data.geometry as MesherGeometryOutput
-          for (const key in geometry.highestBlocks) {
-            const highest = geometry.highestBlocks[key]
-            if (!this.highestBlocks[key] || this.highestBlocks[key].y < highest.y) {
-              this.highestBlocks[key] = highest
+          for (const [key, highest] of geometry.highestBlocks.entries()) {
+            const currHighest = this.highestBlocks.get(key)
+            if (!currHighest || currHighest.y < highest.y) {
+              this.highestBlocks.set(key, highest)
             }
           }
           const chunkCoords = data.key.split(',').map(Number)
@@ -156,6 +158,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
               return x === chunkCoords[0] && z === chunkCoords[2]
             })) {
               this.finishedChunks[`${chunkCoords[0]},${chunkCoords[2]}`] = true
+              this.renderUpdateEmitter.emit(`chunkFinished`, `${chunkCoords[0] / 16},${chunkCoords[2] / 16}`)
             }
           }
           if (this.sectionsOutstanding.size === 0) {
@@ -359,7 +362,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
     const endZ = Math.ceil((z + 1) / 16) * 16
     for (let x = startX; x < endX; x += 16) {
       for (let z = startZ; z < endZ; z += 16) {
-        delete this.highestBlocks[`${x},${z}`]
+        this.highestBlocks.delete(`${x},${z}`)
       }
     }
   }

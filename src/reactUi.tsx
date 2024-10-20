@@ -19,6 +19,7 @@ import ScoreboardProvider from './react/ScoreboardProvider'
 import SignEditorProvider from './react/SignEditorProvider'
 import IndicatorEffectsProvider from './react/IndicatorEffectsProvider'
 import PlayerListOverlayProvider from './react/PlayerListOverlayProvider'
+import MinimapProvider from './react/MinimapProvider'
 import HudBarsProvider from './react/HudBarsProvider'
 import XPBarProvider from './react/XPBarProvider'
 import DebugOverlay from './react/DebugOverlay'
@@ -116,6 +117,7 @@ const InGameUi = () => {
         {!disabledUiParts.includes('players-list') && <PlayerListOverlayProvider />}
         {!disabledUiParts.includes('chat') && <ChatProvider />}
         <SoundMuffler />
+        <MinimapProvider displayMode='minimapOnly' />
         {!disabledUiParts.includes('title') && <TitleProvider />}
         {!disabledUiParts.includes('scoreboard') && <ScoreboardProvider />}
         {!disabledUiParts.includes('effects-indicators') && <IndicatorEffectsProvider />}
@@ -137,6 +139,7 @@ const InGameUi = () => {
       <DisplayQr />
     </PerComponentErrorBoundary>
     <RobustPortal to={document.body}>
+      <MinimapProvider displayMode='fullmapOnly' />
       {/* because of z-index */}
       {showUI && <TouchControls />}
       <GlobalSearchInput />
