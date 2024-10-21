@@ -12,6 +12,8 @@ import { generateSW } from 'workbox-build'
 import { getSwAdditionalEntries } from './scripts/build'
 import { appAndRendererSharedConfig } from './prismarine-viewer/rsbuildSharedConfig'
 
+const ONE_FILE_BUILD = process.env.ONE_FILE_BUILD === 'true'
+
 //@ts-ignore
 try { require('./localSettings.js') } catch { }
 
@@ -25,6 +27,7 @@ const dev = process.env.NODE_ENV === 'development'
 const appConfig = defineConfig({
     html: {
         template: './index.html',
+        inject: 'body'
     },
     output: {
         externals: [
@@ -34,6 +37,10 @@ const appConfig = defineConfig({
             js: 'source-map',
             css: true,
         },
+        inlineScripts: ONE_FILE_BUILD,
+        inlineStyles: ONE_FILE_BUILD,
+        // 50kb limit for data uri
+        dataUriLimit: ONE_FILE_BUILD ? 1 * 1024 * 1024 * 1024 : 50 * 1024
     },
     source: {
         entry: {
@@ -45,6 +52,8 @@ const appConfig = defineConfig({
         define: {
             'process.env.BUILD_VERSION': JSON.stringify(!dev ? buildingVersion : 'undefined'),
             'process.env.MAIN_MENU_LINKS': JSON.stringify(process.env.MAIN_MENU_LINKS),
+            'process.env.ONE_FILE_BUILD': JSON.stringify(process.env.ONE_FILE_BUILD),
+            'process.platform': '"browser"',
             'process.env.GITHUB_URL':
                 JSON.stringify(`https://github.com/${process.env.GITHUB_REPOSITORY || `${process.env.VERCEL_GIT_REPO_OWNER}/${process.env.VERCEL_GIT_REPO_SLUG}`}`),
             'process.env.DEPS_VERSIONS': JSON.stringify({})
@@ -102,15 +111,22 @@ const appConfig = defineConfig({
                         prep()
                     })
                     build.onAfterBuild(async () => {
-                        const { count, size, warnings } = await generateSW({
-                            // dontCacheBustURLsMatching: [new RegExp('...')],
-                            globDirectory: 'dist',
-                            skipWaiting: true,
-                            clientsClaim: true,
-                            additionalManifestEntries: getSwAdditionalEntries(),
-                            globPatterns: [],
-                            swDest: './dist/service-worker.js',
-                        })
+                        if (process.env.ONE_FILE_BUILD) {
+                            // process index.html
+                            let html = fs.readFileSync('./dist/index.html', 'utf8')
+                            html += '<script id="mesher-worker-code">' + fs.readFileSync('./dist/mesher.js', 'utf8') + '</script>'
+                            fs.writeFileSync('./dist/index.html', html, 'utf8')
+                        } else {
+                            const { count, size, warnings } = await generateSW({
+                                // dontCacheBustURLsMatching: [new RegExp('...')],
+                                globDirectory: 'dist',
+                                skipWaiting: true,
+                                clientsClaim: true,
+                                additionalManifestEntries: getSwAdditionalEntries(),
+                                globPatterns: [],
+                                swDest: './dist/service-worker.js',
+                            })
+                        }
                     })
                 }
                 build.onBeforeStartDevServer(() => prep())

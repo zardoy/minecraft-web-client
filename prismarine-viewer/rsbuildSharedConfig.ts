@@ -97,5 +97,7 @@ export const rspackViewerConfig = (config, { appendPlugins, addRules, rspack }: 
         /the request of a dependency is an expression/,
         /Unsupported pseudo class or element: xr-overlay/
     ]
-
+    if (process.env.ONE_FILE_BUILD === 'true') {
+        config.module!.parser!.javascript!.dynamicImportMode = 'eager'
+    }
 }
