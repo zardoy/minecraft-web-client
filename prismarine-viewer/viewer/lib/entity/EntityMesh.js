@@ -6,6 +6,7 @@ import { Vec3 } from 'vec3'
 import entities from './entities.json'
 import { externalModels } from './objModels'
 import externalTexturesJson from './externalTextures.json'
+import { sheep, sheepCoat } from './exportedModels.js'
 // import { loadTexture } from globalThis.isElectron ? '../utils.electron.js' : '../utils';
 const { loadTexture } = globalThis.isElectron ? require('../utils.electron.js') : require('../utils')
 
@@ -294,7 +295,8 @@ const getEntity = (name) => {
 
 const scaleEntity = {
   zombie: 1.85,
-  husk: 1.85
+  husk: 1.85,
+  sheep: 2
 }
 const offsetEntity = {
   zombie: new Vec3(0, 1, 0),
@@ -302,7 +304,6 @@ const offsetEntity = {
   boat: new Vec3(0, -1, 0),
 }
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class EntityMesh {
   constructor(version, type, scene, /** @type {{textures?, rotation?: Record<string, {x,y,z}>}} */overrides = {}) {
     const originalType = type
@@ -312,50 +313,19 @@ export class EntityMesh {
     if (externalModels[type]) {
       const objLoader = new OBJLoader()
       let texturePath = externalTexturesJson[type]
-      if (originalType === 'zombie_horse') {
-        texturePath = `textures/${version}/entity/horse/horse_zombie.png`
+
+      if (type === 'sheep') {
+        this.mesh = this.handleSheep(objLoader, originalType, overrides)
+        return
       }
-      if (originalType === 'husk') {
-        texturePath = huskPng
-      }
-      if (originalType === 'skeleton_horse') {
-        texturePath = `textures/${version}/entity/horse/horse_skeleton.png`
-      }
-      if (originalType === 'donkey') {
-        texturePath = `textures/${version}/entity/horse/donkey.png`
-      }
-      if (originalType === 'mule') {
-        texturePath = `textures/${version}/entity/horse/mule.png`
-      }
-      if (originalType === 'ocelot') {
-        texturePath = `textures/${version}/entity/cat/ocelot.png`
-      }
+
+      texturePath = this.getTexturePath(originalType, version, texturePath)
       if (!texturePath) throw new Error(`No texture for ${type}`)
-      const texture = new THREE.TextureLoader().load(texturePath)
-      texture.minFilter = THREE.NearestFilter
-      texture.magFilter = THREE.NearestFilter
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-        alphaTest: 0.1
-      })
+
+      const material = this.loadMaterial(texturePath)
       const obj = objLoader.parse(externalModels[type])
-      const scale = scaleEntity[originalType]
-      if (scale) obj.scale.set(scale, scale, scale)
-      const offset = offsetEntity[originalType]
-      if (offset) obj.position.set(offset.x, offset.y, offset.z)
-      obj.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.material = material
-          // todo
-          if (child.name === 'Head layer') child.visible = false
-          if (child.name === 'Head' && overrides.rotation?.head) { // todo
-            child.rotation.x -= (overrides.rotation.head.x ?? 0) * Math.PI / 180
-            child.rotation.y -= (overrides.rotation.head.y ?? 0) * Math.PI / 180
-            child.rotation.z -= (overrides.rotation.head.z ?? 0) * Math.PI / 180
-          }
-        }
-      })
+      this.applyMaterialAndTransform(obj, originalType, material, overrides)
+
       this.mesh = obj
       return
     }
@@ -366,21 +336,115 @@ export class EntityMesh {
       throw new Error(`Unknown entity ${type}`)
     }
 
-    this.mesh = new THREE.Object3D()
-    for (const [name, jsonModel] of Object.entries(e.geometry)) {
-      const texture = overrides.textures?.[name] ?? e.textures[name]
-      if (!texture) continue
-      // console.log(JSON.stringify(jsonModel, null, 2))
-      const mesh = getMesh(texture + '.png', jsonModel, overrides)
-      mesh.name = `geometry_${name}`
-      this.mesh.add(mesh)
+    this.mesh = this.loadDefaultEntity(e, overrides)
+  }
 
-      const skeletonHelper = new THREE.SkeletonHelper(mesh)
-      //@ts-expect-error
-      skeletonHelper.material.linewidth = 2
-      skeletonHelper.visible = false
-      this.mesh.add(skeletonHelper)
+  handleSheep(objLoader, originalType, overrides) {
+    const sheepObj = objLoader.parse(sheep)
+    const sheepMaterial = new THREE.MeshLambertMaterial({ color: 0xff_ff_ff })
+    this.applyMaterialToMesh(sheepObj, sheepMaterial)
+
+    const sheepCoatObj = objLoader.parse(sheepCoat)
+    const sheepCoatMaterial = new THREE.MeshLambertMaterial({ color: 0xff_d7_00 })
+    this.applyMaterialToMesh(sheepCoatObj, sheepCoatMaterial)
+
+    this.applyEntityScaleAndPosition(sheepObj, sheepCoatObj, originalType)
+
+    if (overrides.rotation?.head) {
+      this.applyHeadRotation(sheepObj, overrides.rotation.head)
     }
+
+    const mesh = new THREE.Object3D()
+    mesh.add(sheepObj)
+    mesh.add(sheepCoatObj)
+
+    return mesh
+  }
+
+  getTexturePath(type, version, texturePath) {
+    switch (type) {
+      case 'zombie_horse':
+        return `textures/${version}/entity/horse/horse_zombie.png`
+      case 'husk':
+        return huskPng
+      case 'skeleton_horse':
+        return `textures/${version}/entity/horse/horse_skeleton.png`
+      case 'donkey':
+        return `textures/${version}/entity/horse/donkey.png`
+      case 'mule':
+        return `textures/${version}/entity/horse/mule.png`
+      case 'ocelot':
+        return `textures/${version}/entity/cat/ocelot.png`
+      default:
+        return texturePath
+    }
+  }
+
+  loadMaterial(texturePath) {
+    const texture = new THREE.TextureLoader().load(texturePath)
+    texture.minFilter = THREE.NearestFilter
+    texture.magFilter = THREE.NearestFilter
+    return new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      alphaTest: 0.1
+    })
+  }
+
+  applyMaterialAndTransform(obj, originalType, material, overrides) {
+    const scale = scaleEntity[originalType]
+    const offset = offsetEntity[originalType]
+    obj.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.material = material
+        if (child.name === 'Head' && overrides.rotation?.head) {
+          this.applyHeadRotation(child, overrides.rotation.head)
+        }
+      }
+    })
+
+    if (scale) obj.scale.set(scale, scale, scale)
+    if (offset) obj.position.set(offset.x, offset.y, offset.z)
+  }
+
+  applyMaterialToMesh(obj, material) {
+    obj.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.material = material
+      }
+    })
+  }
+
+  applyEntityScaleAndPosition(sheepObj, sheepCoatObj, originalType) {
+    const scale = scaleEntity[originalType]
+    const offset = offsetEntity[originalType]
+
+    if (scale) {
+      sheepObj.scale.set(scale, scale, scale)
+      sheepCoatObj.scale.set(scale, scale, scale)
+    }
+    if (offset) {
+      sheepObj.position.set(offset.x, offset.y, offset.z)
+      sheepCoatObj.position.set(offset.x, offset.y, offset.z)
+    }
+  }
+
+  applyHeadRotation(mesh, rotation) {
+    mesh.rotation.x -= (rotation.x ?? 0) * Math.PI / 180
+    mesh.rotation.y -= (rotation.y ?? 0) * Math.PI / 180
+    mesh.rotation.z -= (rotation.z ?? 0) * Math.PI / 180
+  }
+
+  loadDefaultEntity(entity, overrides) {
+    const mesh = new THREE.Object3D()
+    for (const [name, jsonModel] of Object.entries(entity.geometry)) {
+      const texture = overrides.textures?.[name] ?? entity.textures[name]
+      if (!texture) continue
+      const entityMesh = getMesh(texture + '.png', jsonModel, overrides)
+      entityMesh.name = `geometry_${name}`
+      mesh.add(entityMesh)
+    }
+    return mesh
   }
 
   static getStaticData(name) {
@@ -393,7 +457,7 @@ export class EntityMesh {
     const e = getEntity(name)
     if (!e) throw new Error(`Unknown entity ${name}`)
     return {
-      boneNames: Object.values(e.geometry).flatMap(x => x.name)
+      boneNames: Object.values(e.geometry).flatMap((x) => x.name)
     }
   }
 }
