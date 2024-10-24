@@ -92,6 +92,7 @@
     "react-dom": "^18.2.0",
     "react-select": "^5.8.0",
     "react-transition-group": "^4.4.5",
+    "react-zoom-pan-pinch": "3.4.4",
     "remark": "^15.0.1",
     "sanitize-filename": "^1.6.3",
     "skinview3d": "^3.0.1",

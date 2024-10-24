@@ -29,6 +29,6 @@
         "prismarine-viewer/examples"
     ],
     "exclude": [
-        "node_modules",
+        "node_modules"
     ]
 }
