@@ -37,7 +37,7 @@ export class WorldRendererThree extends WorldRendererCommon {
     this.holdingBlock = new HoldingBlock(this.scene)
 
     this.renderUpdateEmitter.on('textureDownloaded', () => {
-      if (this.holdingBlock.toBeRenderedItem) {
+      if (this.holdingBlock.toBeRenderedItem || true) {
         this.onHandItemSwitch(this.holdingBlock.toBeRenderedItem)
         this.holdingBlock.toBeRenderedItem = undefined
       }
@@ -51,7 +51,10 @@ export class WorldRendererThree extends WorldRendererCommon {
       this.holdingBlock.toBeRenderedItem = item
       return
     }
-    void this.holdingBlock.initHandObject(this.material, this.blockstatesModels, this.blocksAtlases, item)
+    void this.holdingBlock.initHandObject(this.material, this.blockstatesModels, this.blocksAtlases, {
+      name: 'furnace',
+      properties: {},
+    })
   }
 
   changeHandSwingingState (isAnimationPlaying: boolean) {

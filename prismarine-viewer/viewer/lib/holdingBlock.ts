@@ -1,7 +1,9 @@
 import * as THREE from 'three'
 import * as tweenJs from '@tweenjs/tween.js'
 import worldBlockProvider from 'mc-assets/dist/worldBlockProvider'
+import GUI from 'lil-gui'
 import { getThreeBlockModelGroup, renderBlockThree, setBlockPosition } from './mesher/standaloneRenderer'
+import { getMyHand } from './hand'
 
 export type HandItemBlock = {
   name
@@ -167,12 +169,13 @@ export default class HoldingBlock {
     }
     const blockProvider = worldBlockProvider(blockstatesModels, blocksAtlases, 'latest')
     const models = blockProvider.getAllResolvedModels0_1(block, true)
-    const blockInner = getThreeBlockModelGroup(material, models, undefined, 'plains', loadedData)
+    // const blockInner = getThreeBlockModelGroup(material, models, undefined, 'plains', loadedData)
     // const { mesh: itemMesh } = viewer.entities.getItemMesh({
     //   itemId: 541,
     // })!
     // itemMesh.position.set(0.5, 0.5, 0.5)
     // const blockInner = itemMesh
+    const blockInner = await getMyHand()
     blockInner.name = 'holdingBlock'
     const blockOuterGroup = new THREE.Group()
     blockOuterGroup.add(blockInner)
@@ -190,9 +193,32 @@ export default class HoldingBlock {
     this.objectOuterGroup.add(this.objectInnerGroup)
 
     this.cameraGroup.add(this.objectOuterGroup)
-    const rotation = -45 + -90
-    // const rotation = -45 // should be for item
-    this.holdingBlock.rotation.set(0, THREE.MathUtils.degToRad(rotation), 0, 'ZYX')
+    // const rotation = -45 + -90
+    const yRot = 45 // should be for item
+    const xRot = -90
+    // this.holdingBlock.rotation.set(THREE.MathUtils.degToRad(xRot), THREE.MathUtils.degToRad(yRot), THREE.MathUtils.degToRad(xRot), 'ZYX')
+    const handRotation = {
+      x: 166.7,
+      // y: -180,
+      y: -165.2,
+      // z: -156.3,
+      z: -134.2,
+      yOuter: -81.1
+    }
+    const rotationDeg = handRotation
+    const setRotation = () => {
+      this.holdingBlock!.rotation.x = THREE.MathUtils.degToRad(rotationDeg.x)
+      this.holdingBlock!.rotation.y = THREE.MathUtils.degToRad(rotationDeg.y)
+      this.holdingBlock!.rotation.z = THREE.MathUtils.degToRad(rotationDeg.z)
+      this.objectOuterGroup.rotation.y = THREE.MathUtils.degToRad(rotationDeg.yOuter)
+    }
+    // const gui = new GUI()
+    // gui.add(rotationDeg, 'x', -180, 180, 0.1)
+    // gui.add(rotationDeg, 'y', -180, 180, 0.1)
+    // gui.add(rotationDeg, 'z', -180, 180, 0.1)
+    // gui.add(rotationDeg, 'yOuter', -180, 180, 0.1)
+    // gui.onChange(setRotation)
+    setRotation()
 
     // const scale = window.scale ?? 0.2
     const scale = 0.2

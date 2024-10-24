@@ -3,12 +3,14 @@ import * as THREE from 'three'
 import { Vec3 } from 'vec3'
 import { generateSpiralMatrix } from 'flying-squid/dist/utils'
 import worldBlockProvider from 'mc-assets/dist/worldBlockProvider'
+import stevePng from 'mc-assets/dist/other-textures/latest/entity/player/wide/steve.png'
 import { Entities } from './entities'
 import { Primitives } from './primitives'
 import { WorldRendererThree } from './worldrendererThree'
 import { WorldRendererCommon, WorldRendererConfig, defaultWorldRendererConfig } from './worldrendererCommon'
 import { getThreeBlockModelGroup, renderBlockThree, setBlockPosition } from './mesher/standaloneRenderer'
 import { addNewStat } from './ui/newStats'
+import { getMyHand } from './hand'
 
 export class Viewer {
   scene: THREE.Scene
@@ -104,18 +106,12 @@ export class Viewer {
     this.world.setBlockStateId(pos, stateId)
   }
 
-  demoModel () {
+  async demoModel () {
     //@ts-expect-error
     const pos = cursorBlockRel(0, 1, 0).position
     const blockProvider = worldBlockProvider(this.world.blockstatesModels, this.world.blocksAtlases, 'latest')
-    const models = blockProvider.getAllResolvedModels0_1({
-      name: 'item_frame',
-      properties: {
-        // map: false
-      }
-    }, true)
-    const { material } = this.world
-    const mesh = getThreeBlockModelGroup(material, models, undefined, 'plains', loadedData)
+
+    const mesh = await getMyHand()
     // mesh.rotation.y = THREE.MathUtils.degToRad(90)
     setBlockPosition(mesh, pos)
     const helper = new THREE.BoxHelper(mesh, 0xff_ff_00)
