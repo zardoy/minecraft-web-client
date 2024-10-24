@@ -46,7 +46,7 @@ export const appAndRendererSharedConfig = () => defineConfig({
     },
     server: {
         htmlFallback: false,
-        publicDir: false,
+        // publicDir: false,
         headers: {
             // enable shared array buffer
             'Cross-Origin-Opener-Policy': 'same-origin',

@@ -340,7 +340,6 @@ export class Entities extends EventEmitter {
   }
 
   update (entity: import('prismarine-entity').Entity & { delete?; pos }, overrides) {
-    console.log('entity', entity)
     const isPlayerModel = entity.name === 'player'
     if (entity.name === 'zombie' || entity.name === 'zombie_villager' || entity.name === 'husk') {
       overrides.texture = `textures/1.16.4/entity/${entity.name === 'zombie_villager' ? 'zombie_villager/zombie_villager.png' : `zombie/${entity.name}.png`}`

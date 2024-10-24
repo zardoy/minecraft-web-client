@@ -16,6 +16,7 @@ browserfs.install(window)
 const defaultMountablePoints = {
   '/world': { fs: 'LocalStorage' }, // will be removed in future
   '/data': { fs: 'IndexedDB' },
+  '/resourcepack': { fs: 'InMemory' }, // temporary storage for currently loaded resource pack
 }
 browserfs.configure({
   fs: 'MountableFileSystem',
