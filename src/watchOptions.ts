@@ -75,7 +75,7 @@ export const watchOptionsAfterViewerInit = () => {
 
   watchValue(options, o => {
     if (!(viewer.world instanceof WorldRendererThree)) return
-    viewer.world.starField.enabled = o.starfieldRendering
+    (viewer.world as WorldRendererThree).starField.enabled = o.starfieldRendering
   })
 
   watchValue(options, o => {

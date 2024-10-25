@@ -10,6 +10,7 @@
         "@stylistic"
     ],
     "rules": {
+        "unicorn/no-typeof-undefined": "off",
         // style
         "@stylistic/space-infix-ops": "error",
         "@stylistic/no-multi-spaces": "error",

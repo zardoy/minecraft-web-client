@@ -39,6 +39,7 @@ if (hasRamPanel) {
   addStat(stats2.dom)
 }
 
+const hideStats = localStorage.hideStats || isCypress() || true
 export const toggleStatsVisibility = (visible: boolean) => {
   if (visible) {
     stats.dom.style.display = 'block'
@@ -51,7 +52,6 @@ export const toggleStatsVisibility = (visible: boolean) => {
   }
 }
 
-const hideStats = localStorage.hideStats || isCypress()
 if (hideStats) {
   toggleStatsVisibility(false)
 }

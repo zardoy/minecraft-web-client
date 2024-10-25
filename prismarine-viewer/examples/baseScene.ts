@@ -17,6 +17,7 @@ import { WorldDataEmitter } from '../viewer'
 import { Viewer } from '../viewer/lib/viewer'
 import { BlockNames } from '../../src/mcDataTypes'
 import { initWithRenderer, statsEnd, statsStart } from '../../src/topRightStats'
+import { initWebgpuRenderer } from './webgpuRendererMain'
 import { getSyncWorld } from './shared'
 
 window.THREE = THREE
@@ -160,10 +161,10 @@ export class BasePlaygroundScene {
     // Create viewer
     const viewer = new Viewer(renderer, { numWorkers: 6, showChunkBorders: false, })
     window.viewer = viewer
-    const isWebgpu = false
+    const isWebgpu = true
     const promises = [] as Array<Promise<void>>
     if (isWebgpu) {
-      // promises.push(initWebgpuRenderer(() => { }, true, true)) // todo
+      promises.push(initWebgpuRenderer(() => { }, true, true)) // todo
     } else {
       initWithRenderer(renderer.domElement)
       renderer.domElement.id = 'viewer-canvas'
@@ -177,6 +178,7 @@ export class BasePlaygroundScene {
       viewer.render()
     }
     viewer.world.mesherConfig.enableLighting = false
+    viewer.world.allowUpdates = true
     await Promise.all(promises)
     this.setupWorld()
 
@@ -323,13 +325,9 @@ export class BasePlaygroundScene {
       direction.applyQuaternion(viewer.camera.quaternion)
       direction.y = 0
 
-      if (pressedKeys.has('ShiftLeft')) {
-        direction.y *= 2
-        direction.x *= 2
-        direction.z *= 2
-      }
+      const scalar = pressedKeys.has('AltLeft') ? 4 : 1
       // Add the vector to the camera's position to move the camera
-      viewer.camera.position.add(direction.normalize())
+      viewer.camera.position.add(direction.normalize().multiplyScalar(scalar))
       this.controls?.update()
       this.render()
     }

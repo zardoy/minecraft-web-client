@@ -442,6 +442,10 @@ export const f3Keybinds = [
           console.warn('forcefully removed chunk from scene')
         }
       }
+
+      viewer.world.chunksReset() // todo
+      viewer.world.newChunks = {}
+
       if (localServer) {
         //@ts-expect-error not sure why it is private... maybe revisit api?
         localServer.players[0].world.columns = {}

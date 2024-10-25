@@ -3,9 +3,10 @@ import { playgroundGlobalUiState } from './playgroundUi'
 import * as scenes from './scenes'
 
 const qsScene = new URLSearchParams(window.location.search).get('scene')
-const Scene: typeof BasePlaygroundScene = qsScene ? scenes[qsScene] : scenes.main
-playgroundGlobalUiState.scenes = ['main', 'railsCobweb', 'floorRandom', 'lightingStarfield', 'transparencyIssue', 'entities', 'frequentUpdates']
-playgroundGlobalUiState.selected = qsScene ?? 'main'
+// eslint-disable-next-line unicorn/no-useless-spread
+playgroundGlobalUiState.scenes = [...new Set([...Object.keys(scenes)])]
+playgroundGlobalUiState.selected = qsScene ?? 'floorRandom'
+const Scene: typeof BasePlaygroundScene = scenes[playgroundGlobalUiState.selected]
 
 const scene = new Scene()
 globalThis.scene = scene

@@ -31,9 +31,6 @@ customEvents.on('gameLoaded', () => {
 let sceneBg = { r: 0, g: 0, b: 0 }
 export const updateBackground = (newSceneBg = sceneBg) => {
   sceneBg = newSceneBg
-  if (inWater) {
-    viewer.scene.background = new THREE.Color(0x00_00_ff)
-  } else {
-    viewer.scene.background = new THREE.Color(sceneBg.r, sceneBg.g, sceneBg.b)
-  }
+  const color: [number, number, number] = inWater ? [0, 0, 1] : [sceneBg.r, sceneBg.g, sceneBg.b]
+  viewer.world.changeBackgroundColor(color)
 }

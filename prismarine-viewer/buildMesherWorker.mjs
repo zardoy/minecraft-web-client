@@ -22,7 +22,7 @@ const buildOptions = {
   },
   platform: 'browser',
   entryPoints: [path.join(__dirname, './viewer/lib/mesher/mesher.ts')],
-  minify: true,
+  minify: !watch,
   logLevel: 'info',
   drop: !watch ? [
     'debugger'
@@ -38,7 +38,7 @@ const buildOptions = {
     ...mesherSharedPlugins,
     {
       name: 'external-json',
-      setup (build) {
+      setup(build) {
         build.onResolve({ filter: /\.json$/ }, args => {
           const fileName = args.path.split('/').pop().replace('.json', '')
           if (args.resolveDir.includes('minecraft-data')) {

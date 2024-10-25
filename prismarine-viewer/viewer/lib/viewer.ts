@@ -3,10 +3,12 @@ import * as THREE from 'three'
 import { Vec3 } from 'vec3'
 import { generateSpiralMatrix } from 'flying-squid/dist/utils'
 import worldBlockProvider from 'mc-assets/dist/worldBlockProvider'
+import { sendCameraToWorker } from '../../examples/webgpuRendererMain'
+import { WorldRendererWebgpu } from './worldrendererWebgpu'
 import { Entities } from './entities'
 import { Primitives } from './primitives'
+import { defaultWorldRendererConfig } from './worldrendererCommon'
 import { WorldRendererThree } from './worldrendererThree'
-import { WorldRendererCommon, WorldRendererConfig, defaultWorldRendererConfig } from './worldrendererCommon'
 import { getThreeBlockModelGroup, renderBlockThree, setBlockPosition } from './mesher/standaloneRenderer'
 import { addNewStat } from './ui/newStats'
 
@@ -14,25 +16,26 @@ export class Viewer {
   scene: THREE.Scene
   ambientLight: THREE.AmbientLight
   directionalLight: THREE.DirectionalLight
-  world: WorldRendererCommon
+  camera: THREE.PerspectiveCamera
+  world: WorldRendererWebgpu/*  | WorldRendererThree */
   entities: Entities
   // primitives: Primitives
   domElement: HTMLCanvasElement
   playerHeight = 1.62
   isSneaking = false
-  threeJsWorld: WorldRendererThree
+  // threeJsWorld: WorldRendererThree
   cameraObjectOverride?: THREE.Object3D // for xr
   audioListener: THREE.AudioListener
   renderingUntilNoUpdates = false
   processEntityOverrides = (e, overrides) => overrides
+  webgpuWorld: WorldRendererWebgpu
 
-  get camera () {
-    return this.world.camera
-  }
-
-  set camera (camera) {
-    this.world.camera = camera
-  }
+  // get camera () {
+  //   return this.world.camera
+  // }
+  // set camera (camera) {
+  //   this.world.camera = camera
+  // }
 
   constructor (public renderer: THREE.WebGLRenderer, worldConfig = defaultWorldRendererConfig) {
     // https://discourse.threejs.org/t/updates-to-color-management-in-three-js-r152/50791
@@ -41,7 +44,8 @@ export class Viewer {
 
     this.scene = new THREE.Scene()
     this.scene.matrixAutoUpdate = false // for perf
-    this.threeJsWorld = new WorldRendererThree(this.scene, this.renderer, worldConfig)
+    // this.threeJsWorld = new WorldRendererThree(this.scene, this.renderer, worldConfig)
+    this.webgpuWorld = new WorldRendererWebgpu(worldConfig)
     this.setWorld()
     this.resetScene()
     this.entities = new Entities(this.scene)
@@ -51,7 +55,7 @@ export class Viewer {
   }
 
   setWorld () {
-    this.world = this.threeJsWorld
+    this.world = this.webgpuWorld
   }
 
   resetScene () {
@@ -98,10 +102,18 @@ export class Viewer {
   }
 
   setBlockStateId (pos: Vec3, stateId: number) {
-    if (!this.world.loadedChunks[`${Math.floor(pos.x / 16)},${Math.floor(pos.z / 16)}`]) {
-      console.warn('[should be unreachable] setBlockStateId called for unloaded chunk', pos)
+    const set = async () => {
+      const sectionX = Math.floor(pos.x / 16) * 16
+      const sectionZ = Math.floor(pos.z / 16) * 16
+      if (this.world.queuedChunks.has(`${sectionX},${sectionZ}`)) {
+        await this.world.waitForChunkToLoad(pos)
+      }
+      if (!this.world.loadedChunks[`${sectionX},${sectionZ}`]) {
+        console.warn('[should be unreachable] setBlockStateId called for unloaded chunk', pos)
+      }
+      this.world.setBlockStateId(pos, stateId)
     }
-    this.world.setBlockStateId(pos, stateId)
+    void set()
   }
 
   demoModel () {
@@ -150,13 +162,14 @@ export class Viewer {
 
   setFirstPersonCamera (pos: Vec3 | null, yaw: number, pitch: number, roll = 0) {
     const cam = this.cameraObjectOverride || this.camera
-    let yOffset = this.playerHeight
-    if (this.isSneaking) yOffset -= 0.3
-
-    if (this.world instanceof WorldRendererThree) {
-      this.world.camera = cam as THREE.PerspectiveCamera
+    if (pos) {
+      let y = pos.y + this.playerHeight
+      if (this.isSneaking) y -= 0.3
+      // new tweenJs.Tween(cam.position).to({ x: pos.x, y, z: pos.z }, 50).start()
+      cam.position.set(pos.x, y, pos.z)
     }
-    this.world.updateCamera(pos?.offset(0, yOffset, 0) ?? null, yaw, pitch)
+    cam.rotation.set(pitch, yaw, roll, 'ZYX')
+    sendCameraToWorker()
   }
 
   playSound (position: Vec3, path: string, volume = 1, pitch = 1) {
@@ -205,6 +218,7 @@ export class Viewer {
     } | null
     worldEmitter.on('loadChunk', ({ x, z, chunk, worldConfig, isLightUpdate }) => {
       this.world.worldConfig = worldConfig
+      this.world.queuedChunks.add(`${x},${z}`)
       const args = [x, z, chunk, isLightUpdate]
       if (!currentLoadChunkBatch) {
         // add a setting to use debounce instead
@@ -212,6 +226,7 @@ export class Viewer {
           data: [],
           timeout: setTimeout(() => {
             for (const args of currentLoadChunkBatch!.data) {
+              this.world.queuedChunks.delete(`${args[0]},${args[1]}`)
               this.addColumn(...args as Parameters<typeof this.addColumn>)
             }
             currentLoadChunkBatch = null
@@ -237,10 +252,21 @@ export class Viewer {
       this.world.updateViewerPosition(pos)
     })
 
+
+    worldEmitter.on('renderDistance', (d) => {
+      this.world.viewDistance = d
+      this.world.chunksLength = d === 0 ? 1 : generateSpiralMatrix(d).length
+    })
+
     worldEmitter.on('renderDistance', (d) => {
       this.world.viewDistance = d
       this.world.chunksLength = d === 0 ? 1 : generateSpiralMatrix(d).length
       this.world.allChunksFinished = Object.keys(this.world.finishedChunks).length === this.world.chunksLength
+    })
+
+    worldEmitter.on('markAsLoaded', ({ x, z }) => {
+      this.world.finishedChunks[`${x},${z}`] = true
+      this.world.checkAllFinished()
     })
 
     worldEmitter.on('updateLight', ({ pos }) => {
@@ -264,16 +290,25 @@ export class Viewer {
       skyLight = Math.floor(skyLight) // todo: remove this after optimization
 
       if (this.world.mesherConfig.skyLight === skyLight) return
-      this.world.mesherConfig.skyLight = skyLight;
-      (this.world as WorldRendererThree).rerenderAllChunks?.()
+      this.world.mesherConfig.skyLight = skyLight
+      if (this.world instanceof WorldRendererThree) {
+        (this.world as WorldRendererThree).rerenderAllChunks?.()
+      }
     })
 
     worldEmitter.emit('listening')
   }
 
+  loadChunksFixture () { }
+
   render () {
-    this.world.render()
-    this.entities.render()
+    // if (this.composer) {
+    //   this.renderPass.camera = this.camera
+    //   this.composer.render()
+    // } else {
+    //   this.renderer.render(this.scene, this.camera)
+    // }
+    // this.entities.render()
   }
 
   async waitForChunksToRender () {

@@ -46,20 +46,8 @@ export class WorldRendererThree extends WorldRendererCommon {
     this.addDebugOverlay()
   }
 
-  onHandItemSwitch (item: HandItemBlock | undefined) {
-    if (!this.currentTextureImage) {
-      this.holdingBlock.toBeRenderedItem = item
-      return
-    }
-    void this.holdingBlock.initHandObject(this.material, this.blockstatesModels, this.blocksAtlases, item)
-  }
-
-  changeHandSwingingState (isAnimationPlaying: boolean) {
-    if (isAnimationPlaying) {
-      this.holdingBlock.startSwing()
-    } else {
-      void this.holdingBlock.stopSwing()
-    }
+  changeBackgroundColor (color: [number, number, number]): void {
+    this.scene.background = new THREE.Color(color[0], color[1], color[2])
   }
 
   timeUpdated (newTime: number): void {

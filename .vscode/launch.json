@@ -35,7 +35,25 @@
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js",
                 // "!${workspaceFolder}/dist/**/*vendors*",
-                "!${workspaceFolder}/dist/**/*mc-data*",
+                "!**/node_modules/**"
+            ],
+            "skipFiles": [
+                // "<node_internals>/**/*vendors*"
+                "<node_internals>/**/*mc-data*"
+            ],
+        },
+        {
+            // not recommended as in most cases it will slower as it launches from extension host so it slows down extension host, not sure why
+            "type": "chrome",
+            "name": "Launch Chrome (playground)",
+            "request": "launch",
+            "url": "http://localhost:9090/",
+            "pathMapping": {
+                "/": "${workspaceFolder}/prismarine-viewer/dist"
+            },
+            "outFiles": [
+                "${workspaceFolder}/prismarine-viewer/dist/**/*.js",
+                // "!${workspaceFolder}/dist/**/*vendors*",
                 "!**/node_modules/**"
             ],
             "skipFiles": [
