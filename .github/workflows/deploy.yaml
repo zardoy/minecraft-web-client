@@ -1,0 +1,51 @@
+name: Build and Deploy Minecraft Web Client
+
+on:
+  push:
+    branches:
+      - "next"
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, buildkit]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://buildkit.buildkit.svc.cluster.local:1234
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            192.168.2.201:5000/minecraft-web-client:${{ github.sha }}
+            192.168.2.201:5000/minecraft-web-client:latest
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl for in-cluster access
+        run: |
+          kubectl config set-cluster kubernetes --server=https://kubernetes.default.svc --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          kubectl config set-credentials runner --token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          kubectl config set-context default --cluster=kubernetes --user=runner
+          kubectl config use-context default
+
+      - name: Update deployment
+        run: |
+          kubectl set image deployment/minecraft-web-client \
+            web-client=192.168.2.201:5000/minecraft-web-client:${{ github.sha }} \
+            -n minecraft
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/minecraft-web-client -n minecraft --timeout=5m
