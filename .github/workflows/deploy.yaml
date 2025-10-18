@@ -6,16 +6,8 @@ on:
       - "next"
 
 jobs:
-  deploy:
+  build:
     uses: h4ks-com/k3s-deploy/.github/workflows/k3s-deploy.yaml@main
     with:
-      namespace: minecraft
-      deployment-name: minecraft-web-client
-      services: |
-        [
-          {
-            "context": ".",
-            "image": "minecraft-web-client",
-            "containers": ["web-client"]
-          }
-        ]
+      contexts: "."
+      images: "minecraft-web-client"
