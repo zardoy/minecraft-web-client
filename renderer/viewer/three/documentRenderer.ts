@@ -228,7 +228,8 @@ class TopRightStats {
     dom.style.width = '80px'
     dom.style.zIndex = '1'
     dom.style.opacity = '0.8'
-    document.body.appendChild(dom)
+    const container = document.getElementById('corner-indicator-stats') ?? document.body
+    container.appendChild(dom)
     this.total += size
   }
 
@@ -236,10 +237,7 @@ class TopRightStats {
     const hasRamPanel = this.stats2.dom.children.length === 3
 
     this.addStat(this.stats.dom)
-    if (process.env.NODE_ENV === 'development' && document.exitPointerLock) {
-      this.stats.dom.style.top = ''
-      this.stats.dom.style.bottom = '0'
-    }
+    this.stats.dom.style.position = 'relative'
     if (hasRamPanel) {
       this.addStat(this.stats2.dom)
     }

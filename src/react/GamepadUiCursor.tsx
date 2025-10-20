@@ -10,6 +10,7 @@ export const gamepadUiCursorState = proxy({
   multiply: 1,
   display: false
 })
+globalThis.gamepadUiCursorState = gamepadUiCursorState
 
 export const moveGamepadCursorByPx = (value: number, isX: boolean) => {
   value *= gamepadUiCursorState.multiply * 3

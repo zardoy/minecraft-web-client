@@ -31,7 +31,7 @@ customEvents.on('mineflayerBotCreated', () => {
   }
 
   const onClientError = (err, data) => {
-    const error = new MinecraftProtocolError(`Minecraft protocol client error: ${err.message}`, err, data)
+    const error = new MinecraftProtocolError(`Minecraft protocol client error: ${String(err)}`, err, data)
     reportError(error)
   }
   if (typeof bot._client['_events'].error === 'function') {

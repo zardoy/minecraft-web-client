@@ -69,6 +69,7 @@ import StorageConflictModal from './react/StorageConflictModal'
 import FireRenderer from './react/FireRenderer'
 import MonacoEditor from './react/MonacoEditor'
 import OverlayModelViewer from './react/OverlayModelViewer'
+import CornerIndicatorStats from './react/CornerIndicatorStats'
 
 const isFirefox = ua.getBrowser().name === 'Firefox'
 if (isFirefox) {
@@ -263,6 +264,7 @@ const App = () => {
             <OverlayModelViewer />
             <MonacoEditor />
             <DebugResponseTimeIndicator />
+            <CornerIndicatorStats />
           </RobustPortal>
         </ButtonAppProvider>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { options } from '../optionsStorage'
+import { miscUiState } from '../globalState'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 
 interface BatteryManager extends EventTarget {
@@ -27,15 +28,11 @@ export default () => {
 
 const FullscreenTime = () => {
   const { topRightTimeDisplay } = useSnapshot(options)
-  const [fullScreen, setFullScreen] = useState(false)
+  const { fullscreen } = useSnapshot(miscUiState)
   const [time, setTime] = useState('')
   const [batteryInfo, setBatteryInfo] = useState<{ level: number, charging: boolean } | null>(null)
 
   useEffect(() => {
-    document.documentElement.addEventListener('fullscreenchange', () => {
-      setFullScreen(!!document.fullscreenElement)
-    })
-
     // Update time every second
     const updateTime = () => {
       const now = new Date()
@@ -70,7 +67,7 @@ const FullscreenTime = () => {
     }
   }, [])
 
-  if (topRightTimeDisplay === 'only-fullscreen' && !fullScreen) return null
+  if (topRightTimeDisplay === 'only-fullscreen' && !fullscreen) return null
 
   return (
     <div

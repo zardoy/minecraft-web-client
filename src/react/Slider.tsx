@@ -1,5 +1,6 @@
 // Slider.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useFloating, arrow, FloatingArrow, offset as offsetMiddleware } from '@floating-ui/react'
 import styles from './slider.module.css'
 import SharedHudVars from './SharedHudVars'
 
@@ -17,6 +18,9 @@ interface Props extends React.ComponentProps<'div'> {
   updateValue?: (value: number) => void;
   updateOnDragEnd?: boolean;
 }
+
+const ARROW_HEIGHT = 7
+const GAP = 0
 
 const Slider: React.FC<Props> = ({
   label,
@@ -44,6 +48,11 @@ const Slider: React.FC<Props> = ({
   // Throttling refs
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastValueRef = useRef<number>(valueProp)
+
+  // Gamepad support
+  const [showGamepadTooltip, setShowGamepadTooltip] = useState(false)
+  const lastChangeTime = useRef(0)
+  const containerRef = useRef<HTMLDivElement>(null!)
 
   useEffect(() => {
     setValue(valueProp)
@@ -89,15 +98,80 @@ const Slider: React.FC<Props> = ({
     }
   }, [updateValue])
 
+  // Handle gamepad hover and input changes
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element) return
+
+    const handleMouseOver = (e: MouseEvent & { isGamepadCursor?: boolean }) => {
+      if (e.isGamepadCursor && !disabledReason) {
+        setShowGamepadTooltip(true)
+      }
+    }
+
+    const handleMouseOut = (e: MouseEvent & { isGamepadCursor?: boolean }) => {
+      if (e.isGamepadCursor) {
+        setShowGamepadTooltip(false)
+      }
+    }
+
+    const handleGamepadInputChange = (e: CustomEvent<{ direction: number, value: number, isStickMovement: boolean }>) => {
+      if (disabledReason) return
+
+      const now = Date.now()
+      // Throttle changes to prevent too rapid updates
+      if (now - lastChangeTime.current < 200 && e.detail.isStickMovement) return
+      lastChangeTime.current = now
+
+      const step = 1
+      const newValue = value + (e.detail.direction * step)
+
+      // Apply min/max constraints
+      const constrainedValue = Math.max(min, Math.min(max, newValue))
+
+      setValue(constrainedValue)
+      fireValueUpdate(false, constrainedValue)
+    }
+
+    element.addEventListener('mouseover', handleMouseOver as EventListener)
+    element.addEventListener('mouseout', handleMouseOut as EventListener)
+    element.addEventListener('gamepadInputChange', handleGamepadInputChange as EventListener)
+
+    return () => {
+      element.removeEventListener('mouseover', handleMouseOver as EventListener)
+      element.removeEventListener('mouseout', handleMouseOut as EventListener)
+      element.removeEventListener('gamepadInputChange', handleGamepadInputChange as EventListener)
+    }
+  }, [disabledReason, value, min, max])
+
   const fireValueUpdate = (dragEnd: boolean, v = value) => {
     throttledUpdateValue(v, dragEnd)
   }
 
   const labelText = `${label}: ${valueDisplay ?? value} ${unit}`
 
+  const arrowRef = useRef<any>(null)
+  const { refs, floatingStyles, context } = useFloating({
+    middleware: [
+      arrow({
+        element: arrowRef
+      }),
+      offsetMiddleware(ARROW_HEIGHT + GAP),
+    ],
+    placement: 'top',
+  })
+
   return (
     <SharedHudVars>
-      <div className={`${styles['slider-container']} settings-text-container ${labelText.length > 17 ? 'settings-text-container-long' : ''}`} style={{ width }} {...divProps}>
+      <div
+        ref={(node) => {
+          containerRef.current = node!
+          refs.setReference(node)
+        }}
+        className={`${styles['slider-container']} settings-text-container ${labelText.length > 17 ? 'settings-text-container-long' : ''}`}
+        style={{ width }}
+        {...divProps}
+      >
         <input
           type="range"
           className={styles.slider}
@@ -127,6 +201,26 @@ const Slider: React.FC<Props> = ({
           {labelText}
         </label>
       </div>
+      {showGamepadTooltip && (
+        <div
+          ref={refs.setFloating}
+          style={{
+            ...floatingStyles,
+            background: 'rgba(0, 0, 0, 0.8)',
+            fontSize: 10,
+            pointerEvents: 'none',
+            userSelect: 'none',
+            padding: '4px 8px',
+            borderRadius: 4,
+            textShadow: '1px 1px 2px BLACK',
+            zIndex: 1000,
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Use right stick left/right to change value
+          <FloatingArrow ref={arrowRef} context={context} style={{ fill: 'rgba(0, 0, 0, 0.8)' }} />
+        </div>
+      )}
     </SharedHudVars>
   )
 }

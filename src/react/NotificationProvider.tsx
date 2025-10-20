@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { proxy, useSnapshot } from 'valtio'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useAppScale } from '../scaleInterface'
 import Notification from './Notification'
 import { pixelartIcons } from './PixelartIcon'
@@ -131,19 +132,28 @@ export default () => {
       open={open}
       icon={icon}
     />
-    {loaders.toSorted((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((loader, i) => (
-      <Notification
-        type='progress'
-        key={loader.id}
-        open={true}
-        topPosition={i + 1}
-        icon={pixelartIcons.loader}
-        subMessage={loader.subMessage ?? (loader.current !== undefined && loader.total !== undefined ? formatProgress(loader.current, loader.total) : undefined)}
-        message={loader.message}
-        currentProgress={loader.current}
-        totalProgress={loader.total}
-      />
-    ))}
+    <AnimatePresence>
+      {loaders.toSorted((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((loader, i) => (
+        <motion.div
+          key={loader.id}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Notification
+            type='progress'
+            open={true}
+            topPosition={i + 1}
+            icon={pixelartIcons.loader}
+            subMessage={loader.subMessage ?? (loader.current !== undefined && loader.total !== undefined ? formatProgress(loader.current, loader.total) : undefined)}
+            message={loader.message}
+            currentProgress={loader.current}
+            totalProgress={loader.total}
+          />
+        </motion.div>
+      ))}
+    </AnimatePresence>
   </div>
 }
 

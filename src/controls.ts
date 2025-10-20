@@ -19,7 +19,7 @@ import type { CustomCommand } from './react/KeybindingsCustom'
 import { showOptionsModal } from './react/SelectOption'
 import widgets from './react/widgets'
 import { getItemFromBlock } from './chatUtils'
-import { gamepadUiCursorState, moveGamepadCursorByPx } from './react/GamepadUiCursor'
+import { gamepadUiCursorState } from './react/GamepadUiCursor'
 import { completeResourcepackPackInstall, copyServerResourcePackToRegular, resourcePackState } from './resourcePack'
 import { showNotification } from './react/NotificationProvider'
 import { lastConnectOptions } from './react/AppStatusProvider'
@@ -30,6 +30,7 @@ import { switchGameMode } from './packetsReplay/replayPackets'
 import { tabListState } from './react/PlayerListOverlayProvider'
 import { type ActionType, type ActionHoldConfig, type CustomAction } from './appConfig'
 import { playerState } from './mineflayer/playerState'
+import { emulateMouseClick } from './app/gamepadCursor'
 
 export const customKeymaps = proxy(appStorage.keybindings)
 subscribe(customKeymaps, () => {
@@ -48,7 +49,7 @@ export const contro = new ControMax({
       inventory: ['KeyE', 'X'],
       drop: ['KeyQ', 'B'],
       dropStack: [null],
-      sneak: ['ShiftLeft'],
+      sneak: ['ShiftLeft', 'Down'],
       toggleSneakOrDown: [null, 'Right Stick'],
       sprint: ['ControlLeft', 'Left Stick'],
       // game interactions
@@ -63,22 +64,22 @@ export const contro = new ControMax({
       rotateCameraUp: [null],
       rotateCameraDown: [null],
       // ui?
-      chat: [['KeyT', 'Enter']],
+      chat: [['KeyT', 'Enter'], 'Right'],
       command: ['Slash'],
-      playersList: ['Tab'],
+      playersList: ['Tab', 'Left'],
       debugOverlay: ['F3'],
       debugOverlayHelpMenu: [null],
       // client side
       zoom: ['KeyC'],
       viewerConsole: ['Backquote'],
-      togglePerspective: ['F5'],
+      togglePerspective: ['F5', 'Up'],
     },
     ui: {
       toggleFullscreen: ['F11'],
       back: [null/* 'Escape' */, 'B'],
       toggleMap: ['KeyJ'],
       leftClick: [null, 'A'],
-      rightClick: [null, 'Y'],
+      rightClick: [null, 'X'],
       speedupCursor: [null, 'Left Stick'],
       pauseMenu: [null, 'Start']
     },
@@ -142,20 +143,8 @@ const isSpectatingEntity = () => {
 }
 
 contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
-  // Don't allow movement while spectating an entity
-  if (isSpectatingEntity()) return
-
-  if (gamepadIndex !== undefined && gamepadUiCursorState.display) {
-    const deadzone = 0.1 // TODO make deadzone configurable
-    if (Math.abs(soleVector.x) < deadzone && Math.abs(soleVector.z) < deadzone) {
-      return
-    }
-    moveGamepadCursorByPx(soleVector.x, true)
-    moveGamepadCursorByPx(soleVector.z, false)
-    emitMousemove()
-  }
   miscUiState.usingGamepadInput = gamepadIndex !== undefined
-  if (!bot || !isGameActive(false)) return
+  if (!bot || !isGameActive(false) || isSpectatingEntity()) return
 
   // if (viewer.world.freeFlyMode) {
   //   // Create movement vector from input
@@ -231,78 +220,6 @@ subscribe(activeModalStack, () => {
     }
   }
 })
-
-const emitMousemove = () => {
-  const { x, y } = gamepadUiCursorState
-  const xAbs = x / 100 * window.innerWidth
-  const yAbs = y / 100 * window.innerHeight
-  const element = document.elementFromPoint(xAbs, yAbs) as HTMLElement | null
-  if (!element) return
-  element.dispatchEvent(new MouseEvent('mousemove', {
-    clientX: xAbs,
-    clientY: yAbs
-  }))
-}
-
-let lastClickedEl = null as HTMLElement | null
-let lastClickedElTimeout: ReturnType<typeof setTimeout> | undefined
-const inModalCommand = (command: Command, pressed: boolean) => {
-  if (pressed && !gamepadUiCursorState.display) return
-
-  if (pressed) {
-    if (command === 'ui.back') {
-      hideCurrentModal()
-    }
-    if (command === 'ui.pauseMenu') {
-      // hide all modals
-      hideAllModals()
-    }
-    if (command === 'ui.leftClick' || command === 'ui.rightClick') {
-      // in percent
-      const { x, y } = gamepadUiCursorState
-      const xAbs = x / 100 * window.innerWidth
-      const yAbs = y / 100 * window.innerHeight
-      const el = document.elementFromPoint(xAbs, yAbs) as HTMLElement
-      if (el) {
-        if (el === lastClickedEl && command === 'ui.leftClick') {
-          el.dispatchEvent(new MouseEvent('dblclick', {
-            bubbles: true,
-            clientX: xAbs,
-            clientY: yAbs
-          }))
-          return
-        }
-        el.dispatchEvent(new MouseEvent('mousedown', {
-          button: command === 'ui.leftClick' ? 0 : 2,
-          bubbles: true,
-          clientX: xAbs,
-          clientY: yAbs
-        }))
-        el.dispatchEvent(new MouseEvent(command === 'ui.leftClick' ? 'click' : 'contextmenu', {
-          bubbles: true,
-          clientX: xAbs,
-          clientY: yAbs
-        }))
-        el.dispatchEvent(new MouseEvent('mouseup', {
-          button: command === 'ui.leftClick' ? 0 : 2,
-          bubbles: true,
-          clientX: xAbs,
-          clientY: yAbs
-        }))
-        el.focus()
-        lastClickedEl = el
-        if (lastClickedElTimeout) clearTimeout(lastClickedElTimeout)
-        lastClickedElTimeout = setTimeout(() => {
-          lastClickedEl = null
-        }, 500)
-      }
-    }
-  }
-
-  if (command === 'ui.speedupCursor') {
-    gamepadUiCursorState.multiply = pressed ? 2 : 1
-  }
-}
 
 // Camera rotation controls
 const cameraRotationControls = {
@@ -493,7 +410,6 @@ const onTriggerOrReleased = (command: Command, pressed: boolean) => {
 
 // im still not sure, maybe need to refactor to handle in inventory instead
 const alwaysPressedHandledCommand = (command: Command) => {
-  inModalCommand(command, true)
   // triggered even outside of the game
   if (command === 'general.inventory') {
     if (activeModalStack.at(-1)?.reactType?.startsWith?.('player_win:')) { // todo?
@@ -685,7 +601,6 @@ contro.on('trigger', ({ command }) => {
 contro.on('release', ({ command }) => {
   if (isCommandDisabled(command)) return
 
-  inModalCommand(command, false)
   onTriggerOrReleased(command, false)
 })
 

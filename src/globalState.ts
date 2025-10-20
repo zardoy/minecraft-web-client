@@ -132,15 +132,24 @@ export const miscUiState = proxy({
   usingGamepadInput: false,
   appConfig: null as AppConfig | null,
   displaySearchInput: false,
-  displayFullmap: false
+  displayFullmap: false,
+  fullscreen: false
 })
+
+window.miscUiState = miscUiState
 
 export const isGameActive = (foregroundCheck: boolean) => {
   if (foregroundCheck && activeModalStack.length) return false
   return miscUiState.gameLoaded
 }
 
-window.miscUiState = miscUiState
+const updateFullscreen = () => {
+  miscUiState.fullscreen = !!document.fullscreenElement
+}
+document.documentElement.addEventListener('fullscreenchange', () => {
+  updateFullscreen()
+})
+updateFullscreen()
 
 // state that is not possible to get via bot and in-game specific
 export const gameAdditionalState = proxy({

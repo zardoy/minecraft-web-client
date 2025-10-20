@@ -1,3 +1,4 @@
+import { miscUiState } from '../globalState'
 import { options } from '../optionsStorage'
 import { progressNotificationsProxy, setNotificationProgress } from '../react/NotificationProvider'
 
@@ -12,6 +13,7 @@ const loadingChunksProgress = () => {
       time: 0,
     }
     const update = () => {
+      if (!appViewer) return
       const chunksTotal = appViewer.nonReactiveState.world.chunksTotalNumber
       if (chunksTotal === 0) return
 
@@ -53,8 +55,18 @@ const loadingChunksProgress = () => {
     update()
   }
 
+  const startInventoryTexturesProgress = () => {
+    if (!miscUiState.gameLoaded) return
+    setNotificationProgress('inventoryTextures', {
+      message: 'Processing GUI textures',
+    })
+  }
+
   customEvents.on('gameLoaded', () => {
     checkStartProgress()
+    if (!appViewer.resourcesManager.currentResources?.guiAtlas) {
+      startInventoryTexturesProgress()
+    }
 
     bot._client.on('login', () => {
       checkStartProgress()
@@ -71,9 +83,7 @@ const loadingChunksProgress = () => {
   })
 
   appViewer.resourcesManager.on('assetsInventoryStarted', () => {
-    setNotificationProgress('inventoryTextures', {
-      message: 'Processing GUI textures',
-    })
+    startInventoryTexturesProgress()
   })
   appViewer.resourcesManager.on('assetsInventoryReady', () => {
     setNotificationProgress('inventoryTextures', {
