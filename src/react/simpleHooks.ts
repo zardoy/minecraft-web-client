@@ -1,22 +1,43 @@
 import { useUtilsEffect } from '@zardoy/react-util'
 import { useEffect, useState } from 'react'
-import { useMedia } from 'react-use'
 
-const SMALL_SCREEN_MEDIA = '@media (max-width: 440px)'
+const SMALL_SCREEN_WIDTH = 440
 export const useIsSmallWidth = () => {
-  return useMedia(SMALL_SCREEN_MEDIA.replace('@media ', ''))
+  const [isSmall, setIsSmall] = useState(() => document.documentElement.clientWidth <= SMALL_SCREEN_WIDTH)
+
+  useEffect(() => {
+    const checkWidth = () => {
+      setIsSmall(document.documentElement.clientWidth <= SMALL_SCREEN_WIDTH)
+    }
+    addEventListener('resize', checkWidth)
+    return () => {
+      removeEventListener('resize', checkWidth)
+    }
+  }, [])
+
+  return isSmall
 }
 
 export const usePassesWindowDimensions = (minWidth: number | null = null, minHeight: number | null = null) => {
-  let media = '('
-  if (minWidth !== null) {
-    media += `min-width: ${minWidth}px, `
-  }
-  if (minHeight !== null) {
-    media += `min-height: ${minHeight}px, `
-  }
-  media += ')'
-  return useMedia(media)
+  const [passes, setPasses] = useState(() => {
+    const width = document.documentElement.clientWidth
+    const height = document.documentElement.clientHeight
+    return (minWidth === null || width >= minWidth) && (minHeight === null || height >= minHeight)
+  })
+
+  useEffect(() => {
+    const checkDimensions = () => {
+      const width = document.documentElement.clientWidth
+      const height = document.documentElement.clientHeight
+      setPasses((minWidth === null || width >= minWidth) && (minHeight === null || height >= minHeight))
+    }
+    addEventListener('resize', checkDimensions)
+    return () => {
+      removeEventListener('resize', checkDimensions)
+    }
+  }, [minWidth, minHeight])
+
+  return passes
 }
 
 export const useCopyKeybinding = (getCopyText: () => string | undefined) => {

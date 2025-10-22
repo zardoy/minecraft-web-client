@@ -51,7 +51,7 @@ jobs:
 
       # Create CNAME file for custom domain
       - name: Create CNAME file
-        run: echo "github.mcraft.fun" > .vercel/output/static/CNAME
+        run: echo "mcraft.fun" > .vercel/output/static/CNAME
 
       - name: Deploy to mwc-mcraft-pages repository
         uses: peaceiris/actions-gh-pages@v3
