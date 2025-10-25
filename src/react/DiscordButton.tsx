@@ -8,7 +8,7 @@ export const DiscordButton = ({ text, style }: { text?: string, style?: Record<s
   const links: DropdownButtonItem[] = [
     {
       text: 'Pro Enthusiasts Server (ask for invite)',
-      clickHandler: () => openURL('https://mcraft.fun/discord')
+      clickHandler: () => openURL('https://discord.mcraft.fun')
     },
     {
       text: 'Community Server (PrismarineJS)',
