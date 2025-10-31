@@ -112,6 +112,10 @@ export const rspackViewerConfig = (config, { appendPlugins, addRules, rspack }: 
         {
             test: /\.log$/,
             type: 'asset/source',
+        },
+        {
+            test: /\.gltf$/,
+            type: 'asset/resource',
         }
     ])
     config.ignoreWarnings = [

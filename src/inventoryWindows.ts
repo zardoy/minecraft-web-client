@@ -55,7 +55,11 @@ export const showInventoryPlayer = () => {
       height: 70,
       scaled: true,
       onlyInitialScale: true,
-      followCursor: true,
+    },
+    followCursor: true,
+    followCursorCenter: {
+      x: 51,
+      y: 27,
     },
     // models: ['https://bucket.mcraft.fun/sitarbuckss.glb'],
     // debug: true,

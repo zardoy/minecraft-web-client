@@ -52,6 +52,7 @@ export class DocumentRenderer {
       initOptions.callbacks.displayCriticalError(new Error(`Failed to create WebGL context, not possible to render (restart browser): ${err.message}`))
       throw err
     }
+    this.renderer.useLegacyLights = true
     this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace
     if (!externalCanvas) {
       this.updatePixelRatio()

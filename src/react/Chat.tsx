@@ -83,6 +83,8 @@ type Props = {
   debugChatScroll?: boolean
   getPingComplete?: (value: string) => Promise<string[]>
   currentPlayerName?: string
+  spellCheckEnabled?: boolean
+  onSpellCheckEnabledChange?: (enabled: boolean) => void
 }
 
 export const chatInputValueGlobal = proxy({
@@ -103,7 +105,9 @@ export default ({
   chatVanillaRestrictions,
   debugChatScroll,
   getPingComplete,
-  currentPlayerName
+  currentPlayerName,
+  spellCheckEnabled = false,
+  onSpellCheckEnabledChange
 }: Props) => {
   const playerNameValidated = useMemo(() => {
     if (!/^[\w\d_]+$/i.test(currentPlayerName ?? '')) return ''
@@ -112,7 +116,6 @@ export default ({
 
   const sendHistoryRef = useRef(JSON.parse(window.sessionStorage.chatHistory || '[]'))
   const [isInputFocused, setIsInputFocused] = useState(false)
-  const [spellCheckEnabled, setSpellCheckEnabled] = useState(false)
   const [preservedInputValue, setPreservedInputValue] = useState('')
   const [inputKey, setInputKey] = useState(0)
   const pingHistoryRef = useRef(JSON.parse(window.localStorage.pingHistory || '[]'))
@@ -458,7 +461,7 @@ export default ({
                 icon={pixelartIcons['text-wrap']}
                 onClick={() => {
                   setPreservedInputValue(chatInput.current?.value || '')
-                  setSpellCheckEnabled(!spellCheckEnabled)
+                  onSpellCheckEnabledChange?.(!spellCheckEnabled)
                   remountInput()
                 }}
               />
