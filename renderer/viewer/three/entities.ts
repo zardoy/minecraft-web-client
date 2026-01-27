@@ -276,6 +276,7 @@ export class Entities {
 
       void this.updatePlayerSkin(playerData.id, playerData.username, playerData.uuid ?? undefined, stevePngUrl)
     }
+    this.playerEntity.originalEntity = { ...playerData, name: 'player' } as SceneEntity['originalEntity']
 
     // Update position and rotation
     if (playerData.position) {
@@ -294,6 +295,7 @@ export class Entities {
       disposeObject(mesh)
     }
     this.entities = {}
+    this.currentSkinUrls = {}
 
     // Clean up player entity
     if (this.playerEntity) {
@@ -481,6 +483,7 @@ export class Entities {
   }
 
   uuidPerSkinUrlsCache = {} as Record<string, { skinUrl?: string, capeUrl?: string }>
+  currentSkinUrls = {} as Record<string, string>
 
   private isCanvasBlank (canvas: HTMLCanvasElement): boolean {
     return !canvas.getContext('2d')
@@ -517,6 +520,27 @@ export class Entities {
     }
 
     if (typeof skinUrl !== 'string') throw new Error('Invalid skin url')
+
+    // Skip if same skin URL is already loaded for this entity
+    if (this.currentSkinUrls[String(entityId)] === skinUrl) {
+      // Still handle cape if needed
+      if (capeUrl) {
+        if (capeUrl === true && username) {
+          const newCapeUrl = await loadSkinFromUsername(username, 'cape')
+          if (!this.getPlayerObject(entityId)) return
+          if (!newCapeUrl) return
+          capeUrl = newCapeUrl
+        }
+        if (typeof capeUrl === 'string') {
+          void this.loadAndApplyCape(entityId, capeUrl)
+        }
+      }
+      return
+    }
+
+    if (skinUrl !== stevePngUrl) {
+      this.currentSkinUrls[String(entityId)] = skinUrl
+    }
     const renderEars = this.worldRenderer.worldRendererConfig.renderEars || username === 'deadmau5'
     void this.loadAndApplySkin(entityId, skinUrl, renderEars).then(async () => {
       if (capeUrl) {
@@ -575,6 +599,7 @@ export class Entities {
       skinTexture.needsUpdate = true
       playerObject.skin.map = skinTexture as any
       playerObject.skin.modelType = inferModelType(skinCanvas)
+      playerObject.skin['isCustom'] = skinUrl !== stevePngUrl
 
       let earsCanvas: HTMLCanvasElement | undefined
       if (!playerCustomSkinImage) {
@@ -1155,6 +1180,7 @@ export class Entities {
   playerPerAnimation = {} as Record<number, string>
   onRemoveEntity (entity: import('prismarine-entity').Entity) {
     this.loadedSkinEntityIds.delete(entity.id.toString())
+    delete this.currentSkinUrls[entity.id.toString()]
   }
 
   updateMap (mapNumber: string | number, data: string) {

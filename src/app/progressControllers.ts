@@ -3,6 +3,7 @@ import { options } from '../optionsStorage'
 import { progressNotificationsProxy, setNotificationProgress } from '../react/NotificationProvider'
 
 const loadingChunksProgress = () => {
+  if (!appViewer) return
   let gameStopped = false
 
   const checkStartProgress = () => {

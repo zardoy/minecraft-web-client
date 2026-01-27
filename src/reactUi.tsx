@@ -68,8 +68,13 @@ import FullscreenTime from './react/FullscreenTime'
 import StorageConflictModal from './react/StorageConflictModal'
 import FireRenderer from './react/FireRenderer'
 import MonacoEditor from './react/MonacoEditor'
+import IframeModal from './react/IframeModal'
 import OverlayModelViewer from './react/OverlayModelViewer'
 import CornerIndicatorStats from './react/CornerIndicatorStats'
+import AllSettingsEditor from './react/AllSettingsEditor'
+import { isPlayground, urlParams } from './playgroundIntegration'
+import { withInjectableUi } from './react/extendableSystem'
+import { hadReactUiRegistered } from './clientMods'
 
 const isFirefox = ua.getBrowser().name === 'Firefox'
 if (isFirefox) {
@@ -141,7 +146,7 @@ const InGameComponent = ({ children }) => {
 let adapter: DrawerAdapterImpl
 
 const InGameUi = () => {
-  const { gameLoaded, showUI: showUIRaw } = useSnapshot(miscUiState)
+  const { gameLoaded, showUI: showUIRaw, disconnectedCleanup } = useSnapshot(miscUiState)
   const { disabledUiParts, displayBossBars, showMinimap } = useSnapshot(options)
   const modalsSnapshot = useSnapshot(activeModalStack)
   const hasModals = modalsSnapshot.length > 0
@@ -149,7 +154,9 @@ const InGameUi = () => {
   const displayFullmap = modalsSnapshot.some(modal => modal.reactType === 'full-map') || true
   // bot can't be used here
 
-  if (!gameLoaded || !bot || disabledUiParts.includes('*')) return
+  const gameWasLoaded = gameLoaded || disconnectedCleanup?.wasConnected
+
+  if (!gameWasLoaded || !bot || disabledUiParts.includes('*')) return
 
   if (!adapter) adapter = new DrawerAdapterImpl(bot.entity.position)
 
@@ -218,7 +225,7 @@ const WidgetDisplay = ({ name, Component }) => {
   return <Component />
 }
 
-const App = () => {
+const AppBase = () => {
   const scale = useAppScale()
   return (
     <UIProvider scale={scale}>
@@ -253,6 +260,7 @@ const App = () => {
             <ModsPage />
             <SelectOption />
             <CreditsAboutModal />
+            <AllSettingsEditor />
             <NoModalFoundProvider />
           </RobustPortal>
           <RobustPortal to={document.body}>
@@ -263,6 +271,7 @@ const App = () => {
             <DebugEdges />
             <OverlayModelViewer />
             <MonacoEditor />
+            <IframeModal />
             <DebugResponseTimeIndicator />
             <CornerIndicatorStats />
           </RobustPortal>
@@ -285,8 +294,16 @@ const PerComponentErrorBoundary = ({ children }) => {
   </ErrorBoundary>)
 }
 
-if (!new URLSearchParams(window.location.search).get('no-ui')) {
-  renderToDom(<App />, {
+const noUi = urlParams.get('no-ui') === 'true' || isPlayground
+
+if (!noUi) {
+  const App = withInjectableUi(AppBase, 'root')
+  const AppRender = () => {
+    const { state: hadReactUiRegisteredState } = useSnapshot(hadReactUiRegistered)
+
+    return <App key={hadReactUiRegisteredState ? '0' : '1'} />
+  }
+  renderToDom(<AppRender />, {
     strictMode: false,
     selector: '#react-root',
   })

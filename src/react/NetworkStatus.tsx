@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { parseServerAddress } from '../parseServerAddress'
-import { lastConnectOptions } from './AppStatusProvider'
+import { lastConnectOptions } from '../appStatus'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 import styles from './NetworkStatus.module.css'
 

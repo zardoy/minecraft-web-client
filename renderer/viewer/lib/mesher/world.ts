@@ -239,7 +239,7 @@ export class World {
   }
 
   shouldMakeAo (block: WorldBlock | null) {
-    return block?.isCube && !ignoreAoBlocks.includes(block.name)
+    return block?.isCube && !ignoreAoBlocks.includes(block.name) && block.boundingBox !== 'empty'
   }
 }
 

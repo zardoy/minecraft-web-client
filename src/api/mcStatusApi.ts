@@ -3,16 +3,16 @@ globalThis.resolveDnsFallback = async (hostname: string) => {
   return response?.raw.srv_record ?? undefined
 }
 
-export const isServerValid = (ip: string) => {
+export const isServerValid = (ip: string, allowLocalhost = false) => {
   const isInLocalNetwork = ip.startsWith('192.168.') ||
     ip.startsWith('10.') ||
     ip.startsWith('172.') ||
     ip.startsWith('127.') ||
     ip.startsWith('localhost') ||
     ip.startsWith(':')
-  const VALID_IP_OR_DOMAIN = ip.includes('.')
+  const VALID_IP_OR_DOMAIN = ip.includes('.') || ip.includes('localhost')
 
-  return !isInLocalNetwork && VALID_IP_OR_DOMAIN
+  return (!isInLocalNetwork || allowLocalhost) && VALID_IP_OR_DOMAIN
 }
 
 export async function fetchServerStatus (ip: string, signal?: AbortSignal, versionOverride?: string) {

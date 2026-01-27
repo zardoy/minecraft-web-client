@@ -10,6 +10,7 @@ import Select from './Select'
 import { BaseServerInfo } from './AddServerOrConnect'
 import { useIsSmallWidth } from './simpleHooks'
 import { appStorage, SavedProxiesData, ServerHistoryEntry } from './appStorageProvider'
+import { withInjectableUi } from './extendableSystem'
 
 const getInitialProxies = () => {
   const proxies = [] as string[]
@@ -36,7 +37,7 @@ interface Props extends React.ComponentProps<typeof Singleplayer> {
   setQuickConnectIp?: (ip: string) => void
 }
 
-export default ({
+const ServersListBase = ({
   joinServer,
   onProfileClick,
   setQuickConnectIp,
@@ -165,3 +166,5 @@ export default ({
     secondRowStyles={getActiveHighlightStyles('server-list')}
   />
 }
+
+export default withInjectableUi(ServersListBase, 'serversList')

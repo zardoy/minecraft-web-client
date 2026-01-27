@@ -1,12 +1,13 @@
 import { proxy, useSnapshot } from 'valtio'
 import { useEffect, useRef, useState } from 'react'
-import { activeModalStack, activeModalStacks, hideModal, insertActiveModalStack, miscUiState } from '../globalState'
+import { activeModalStack, activeModalStacks, hideModal, insertActiveModalStack, maybeCleanupAfterDisconnect, miscUiState } from '../globalState'
 import { guessProblem } from '../errorLoadingScreenHelpers'
 import type { ConnectOptions } from '../connect'
 import { downloadPacketsReplay, packetsRecordingState, replayLogger } from '../packetsReplay/packetsReplayLegacy'
 import { getProxyDetails } from '../microsoftAuthflow'
 import { downloadAutoCapturedPackets, getLastAutoCapturedPackets } from '../mineflayer/plugins/packetsRecording'
 import { appQueryParams } from '../appParams'
+import { lastConnectOptions } from '../appStatus'
 import AppStatus from './AppStatus'
 import DiveTransition from './DiveTransition'
 import { useDidUpdateEffect } from './utils'
@@ -16,6 +17,7 @@ import { updateAuthenticatedAccountData, updateLoadedServerData, AuthenticatedAc
 import { showOptionsModal } from './SelectOption'
 import LoadingChunks from './LoadingChunks'
 import MessageFormattedString from './MessageFormattedString'
+import { withInjectableUi } from './extendableSystem'
 
 const initialState = {
   status: '',
@@ -34,11 +36,6 @@ export const appStatusState = proxy(initialState)
 export const resetAppStatusState = () => {
   Object.assign(appStatusState, initialState)
 }
-
-export const lastConnectOptions = {
-  value: null as ConnectOptions | null
-}
-globalThis.lastConnectOptions = lastConnectOptions
 
 const saveReconnectOptions = (options: ConnectOptions) => {
   sessionStorage.setItem('reconnectOptions', JSON.stringify({
@@ -65,7 +62,7 @@ export const quickDevReconnect = () => {
   }))
 }
 
-export default () => {
+const AppStatusProviderBase = () => {
   const lastState = useRef(JSON.parse(JSON.stringify(appStatusState)))
   const currentState = useSnapshot(appStatusState)
   const { active: replayActive } = useSnapshot(packetsRecordingState)
@@ -153,6 +150,8 @@ export default () => {
   let backAction = undefined as (() => void) | undefined
   if (maybeRecoverable && (!lockConnect || !wasDisconnected)) {
     backAction = () => {
+      maybeCleanupAfterDisconnect()
+
       if (!wasDisconnected) {
         hideModal(undefined, undefined, { force: true })
         return
@@ -199,6 +198,8 @@ export default () => {
     </AppStatus>
   </DiveTransition>
 }
+
+export default withInjectableUi(AppStatusProviderBase, 'appStatusProvider')
 
 const DisplayingIndicator = () => {
   useEffect(() => {

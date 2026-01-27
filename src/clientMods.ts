@@ -1,8 +1,13 @@
 /* eslint-disable no-await-in-loop */
 import { openDB } from 'idb'
 import * as React from 'react'
+import * as ReactJsxRuntime from 'react/jsx-runtime'
+import * as ReactDOM from 'react-dom'
 import * as valtio from 'valtio'
 import * as valtioUtils from 'valtio/utils'
+import * as framerMotion from 'framer-motion'
+import * as fileSize from 'filesize'
+import classNames from 'classnames'
 import { gt } from 'semver'
 import { proxy } from 'valtio'
 import { options } from './optionsStorage'
@@ -10,6 +15,8 @@ import { appStorage } from './react/appStorageProvider'
 import { showInputsModal, showOptionsModal } from './react/SelectOption'
 import { ProgressReporter } from './core/progressReporter'
 import { showNotification } from './react/NotificationProvider'
+import { InjectUiPlace } from './react/extendableSystem'
+import { appQueryParams } from './appParams'
 
 let sillyProtection = false
 const protectRuntime = () => {
@@ -229,11 +236,27 @@ async function deleteRepository (url) {
 
 // #endregion
 
+export interface ClientModUiApi {
+  registeredReactWrappers: Record<InjectUiPlace, Record<string, React.FC>>
+  registerReactWrapper(place: 'root', id: string, component: React.FC)
+}
+
 window.mcraft = {
   version: process.env.RELEASE_TAG,
   build: process.env.BUILD_VERSION,
-  ui: {},
+  ui: {
+    registeredReactWrappers: {},
+    registerReactWrapper (place: InjectUiPlace, id: string, component: React.FC) {
+      window.mcraft.ui.registeredReactWrappers[place] ??= {}
+      window.mcraft.ui.registeredReactWrappers[place][id] = component
+    },
+  },
   React,
+  ReactJsxRuntime,
+  ReactDOM,
+  framerMotion,
+  fileSize,
+  classNames,
   valtio: {
     ...valtio,
     ...valtioUtils,
@@ -289,22 +312,125 @@ const activateMod = async (mod: ClientMod, reason: string) => {
   return true
 }
 
+const MODS_REQUEST_MESSAGE = 'mwc:modsRequest'
+const MODS_RESPONSE_MESSAGE = 'mwc:modsResponse'
+const MODS_REQUEST_TIMEOUT_MS = 50_000
+
+const normalizeParentMod = (mod: Partial<ClientMod>): ClientMod => {
+  const fallbackName = `parent-mod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const name = typeof mod.name === 'string' && mod.name.length > 0 ? mod.name : fallbackName
+  return {
+    name,
+    version: mod.version ?? '0.0.0',
+    enabled: mod.enabled ?? true,
+    description: mod.description,
+    author: mod.author,
+    section: mod.section,
+    scriptMainUnstable: mod.scriptMainUnstable,
+    serverPlugin: mod.serverPlugin,
+    stylesGlobal: mod.stylesGlobal,
+    threeJsBackend: mod.threeJsBackend,
+    requiresNetwork: mod.requiresNetwork,
+    fullyOffline: mod.fullyOffline,
+    settings: mod.settings,
+    actionsMain: mod.actionsMain,
+    wasModifiedLocally: mod.wasModifiedLocally,
+    autoUpdateOverride: mod.autoUpdateOverride,
+    lastUpdated: mod.lastUpdated,
+  }
+}
+
+const requestModsFromParentFrame = async (): Promise<ClientMod[]> => {
+  if (window.parent === window) return []
+
+  return new Promise<ClientMod[]>((resolve) => {
+    let cleanedUp = false
+    const cleanup = () => {
+      if (cleanedUp) return
+      cleanedUp = true
+      window.removeEventListener('message', handleMessage)
+      window.clearTimeout(timeout)
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      const { data } = event
+      if (!data || typeof data !== 'object' || data.type !== MODS_RESPONSE_MESSAGE) return
+      cleanup()
+      const modsPayload = Array.isArray(data.mods) ? data.mods : []
+      resolve(modsPayload as ClientMod[])
+    }
+
+    const timeout = window.setTimeout(() => {
+      cleanup()
+      resolve([])
+    }, MODS_REQUEST_TIMEOUT_MS)
+
+    window.addEventListener('message', handleMessage)
+    window.parent.postMessage({ type: MODS_REQUEST_MESSAGE }, '*')
+  })
+}
+
+const loadParentFrameModsIfRequested = async (): Promise<Set<string>> => {
+  const activatedModNames = new Set<string>()
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (appQueryParams.parentFrameMods !== '1' && appQueryParams.parentFrameMods !== 'true') return activatedModNames
+    if (window.parent === window) {
+      console.warn('mods=parent query param detected but no parent frame is available')
+      return activatedModNames
+    }
+
+    const modsFromParent = await requestModsFromParentFrame()
+    if (!modsFromParent.length) return activatedModNames
+
+    for (const rawMod of modsFromParent) {
+      try {
+        const normalizedMod = normalizeParentMod(rawMod)
+        // Don't save parent frame mods - only activate for current session
+        const activated = await activateMod(normalizedMod, 'parent-frame')
+        if (activated) {
+          activatedModNames.add(normalizedMod.name)
+        }
+      } catch (err) {
+        const modName = rawMod?.name ?? 'parent-frame-mod'
+        modsErrors[modName] ??= []
+        modsErrors[modName].push(`parent-frame: ${String(err)}`)
+        console.error(`Error activating parent-frame mod ${modName}:`, err)
+      }
+    }
+  } catch (err) {
+    console.error('Error loading mods from parent frame', err)
+  }
+  return activatedModNames
+}
+
 export const appStartup = async () => {
   void checkModsUpdates()
+  const oldRegisteredReactWrappers = Object.entries(window.mcraft?.ui?.registeredReactWrappers).reduce((acc, [place, components]) => acc + Object.keys(components).length, 0)
+  const parentFrameActivatedMods = await loadParentFrameModsIfRequested()
 
   const mods = await getAllMods()
   for (const mod of mods) {
+    // Skip mods that were already activated from parent frame
+    if (parentFrameActivatedMods.has(mod.name)) {
+      continue
+    }
     await activateMod(mod, 'autostart').catch(e => {
       modsErrors[mod.name] ??= []
       modsErrors[mod.name].push(`startup: ${String(e)}`)
       console.error(`Error activating mod on startup ${mod.name}:`, e)
     })
   }
+  const newCount = Object.entries(window.mcraft?.ui?.registeredReactWrappers).reduce((acc, [place, components]) => acc + Object.keys(components).length, 0)
+  hadReactUiRegistered.state = newCount !== oldRegisteredReactWrappers
+  hadModsActivated.state = true
 }
 
 export const modsUpdateStatus = proxy({} as Record<string, [string, string]>)
 export const modsWaitingReloadStatus = proxy({} as Record<string, boolean>)
 export const modsErrors = proxy({} as Record<string, string[]>)
+export const hadReactUiRegistered = proxy({ state: false })
+export const hadModsActivated = proxy({ state: false })
 
 const normalizeRepoUrl = (url: string) => {
   if (url.startsWith('https://')) return url

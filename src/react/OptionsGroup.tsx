@@ -1,10 +1,13 @@
 import { titleCase } from 'title-case'
 import { options } from '../optionsStorage'
 import { OptionsGroupType, guiOptionsScheme } from '../optionsGuiScheme'
+import { optionsMeta } from '../defaultOptions'
 import OptionsItems, { OptionMeta } from './OptionsItems'
 
-export const optionValueToType = (optionValue: any, item: OptionMeta) => {
-  if (typeof optionValue === 'boolean' || item.values) return 'toggle'
+export const optionValueToType = (optionValue: any, optionKey: string) => {
+  // Check if option has possible values in optionsMeta (enum = toggle)
+  const meta = optionsMeta[optionKey as keyof typeof optionsMeta]
+  if (typeof optionValue === 'boolean' || (meta?.possibleValues && meta.possibleValues.length > 0)) return 'toggle'
   if (typeof optionValue === 'number') return 'slider'
   if (typeof optionValue === 'string') return 'element'
 }
@@ -14,7 +17,7 @@ const finalItemsScheme: Record<keyof typeof guiOptionsScheme, OptionMeta[]> = Ob
     return Object.entries(optionsObj).map(([optionKey, metaMerge]) => {
       const optionValue = options[optionKey]
 
-      const type = optionValueToType(optionValue, metaMerge)
+      const type = optionValueToType(optionValue, optionKey)
       const meta: OptionMeta = {
         id: optionKey === 'custom' ? undefined : optionKey,
         type,

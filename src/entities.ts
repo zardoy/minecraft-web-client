@@ -237,16 +237,10 @@ customEvents.on('gameLoaded', () => {
       const skinUrl = applySkinTexturesProxy(player.skinData.url)
       const capeUrl = applySkinTexturesProxy((player.skinData as any).capeUrl)
 
-      // Find entity with matching UUID and update skin
-      let entityId = ''
-      for (const [entId, entity] of Object.entries(bot.entities)) {
-        if (entity.uuid === player.uuid) {
-          entityId = entId
-          break
-        }
+      void getThreeJsRendererMethods()!.updatePlayerSkin(player.entity?.id ?? '', player.username, player.uuid, skinUrl ?? true, capeUrl)
+      if (player.entity === bot.entity) {
+        appViewer.playerState.reactive.playerSkin = skinUrl
       }
-      // even if not found, still record to cache
-      void getThreeJsRendererMethods()!.updatePlayerSkin(entityId, player.username, player.uuid, skinUrl ?? true, capeUrl)
     } catch (err) {
       reportError(new Error('Error applying skin texture:', { cause: err }))
     }

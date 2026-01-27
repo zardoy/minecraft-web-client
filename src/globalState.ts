@@ -120,6 +120,7 @@ export const miscUiState = proxy({
   flyingSquid: false,
   wanOpened: false,
   wanOpening: false,
+  hadConnected: false,
   /** wether game hud is shown (in playing state) */
   gameLoaded: false,
   showUI: true,
@@ -133,8 +134,16 @@ export const miscUiState = proxy({
   appConfig: null as AppConfig | null,
   displaySearchInput: false,
   displayFullmap: false,
-  fullscreen: false
+  fullscreen: false,
+  disconnectedCleanup: null as { callback: () => void, date: number, wasConnected: boolean } | null
 })
+
+export const maybeCleanupAfterDisconnect = () => {
+  if (miscUiState.disconnectedCleanup) {
+    miscUiState.disconnectedCleanup.callback()
+    miscUiState.disconnectedCleanup = null
+  }
+}
 
 window.miscUiState = miscUiState
 
@@ -163,6 +172,7 @@ export const gameAdditionalState = proxy({
   viewerConnection: false,
 
   usingServerResourcePack: false,
+  typingUsers: [] as Array<{ username: string; timestamp: number }>,
 })
 
 window.gameAdditionalState = gameAdditionalState

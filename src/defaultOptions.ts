@@ -51,7 +51,7 @@ export const defaultOptions = {
   displayRecordButton: true,
   packetsLoggerPreset: 'all' as 'all' | 'no-buffers',
   serversAutoVersionSelect: 'auto' as 'auto' | 'latest' | '1.20.4' | string,
-  customChannels: false,
+  customChannels: 'websocket' as boolean | 'websocket',
   remoteContentNotSameOrigin: false as boolean | string[],
   packetsRecordingAutoStart: false,
   language: 'auto',
@@ -74,7 +74,7 @@ export const defaultOptions = {
   topRightTimeDisplay: 'only-fullscreen' as 'only-fullscreen' | 'always' | 'never',
 
   clipWorldBelowY: undefined as undefined | number, // will be removed
-  disableSignsMapsSupport: false,
+  disableBlockEntityTextures: false,
   singleplayerAutoSave: false,
   showChunkBorders: false, // todo rename option
   frameLimit: false as number | false,
@@ -156,5 +156,135 @@ function getTouchControlsSize () {
     break: 36,
     jump: 36,
     sneak: 36,
+  }
+}
+
+/**
+ * Map of settings that are safe to change from the server.
+ * These are rendering/display/input preferences that don't affect critical client functionality.
+ * Settings like modsSupport, customChannels, or security-related options are excluded.
+ */
+export const serverSafeSettings: Partial<Record<keyof typeof defaultOptions, true>> = {
+  remoteContentNotSameOrigin: true, // allow server to change remote content not same origin policy
+  renderEars: true,
+  viewBobbing: true,
+  mouseRawInput: true,
+  preciseMouseInput: true,
+  showHand: true,
+  fov: true,
+  defaultPerspective: true,
+  volume: true,
+  musicVolume: true,
+  enableMusic: true,
+  smoothLighting: true,
+  starfieldRendering: true,
+  defaultSkybox: true,
+  dayCycleAndLighting: true,
+  showChunkBorders: true,
+  renderDebug: true,
+  highlightBlockColor: true,
+  displayBossBars: true,
+  showMinimap: true,
+  autoJump: true,
+  chatVanillaRestrictions: true,
+  chatPingExtension: true,
+  chatSpellCheckEnabled: true,
+  renderEntities: true,
+  displayRecordButton: true,
+  topRightTimeDisplay: true,
+  guiScale: true,
+  chatWidth: true,
+  chatHeight: true,
+  chatScale: true,
+  loadPlayerSkins: true,
+  disableBlockEntityTextures: true,
+  neighborChunkUpdates: true,
+  newVersionsLighting: true,
+  showCursorBlockInSpectator: true,
+}
+export type OptionValueType = string | number | boolean | string[] | Record<string, any> | null
+
+export type OptionPossibleValues =
+  | string[]
+  | Array<[string, string]> // [value, label] tuples
+
+export type OptionMeta = {
+  possibleValues?: OptionPossibleValues
+  isCustomInput?: boolean // If true, use showInputsModal for string input
+  min?: number
+  max?: number
+  unit?: string
+  text?: string
+  tooltip?: string
+}
+
+export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta>> = {
+  gpuPreference: {
+    possibleValues: [['default', 'Auto'], ['high-performance', 'Dedicated'], ['low-power', 'Low Power']]
+  },
+  backgroundRendering: {
+    possibleValues: [
+      ['full', 'NO'],
+      ['5fps', '5 FPS'],
+      ['20fps', '20 FPS'],
+    ]
+  },
+  activeRenderer: {
+    possibleValues: [
+      ['threejs', 'Three.js (stable)'],
+    ]
+  },
+  renderDebug: {
+    possibleValues: ['advanced', 'basic', 'none']
+  },
+  serverResourcePacks: {
+    possibleValues: ['prompt', 'always', 'never']
+  },
+  showMinimap: {
+    possibleValues: ['always', 'singleplayer', 'never']
+  },
+  highlightBlockColor: {
+    possibleValues: [
+      ['auto', 'Auto'],
+      ['blue', 'Blue'],
+      ['classic', 'Classic']
+    ]
+  },
+  wysiwygSignEditor: {
+    possibleValues: ['auto', 'always', 'never']
+  },
+  touchMovementType: {
+    possibleValues: [['modern', 'Modern'], ['classic', 'Classic']]
+  },
+  touchInteractionType: {
+    possibleValues: [['classic', 'Classic'], ['buttons', 'Buttons']]
+  },
+  autoJump: {
+    possibleValues: ['always', 'auto', 'never']
+  },
+  saveLoginPassword: {
+    possibleValues: ['prompt', 'always', 'never']
+  },
+  packetsLoggerPreset: {
+    possibleValues: [
+      ['all', 'All'],
+      ['no-buffers', 'No Buffers']
+    ]
+  },
+  // Custom string inputs (will use showInputsModal)
+  localUsername: {
+    isCustomInput: true
+  },
+  guestUsername: {
+    isCustomInput: true
+  },
+  language: {
+    isCustomInput: true
+  },
+  enabledResourcepack: {
+    isCustomInput: true
+  },
+  useVersionsTextures: {
+    isCustomInput: true
   }
 }

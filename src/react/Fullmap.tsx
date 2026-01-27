@@ -6,6 +6,7 @@ import { DrawerAdapter } from './MinimapDrawer'
 import Button from './Button'
 import Input from './Input'
 import './Fullmap.css'
+import { withInjectableUi } from './extendableSystem'
 
 
 type FullmapProps = {
@@ -13,7 +14,7 @@ type FullmapProps = {
   toggleFullMap?: () => void,
 }
 
-export default ({ adapter, toggleFullMap }: FullmapProps) => {
+const FullmapBase = ({ adapter, toggleFullMap }: FullmapProps) => {
   const [grid, setGrid] = useState(() => new Set<string>())
   const zoomRef = useRef<ReactZoomPanPinchRef>(null)
   const [redraw, setRedraw] = useState<Set<string> | null>(null)
@@ -162,6 +163,8 @@ export default ({ adapter, toggleFullMap }: FullmapProps) => {
     }
   </div>
 }
+
+export default withInjectableUi(FullmapBase, 'fullmap')
 
 
 const MapChunk = (

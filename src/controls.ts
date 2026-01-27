@@ -22,7 +22,7 @@ import { getItemFromBlock } from './chatUtils'
 import { gamepadUiCursorState } from './react/GamepadUiCursor'
 import { completeResourcepackPackInstall, copyServerResourcePackToRegular, resourcePackState } from './resourcePack'
 import { showNotification } from './react/NotificationProvider'
-import { lastConnectOptions } from './react/AppStatusProvider'
+import { lastConnectOptions } from './appStatus'
 import { onCameraMove, onControInit } from './cameraRotationControls'
 import { createNotificationProgressReporter } from './core/progressReporter'
 import { appStorage } from './react/appStorageProvider'
@@ -43,15 +43,20 @@ const controlOptions = {
 
 export const contro = new ControMax({
   commands: {
-    general: {
-      // movement
+    movement: {
+      forward: ['KeyW'],
+      back: ['KeyS'],
+      left: ['KeyA'],
+      right: ['KeyD'],
       jump: ['Space', 'A'],
-      inventory: ['KeyE', 'X'],
-      drop: ['KeyQ', 'B'],
-      dropStack: [null],
       sneak: ['ShiftLeft', 'Down'],
       toggleSneakOrDown: [null, 'Right Stick'],
       sprint: ['ControlLeft', 'Left Stick'],
+    },
+    general: {
+      inventory: ['KeyE', 'X'],
+      drop: ['KeyQ', 'B'],
+      dropStack: [null],
       // game interactions
       nextHotbarSlot: [null, 'Right Bumper'],
       prevHotbarSlot: [null, 'Left Bumper'],
@@ -87,7 +92,7 @@ export const contro = new ControMax({
       toggleMicrophone: ['KeyM'],
     },
     advanced: {
-      lockUrl: ['KeyY'],
+      lockUrl: [null],
     },
     custom: {} as Record<string, SchemaCommandInput & { type: string, input: any[] }>,
     // waila: {
@@ -95,7 +100,6 @@ export const contro = new ControMax({
     //   showLookingBlockUsages: ['Numpad4']
     // }
   } satisfies Record<string, Record<string, SchemaCommandInput>>,
-  movementKeymap: 'WASD',
   movementVector: '2d',
   groupedCommands: {
     general: {
@@ -181,17 +185,14 @@ contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
   }
 
   for (const key of ['forward', 'back', 'left', 'right'] as const) {
-    if (newState[key] === bot.controlState[key]) continue
+    if (!!(newState[key]) === !!(bot.controlState[key])) continue
     const action = !!newState[key]
     if (action && !isGameActive(true)) continue
     bot.setControlState(key, action)
 
     if (key === 'forward') {
       // todo workaround: need to refactor
-      if (action) {
-        void contro.emit('trigger', { command: 'general.forward' } as any)
-      } else {
-        void contro.emit('release', { command: 'general.forward' } as any)
+      if (!action) {
         setSprinting(false)
       }
     }
@@ -201,12 +202,12 @@ contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
 let lastCommandTrigger = null as { command: string, time: number } | null
 
 const secondActionActivationTimeout = 300
-const secondActionCommands = {
-  'general.jump' () {
+const secondActionCommands: Partial<Record<Command, () => void>> = {
+  'movement.jump' () {
     // if (bot.game.gameMode === 'spectator') return
     toggleFly()
   },
-  'general.forward' () {
+  'movement.forward' () {
     setSprinting(true)
   }
 }
@@ -300,11 +301,10 @@ const setSneaking = (state: boolean) => {
 const onTriggerOrReleased = (command: Command, pressed: boolean) => {
   // always allow release!
   if (!bot || !isGameActive(false)) return
-  if (stringStartsWith(command, 'general')) {
-    // handle general commands
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+
+  if (stringStartsWith(command, 'movement')) {
     switch (command) {
-      case 'general.jump':
+      case 'movement.jump':
         if (isSpectatingEntity()) break
         // if (viewer.world.freeFlyMode) {
         //   const moveSpeed = 0.5
@@ -313,7 +313,7 @@ const onTriggerOrReleased = (command: Command, pressed: boolean) => {
         bot.setControlState('jump', pressed)
         // }
         break
-      case 'general.sneak':
+      case 'movement.sneak':
         // if (viewer.world.freeFlyMode) {
         //   const moveSpeed = 0.5
         //   viewer.world.freeFlyState.position.add(new Vec3(0, pressed ? -moveSpeed : 0, 0))
@@ -321,19 +321,37 @@ const onTriggerOrReleased = (command: Command, pressed: boolean) => {
         setSneaking(pressed)
         // }
         break
-      case 'general.sprint':
+      case 'movement.sprint':
         // todo add setting to change behavior
         if (pressed) {
           setSprinting(pressed)
         }
         break
-      case 'general.toggleSneakOrDown':
+      case 'movement.toggleSneakOrDown':
         if (gameAdditionalState.isFlying) {
           setSneaking(pressed)
         } else if (pressed) {
           setSneaking(!gameAdditionalState.isSneaking)
         }
         break
+      case 'movement.forward':
+        contro.setMovement('forward', pressed)
+        break
+      case 'movement.back':
+        contro.setMovement('backward', pressed)
+        break
+      case 'movement.left':
+        contro.setMovement('left', pressed)
+        break
+      case 'movement.right':
+        contro.setMovement('right', pressed)
+        break
+    }
+  }
+  if (stringStartsWith(command, 'general')) {
+    // handle general commands
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+    switch (command) {
       case 'general.attackDestroy':
         document.dispatchEvent(new MouseEvent(pressed ? 'mousedown' : 'mouseup', { button: 0 }))
         break
@@ -463,18 +481,23 @@ const customCommandsHandler = ({ command }) => {
 }
 contro.on('trigger', customCommandsHandler)
 
+const isCommandAvailableAfterDisconnect = (command: Command) => {
+  if (!miscUiState.disconnectedCleanup?.wasConnected) return false
+  return command === 'general.chat' || command === 'general.inventory'
+}
+
 contro.on('trigger', ({ command }) => {
   if (isCommandDisabled(command)) return
 
   const willContinue = !isGameActive(true)
   alwaysPressedHandledCommand(command)
-  if (willContinue) return
+  if (willContinue && !isCommandAvailableAfterDisconnect(command)) return
 
   const secondActionCommand = secondActionCommands[command]
   if (secondActionCommand) {
     if (command === lastCommandTrigger?.command && Date.now() - lastCommandTrigger.time < secondActionActivationTimeout) {
       const commandToTrigger = secondActionCommands[lastCommandTrigger.command]
-      commandToTrigger()
+      commandToTrigger?.()
       lastCommandTrigger = null
     } else {
       lastCommandTrigger = {
@@ -488,10 +511,6 @@ contro.on('trigger', ({ command }) => {
 
   if (stringStartsWith(command, 'general')) {
     switch (command) {
-      case 'general.jump':
-      case 'general.sneak':
-      case 'general.toggleSneakOrDown':
-      case 'general.sprint':
       case 'general.attackDestroy':
       case 'general.rotateCameraLeft':
       case 'general.rotateCameraRight':
@@ -751,7 +770,7 @@ document.addEventListener('keydown', (e) => {
   capture: true,
 })
 
-const isFlying = () => (bot.entity as any).flying
+const isFlying = () => (bot as any).physicsEngineCtx?.state?.flying ?? false
 
 const startFlying = (sendAbilities = true) => {
   if (sendAbilities) {
@@ -783,8 +802,15 @@ const toggleFly = (newState = !isFlying(), sendAbilities?: boolean) => {
   } else {
     endFlying(sendAbilities)
   }
-  gameAdditionalState.isFlying = isFlying()
 }
+
+const physicsFlyingCheck = () => {
+  bot.on('physicsTick', () => {
+    gameAdditionalState.isFlying = isFlying()
+  })
+}
+
+customEvents.on('gameLoaded', physicsFlyingCheck)
 
 const selectItem = async () => {
   const block = bot.blockAtCursor(5)
@@ -940,10 +966,6 @@ export const handleMobileButtonActionCommand = (command: ActionType | ActionHold
   if (typeof commandValue === 'string' && !stringStartsWith(commandValue, 'custom')) {
     const event: CommandEventArgument<typeof contro['_commandsRaw']> = {
       command: commandValue as Command,
-      schema: {
-        keys: [],
-        gamepad: []
-      }
     }
     if (isDown) {
       contro.emit('trigger', event)

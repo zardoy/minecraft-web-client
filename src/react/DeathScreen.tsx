@@ -2,6 +2,7 @@ import './deathScreen.css'
 import type { MessageFormatPart } from '../chatUtils'
 import MessageFormatted from './MessageFormatted'
 import Button from './Button'
+import { withInjectableUi } from './extendableSystem'
 
 type Props = {
   dieReasonMessage: MessageFormatPart[]
@@ -9,7 +10,7 @@ type Props = {
   disconnectCallback: () => void
 }
 
-export default ({ dieReasonMessage, respawnCallback, disconnectCallback }: Props) => {
+const DeathScreenBase = ({ dieReasonMessage, respawnCallback, disconnectCallback }: Props) => {
   return (
     <div className='deathScreen-container'>
       <div className="deathScreen">
@@ -33,3 +34,5 @@ export default ({ dieReasonMessage, respawnCallback, disconnectCallback }: Props
     </div>
   )
 }
+
+export default withInjectableUi(DeathScreenBase, 'deathScreen')

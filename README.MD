@@ -4,11 +4,17 @@
 
 Minecraft **clone** written in TypeScript using the best modern web technologies. A vanilla-compatible client and integrated server packaged into a single web app.
 
-You can try this out at [mcraft.fun](https://mcraft.fun/), [pcm.gg](https://pcm.gg), [mcon.vercel.app](https://mcon.vercel.app/), or the GitHub Pages deployment. Every commit from the default (`next`) branch is deployed to [s.mcraft.fun](https://s.mcraft.fun/) and [s.pcm.gg](https://s.pcm.gg/) - it's usually newer, but might be less stable.
+You can try this out at [mcraft.fun](https://mcraft.fun/), [mcon.vercel.app](https://mcon.vercel.app/), or the GitHub Pages deployment. Every commit from the default (`next`) branch is deployed to [s.mcraft.fun](https://s.mcraft.fun/) and [beta.mcraft.fun](https://beta.mcraft.fun/) - it's usually newer, but might be less stable.
 
-> In Turkey or Russia, use [ru.mcraft.fun](https://ru.mcraft.fun/) (since Cloudflare is blocked)
+> SAFEST way to join servers.
+>
+> FASTEST way to preview local worlds.
 
 Don't confuse this with [Eaglercraft](https://eagsrc.webmc.xyz) which is a REAL vanilla Minecraft Java Edition port to the web (but with its own limitations). Eaglercraft is a fully playable solution, meanwhile this project is aimed at *device-compatibility* and better performance so it feels portable, flexible and lightweight. It's also a good example on how to build true HTML games for the web at scale entirely with the JS ecosystem. Have fun!
+
+> **UI Design Philosophy**: For now, this project follows classic Minecraft UI guidelines. But if you want to see my **unleashed vision** of the most beautiful UI with stunning animations and futuristic design - check out **[arwes.mcraft.fun](https://arwes.mcraft.fun)**!
+>
+> [![Arwes UI - My Ultimate Vision](./docs-assets/arwes-banner.webp)](https://arwes.mcraft.fun)
 
 For building the project yourself / contributing, see [Development, Debugging & Contributing](#development-debugging--contributing). For reference at what and how web technologies / frameworks are used, see [TECH.md](./TECH.md) (also for comparison with Eaglercraft).
 
@@ -219,10 +225,10 @@ Only during development:
 
 ### Notable Things that Power this Project
 
-- [Mineflayer](https://github.com/PrismarineJS/mineflayer) - Handles all client-side communications with the server (including the built-in one)
+- [Mineflayer](https://github.com/GenerelSchwerz/mineflayer) - Handles all client-side communications with the server (including the built-in one)
 - [Forked Flying Squid (Space Squid)](https://github.com/zardoy/space-squid) - The built-in offline server that makes singleplayer & P2P possible!
 - [Prismarine Provider Anvil](https://github.com/PrismarineJS/prismarine-provider-anvil) - Handles world loading (region format)
-- [Prismarine Physics](https://github.com/PrismarineJS/prismarine-physics) - Does all the physics calculations
+- [Prismarine Physics](https://github.com/nxg-org/mineflayer-physics-utils/tree/master/src/physics/engines/botcraft.ts) - Does all the physics calculations
 - [Minecraft Protocol](https://github.com/PrismarineJS/node-minecraft-protocol) - Makes connections to servers possible
 - [Peer.js](https://peerjs.com/) - P2P networking (when you open to wan)
 - [Three.js](https://threejs.org/) - Helping in 3D rendering

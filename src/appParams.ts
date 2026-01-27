@@ -35,6 +35,7 @@ export type AppQsParams = {
   // UI params
   modal?: string
   viewerConnect?: string
+  playground?: string
   // Map version param
   mapVersion?: string
   // Command params
@@ -48,6 +49,7 @@ export type AppQsParams = {
   freezeSettings?: string
   testIosCrash?: string
   addPing?: string
+  parentFrameMods?: string
 
   // Replay params
   replayFilter?: string

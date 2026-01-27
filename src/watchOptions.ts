@@ -93,7 +93,7 @@ export const watchOptionsAfterViewerInit = () => {
 
   watchValue(options, (o, isChanged) => {
     appViewer.inWorldRenderingConfig.clipWorldBelowY = o.clipWorldBelowY
-    appViewer.inWorldRenderingConfig.extraBlockRenderers = !o.disableSignsMapsSupport
+    appViewer.inWorldRenderingConfig.extraBlockRenderers = !o.disableBlockEntityTextures
     appViewer.inWorldRenderingConfig.fetchPlayerSkins = o.loadPlayerSkins
     appViewer.inWorldRenderingConfig.highlightBlockColor = o.highlightBlockColor
     appViewer.inWorldRenderingConfig._experimentalSmoothChunkLoading = o.rendererSharedOptions._experimentalSmoothChunkLoading

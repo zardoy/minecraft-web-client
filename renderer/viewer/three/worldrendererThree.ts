@@ -12,6 +12,7 @@ import { addNewStat } from '../lib/ui/newStats'
 import { MesherGeometryOutput } from '../lib/mesher/shared'
 import { ItemSpecificContextProperties } from '../lib/basePlayerState'
 import { setBlockPosition } from '../lib/mesher/standaloneRenderer'
+import { getBannerTexture, createBannerMesh, releaseBannerTexture } from './bannerRenderer'
 import { getMyHand } from './hand'
 import HoldingBlock from './holdingBlock'
 import { getMesh } from './entity/EntityMesh'
@@ -27,6 +28,7 @@ import { Fountain } from './threeJsParticles'
 import { WaypointsRenderer } from './waypoints'
 import { DEFAULT_TEMPERATURE, SkyboxRenderer } from './skyboxRenderer'
 import { FireworksManager } from './fireworks'
+import { downloadWorldGeometry } from './worldGeometryExport'
 
 type SectionKey = string
 
@@ -138,6 +140,10 @@ export class WorldRendererThree extends WorldRendererCommon {
       // Clear fireworks
       this.fireworks.clear()
     })
+  }
+
+  downloadWorldGeometry () {
+    downloadWorldGeometry(this, this.cameraObject.position, this.cameraShake.getBaseRotation(), 'world-geometry.json')
   }
 
   updateEntity (e, isPosUpdate = false) {
@@ -384,6 +390,12 @@ export class WorldRendererThree extends WorldRendererCommon {
     if (data.type !== 'geometry') return
     let object: THREE.Object3D = this.sectionObjects[data.key]
     if (object) {
+      // Cleanup banner textures before disposing
+      object.traverse((child) => {
+        if ((child as any).bannerTexture) {
+          releaseBannerTexture((child as any).bannerTexture)
+        }
+      })
       this.scene.remove(object)
       disposeObject(object)
       delete this.sectionObjects[data.key]
@@ -441,7 +453,20 @@ export class WorldRendererThree extends WorldRendererCommon {
         object.add(head)
       }
     }
+    if (Object.keys(data.geometry.banners).length) {
+      for (const [posKey, { isWall, rotation, blockName }] of Object.entries(data.geometry.banners)) {
+        const bannerBlockEntity = this.blockEntities[posKey]
+        if (!bannerBlockEntity) continue
+        const [x, y, z] = posKey.split(',')
+        const bannerTexture = getBannerTexture(this, blockName, nbt.simplify(bannerBlockEntity))
+        if (!bannerTexture) continue
+        const banner = createBannerMesh(new Vec3(+x, +y, +z), rotation, isWall, bannerTexture)
+        object.add(banner)
+      }
+    }
     this.sectionObjects[data.key] = object
+    // Store section key on object for easier lookup
+    ;(object as any).sectionKey = data.key
     if (this.displayOptions.inWorldRenderingConfig._renderByChunks) {
       object.visible = false
       const chunkKey = `${chunkCoords[0]},${chunkCoords[2]}`
@@ -640,7 +665,11 @@ export class WorldRendererThree extends WorldRendererCommon {
       }
 
       this.currentPosTween?.stop()
-      this.currentPosTween = new tweenJs.Tween(this.cameraObject.position).to({ x: pos.x, y: pos.y, z: pos.z }, this.playerStateUtils.isSpectatingEntity() ? 150 : 50).start()
+      // Use instant camera updates (0 delay) in playground mode when camera controls are enabled
+      const tweenDelay = this.displayOptions.inWorldRenderingConfig.instantCameraUpdate
+        ? 0
+        : (this.playerStateUtils.isSpectatingEntity() ? 150 : 50)
+      this.currentPosTween = new tweenJs.Tween(this.cameraObject.position).to({ x: pos.x, y: pos.y, z: pos.z }, tweenDelay).start()
       // this.freeFlyState.position = pos
     }
 
@@ -960,6 +989,12 @@ export class WorldRendererThree extends WorldRendererCommon {
       const key = `${x},${y},${z}`
       const mesh = this.sectionObjects[key]
       if (mesh) {
+        // Cleanup banner textures before disposing
+        mesh.traverse((child) => {
+          if ((child as any).bannerTexture) {
+            releaseBannerTexture((child as any).bannerTexture)
+          }
+        })
         this.scene.remove(mesh)
         disposeObject(mesh)
       }

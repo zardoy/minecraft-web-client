@@ -3,6 +3,7 @@ import Creatable from 'react-select/creatable'
 import Input from './Input'
 import './Select.css'
 import styles from './select.module.css'
+import { withInjectableUi } from './extendableSystem'
 
 
 export interface OptionStorage {
@@ -21,7 +22,7 @@ interface Props {
   disabled?: boolean
 }
 
-export default ({
+const SelectBase = ({
   initialOptions,
   updateOptions,
   getCssOnInput,
@@ -106,3 +107,5 @@ export default ({
     }}
   />
 }
+
+export default withInjectableUi(SelectBase, 'select')

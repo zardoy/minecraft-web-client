@@ -19,6 +19,7 @@ import { pixelartIcons } from './PixelartIcon'
 import useLongPress from './useLongPress'
 import PauseLinkButtons from './PauseLinkButtons'
 import CreditsBookButton from './CreditsBookButton'
+import { withInjectableUi } from './extendableSystem'
 
 type Action = (e: React.MouseEvent<HTMLButtonElement>) => void
 
@@ -40,7 +41,7 @@ interface Props {
 
 const httpsRegex = /^https?:\/\//
 
-export default ({
+const MainMenuBase = ({
   connectToServerAction,
   mapsProvider,
   singleplayerAction,
@@ -214,6 +215,7 @@ export default ({
           <div className={styles['product-link']}>
             {linksParsed?.map(([name, link], i, arr) => {
               if (!link.startsWith('http')) link = `https://${link}`
+              const finalLink = link
               return <div style={{
                 color: 'lightgray',
                 fontSize: 8,
@@ -222,7 +224,12 @@ export default ({
                   key={name}
                   style={{
                     whiteSpace: 'nowrap',
-                  }} href={link}
+                    cursor: 'pointer',
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    openURL(finalLink, false)
+                  }}
                 >{name}
                 </a>
                 {i < arr.length - 1 && <span style={{ marginLeft: 2 }}>·</span>}
@@ -235,3 +242,5 @@ export default ({
     </div>
   )
 }
+
+export default withInjectableUi(MainMenuBase, 'mainMenu')

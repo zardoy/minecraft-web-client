@@ -1,5 +1,6 @@
 export const appReplacableResources: Array<{
   path: string
+  name?: string
   cssVar?: string
   cssVarRepeat?: number
 }> = [
@@ -32,7 +33,8 @@ export const appReplacableResources: Array<{
     path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/generic_54.png',
   },
   {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/furnace.png',
+    name: 'furnace_gui_texture',
+    path: '../node_modules/mc-assets/dist/other-textures/1.20.2/gui/container/furnace.png',
   },
   {
     path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/crafting_table.png',
@@ -57,5 +59,11 @@ export const appReplacableResources: Array<{
   },
   {
     path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/beacon.png',
+  },
+  {
+    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/smithing.png',
+  },
+  {
+    path: '../node_modules/mc-assets/dist/other-textures/1.19.4/gui/container/smithing.png',
   },
 ]

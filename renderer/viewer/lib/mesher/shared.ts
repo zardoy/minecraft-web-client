@@ -12,7 +12,7 @@ export const defaultMesherConfig = {
   // textureSize: 1024, // for testing
   debugModelVariant: undefined as undefined | number[],
   clipWorldBelowY: undefined as undefined | number,
-  disableSignsMapsSupport: false
+  disableBlockEntityTextures: false
 }
 
 export type CustomBlockModels = {
@@ -41,6 +41,7 @@ export type MesherGeometryOutput = {
   tiles: Record<string, BlockType>,
   heads: Record<string, any>,
   signs: Record<string, any>,
+  banners: Record<string, any>,
   // isFull: boolean
   hadErrors: boolean
   blocksCount: number

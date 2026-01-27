@@ -137,7 +137,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
     const update = async () => {
       const queue = serversListSorted
         .map(server => {
-          if (!isServerValid(server.ip) || signal.aborted) return null
+          if (!isServerValid(server.ip, true) || signal.aborted) return null
 
           return server
         })

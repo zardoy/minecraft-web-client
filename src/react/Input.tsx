@@ -1,6 +1,7 @@
 import React, { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { isMobile } from 'renderer/viewer/lib/simpleUtils'
 import styles from './input.module.css'
+import { withInjectableUi } from './extendableSystem'
 
 interface Props extends Omit<React.ComponentProps<'input'>, 'width'> {
   rootStyles?: React.CSSProperties
@@ -10,7 +11,7 @@ interface Props extends Omit<React.ComponentProps<'input'>, 'width'> {
   width?: number
 }
 
-const Input = ({ autoFocus, rootStyles, inputRef, validateInput, defaultValue, width, ...inputProps }: Props) => {
+const InputBase = ({ autoFocus, rootStyles, inputRef, validateInput, defaultValue, width, ...inputProps }: Props) => {
   if (width) rootStyles = { ...rootStyles, width }
 
   const ref = useRef<HTMLInputElement>(null!)
@@ -52,6 +53,8 @@ const Input = ({ autoFocus, rootStyles, inputRef, validateInput, defaultValue, w
   </div>
 }
 
+const Input = withInjectableUi(InputBase, 'input')
+
 export default Input
 
 export const INPUT_LABEL_WIDTH = 190
@@ -64,6 +67,6 @@ export const InputWithLabel = ({ label, span, ...props }: React.ComponentProps<t
   }}
   >
     <label style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>{label}</label>
-    <Input rootStyles={{ width: INPUT_LABEL_WIDTH }} {...props} />
+    <InputBase rootStyles={{ width: INPUT_LABEL_WIDTH }} {...props} />
   </div>
 }

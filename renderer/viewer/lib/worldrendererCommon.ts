@@ -19,6 +19,7 @@ import { WorldDataEmitterWorker } from './worldDataEmitter'
 import { getPlayerStateUtils, PlayerStateReactive, PlayerStateRenderer, PlayerStateUtils } from './basePlayerState'
 import { MesherLogReader } from './mesherlogReader'
 import { setSkinsConfig } from './utils/skins'
+import { calculateSkyLightSimple } from './skyLight'
 
 function mod (x, n) {
   return ((x % n) + n) % n
@@ -35,6 +36,7 @@ export const defaultWorldRendererConfig = {
   // Debug settings
   showChunkBorders: false,
   enableDebugOverlay: false,
+  debugModelVariant: undefined as undefined | number[],
 
   // Performance settings
   mesherWorkers: 4,
@@ -70,7 +72,8 @@ export const defaultWorldRendererConfig = {
 
   // World settings
   clipWorldBelowY: undefined as number | undefined,
-  isPlayground: false
+  isPlayground: false,
+  instantCameraUpdate: false
 }
 
 export type WorldRendererConfig = typeof defaultWorldRendererConfig
@@ -562,19 +565,8 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
   }
 
   getMesherConfig (): MesherConfig {
-    let skyLight = 15
     const timeOfDay = this.timeOfTheDay
-    if (timeOfDay < 0 || timeOfDay > 24_000) {
-      //
-    } else if (timeOfDay <= 6000 || timeOfDay >= 18_000) {
-      skyLight = 15
-    } else if (timeOfDay > 6000 && timeOfDay < 12_000) {
-      skyLight = 15 - ((timeOfDay - 6000) / 6000) * 15
-    } else if (timeOfDay >= 12_000 && timeOfDay < 18_000) {
-      skyLight = ((timeOfDay - 12_000) / 6000) * 15
-    }
-
-    skyLight = Math.floor(skyLight)
+    const skyLight = (timeOfDay < 0 || timeOfDay > 24_000) ? 15 : calculateSkyLightSimple(timeOfDay)
     return {
       version: this.version,
       enableLighting: this.worldRendererConfig.enableLighting,
@@ -582,9 +574,9 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       smoothLighting: this.worldRendererConfig.smoothLighting,
       outputFormat: this.outputFormat,
       // textureSize: this.resourcesManager.currentResources!.blocksAtlasParser.atlas.latest.width,
-      debugModelVariant: undefined,
+      debugModelVariant: this.worldRendererConfig.debugModelVariant,
       clipWorldBelowY: this.worldRendererConfig.clipWorldBelowY,
-      disableSignsMapsSupport: !this.worldRendererConfig.extraBlockRenderers,
+      disableBlockEntityTextures: !this.worldRendererConfig.extraBlockRenderers,
       worldMinY: this.worldMinYRender,
       worldMaxY: this.worldMinYRender + this.worldSizeParams.worldHeight,
     }

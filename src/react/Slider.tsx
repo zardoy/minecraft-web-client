@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useFloating, arrow, FloatingArrow, offset as offsetMiddleware } from '@floating-ui/react'
 import styles from './slider.module.css'
 import SharedHudVars from './SharedHudVars'
+import { withInjectableUi } from './extendableSystem'
 
 interface Props extends React.ComponentProps<'div'> {
   label: string;
@@ -22,7 +23,7 @@ interface Props extends React.ComponentProps<'div'> {
 const ARROW_HEIGHT = 7
 const GAP = 0
 
-const Slider: React.FC<Props> = ({
+const SliderBase: React.FC<Props> = ({
   label,
   unit = '%',
   width,
@@ -168,7 +169,7 @@ const Slider: React.FC<Props> = ({
           containerRef.current = node!
           refs.setReference(node)
         }}
-        className={`${styles['slider-container']} settings-text-container ${labelText.length > 17 ? 'settings-text-container-long' : ''}`}
+        className={`${styles['slider-container']} slider settings-text-container ${labelText.length > 17 ? 'settings-text-container-long' : ''}`}
         style={{ width }}
         {...divProps}
       >
@@ -196,7 +197,7 @@ const Slider: React.FC<Props> = ({
           }}
         />
         <div className={styles.disabled} title={disabledReason} />
-        <div className={styles['slider-thumb']} style={{ left: `calc((100% * ${ratio}) - (8px * ${ratio}))` }} />
+        <div className={`${styles['slider-thumb']} slider-thumb`} style={{ left: `calc((100% * ${ratio}) - (8px * ${ratio}))` }} />
         <label className={styles.label}>
           {labelText}
         </label>
@@ -225,4 +226,4 @@ const Slider: React.FC<Props> = ({
   )
 }
 
-export default Slider
+export default withInjectableUi(SliderBase, 'slider')

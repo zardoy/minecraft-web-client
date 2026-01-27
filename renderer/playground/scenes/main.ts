@@ -1,4 +1,3 @@
-//@ts-nocheck
 // eslint-disable-next-line import/no-named-as-default
 import GUI, { Controller } from 'lil-gui'
 import * as THREE from 'three'
@@ -6,18 +5,20 @@ import JSZip from 'jszip'
 import { BasePlaygroundScene } from '../baseScene'
 import { TWEEN_DURATION } from '../../viewer/three/entities'
 import { EntityMesh } from '../../viewer/three/entity/EntityMesh'
+import supportedVersions from '../../../src/supportedVersions.mjs'
+
+const includedVersions = globalThis.includedVersions ?? supportedVersions
 
 class MainScene extends BasePlaygroundScene {
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor
   constructor (...args) {
-    //@ts-expect-error
     super(...args)
   }
 
   override initGui (): void {
     // initial values
     this.params = {
-      version: globalThis.includedVersions.at(-1),
+      version: includedVersions.at(-1),
       skipQs: '',
       block: '',
       metadata: 0,
@@ -35,7 +36,7 @@ class MainScene extends BasePlaygroundScene {
     this.metadataGui = this.gui.add(this.params, 'metadata')
     this.paramOptions = {
       version: {
-        options: globalThis.includedVersions,
+        options: includedVersions,
         hide: false
       },
       block: {
@@ -113,8 +114,8 @@ class MainScene extends BasePlaygroundScene {
       this.entityUpdateShared()
       if (!this.params.entity) return
       if (this.params.entity === 'player') {
-        viewer.entities.updatePlayerSkin('id', viewer.entities.entities.id.username, undefined, true, true)
-        viewer.entities.playAnimation('id', 'running')
+        this.worldRenderer.entities.updatePlayerSkin('id', this.worldRenderer.entities.entities.id.username, undefined, true, true)
+        this.worldRenderer.entities.playAnimation('id', 'running')
       }
       // let prev = false
       // setInterval(() => {
@@ -129,17 +130,17 @@ class MainScene extends BasePlaygroundScene {
       // entityRotationFolder.open()
     },
     supportBlock: () => {
-      viewer.setBlockStateId(this.targetPos.offset(0, -1, 0), this.params.supportBlock ? 1 : 0)
+      this.worldView!.setBlockStateId(this.targetPos.offset(0, -1, 0), this.params.supportBlock ? 1 : 0)
     },
     modelVariant: () => {
-      viewer.world.mesherConfig.debugModelVariant = this.params.modelVariant === 0 ? undefined : [this.params.modelVariant]
+      this.worldRenderer.worldRendererConfig.debugModelVariant = this.params.modelVariant === 0 ? undefined : [this.params.modelVariant]
     }
   }
 
   entityUpdateShared () {
-    viewer.entities.clear()
+    this.worldRenderer.entities.clear()
     if (!this.params.entity) return
-    worldView!.emit('entity', {
+    this.worldView!.emit('entity', {
       id: 'id', name: this.params.entity, pos: this.targetPos.offset(0.5, 1, 0.5), width: 1, height: 1, username: localStorage.testUsername, yaw: Math.PI, pitch: 0
     })
     const enableSkeletonDebug = (obj) => {
@@ -153,14 +154,55 @@ class MainScene extends BasePlaygroundScene {
         if (typeof child === 'object') enableSkeletonDebug(child)
       }
     }
-    enableSkeletonDebug(viewer.entities.entities['id'])
+    enableSkeletonDebug(this.worldRenderer.entities.entities['id'])
     setTimeout(() => {
-      viewer.render()
+      this.render()
     }, TWEEN_DURATION)
   }
 
+  getBlock () {
+    return mcData.blocksByName[this.params.block || 'air']
+  }
+
+  // applyChanges (metadataUpdate = false, skipQs = false) {
+  override onParamsUpdate (paramName: string, object: any) {
+    const metadataUpdate = paramName === 'metadata'
+
+    const blockId = this.getBlock()?.id
+    let block: import('prismarine-block').Block
+    if (metadataUpdate) {
+      block = new this.Block(blockId, 0, this.params.metadata)
+      Object.assign(this.blockProps, block.getProperties())
+      for (const _child of this.metadataFolder!.children) {
+        const child = _child as import('lil-gui').Controller
+        child.updateDisplay()
+      }
+    } else {
+      try {
+        block = this.Block.fromProperties(blockId ?? -1, this.blockProps, 0)
+      } catch (err) {
+        console.error(err)
+        block = this.Block.fromStateId(0, 0)
+      }
+    }
+
+    this.worldView!.setBlockStateId(this.targetPos, block.stateId ?? 0)
+    console.log('up stateId', block.stateId)
+    this.params.metadata = block.metadata
+    this.metadataGui.updateDisplay()
+  }
+
+  override renderFinish () {
+    for (const update of Object.values(this.onParamUpdate)) {
+      // update(true)
+      update()
+    }
+    this.onParamsUpdate('', {})
+    this.gui.openAnimated()
+  }
+
   blockIsomorphicRenderBundle () {
-    const { renderer } = viewer
+    const { renderer } = this.worldRenderer
 
     const canvas = renderer.domElement
     const onlyCurrent = !confirm('Ok - render all blocks, Cancel - render only current one')
@@ -169,28 +211,28 @@ class MainScene extends BasePlaygroundScene {
     const size = parseInt(sizeRaw, 10)
     // const size = 512
 
-    this.ignoreResize = true
     canvas.width = size
     canvas.height = size
     renderer.setSize(size, size)
 
-    viewer.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 10)
-    viewer.scene.background = null
+    // Temporarily replace PerspectiveCamera with OrthographicCamera for block rendering
+    this.worldRenderer.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 10) as any
+    this.worldRenderer.scene.background = null
 
     const rad = THREE.MathUtils.degToRad(-120)
-    viewer.directionalLight.position.set(
+    this.worldRenderer.directionalLight.position.set(
       Math.cos(rad),
       Math.sin(rad),
       0.2
     ).normalize()
-    viewer.directionalLight.intensity = 1
+    this.worldRenderer.directionalLight.intensity = 1
 
     const cameraPos = this.targetPos.offset(2, 2, 2)
     const pitch = THREE.MathUtils.degToRad(-30)
     const yaw = THREE.MathUtils.degToRad(45)
-    viewer.camera.rotation.set(pitch, yaw, 0, 'ZYX')
-    // viewer.camera.lookAt(center.x + 0.5, center.y + 0.5, center.z + 0.5)
-    viewer.camera.position.set(cameraPos.x + 1, cameraPos.y + 0.5, cameraPos.z + 1)
+    this.worldRenderer.camera.rotation.set(pitch, yaw, 0, 'ZYX')
+    // this.worldRenderer!.camera.lookAt(center.x + 0.5, center.y + 0.5, center.z + 0.5)
+    this.worldRenderer.camera.position.set(cameraPos.x + 1, cameraPos.y + 0.5, cameraPos.z + 1)
 
     const allBlocks = mcData.blocksArray.map(b => b.name)
     // const allBlocks = ['stone', 'warped_slab']
@@ -206,17 +248,17 @@ class MainScene extends BasePlaygroundScene {
       // onUpdate.block()
       // applyChanges(false, true)
     }
-    void viewer.waitForChunksToRender().then(async () => {
+    void this.worldRenderer.waitForChunksToRender().then(async () => {
       // wait for next macro task
       await new Promise(resolve => {
         setTimeout(resolve, 0)
       })
       if (onlyCurrent) {
-        viewer.render()
+        this.render()
         onWorldUpdate()
       } else {
         // will be called on every render update
-        viewer.world.renderUpdateEmitter.addListener('update', onWorldUpdate)
+        this.worldRenderer.renderUpdateEmitter.addListener('update', onWorldUpdate)
         updateBlock()
       }
     })
@@ -236,7 +278,7 @@ class MainScene extends BasePlaygroundScene {
       URL.revokeObjectURL(dataUrlZip)
       console.log('end')
 
-      viewer.world.renderUpdateEmitter.removeListener('update', onWorldUpdate)
+      this.worldRenderer.renderUpdateEmitter.removeListener('update', onWorldUpdate)
     }
 
     async function onWorldUpdate () {
@@ -267,47 +309,6 @@ class MainScene extends BasePlaygroundScene {
         end()
       }
     }
-  }
-
-  getBlock () {
-    return mcData.blocksByName[this.params.block || 'air']
-  }
-
-  // applyChanges (metadataUpdate = false, skipQs = false) {
-  override onParamsUpdate (paramName: string, object: any) {
-    const metadataUpdate = paramName === 'metadata'
-
-    const blockId = this.getBlock()?.id
-    let block: import('prismarine-block').Block
-    if (metadataUpdate) {
-      block = new this.Block(blockId, 0, this.params.metadata)
-      Object.assign(this.blockProps, block.getProperties())
-      for (const _child of this.metadataFolder!.children) {
-        const child = _child as import('lil-gui').Controller
-        child.updateDisplay()
-      }
-    } else {
-      try {
-        block = this.Block.fromProperties(blockId ?? -1, this.blockProps, 0)
-      } catch (err) {
-        console.error(err)
-        block = this.Block.fromStateId(0, 0)
-      }
-    }
-
-    worldView!.setBlockStateId(this.targetPos, block.stateId ?? 0)
-    console.log('up stateId', block.stateId)
-    this.params.metadata = block.metadata
-    this.metadataGui.updateDisplay()
-  }
-
-  override renderFinish () {
-    for (const update of Object.values(this.onParamUpdate)) {
-      // update(true)
-      update()
-    }
-    this.onParamsUpdate('', {})
-    this.gui.openAnimated()
   }
 }
 

@@ -19,7 +19,7 @@ import {
 import { fsState } from '../loadSave'
 import { disconnect } from '../flyingSquidUtils'
 import { openGithub, pointerLock } from '../utils'
-import { setLoadingScreenStatus } from '../appStatus'
+import { setLoadingScreenStatus, lastConnectOptions } from '../appStatus'
 import { closeWan, openToWanAndCopyJoinLink, getJoinLink } from '../localServerMultiplayer'
 import { collectFilesToCopy, fileExistsAsyncOptimized, mkdirRecursive, uniqueFileNameFromWorldName } from '../browserfs'
 import { appQueryParams } from '../appParams'
@@ -32,7 +32,7 @@ import Screen from './Screen'
 import styles from './PauseScreen.module.css'
 import { DiscordButton } from './DiscordButton'
 import { showNotification } from './NotificationProvider'
-import { appStatusState, lastConnectOptions, reconnectReload } from './AppStatusProvider'
+import { appStatusState, reconnectReload } from './AppStatusProvider'
 import NetworkStatus from './NetworkStatus'
 import PauseLinkButtons from './PauseLinkButtons'
 import { pixelartIcons } from './PixelartIcon'
@@ -323,8 +323,6 @@ export default () => {
                   case 'Try Beta Version': {
                     if (currentHost === 'mcraft.fun') {
                       window.location.href = 'https://s.mcraft.fun'
-                    } else if (currentHost === 'ru.mcraft.fun') {
-                      window.location.href = 'https://s.pcm.gg'
                     }
                     break
                   }

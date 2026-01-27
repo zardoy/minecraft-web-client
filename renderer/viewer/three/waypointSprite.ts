@@ -61,6 +61,10 @@ export function createWaypointSprite (options: {
   sprite.renderOrder = 10
   let currentLabel = options.label ?? ''
 
+  // Performance optimization: cache distance text to avoid unnecessary updates
+  let lastDistanceText = '0m'
+  let lastDistance = 0
+
   // Offscreen arrow (detached by default)
   let arrowSprite: THREE.Sprite | undefined
   let arrowParent: THREE.Object3D | null = null
@@ -94,6 +98,12 @@ export function createWaypointSprite (options: {
   }
 
   function updateDistanceText (label: string, distanceText: string) {
+    // Performance optimization: only update if distance text actually changed
+    if (distanceText === lastDistanceText) {
+      return
+    }
+    lastDistanceText = distanceText
+
     const canvas = drawCombinedCanvas(color, label, distanceText)
     const texture = new THREE.CanvasTexture(canvas)
     const mat = sprite.material
@@ -288,8 +298,14 @@ export function createWaypointSprite (options: {
     const distance = computeDistance(cameraPosition)
     // Keep constant pixel size
     updateScaleScreenPixels(cameraPosition, camera.fov, distance, viewportHeightPx)
-    // Update text
-    updateDistanceText(currentLabel, `${Math.round(distance)}m`)
+
+    // Performance optimization: only update distance text if distance changed significantly
+    const roundedDistance = Math.round(distance)
+    if (Math.abs(roundedDistance - lastDistance) >= 1) {
+      lastDistance = roundedDistance
+      updateDistanceText(currentLabel, `${roundedDistance}m`)
+    }
+
     // Update arrow and visibility
     const onScreen = updateOffscreenArrow(camera, viewportWidthPx, viewportHeightPx)
     setVisible(onScreen)

@@ -18,7 +18,7 @@ export default () => {
     style={{
       position: 'fixed',
       right: 0,
-      zIndex: 1,
+      zIndex: 10,
       ...(useBottom ? { bottom: 0 } : { top: 0 }),
     }}
   />

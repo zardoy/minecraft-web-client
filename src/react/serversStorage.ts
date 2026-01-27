@@ -1,7 +1,7 @@
 import { appQueryParams } from '../appParams'
 import { miscUiState } from '../globalState'
+import { lastConnectOptions } from '../appStatus'
 import { BaseServerInfo } from './AddServerOrConnect'
-import { lastConnectOptions } from './AppStatusProvider'
 import { appStorage, StoreServerItem } from './appStorageProvider'
 
 const serversListQs = appQueryParams.serversList

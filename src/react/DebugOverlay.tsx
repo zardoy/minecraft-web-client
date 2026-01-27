@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Entity } from 'prismarine-entity'
 import { useSnapshot } from 'valtio'
 import type { Block } from 'prismarine-block'
 import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
@@ -7,8 +8,9 @@ import { getFixedFilesize } from '../downloadAndOpenFile'
 import { options } from '../optionsStorage'
 import { BlockStateModelInfo } from '../../renderer/viewer/lib/mesher/shared'
 import styles from './DebugOverlay.module.css'
+import { withInjectableUi } from './extendableSystem'
 
-export default () => {
+const DebugOverlayBase = () => {
   const received = useRef({ ...defaultPacketsCount })
   const sent = useRef({ ...defaultPacketsCount })
   const customEntries = useRef({} as any)
@@ -39,6 +41,7 @@ export default () => {
   const [timeOfDay, setTimeOfDay] = useState(0)
   const [dimension, setDimension] = useState('')
   const [cursorBlock, setCursorBlock] = useState<Block | null>(null)
+  const [cursorEntity, setCursorEntity] = useState<Entity | null>(null)
   const [blockInfo, setBlockInfo] = useState<{ customBlockName?: string, modelInfo?: BlockStateModelInfo } | null>(null)
   const [clientTps, setClientTps] = useState(0)
   const [serverTps, setServerTps] = useState(null as null | { value: number, frozen: boolean })
@@ -54,6 +57,14 @@ export default () => {
   ]
 
   const viewDegToMinecraft = (yaw) => yaw % 360 - 180 * (yaw < 0 ? -1 : 1)
+
+  const shortenUuid = (uuid: string | undefined): string | undefined => {
+    if (!uuid) return undefined
+    // Format: 2383-*-3243 (first 4 chars, *, last 4 chars)
+    const cleaned = uuid.replaceAll('-', '')
+    if (cleaned.length < 8) return uuid
+    return `${cleaned.slice(0, 4)}-*-${cleaned.slice(-4)}`
+  }
 
   const readPacket = (data, { name }, _buf, fullBuffer) => {
     if (fullBuffer) {
@@ -129,7 +140,9 @@ export default () => {
       setDimension(bot.game.dimension)
       setDay(bot.time.day)
       setTimeOfDay(bot.time.timeOfDay)
-      setCursorBlock(bot.mouse.getCursorState().cursorBlock)
+      const cursorState = bot.mouse.getCursorState()
+      setCursorBlock(cursorState.cursorBlock)
+      setCursorEntity(cursorState.entity)
     }, 100)
 
     const notFrequentUpdateInterval = setInterval(async () => {
@@ -212,6 +225,34 @@ export default () => {
       {cursorBlock ? (
         <p>Looking at: {cursorBlock.position.x} {cursorBlock.position.y} {cursorBlock.position.z}</p>
       ) : ''}
+      {cursorBlock?.blockEntity && <p>Block Entity Data:</p>}
+      {cursorBlock?.blockEntity && (<>
+        <div className={styles.empty} />
+        {Object.entries(cursorBlock.blockEntity).map(([key, value]: [string, any]) => {
+          const stringified = JSON.stringify(value)
+          return (
+            <p key={key}>
+              {key}: {stringified.length}
+            </p>
+          )
+        })}
+      </>)}
+      {cursorEntity ? (<>
+        <div className={styles.empty} />
+        <p>E: {cursorEntity.name}</p>
+        {cursorEntity.displayName && <p>{cursorEntity.displayName}</p>}
+        {cursorEntity.id !== undefined && <p>ID: {cursorEntity.id}</p>}
+        {shortenUuid(cursorEntity.uuid) && <p>UUID: {shortenUuid(cursorEntity.uuid)}</p>}
+        {cursorEntity.username && <p>Username: {cursorEntity.username}</p>}
+        {cursorEntity.position && (
+          <p>{cursorEntity.position.x.toFixed(2)} {cursorEntity.position.y.toFixed(2)} {cursorEntity.position.z.toFixed(2)}</p>
+        )}
+        {cursorEntity.yaw !== undefined && <p>Yaw: {cursorEntity.yaw.toFixed(1)}</p>}
+        {cursorEntity.pitch !== undefined && <p>Pitch: {cursorEntity.pitch.toFixed(1)}</p>}
+        {cursorEntity.type && <p>Type: {cursorEntity.type}</p>}
+        {cursorEntity.health !== undefined && <p>Health: {cursorEntity.health.toFixed(1)}</p>}
+      </>)
+        : ''}
       <div className={styles.empty} />
       {blockInfo && (() => {
         const { customBlockName, modelInfo } = blockInfo
@@ -233,6 +274,8 @@ export default () => {
     </div>
   </>
 }
+
+export default withInjectableUi(DebugOverlayBase, 'debugOverlay')
 
 const hardcodedListOfDebugPacketsToIgnore = {
   received: [

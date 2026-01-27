@@ -15,13 +15,16 @@ import { EntityMesh } from './entity/EntityMesh'
 import { DocumentRenderer } from './documentRenderer'
 import { PANORAMA_VERSION } from './panoramaShared'
 
+const date = new Date()
+const isChristmas = date.getMonth() === 11 && date.getDate() >= 24 && date.getDate() <= 26
+
 const panoramaFiles = [
-  'panorama_3.png', // right (+x)
-  'panorama_1.png', // left (-x)
-  'panorama_4.png', // top (+y)
-  'panorama_5.png', // bottom (-y)
-  'panorama_0.png', // front (+z)
-  'panorama_2.png', // back (-z)
+  'panorama_3.webp', // right (+x)
+  'panorama_1.webp', // left (-x)
+  'panorama_4.webp', // top (+y)
+  'panorama_5.webp', // bottom (-y)
+  'panorama_0.webp', // front (+z)
+  'panorama_2.webp', // back (-z)
 ]
 
 export class PanoramaRenderer {
@@ -74,7 +77,7 @@ export class PanoramaRenderer {
   }
 
   async debugImageInFrontOfCamera () {
-    const image = await loadThreeJsTextureFromUrl(join('background', 'panorama_0.png'))
+    const image = await loadThreeJsTextureFromUrl(join('background', 'panorama_0.webp'))
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial({ map: image }))
     mesh.position.set(0, 0, -500)
     mesh.rotation.set(0, 0, 0)
@@ -90,7 +93,7 @@ export class PanoramaRenderer {
 
     for (const file of panoramaFiles) {
       const load = async () => {
-        const { texture } = loadThreeJsTextureFromUrlSync(join('background', file))
+        const { texture } = loadThreeJsTextureFromUrlSync(join('background', isChristmas ? 'christmas' : '', file))
 
         // Instead of using repeat/offset to flip, we'll use the texture matrix
         texture.matrixAutoUpdate = false
@@ -139,17 +142,19 @@ export class PanoramaRenderer {
     const group = new THREE.Object3D()
     group.add(panoramaBox)
 
-    // Add squids
-    for (let i = 0; i < 20; i++) {
-      const m = new EntityMesh('1.16.4', 'squid').mesh
-      m.position.set(Math.random() * 30 - 15, Math.random() * 20 - 10, Math.random() * 10 - 17)
-      m.rotation.set(0, Math.PI + Math.random(), -Math.PI / 4, 'ZYX')
-      const v = Math.random() * 0.01
-      m.children[0].onBeforeRender = () => {
-        m.rotation.y += v
-        m.rotation.z = Math.cos(panoramaBox.rotation.y * 3) * Math.PI / 4 - Math.PI / 2
+    if (!isChristmas) {
+      // Add entities
+      for (let i = 0; i < 20; i++) {
+        const m = new EntityMesh('1.16.4', 'squid').mesh
+        m.position.set(Math.random() * 30 - 15, Math.random() * 20 - 10, Math.random() * 10 - 17)
+        m.rotation.set(0, Math.PI + Math.random(), -Math.PI / 4, 'ZYX')
+        const v = Math.random() * 0.01
+        m.children[0].onBeforeRender = () => {
+          m.rotation.y += v
+          m.rotation.z = Math.cos(panoramaBox.rotation.y * 3) * Math.PI / 4 - Math.PI / 2
+        }
+        group.add(m)
       }
-      group.add(m)
     }
 
     this.scene.add(group)

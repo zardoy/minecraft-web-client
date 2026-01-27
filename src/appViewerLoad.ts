@@ -6,29 +6,43 @@ import { miscUiState } from './globalState'
 import { watchOptionsAfterViewerInit } from './watchOptions'
 import { showNotification } from './react/NotificationProvider'
 
-const backends = [
+export const appGraphicBackends = [
   createGraphicsBackend,
 ]
 const loadBackend = async () => {
-  let backend = backends.find(backend => backend.id === options.activeRenderer)
+  let backend = appGraphicBackends.find(backend => backend.id === options.activeRenderer)
   if (!backend) {
-    showNotification(`No backend found for renderer ${options.activeRenderer}`, `Falling back to ${backends[0].id}`, true)
-    backend = backends[0]
+    showNotification(`No backend found for renderer ${options.activeRenderer}`, `Falling back to ${appGraphicBackends[0].id}`, true)
+    backend = appGraphicBackends[0]
   }
   await appViewer.loadBackend(backend)
 }
 window.loadBackend = loadBackend
-if (process.env.SINGLE_FILE_BUILD_MODE) {
-  const unsub = subscribeKey(miscUiState, 'fsReady', () => {
-    if (miscUiState.fsReady) {
-      // don't do it earlier to load fs and display menu faster
+
+export const appLoadBackend = async () => {
+  if (process.env.SINGLE_FILE_BUILD_MODE) {
+    const unsub = subscribeKey(miscUiState, 'fsReady', () => {
+      if (miscUiState.fsReady) {
+        // don't do it earlier to load fs and display menu faster
+        void loadBackend()
+        unsub()
+      }
+    })
+  } else {
+    setTimeout(() => {
       void loadBackend()
-      unsub()
+    })
+  }
+
+  watchOptionsAfterViewerInit()
+
+  // reset backend when renderer changes
+  subscribeKey(options, 'activeRenderer', async () => {
+    if (appViewer.currentDisplay === 'world' && bot) {
+      appViewer.resetBackend(true)
+      await loadBackend()
+      void appViewer.startWithBot()
     }
-  })
-} else {
-  setTimeout(() => {
-    void loadBackend()
   })
 }
 
@@ -37,15 +51,3 @@ const animLoop = () => {
   requestAnimationFrame(animLoop)
 }
 requestAnimationFrame(animLoop)
-
-watchOptionsAfterViewerInit()
-
-// reset backend when renderer changes
-
-subscribeKey(options, 'activeRenderer', async () => {
-  if (appViewer.currentDisplay === 'world' && bot) {
-    appViewer.resetBackend(true)
-    await loadBackend()
-    void appViewer.startWithBot()
-  }
-})

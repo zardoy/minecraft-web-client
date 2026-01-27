@@ -18,7 +18,7 @@
       "ip": "wss://ws.fuchsmc.net"
     },
     {
-      "ip": "wss://play2.mcraft.fun"
+      "ip": "wss://play3.mcraft.fun"
     },
     {
       "ip": "wss://play-creative.mcraft.fun",
@@ -31,7 +31,7 @@
     }
   ],
   "rightSideText": "A Minecraft client clone in the browser!",
-  "splashText": "The sunset is coming!",
+  "splashText": "Thanks for testing my chaos!",
   "splashTextFallback": "Welcome!",
   "pauseLinks": [
     [

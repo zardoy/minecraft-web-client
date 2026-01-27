@@ -1,4 +1,4 @@
-import { lastConnectOptions } from '../../react/AppStatusProvider'
+import { lastConnectOptions } from '../../appStatus'
 import mouse from './mouse'
 import packetsPatcher from './packetsPatcher'
 import { localRelayServerPlugin } from './packetsRecording'

@@ -1,14 +1,29 @@
 import PItem from 'prismarine-item'
 import * as THREE from 'three'
 import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
-import { options } from './optionsStorage'
+import { options, serverChangedSettings } from './optionsStorage'
 import { jeiCustomCategories } from './inventoryWindows'
 import { registerIdeChannels } from './core/ideChannels'
+import { registerIframeChannels } from './core/iframeChannels'
+import { serverSafeSettings } from './defaultOptions'
+import { lastConnectOptions } from './appStatus'
+import { gameAdditionalState } from './globalState'
+
+const isWebSocketServer = (server: string | undefined) => {
+  if (!server) return false
+  return server.startsWith('ws://') || server.startsWith('wss://')
+}
+
+const getIsCustomChannelsEnabled = () => {
+  if (options.customChannels === 'websocket') return isWebSocketServer(lastConnectOptions.value?.server)
+  return options.customChannels
+}
 
 export default () => {
   customEvents.on('mineflayerBotCreated', async () => {
-    if (!options.customChannels) return
+    if (!getIsCustomChannelsEnabled()) return
     bot.once('login', () => {
+      registerConnectMetadataChannel()
       registerBlockModelsChannel()
       registerMediaChannels()
       registerSectionAnimationChannels()
@@ -17,6 +32,9 @@ export default () => {
       registerWaypointChannels()
       registerFireworksChannels()
       registerIdeChannels()
+      registerIframeChannels()
+      registerServerSettingsChannel()
+      registerTypingIndicatorChannel()
     })
   })
 }
@@ -33,6 +51,25 @@ const registerChannel = (channelName: string, packetStructure: any[], handler: (
   })
 
   console.debug(`registered custom channel ${channelName} channel`)
+}
+
+const registerConnectMetadataChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:connect-metadata'
+  const packetStructure = [
+    'container',
+    [
+      { name: 'metadata', type: ['pstring', { countType: 'i16' }] }
+    ]
+  ]
+
+  bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
+  bot._client.writeChannel(CHANNEL_NAME, {
+    metadata: JSON.stringify({
+      version: process.env.RELEASE_TAG,
+      build: process.env.BUILD_VERSION,
+      ...window.serverMetadataConnect,
+    })
+  })
 }
 
 const registerBlockInteractionsCustomizationChannel = () => {
@@ -146,6 +183,7 @@ const registerWaypointChannels = () => {
 
     getThreeJsRendererMethods()?.addWaypoint(data.id, data.x, data.y, data.z, {
       minDistance: data.minDistance,
+      maxDistance: metadata.maxDistance,
       label: data.label || undefined,
       color: data.color || undefined,
       metadata
@@ -524,6 +562,93 @@ const addTestVideo = (rotation = 0 as 0 | 1 | 2 | 3, scale = 1, isImage = false)
   })
 }
 window.addTestVideo = addTestVideo
+
+const registerServerSettingsChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:server-settings'
+  const packetStructure = [
+    'container',
+    [
+      {
+        name: 'settingsJson',
+        type: ['pstring', { countType: 'i16' }]
+      },
+    ]
+  ]
+
+  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
+    try {
+      const settings = JSON.parse(data.settingsJson)
+
+      if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
+        console.warn('Invalid settings format: expected an object')
+        return
+      }
+
+      let appliedCount = 0
+      let skippedCount = 0
+
+      for (const [key, value] of Object.entries(settings)) {
+        // Only apply settings that are in the safe list
+        if (!(key in serverSafeSettings)) {
+          console.warn(`Skipping unsafe setting: ${key}`)
+          skippedCount++
+          continue
+        }
+
+        // Validate that the setting exists in options
+        if (!(key in options)) {
+          console.warn(`Setting does not exist: ${key}`)
+          skippedCount++
+          continue
+        }
+
+        // todo remove it later, let user take control back and make clear to user
+        serverChangedSettings.value.add(key)
+        options[key] = value
+        appliedCount++
+      }
+
+      console.debug(`Applied ${appliedCount} server settings${skippedCount > 0 ? `, skipped ${skippedCount} unsafe/invalid settings` : ''}`)
+    } catch (error) {
+      console.error('Failed to parse or apply server settings:', error)
+    }
+  }, false) // Don't wait for world, settings can be applied before world loads
+}
+
+const registerTypingIndicatorChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:typing-indicator'
+  const packetStructure = [
+    'container',
+    [
+      {
+        name: 'username',
+        type: ['pstring', { countType: 'i16' }]
+      },
+      {
+        name: 'isTyping',
+        type: 'bool'
+      }
+    ]
+  ]
+
+  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
+    const { username, isTyping } = data
+
+    if (isTyping) {
+      // Add user to typing list if not already there
+      const existingIndex = gameAdditionalState.typingUsers.findIndex(user => user.username === username)
+      if (existingIndex === -1) {
+        gameAdditionalState.typingUsers.push({ username, timestamp: Date.now() })
+      } else {
+        // Update timestamp for existing user
+        gameAdditionalState.typingUsers[existingIndex].timestamp = Date.now()
+      }
+    } else {
+      // Remove user from typing list
+      gameAdditionalState.typingUsers = gameAdditionalState.typingUsers.filter(user => user.username !== username)
+    }
+  })
+}
 
 function getCurrentTopDomain (): string {
   const { hostname } = location

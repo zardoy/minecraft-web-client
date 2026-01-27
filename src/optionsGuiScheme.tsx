@@ -56,7 +56,6 @@ export const guiOptionsScheme: {
       gpuPreference: {
         text: 'GPU Preference',
         tooltip: 'You will need to reload the page for this to take effect.',
-        values: [['default', 'Auto'], ['high-performance', 'Dedicated'], ['low-power', 'Low Power']]
       },
     },
     {
@@ -65,17 +64,9 @@ export const guiOptionsScheme: {
       },
       backgroundRendering: {
         text: 'Background FPS limit',
-        values: [
-          ['full', 'NO'],
-          ['5fps', '5 FPS'],
-          ['20fps', '20 FPS'],
-        ],
       },
       activeRenderer: {
         text: 'Renderer',
-        values: [
-          ['threejs', 'Three.js (stable)'],
-        ],
       },
     },
     {
@@ -104,14 +95,12 @@ export const guiOptionsScheme: {
         tooltip: 'Enable rendering Deadmau5 ears for all players if their skin contains textures for it',
       },
       renderDebug: {
-        values: [
-          'advanced',
-          'basic',
-          'none'
-        ],
       },
       rendererPerfDebugOverlay: {
         text: 'Performance Debug',
+      },
+      disableBlockEntityTextures: {
+        tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps',
       }
     },
     {
@@ -132,11 +121,6 @@ export const guiOptionsScheme: {
       },
       serverResourcePacks: {
         text: 'Download From Server',
-        values: [
-          'prompt',
-          'always',
-          'never'
-        ],
       }
     }
   ],
@@ -299,11 +283,6 @@ export const guiOptionsScheme: {
       showMinimap: {
         text: 'Enable Minimap',
         enableWarning: 'App reload is required to apply this setting',
-        values: [
-          'always',
-          'singleplayer',
-          'never'
-        ],
       },
     },
     {
@@ -312,11 +291,6 @@ export const guiOptionsScheme: {
       },
       highlightBlockColor: {
         text: 'Block Highlight Color',
-        values: [
-          ['auto', 'Auto'],
-          ['blue', 'Blue'],
-          ['classic', 'Classic']
-        ],
       },
       showHand: {
         text: 'Show Hand',
@@ -334,11 +308,6 @@ export const guiOptionsScheme: {
       },
       wysiwygSignEditor: {
         text: 'WYSIWG Editor',
-        values: [
-          'auto',
-          'always',
-          'never'
-        ],
       },
     },
     {
@@ -453,11 +422,9 @@ export const guiOptionsScheme: {
       },
       touchMovementType: {
         text: 'Movement Controls',
-        values: [['modern', 'Modern'], ['classic', 'Classic']],
       },
       touchInteractionType: {
         text: 'Interaction Controls',
-        values: [['classic', 'Classic'], ['buttons', 'Buttons']],
       },
     },
     {
@@ -471,11 +438,6 @@ export const guiOptionsScheme: {
         return <Category>Auto Jump</Category>
       },
       autoJump: {
-        values: [
-          'always',
-          'auto',
-          'never'
-        ],
         disableIf: [
           'autoParkour',
           true
@@ -577,11 +539,6 @@ export const guiOptionsScheme: {
     {
       saveLoginPassword: {
         tooltip: 'Controls whether to save login passwords for servers in this browser memory.',
-        values: [
-          'prompt',
-          'always',
-          'never'
-        ]
       },
     },
     {
@@ -653,10 +610,6 @@ export const guiOptionsScheme: {
     {
       packetsLoggerPreset: {
         text: 'Packets Logger Preset',
-        values: [
-          ['all', 'All'],
-          ['no-buffers', 'No Buffers']
-        ],
       },
     },
     {

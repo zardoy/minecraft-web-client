@@ -126,7 +126,7 @@ export class CursorBlock {
   }
 
   setHighlightCursorBlock (blockPos: Vec3 | null, shapePositions?: BlocksShapes, force = false): void {
-    if (blockPos && this.interactionLines && blockPos.equals(this.interactionLines.blockPos) && !force) {
+    if (blockPos && this.interactionLines && blockPos.equals(this.interactionLines.blockPos) && sameArray(shapePositions ?? [], this.interactionLines.shapePositions ?? []) && !force) {
       return
     }
     if (this.interactionLines !== null) {
@@ -159,4 +159,12 @@ export class CursorBlock {
     }
     this.updateDisplay()
   }
+}
+
+const sameArray = (a: any[], b: any[]) => {
+  if (a.length !== b.length) return false
+  for (const [i, element] of a.entries()) {
+    if (element !== b[i]) return false
+  }
+  return true
 }

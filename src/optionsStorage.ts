@@ -21,6 +21,9 @@ export const qsOptions = Object.fromEntries(qsOptionsRaw.map(o => {
 export const disabledSettings = proxy({
   value: new Set<string>(Object.keys(qsOptions))
 })
+export const serverChangedSettings = proxy({
+  value: new Set<string>()
+})
 
 const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
   if (options.highPerformanceGpu) {
@@ -104,7 +107,7 @@ subscribe(options, (ops) => {
     // for (const part of path) {
     // }
     const key = path[0] as string
-    if (disabledSettings.value.has(key)) continue
+    if (disabledSettings.value.has(key) || serverChangedSettings.value.has(key)) continue
     appStorage.changedSettings[key] = options[key]
   }
 })

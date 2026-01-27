@@ -1,3 +1,5 @@
+import { withInjectableUi } from './extendableSystem'
+
 interface Props {
   title: JSX.Element | string
   children: React.ReactNode
@@ -9,10 +11,15 @@ interface Props {
   contentStyle?: React.CSSProperties
 }
 
-export default ({ title, children, backdrop = true, style, className = '', titleSelectable, titleMarginTop, contentStyle }: Props) => {
+const ScreenDirtBgBase = () => {
+  return <div className='dirt-bg' />
+}
+export const ScreenDirtBg = withInjectableUi(ScreenDirtBgBase, 'screenDirtBg')
+
+const ScreenBase = ({ title, children, backdrop = true, style, className = '', titleSelectable, titleMarginTop, contentStyle }: Props) => {
   return (
     <>
-      {backdrop === 'dirt' ? <div className='dirt-bg' /> : backdrop ? <div className="backdrop" /> : null}
+      {backdrop === 'dirt' ? <ScreenDirtBg /> : backdrop ? <div className="backdrop" /> : null}
       <div className={`fullscreen ${className}`} style={{ ...style }}>
         <div className="screen-content" style={{ ...contentStyle, ...(titleMarginTop === undefined ? {} : { marginTop: titleMarginTop }) }}>
           <div className={`screen-title ${titleSelectable ? 'text-select' : ''}`}>{title}</div>
@@ -22,3 +29,5 @@ export default ({ title, children, backdrop = true, style, className = '', title
     </>
   )
 }
+
+export default withInjectableUi(ScreenBase, 'screen')

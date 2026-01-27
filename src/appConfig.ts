@@ -58,7 +58,7 @@ export type AppConfig = {
   skinTexturesProxy?: string
   alwaysReconnectButton?: boolean
   reportBugButtonWithReconnect?: boolean
-  disabledCommands?: string[] // Array of command IDs to disable (e.g. ['general.jump', 'general.chat'])
+  disabledCommands?: string[] // Array of command IDs to disable (e.g. ['movement.jump', 'general.chat'])
 }
 
 export const loadAppConfig = (appConfig: AppConfig) => {

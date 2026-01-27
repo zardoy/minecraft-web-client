@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 import { useUsingTouch } from './utilsApp'
+import { withInjectableUi } from './extendableSystem'
 
 const duration = 0.2
 
@@ -21,7 +22,7 @@ interface NotificationProps {
   totalProgress?: number
 }
 
-export default ({
+const NotificationBase = ({
   type = 'message',
   message,
   subMessage = '',
@@ -113,3 +114,5 @@ export default ({
     )}
   </AnimatePresence>
 }
+
+export default withInjectableUi(NotificationBase, 'notification')

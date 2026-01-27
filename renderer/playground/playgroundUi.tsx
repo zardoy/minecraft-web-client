@@ -1,5 +1,5 @@
 import { renderToDom } from '@zardoy/react-util'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { proxy, useSnapshot } from 'valtio'
 import { LeftTouchArea, RightTouchArea, useInterfaceState } from '@dimaka/interface'
 import { css } from '@emotion/css'
@@ -14,7 +14,10 @@ export const playgroundGlobalUiState = proxy({
   actions: {} as Record<string, () => void>,
 })
 
-renderToDom(<Playground />)
+renderToDom(<Playground />, {
+  strictMode: false,
+  selector: '#react-root',
+})
 
 function Playground () {
   useEffect(() => {
@@ -44,31 +47,49 @@ function Playground () {
 function SceneSelector () {
   const mobile = isMobile()
   const { scenes, selected } = useSnapshot(playgroundGlobalUiState)
+  const [hidden, setHidden] = useState(false)
   const longPressEvents = useLongPress(() => {
     playgroundGlobalUiState.selectorOpened = true
   }, () => { })
+
+  if (hidden) return null
 
   return <div
     style={{
       position: 'fixed',
       top: 0,
       left: 0,
+      display: 'flex',
+      alignItems: 'flex-start',
     }} {...longPressEvents}>
-    {scenes.map(scene => <div
-      key={scene}
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {scenes.map(scene => <div
+        key={scene}
+        style={{
+          padding: mobile ? '5px' : '2px 5px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          background: scene === selected ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.6)',
+          fontWeight: scene === selected ? 'bold' : 'normal',
+        }}
+        onClick={() => {
+          const qs = new URLSearchParams(window.location.search)
+          qs.set('scene', scene)
+          location.search = qs.toString()
+        }}
+      >{scene}</div>)}
+    </div>
+    <div
       style={{
         padding: mobile ? '5px' : '2px 5px',
         cursor: 'pointer',
         userSelect: 'none',
-        background: scene === selected ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.6)',
-        fontWeight: scene === selected ? 'bold' : 'normal',
+        background: 'rgba(0, 0, 0, 0.6)',
+        fontSize: '14px',
+        lineHeight: '1',
       }}
-      onClick={() => {
-        const qs = new URLSearchParams(window.location.search)
-        qs.set('scene', scene)
-        location.search = qs.toString()
-      }}
-    >{scene}</div>)}
+      onClick={() => setHidden(true)}
+    >×</div>
   </div>
 }
 

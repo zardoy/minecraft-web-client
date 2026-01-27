@@ -190,7 +190,7 @@ const getImageSrc = (path): string | HTMLImageElement | ImageBitmap => {
     case 'items': return appViewer.resourcesManager.itemsAtlasParser.latestImage
     case 'gui': return appViewer.resourcesManager.currentResources!.guiAtlas!.image
     case 'gui/container/dispenser': return appReplacableResources.latest_gui_container_dispenser.content
-    case 'gui/container/furnace': return appReplacableResources.latest_gui_container_furnace.content
+    case 'gui/container/furnace': return appReplacableResources.furnace_gui_texture.content
     case 'gui/container/crafting_table': return appReplacableResources.latest_gui_container_crafting_table.content
     case 'gui/container/shulker_box': return appReplacableResources.latest_gui_container_shulker_box.content
     case 'gui/container/generic_54': return appReplacableResources.latest_gui_container_generic_54.content
@@ -201,6 +201,10 @@ const getImageSrc = (path): string | HTMLImageElement | ImageBitmap => {
     case 'gui/container/enchanting_table': return appReplacableResources.latest_gui_container_enchanting_table.content
     case 'gui/container/anvil': return appReplacableResources.latest_gui_container_anvil.content
     case 'gui/container/beacon': return appReplacableResources.latest_gui_container_beacon.content
+    case 'gui/container/smithing':
+      return versionToNumber(bot.version) < versionToNumber('1.20')
+        ? appReplacableResources._1_19_4_gui_container_smithing.content
+        : appReplacableResources.latest_gui_container_smithing.content
     case 'gui/widgets': return appReplacableResources.other_textures_latest_gui_widgets.content
   }
   // empty texture
@@ -331,14 +335,16 @@ const implementedContainersGuiMap = {
   'minecraft:generic_9x4': 'Generic95Win',
   'minecraft:generic_9x5': 'Generic95Win',
   // hopper
+  'minecraft:hopper': 'HopperWin',
   'minecraft:generic_5x1': 'HopperWin',
   'minecraft:generic_9x6': 'LargeChestWin',
   'minecraft:generic_3x3': 'DropDispenseWin',
   'minecraft:furnace': 'FurnaceWin',
   'minecraft:smoker': 'FurnaceWin',
-  'minecraft:shulker_box': 'ChestWin',
   'minecraft:blast_furnace': 'FurnaceWin',
+  'minecraft:shulker_box': 'ChestWin',
   'minecraft:crafting': 'CraftingWin',
+  'minecraft:smithing': 'will_be_patched_in_openWindow',
   'minecraft:crafting3x3': 'CraftingWin', // todo different result slot
   'minecraft:anvil': 'AnvilWin',
   // enchant
@@ -397,18 +403,23 @@ export const openItemsCanvas = (type, _bot = bot as typeof bot | null) => {
 }
 
 const upWindowItemsLocal = () => {
-  if (!lastWindow && bot.currentWindow) {
-    // edge case: might happen due to high ping, inventory should be closed soon!
-    // openWindow(implementedContainersGuiMap[bot.currentWindow.type])
-    return
-  }
-  void Promise.resolve().then(() => upInventoryItems(lastWindowType === null))
+  void Promise.resolve().then(() => {
+    if (!lastWindow && bot.currentWindow) {
+      // edge case: might happen due to high ping, inventory should be closed soon!
+      // openWindow(implementedContainersGuiMap[bot.currentWindow.type])
+      return
+    }
+    upInventoryItems(lastWindowType === null)
+  })
 }
 
 let skipClosePacketSending = false
 const openWindow = (type: string | undefined, title: string | any = undefined) => {
+  // patch implementedContainersGuiMap
+  implementedContainersGuiMap['minecraft:smithing'] = versionToNumber(bot.version) < versionToNumber('1.20') ? 'SmithingTableLegacyWin' : 'SmithingTableWin'
+
   // if (activeModalStack.some(x => x.reactType?.includes?.('player_win:'))) {
-  if (activeModalStack.length) { // game is not in foreground, don't close current modal
+  if (activeModalStack.length && !miscUiState.disconnectedCleanup) { // game is not in foreground, don't close current modal
     if (type) {
       skipClosePacketSending = true
       hideCurrentModal()
@@ -420,19 +431,6 @@ const openWindow = (type: string | undefined, title: string | any = undefined) =
   lastWindowType = type ?? null
   showModal({
     reactType: `player_win:${type}`,
-  })
-  onModalClose(() => {
-    // might be already closed (event fired)
-    if (type !== undefined && bot.currentWindow && !skipClosePacketSending) bot.currentWindow['close']()
-    lastWindow.destroy()
-    lastWindow = null as any
-    lastWindowType = undefined
-    window.inventory = null
-    miscUiState.displaySearchInput = false
-    destroyFn()
-    skipClosePacketSending = false
-
-    modelViewerState.model = undefined
   })
   if (type === undefined) {
     showInventoryPlayer()
@@ -469,6 +467,20 @@ const openWindow = (type: string | undefined, title: string | any = undefined) =
   }
 
   lastWindow = inv
+
+  onModalClose(() => {
+    // might be already closed (event fired)
+    if (type !== undefined && bot.currentWindow && !skipClosePacketSending) bot.currentWindow['close']()
+    lastWindow.destroy()
+    lastWindow = null as any
+    lastWindowType = undefined
+    window.inventory = null
+    miscUiState.displaySearchInput = false
+    destroyFn()
+    skipClosePacketSending = false
+
+    modelViewerState.model = undefined
+  })
 
   upWindowItemsLocal()
 

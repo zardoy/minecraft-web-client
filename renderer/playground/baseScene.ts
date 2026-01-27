@@ -1,34 +1,59 @@
-//@ts-nocheck
 import { Vec3 } from 'vec3'
 import * as THREE from 'three'
 import '../../src/getCollisionShapes'
 import { IndexedData } from 'minecraft-data'
 import BlockLoader from 'prismarine-block'
-import blockstatesModels from 'mc-assets/dist/blockStatesModels.json'
 import ChunkLoader from 'prismarine-chunk'
 import WorldLoader from 'prismarine-world'
+import { proxy } from 'valtio'
 
 //@ts-expect-error
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 // eslint-disable-next-line import/no-named-as-default
 import GUI from 'lil-gui'
 import _ from 'lodash'
+import supportedVersions from '../../src/supportedVersions.mjs'
 import { toMajorVersion } from '../../src/utils'
-import { WorldDataEmitter } from '../viewer'
-import { Viewer } from '../viewer/lib/viewer'
 import { BlockNames } from '../../src/mcDataTypes'
-import { initWithRenderer, statsEnd, statsStart } from '../../src/topRightStats'
-import { defaultWorldRendererConfig } from '../viewer/lib/worldrendererCommon'
+import { defaultWorldRendererConfig, WorldRendererConfig } from '../viewer/lib/worldrendererCommon'
+import { WorldDataEmitter } from '../viewer/lib/worldDataEmitter'
+import { getInitialPlayerState } from '../viewer/lib/basePlayerState'
+import { appGraphicBackends } from '../../src/appViewerLoad'
 import { getSyncWorld } from './shared'
 
 window.THREE = THREE
 
+// Scene configuration interface
+export interface PlaygroundSceneConfig {
+  version?: string
+  viewDistance?: number
+  targetPos?: Vec3
+  enableCameraControls?: boolean
+  enableCameraOrbitControl?: boolean
+  worldConfig?: WorldRendererConfig
+  continuousRender?: boolean
+}
+
+const includedVersions = globalThis.includedVersions ?? supportedVersions
+
 export class BasePlaygroundScene {
+  // Rendering state
   continuousRender = false
   stopRender = false
-  guiParams = {}
+  windowHidden = false
+
+  // Scene configuration
   viewDistance = 0
   targetPos = new Vec3(2, 90, 2)
+  version: string = new URLSearchParams(window.location.search).get('version') || includedVersions.at(-1)!
+
+  // World data
+  Chunk: typeof import('prismarine-chunk/types/index').PCChunk
+  Block: typeof import('prismarine-block').Block
+  world: ReturnType<typeof getSyncWorld>
+
+  // GUI
+  gui = new GUI()
   params = {} as Record<string, any>
   paramOptions = {} as Partial<Record<keyof typeof this.params, {
     hide?: boolean
@@ -37,42 +62,75 @@ export class BasePlaygroundScene {
     max?: number
     reloadOnChange?: boolean
   }>>
-  version = new URLSearchParams(window.location.search).get('version') || globalThis.includedVersions.at(-1)
-  Chunk: typeof import('prismarine-chunk/types/index').PCChunk
-  Block: typeof import('prismarine-block').Block
-  ignoreResize = false
-  enableCameraControls = true // not finished
-  enableCameraOrbitControl = true
-  gui = new GUI()
   onParamUpdate = {} as Record<string, () => void>
   alwaysIgnoreQs = [] as string[]
   skipUpdateQs = false
-  controls: any
-  windowHidden = false
-  world: ReturnType<typeof getSyncWorld>
 
-  _worldConfig = defaultWorldRendererConfig
+  // Camera controls - own camera synced to backend
+  enableCameraControls = true
+  enableCameraOrbitControl = true
+  controls: OrbitControls | undefined
+  camera: THREE.PerspectiveCamera
+
+  // World data emitter (from appViewer)
+  worldView: WorldDataEmitter | undefined
+
+  // Debug FPS tracking
+  private debugFpsElement: HTMLElement | undefined
+  private frameCount = 0
+  private lastSecondTime = performance.now()
+  private frameTimes: number[] = []
+  private currentFps = 0
+  private maxFrameDelay = 0
+
+  // Getter for worldRenderer - accesses via window.world for advanced scene features
+  // This allows derived scenes to access worldRenderer when needed without storing it
+  get worldRenderer () {
+    return window.world
+  }
+
+  // World config - syncs with appViewer.inWorldRenderingConfig
   get worldConfig () {
-    return this._worldConfig
+    return appViewer.inWorldRenderingConfig
   }
   set worldConfig (value) {
-    this._worldConfig = value
-    viewer.world.config = value
+    // Merge the new values into appViewer's config to maintain reactivity
+    Object.assign(appViewer.inWorldRenderingConfig, value)
   }
 
-  constructor () {
+  constructor (config: PlaygroundSceneConfig = {}) {
+    // Apply config
+    if (config.version) this.version = config.version
+
+    // Ensure version is always set (fallback to latest supported version)
+    if (!this.version) {
+      throw new Error('Minecraft version is not set')
+    }
+
+    if (config.viewDistance !== undefined) this.viewDistance = config.viewDistance
+    if (config.targetPos) this.targetPos = config.targetPos
+    if (config.enableCameraControls !== undefined) this.enableCameraControls = config.enableCameraControls
+    if (config.enableCameraOrbitControl !== undefined) this.enableCameraOrbitControl = config.enableCameraOrbitControl
+    if (config.worldConfig) {
+      // Merge config into appViewer's config to maintain reactivity
+      Object.assign(appViewer.inWorldRenderingConfig, config.worldConfig)
+    }
+    appViewer.inWorldRenderingConfig.showHand = false
+    appViewer.inWorldRenderingConfig.isPlayground = true
+    appViewer.inWorldRenderingConfig.instantCameraUpdate = this.enableCameraOrbitControl
+    appViewer.config.statsVisible = 2
+    if (config.continuousRender !== undefined) this.continuousRender = config.continuousRender
+
     void this.initData().then(() => {
       this.addKeyboardShortcuts()
     })
   }
 
   onParamsUpdate (paramName: string, object: any) {}
+
   updateQs (paramName: string, valueSet: any) {
     if (this.skipUpdateQs) return
     const newQs = new URLSearchParams(window.location.search)
-    // if (oldQs.get('scene')) {
-    //   newQs.set('scene', oldQs.get('scene')!)
-    // }
     for (const [key, value] of Object.entries({ [paramName]: valueSet })) {
       if (typeof value === 'function' || this.params.skipQs?.includes(key) || this.alwaysIgnoreQs.includes(key)) continue
       if (value) {
@@ -84,9 +142,8 @@ export class BasePlaygroundScene {
     window.history.replaceState({}, '', `${window.location.pathname}?${newQs.toString()}`)
   }
 
-  // async initialSetup () {}
   renderFinish () {
-    this.render()
+    this.requestRender()
   }
 
   initGui () {
@@ -106,13 +163,6 @@ export class BasePlaygroundScene {
     if (window.innerHeight < 700) {
       this.gui.open(false)
     } else {
-      // const observer = new MutationObserver(() => {
-      //   this.gui.domElement.classList.remove('transition')
-      // })
-      // observer.observe(this.gui.domElement, {
-      //   attributes: true,
-      //   attributeFilter: ['class'],
-      // })
       setTimeout(() => {
         this.gui.domElement.classList.remove('transition')
       }, 500)
@@ -135,9 +185,7 @@ export class BasePlaygroundScene {
     })
   }
 
-  // mainChunk: import('prismarine-chunk/types/index').PCChunk
-
-  // overridables
+  // Overridable methods
   setupWorld () { }
   sceneReset () {}
 
@@ -151,17 +199,42 @@ export class BasePlaygroundScene {
     this.world.setBlock(this.targetPos.offset(xOffset, yOffset, zOffset), block)
   }
 
+  // Sync our camera state to the graphics backend
+  // Extract rotation from OrbitControls spherical coordinates to avoid flip issues
+  protected syncCameraToBackend (onlyRotation = false) {
+    if (!appViewer.backend || !this.camera) return
+
+    // Extract rotation from camera's quaternion to avoid gimbal lock issues
+    // Get forward direction vector to extract yaw/pitch properly
+    const forward = new THREE.Vector3(0, 0, -1)
+    forward.applyQuaternion(this.camera.quaternion)
+
+    // Calculate yaw and pitch from forward vector
+    // Yaw: rotation around Y axis (horizontal)
+    const yaw = Math.atan2(-forward.x, -forward.z)
+    // Pitch: angle from horizontal plane (vertical)
+    const pitch = Math.asin(forward.y)
+
+    if (onlyRotation) {
+      appViewer.backend.updateCamera(null, yaw, pitch)
+      return
+    }
+
+    const pos = new Vec3(this.camera.position.x, this.camera.position.y, this.camera.position.z)
+    appViewer.backend.updateCamera(pos, yaw, pitch)
+  }
+
   resetCamera () {
+    if (!this.camera) return
     const { targetPos } = this
     this.controls?.target.set(targetPos.x + 0.5, targetPos.y + 0.5, targetPos.z + 0.5)
 
     const cameraPos = targetPos.offset(2, 2, 2)
-    const pitch = THREE.MathUtils.degToRad(-45)
-    const yaw = THREE.MathUtils.degToRad(45)
-    viewer.camera.rotation.set(pitch, yaw, 0, 'ZYX')
-    viewer.camera.lookAt(targetPos.x + 0.5, targetPos.y + 0.5, targetPos.z + 0.5)
-    viewer.camera.position.set(cameraPos.x + 0.5, cameraPos.y + 0.5, cameraPos.z + 0.5)
+    this.camera.position.set(cameraPos.x + 0.5, cameraPos.y + 0.5, cameraPos.z + 0.5)
+    this.camera.lookAt(targetPos.x + 0.5, targetPos.y + 0.5, targetPos.z + 0.5)
     this.controls?.update()
+    // Sync after reset - this uses quaternion extraction which avoids flip issues
+    this.syncCameraToBackend()
   }
 
   async initData () {
@@ -178,138 +251,236 @@ export class BasePlaygroundScene {
 
     this.initGui()
 
-    const worldView = new WorldDataEmitter(world, this.viewDistance, this.targetPos)
-    worldView.addWaitTime = 0
-    window.worldView = worldView
+    // Use appViewer for resource management and world rendering
+    // worldConfig is already synced with appViewer.inWorldRenderingConfig via getter/setter
 
-    // Create three.js context, add to page
-    const renderer = new THREE.WebGLRenderer({ alpha: true, ...localStorage['renderer'] })
-    renderer.setPixelRatio(window.devicePixelRatio || 1)
-    renderer.setSize(window.innerWidth, window.innerHeight)
+    // Initialize resources manager via appViewer
+    appViewer.resourcesManager.currentConfig = { version: this.version, noInventoryGui: true }
+    await appViewer.resourcesManager.loadSourceData(this.version)
+    await appViewer.resourcesManager.updateAssetsData({})
 
-    // Create viewer
-    const viewer = new Viewer(renderer, this.worldConfig)
-    window.viewer = viewer
-    window.world = window.viewer.world
-    const isWebgpu = false
-    const promises = [] as Array<Promise<void>>
-    if (isWebgpu) {
-      // promises.push(initWebgpuRenderer(() => { }, true, true)) // todo
-    } else {
-      initWithRenderer(renderer.domElement)
-      renderer.domElement.id = 'viewer-canvas'
-      document.body.appendChild(renderer.domElement)
+    // Load backend if not already loaded
+    if (!appViewer.backend) {
+      await appViewer.loadBackend(appGraphicBackends[0])
     }
-    viewer.addChunksBatchWaitTime = 0
-    viewer.world.blockstatesModels = blockstatesModels
-    viewer.entities.setDebugMode('basic')
-    viewer.setVersion(this.version)
-    viewer.entities.onSkinUpdate = () => {
-      viewer.render()
-    }
-    viewer.world.mesherConfig.enableLighting = false
-    await Promise.all(promises)
+
+    // Start world using appViewer
+    // This creates WorldDataEmitter, GraphicsBackend, and WorldRendererThree internally
+    await appViewer.startWorld(world, this.viewDistance, proxy(getInitialPlayerState()), this.targetPos)
+
+    // Get world view from appViewer
+    this.worldView = appViewer.worldView
+
+    // Create our own camera for OrbitControls - this is separate from the internal worldRenderer camera
+    // We sync our camera state to the backend via updateCamera()
+    this.camera = new THREE.PerspectiveCamera(
+      appViewer.inWorldRenderingConfig.fov || 75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    )
+
+    // Setup world (adds blocks, etc.)
     this.setupWorld()
 
-    viewer.connect(worldView)
-
-    await worldView.init(this.targetPos)
-
-    if (this.enableCameraControls) {
-      const { targetPos } = this
-      const canvas = document.querySelector('#viewer-canvas')
-      const controls = this.enableCameraOrbitControl ? new OrbitControls(viewer.camera, canvas) : undefined
-      this.controls = controls
-
-      this.resetCamera()
-
-      // #region camera rotation param
-      const cameraSet = this.params.camera || localStorage.camera
-      if (cameraSet) {
-        const [x, y, z, rx, ry] = cameraSet.split(',').map(Number)
-        viewer.camera.position.set(x, y, z)
-        viewer.camera.rotation.set(rx, ry, 0, 'ZYX')
-        this.controls?.update()
-      }
-      const throttledCamQsUpdate = _.throttle(() => {
-        const { camera } = viewer
-        // params.camera = `${camera.rotation.x.toFixed(2)},${camera.rotation.y.toFixed(2)}`
-        // this.updateQs()
-        localStorage.camera = [
-          camera.position.x.toFixed(2),
-          camera.position.y.toFixed(2),
-          camera.position.z.toFixed(2),
-          camera.rotation.x.toFixed(2),
-          camera.rotation.y.toFixed(2),
-        ].join(',')
-      }, 200)
-      if (this.controls) {
-        this.controls.addEventListener('change', () => {
-          throttledCamQsUpdate()
-          this.render()
-        })
-      } else {
-        setInterval(() => {
-          throttledCamQsUpdate()
-        }, 200)
-      }
-      // #endregion
+    // Initialize world view with target position (loads chunks after setup)
+    if (this.worldView) {
+      this.worldView.addWaitTime = 0
+      await this.worldView.init(this.targetPos)
     }
 
-    if (!this.enableCameraOrbitControl) {
-      // mouse
+    // Setup camera controls with our own camera
+    if (this.enableCameraControls) {
+      const canvas = document.querySelector('#viewer-canvas')
+      if (canvas) {
+        const controls = this.enableCameraOrbitControl
+          ? new OrbitControls(this.camera, canvas as HTMLElement)
+          : undefined
+        this.controls = controls
+
+        this.resetCamera()
+
+        // Camera position from query string or localStorage
+        const cameraSet = this.params.camera || localStorage.camera
+        if (cameraSet) {
+          const [x, y, z, rx, ry] = cameraSet.split(',').map(Number)
+          this.camera.position.set(x, y, z)
+          this.camera.rotation.set(rx, ry, 0, 'ZYX')
+          this.controls?.update()
+          // this.syncCameraToBackend()
+        }
+
+        const throttledCamQsUpdate = _.throttle(() => {
+          if (!this.camera) return
+          localStorage.camera = [
+            this.camera.position.x.toFixed(2),
+            this.camera.position.y.toFixed(2),
+            this.camera.position.z.toFixed(2),
+            this.camera.rotation.x.toFixed(2),
+            this.camera.rotation.y.toFixed(2),
+          ].join(',')
+        }, 200)
+
+        if (this.controls) {
+          const throttledCameraSync = _.throttle(() => {
+            // this.syncCameraToBackend(true) // Only sync rotation when OrbitControls changes
+          }, 16) // ~60fps sync rate
+
+          this.controls.addEventListener('change', () => {
+            throttledCameraSync()
+            throttledCamQsUpdate()
+            this.requestRender()
+          })
+        } else {
+          setInterval(() => {
+            throttledCamQsUpdate()
+          }, 200)
+        }
+      }
+    }
+
+    // Manual camera controls (if orbit controls disabled)
+    if (!this.enableCameraOrbitControl && this.camera) {
       let mouseMoveCounter = 0
       const mouseMove = (e: PointerEvent) => {
         if ((e.target as HTMLElement).closest('.lil-gui')) return
         if (e.buttons === 1 || e.pointerType === 'touch') {
           mouseMoveCounter++
-          viewer.camera.rotation.x -= e.movementY / 100
-          //viewer.camera.
-          viewer.camera.rotation.y -= e.movementX / 100
-          if (viewer.camera.rotation.x < -Math.PI / 2) viewer.camera.rotation.x = -Math.PI / 2
-          if (viewer.camera.rotation.x > Math.PI / 2) viewer.camera.rotation.x = Math.PI / 2
-
-          // yaw += e.movementY / 20;
-          // pitch += e.movementX / 20;
+          this.camera.rotation.x -= e.movementY / 100
+          this.camera.rotation.y -= e.movementX / 100
+          if (this.camera.rotation.x < -Math.PI / 2) this.camera.rotation.x = -Math.PI / 2
+          if (this.camera.rotation.x > Math.PI / 2) this.camera.rotation.x = Math.PI / 2
+          this.syncCameraToBackend(true)
         }
         if (e.buttons === 2) {
-          viewer.camera.position.set(0, 0, 0)
+          this.camera.position.set(0, 0, 0)
+          this.syncCameraToBackend()
         }
       }
       setInterval(() => {
-        // updateTextEvent(`Mouse Events: ${mouseMoveCounter}`)
         mouseMoveCounter = 0
       }, 1000)
       window.addEventListener('pointermove', mouseMove)
     }
 
-    // await this.initialSetup()
+    // Setup resize handler
     this.onResize()
     window.addEventListener('resize', () => this.onResize())
-    void viewer.waitForChunksToRender().then(async () => {
-      this.renderFinish()
-    })
 
-    viewer.world.renderUpdateEmitter.addListener('update', () => {
-      this.render()
-    })
+    // Setup debug FPS GUI
+    this.setupDebugFpsGui()
 
-    this.loop()
+    // Wait for chunks and finish setup
+    // Access worldRenderer via window.world for this one-time operation
+    // const worldRenderer = window.world
+    // if (worldRenderer) {
+    //   void worldRenderer.waitForChunksToRender().then(async () => {
+    //     this.renderFinish()
+    //   })
+
+    //   // Listen for world updates to trigger on-demand renders
+    //   worldRenderer.renderUpdateEmitter.addListener('update', () => {
+    //     this.requestRender()
+    //   })
+    // }
+
+    // // Start render loop if continuous, otherwise use on-demand rendering
+    // if (this.continuousRender) {
+    //   this.loop()
+    // }
+    this.renderFinish()
+    this.mainDebugLoop()
+  }
+
+  mainDebugLoop () {
+    requestAnimationFrame(() => this.mainDebugLoop())
+    this.trackFrame()
   }
 
   loop () {
     if (this.continuousRender && !this.windowHidden) {
-      this.render(true)
+      this.requestRender()
       requestAnimationFrame(() => this.loop())
     }
   }
 
+  // Request a render from the backend (on-demand rendering)
+  // The DocumentRenderer loop handles actual rendering continuously
+  // Camera sync happens via syncCameraToBackend() which updates the internal camera
+  requestRender () {
+    // No-op: rendering is handled by DocumentRenderer's continuous loop
+    // This method exists for API compatibility
+  }
+
+  private setupDebugFpsGui () {
+    // Create simple DOM element for debug FPS display in bottom left corner
+    this.debugFpsElement = document.createElement('div')
+    this.debugFpsElement.style.position = 'fixed'
+    this.debugFpsElement.style.bottom = '0'
+    this.debugFpsElement.style.left = '0'
+    this.debugFpsElement.style.zIndex = '1000'
+    this.debugFpsElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+    this.debugFpsElement.style.color = '#fff'
+    this.debugFpsElement.style.padding = '4px 6px'
+    this.debugFpsElement.style.fontFamily = 'monospace'
+    this.debugFpsElement.style.fontSize = '11px'
+    this.debugFpsElement.style.lineHeight = '1.2'
+    this.debugFpsElement.style.pointerEvents = 'none'
+    this.debugFpsElement.style.userSelect = 'none'
+    this.debugFpsElement.textContent = 'FPS: 0 | Max: 0 ms'
+
+    document.body.appendChild(this.debugFpsElement)
+
+    // Update debug info every second
+    setInterval(() => {
+      this.updateDebugInfo()
+    }, 1000)
+  }
+
+  private trackFrame () {
+    const now = performance.now()
+    this.frameTimes.push(now)
+    this.frameCount++
+
+    // Calculate frame delay (time since last frame)
+    if (this.frameTimes.length > 1) {
+      const delay = now - this.frameTimes.at(-2)!
+      if (delay > this.maxFrameDelay) {
+        this.maxFrameDelay = delay
+      }
+    }
+
+    // Keep only last second of frame times
+    const oneSecondAgo = now - 1000
+    this.frameTimes = this.frameTimes.filter(time => time > oneSecondAgo)
+  }
+
+  private updateDebugInfo () {
+    if (!this.debugFpsElement) return
+
+    // Calculate FPS from number of frames in the last second
+    // frameTimes array contains timestamps from the last second after filtering
+    const fps = this.frameTimes.length
+
+    this.currentFps = fps
+
+    const isSeriousDelay = this.maxFrameDelay > 150
+    const delayText = isSeriousDelay
+      ? `<span style="color: #ff4444;">${this.maxFrameDelay.toFixed(0)}ms</span>`
+      : `${this.maxFrameDelay.toFixed(0)}ms`
+
+    // Update the DOM element directly - single line format
+    this.debugFpsElement.innerHTML = `FPS: ${fps} | Max Delay: ${delayText}`
+
+    // Reset for next second
+    this.lastSecondTime = performance.now()
+    this.maxFrameDelay = 0
+    this.frameCount = 0
+  }
+
+  // Legacy render method for compatibility
   render (fromLoop = false) {
-    if (!fromLoop && this.continuousRender) return
-    if (this.stopRender) return
-    statsStart()
-    viewer.render()
-    statsEnd()
+    this.requestRender()
   }
 
   addKeyboardShortcuts () {
@@ -320,12 +491,12 @@ export class BasePlaygroundScene {
           this.resetCamera()
         }
         if (e.code === 'KeyE') { // refresh block (main)
-          worldView!.setBlockStateId(this.targetPos, this.world.getBlockStateId(this.targetPos))
+          this.worldView!.setBlockStateId(this.targetPos, this.world.getBlockStateId(this.targetPos))
         }
         if (e.code === 'KeyF') { // reload all chunks
           this.sceneReset()
-          worldView!.unloadAllChunks()
-          void worldView!.init(this.targetPos)
+          this.worldView!.unloadAllChunks()
+          void this.worldView!.init(this.targetPos)
         }
       }
     })
@@ -339,12 +510,13 @@ export class BasePlaygroundScene {
       this.windowHidden = false
     })
 
+    const pressedKeys = new Set<string>()
     const updateKeys = () => {
       if (pressedKeys.has('ControlLeft') || pressedKeys.has('MetaLeft')) {
         return
       }
-      // if (typeof viewer === 'undefined') return
-      // Create a vector that points in the direction the camera is looking
+      if (!this.camera) return
+
       const direction = new THREE.Vector3(0, 0, 0)
       if (pressedKeys.has('KeyW')) {
         direction.z = -0.5
@@ -359,14 +531,13 @@ export class BasePlaygroundScene {
         direction.x += 0.5
       }
 
-
       if (pressedKeys.has('ShiftLeft')) {
-        viewer.camera.position.y -= 0.5
+        this.camera.position.y -= 0.5
       }
       if (pressedKeys.has('Space')) {
-        viewer.camera.position.y += 0.5
+        this.camera.position.y += 0.5
       }
-      direction.applyQuaternion(viewer.camera.quaternion)
+      direction.applyQuaternion(this.camera.quaternion)
       direction.y = 0
 
       if (pressedKeys.has('ShiftLeft')) {
@@ -374,15 +545,14 @@ export class BasePlaygroundScene {
         direction.x *= 2
         direction.z *= 2
       }
-      // Add the vector to the camera's position to move the camera
-      viewer.camera.position.add(direction.normalize())
+      this.camera.position.add(direction.normalize())
       this.controls?.update()
-      this.render()
+      this.syncCameraToBackend()
+      this.requestRender()
     }
-    setInterval(updateKeys, 1000 / 30)
+    setInterval(updateKeys, 1000 / 20)
 
-    const pressedKeys = new Set<string>()
-    const keys = (e) => {
+    const keys = (e: KeyboardEvent) => {
       const { code } = e
       const pressed = e.type === 'keydown'
       if (pressed) {
@@ -394,7 +564,7 @@ export class BasePlaygroundScene {
 
     window.addEventListener('keydown', keys)
     window.addEventListener('keyup', keys)
-    window.addEventListener('blur', (e) => {
+    window.addEventListener('blur', () => {
       for (const key of pressedKeys) {
         keys(new KeyboardEvent('keyup', { code: key }))
       }
@@ -402,13 +572,6 @@ export class BasePlaygroundScene {
   }
 
   onResize () {
-    if (this.ignoreResize) return
-
-    const { camera, renderer } = viewer
-    viewer.camera.aspect = window.innerWidth / window.innerHeight
-    viewer.camera.updateProjectionMatrix()
-    renderer.setSize(window.innerWidth, window.innerHeight)
-
-    this.render()
+    this.requestRender()
   }
 }

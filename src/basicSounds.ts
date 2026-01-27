@@ -47,6 +47,7 @@ export async function loadSound (path: string, contents = path) {
     if (isCypress()) throw err
   }
 }
+window.loadSound = loadSound
 
 export const loadOrPlaySound = async (url, soundVolume = 1, loadTimeout = options.remoteSoundsLoadTimeout, loop = false, isMusic = false) => {
   const soundBuffer = sounds[url]
@@ -59,7 +60,7 @@ export const loadOrPlaySound = async (url, soundVolume = 1, loadTimeout = option
   return playSound(url, soundVolume, loop, isMusic)
 }
 
-export async function playSound (url, soundVolume = 1, loop = false, isMusic = false) {
+async function playSound (url, soundVolume = 1, loop = false, isMusic = false) {
   const volume = soundVolume * (options.volume / 100) * (isMusic ? options.musicVolume / 100 : 1)
 
   if (!volume) return
@@ -118,6 +119,7 @@ export async function playSound (url, soundVolume = 1, loop = false, isMusic = f
     gainNode,
   }
 }
+window.playSound = playSound
 
 export function stopAllSounds () {
   for (const { source } of activeSounds) {

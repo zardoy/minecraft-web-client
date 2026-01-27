@@ -83,8 +83,7 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
       },
       sneak () {
         void contro.emit('trigger', {
-          command: 'general.toggleSneakOrDown',
-          schema: null as any,
+          command: 'movement.toggleSneakOrDown',
         })
         active = bot?.getControlState('sneak')
       },
@@ -96,8 +95,7 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
       },
       jump () {
         void contro.emit('trigger', {
-          command: 'general.jump',
-          schema: null as any,
+          command: 'movement.jump',
         })
         active = bot?.controlState.jump
       }
@@ -108,8 +106,7 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
       },
       sneak () {
         void contro.emit('release', {
-          command: 'general.toggleSneakOrDown',
-          schema: null as any,
+          command: 'movement.toggleSneakOrDown',
         })
         active = bot?.getControlState('sneak')
       },
@@ -121,8 +118,7 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
       },
       jump () {
         void contro.emit('release', {
-          command: 'general.jump',
-          schema: null as any,
+          command: 'movement.jump',
         })
         active = bot?.controlState.jump
       }

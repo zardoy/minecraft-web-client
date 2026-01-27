@@ -7,7 +7,9 @@ import { openGithub } from '../utils'
 import { setLoadingScreenStatus } from '../appStatus'
 import { openFilePicker, copyFilesAsync, mkdirRecursive, openWorldDirectory, removeFileRecursiveAsync } from '../browserfs'
 
+import { hadModsActivated } from '../clientMods'
 import MainMenu from './MainMenu'
+import { withInjectableUi } from './extendableSystem'
 
 const isMainMenu = () => {
   return activeModalStack.length === 0 && !miscUiState.gameLoaded
@@ -72,11 +74,12 @@ export const mainMenuState = proxy({
 
 // todo clean
 let disableAnimation = false
-export default () => {
+const MainMenuRenderAppBase = () => {
   const haveModals = useSnapshot(activeModalStack).length
   const { gameLoaded, fsReady, appConfig, singleplayerAvailable } = useSnapshot(miscUiState)
+  const { state: hadModsActivatedState } = useSnapshot(hadModsActivated)
 
-  const noDisplay = haveModals || gameLoaded || !fsReady
+  const noDisplay = haveModals || gameLoaded || !fsReady || !hadModsActivatedState
 
   useEffect(() => {
     if (noDisplay && fsReady) disableAnimation = true
@@ -162,3 +165,5 @@ export default () => {
     </AnimatePresence>
   )
 }
+
+export default withInjectableUi(MainMenuRenderAppBase, 'mainMenuProvider')

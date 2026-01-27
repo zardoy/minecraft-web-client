@@ -93,6 +93,39 @@ subscribe(activeModalStack, () => {
   }
 })
 
+// Helper function to setup material transparency
+const setupMaterialTransparency = (material: THREE.Material): void => {
+  if (material instanceof THREE.MeshStandardMaterial ||
+    material instanceof THREE.MeshBasicMaterial ||
+    material instanceof THREE.MeshPhongMaterial) {
+    // Check if material should be transparent
+    const hasAlpha = material.alphaMap ||
+      (material.opacity !== undefined && material.opacity < 1) ||
+      (material.map && material.map.format === THREE.RGBAFormat)
+
+    if (hasAlpha) {
+      // Configure transparency properly
+      material.transparent = true
+      material.alphaTest = 0.01 // Lower threshold for better transparency
+      material.side = THREE.DoubleSide // Show both sides for transparent materials
+      // Keep depthWrite enabled as requested - don't disable it
+    } else {
+      // Opaque materials
+      material.transparent = false
+      material.side = THREE.FrontSide
+    }
+    material.needsUpdate = true
+  }
+}
+
+// Helper function to check if mesh is transparent
+const isMeshTransparent = (mesh: THREE.Mesh): boolean => {
+  if (Array.isArray(mesh.material)) {
+    return mesh.material.some(mat => mat.transparent)
+  }
+  return mesh.material.transparent
+}
+
 export default () => {
   const { model } = useSnapshot(modelViewerState)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -230,8 +263,9 @@ export default () => {
       }
       object.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          if (child.material && customization) {
-            const material = child.material as THREE.MeshStandardMaterial
+          const material = child.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial | THREE.MeshPhongMaterial
+
+          if (material && customization) {
             if (customization.color) {
               material.color.setHex(parseInt(customization.color.replace('#', ''), 16))
             }
@@ -239,11 +273,24 @@ export default () => {
               material.opacity = customization.opacity
               material.transparent = customization.opacity < 1
             }
-            if (customization.metalness !== undefined) {
-              material.metalness = customization.metalness
+            if (material instanceof THREE.MeshStandardMaterial) {
+              if (customization.metalness !== undefined) {
+                material.metalness = customization.metalness
+              }
+              if (customization.roughness !== undefined) {
+                material.roughness = customization.roughness
+              }
             }
-            if (customization.roughness !== undefined) {
-              material.roughness = customization.roughness
+          }
+
+          // Enable transparency for materials that need it
+          if (material) {
+            if (Array.isArray(material)) {
+              for (const mat of material) {
+                setupMaterialTransparency(mat)
+              }
+            } else {
+              setupMaterialTransparency(material)
             }
           }
         }
@@ -375,7 +422,7 @@ export default () => {
     camera.position.set(0, 0, 3) // Position camera to view player model optimally
 
     // Setup renderer with pixel density awareness
-    const renderer = new THREE.WebGLRenderer({ alpha: true })
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     renderer.useLegacyLights = false
     renderer.outputColorSpace = THREE.LinearSRGBColorSpace
     let scale = window.devicePixelRatio || 1
@@ -479,11 +526,22 @@ export default () => {
         playerObject.ears.visible = false
         playerObject.cape.visible = false
 
-        // Enable shadows for player object
+        // Enable shadows for player object and setup transparency
         wrapper.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true
             child.receiveShadow = true
+
+            // Setup transparency for player object materials
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                for (const mat of child.material) {
+                  setupMaterialTransparency(mat)
+                }
+              } else {
+                setupMaterialTransparency(child.material)
+              }
+            }
           }
         })
 

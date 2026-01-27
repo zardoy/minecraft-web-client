@@ -1,7 +1,7 @@
 .armor_container {
   position: fixed;
   display: flex;
-  z-index: -1;
+  z-index: -2;
   flex-direction: row;
   left: calc(50% - 91px);
   bottom: calc(var(--safe-area-inset-bottom) + 40px);

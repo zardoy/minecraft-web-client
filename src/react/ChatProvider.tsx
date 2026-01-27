@@ -5,19 +5,23 @@ import { getBuiltinCommandsList, tryHandleBuiltinCommand } from '../builtinComma
 import { gameAdditionalState, hideCurrentModal, miscUiState } from '../globalState'
 import { options } from '../optionsStorage'
 import { viewerVersionState } from '../viewerConnector'
+import { lastConnectOptions } from '../appStatus'
 import Chat, { Message } from './Chat'
 import { useIsModalActive } from './utilsApp'
 import { hideNotification, notificationProxy, showNotification } from './NotificationProvider'
 import { getServerIndex, updateLoadedServerData } from './serversStorage'
-import { lastConnectOptions } from './AppStatusProvider'
 import { showOptionsModal } from './SelectOption'
+import { withInjectableUi } from './extendableSystem'
 
-export default () => {
+const ChatProviderBase = () => {
   const [messages, setMessages] = useState([] as Message[])
   const isChatActive = useIsModalActive('chat')
   const lastMessageId = useRef(0)
   const lastPingTime = useRef(0)
-  const usingTouch = useSnapshot(miscUiState).currentTouch
+  const {
+    currentTouch: usingTouch,
+    disconnectedCleanup
+  } = useSnapshot(miscUiState)
   const {
     chatSelect,
     messagesLimit,
@@ -61,6 +65,8 @@ export default () => {
     })
   }, [])
 
+  const disabledReason = disconnectedCleanup ? 'You have been disconnected from the server on ' + new Date(disconnectedCleanup.date).toLocaleString() : undefined
+
   return <Chat
     chatVanillaRestrictions={chatVanillaRestrictions}
     debugChatScroll={debugChatScroll}
@@ -70,6 +76,7 @@ export default () => {
     messages={messages}
     opened={isChatActive}
     placeholder={forwardChat || !viewerConnection ? undefined : 'Chat forwarding is not enabled in the plugin settings'}
+    inputDisabled={disabledReason}
     currentPlayerName={chatPingExtension ? bot.username : undefined}
     spellCheckEnabled={chatSpellCheckEnabled}
     onSpellCheckEnabledChange={(enabled) => {
@@ -161,3 +168,5 @@ export default () => {
     }}
   />
 }
+
+export default withInjectableUi(ChatProviderBase, 'chatProvider')

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import MessageFormattedString from './MessageFormattedString'
 import './Title.css'
+import { withInjectableUi } from './extendableSystem'
 
 export type AnimationTimes = {
   fadeIn: number,
@@ -18,7 +19,7 @@ type TitleProps = {
   openActionBar: boolean
 }
 
-const Title = ({
+const TitleBase = ({
   title,
   subtitle,
   actionBar,
@@ -80,4 +81,4 @@ const Title = ({
   )
 }
 
-export default Title
+export default withInjectableUi(TitleBase, 'title')

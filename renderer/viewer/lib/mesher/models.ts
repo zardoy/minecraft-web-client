@@ -541,6 +541,7 @@ export function getSectionGeometry (sx: number, sy: number, sz: number, world: W
     // todo this can be removed here
     heads: {},
     signs: {},
+    banners: {},
     // isFull: true,
     hadErrors: false,
     blocksCount: 0
@@ -552,7 +553,7 @@ export function getSectionGeometry (sx: number, sy: number, sz: number, world: W
       for (cursor.x = sx; cursor.x < sx + 16; cursor.x++) {
         let block = world.getBlock(cursor, blockProvider, attr)!
         if (INVISIBLE_BLOCKS.has(block.name)) continue
-        if ((block.name.includes('_sign') || block.name === 'sign') && !world.config.disableSignsMapsSupport) {
+        if ((block.name.includes('_sign') || block.name === 'sign') && !world.config.disableBlockEntityTextures) {
           const key = `${cursor.x},${cursor.y},${cursor.z}`
           const props: any = block.getProperties()
           const facingRotationMap = {
@@ -581,6 +582,21 @@ export function getSectionGeometry (sx: number, sy: number, sz: number, world: W
           attr.heads[key] = {
             isWall,
             rotation: isWall ? facingRotationMap[props.facing] : +props.rotation
+          }
+        } else if (block.name.includes('_banner') && !world.config.disableBlockEntityTextures) {
+          const key = `${cursor.x},${cursor.y},${cursor.z}`
+          const props: any = block.getProperties()
+          const facingRotationMap = {
+            'north': 2,
+            'south': 0,
+            'west': 1,
+            'east': 3
+          }
+          const isWall = block.name.endsWith('_wall_banner')
+          attr.banners[key] = {
+            isWall,
+            blockName: block.name, // Pass block name for base color extraction
+            rotation: isWall ? facingRotationMap[props.facing] : (props.rotation === undefined ? 0 : +props.rotation)
           }
         }
         const biome = block.biome.name
@@ -647,7 +663,7 @@ export function getSectionGeometry (sx: number, sy: number, sz: number, world: W
             // #endregion
 
             for (const element of model.elements ?? []) {
-              const ao = model.ao ?? true
+              const ao = model.ao ?? block.boundingBox !== 'empty'
               if (block.transparent) {
                 const pos = cursor.clone()
                 delayedRender.push(() => {

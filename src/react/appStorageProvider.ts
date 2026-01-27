@@ -53,6 +53,7 @@ type StorageData = {
   serversList: StoreServerItem[] | undefined
   modsAutoUpdateLastCheck: number | undefined
   firstModsPageVisit: boolean
+  iframeConsents: string[] | undefined
 }
 
 const cookieStoreKeys: Array<keyof StorageData> = [
@@ -215,6 +216,7 @@ const defaultStorageData: StorageData = {
   serversList: undefined,
   modsAutoUpdateLastCheck: undefined,
   firstModsPageVisit: true,
+  iframeConsents: undefined,
 }
 
 export const setStorageDataOnAppConfigLoad = (appConfig: AppConfig) => {
