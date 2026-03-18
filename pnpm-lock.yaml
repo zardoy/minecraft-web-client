@@ -145,8 +145,8 @@ importers:
         specifier: 3.103.0
         version: 3.103.0
       minecraft-inventory:
-        specifier: ^0.1.2
-        version: 0.1.2(@xmcl/text-component@2.1.3)(mc-assets@0.2.72)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.1.4
+        version: 0.1.4(@xmcl/text-component@2.1.3)(mc-assets@0.2.72)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       minecraft-protocol:
         specifier: github:PrismarineJS/node-minecraft-protocol#master
         version: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/75399c59e103c8500357aa99b76d3600abea81fd(patch_hash=8a96528ea049e1239226caa349378cdf79f8b39939b5b502d226d643aac8ca24)(encoding@0.1.13)
@@ -6689,8 +6689,8 @@ packages:
     resolution: {tarball: https://codeload.github.com/zardoy/minecraft-inventory-gui/tar.gz/ae382e30ad66c3ca40f51ff3376605e8c67413db}
     version: 1.0.1
 
-  minecraft-inventory@0.1.2:
-    resolution: {integrity: sha512-MybWXwm6iEWDbemfPvoQjUEz3v3ALUIAGLTjw6JoKVTCYhr24nsalN/aaZJSkceYW4hCiwSbiIb1fgONWC4T6w==}
+  minecraft-inventory@0.1.4:
+    resolution: {integrity: sha512-XjkXo0wSxVVdX4gDJ+gNshJoxy8650gJRu4kEmdb22kVBOwSi7eEfmP18dpM0ZBtn6yRZyHs/0Ic2JE8cZC4mg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     peerDependencies:
       '@xmcl/text-component': '*'
@@ -17364,7 +17364,7 @@ snapshots:
       - '@types/react'
       - react
 
-  minecraft-inventory@0.1.2(@xmcl/text-component@2.1.3)(mc-assets@0.2.72)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  minecraft-inventory@0.1.4(@xmcl/text-component@2.1.3)(mc-assets@0.2.72)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@xmcl/text-component': 2.1.3
       react: 18.3.1

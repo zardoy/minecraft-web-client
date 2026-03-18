@@ -25,6 +25,7 @@ import { MessageFormatPart } from './chatUtils'
 import { GeneralInputItem, getItemMetadata, getItemModelName, getItemNameRaw, RenderItem } from './mineflayer/items'
 import { playerState } from './mineflayer/playerState'
 import { modelViewerState } from './react/OverlayModelViewer'
+import { openInventoryProxy } from './react/inventory/Inventory'
 
 const loadedImagesCache = new Map<string, HTMLImageElement | ImageBitmap>()
 const cleanLoadedImagesCache = () => {
@@ -45,38 +46,42 @@ export const jeiCustomCategories = proxy({
 let remotePlayerSkin: string | undefined | Promise<string>
 
 export const showInventoryPlayer = () => {
-  modelViewerState.model = {
-    positioning: {
-      windowWidth: 176,
-      windowHeight: 166,
-      x: 25,
-      y: 8,
-      width: 50,
-      height: 70,
-      scaled: true,
-      onlyInitialScale: true,
-    },
-    followCursor: true,
-    followCursorCenter: {
-      x: 51,
-      y: 27,
-    },
-    // models: ['https://bucket.mcraft.fun/sitarbuckss.glb'],
-    // debug: true,
-    steveModelSkin: appViewer.playerState.reactive.playerSkin ?? (typeof remotePlayerSkin === 'string' ? remotePlayerSkin : ''),
-  }
-  if (remotePlayerSkin === undefined && !appViewer.playerState.reactive.playerSkin) {
-    remotePlayerSkin = loadSkinFromUsername(bot.username, 'skin').then(a => {
-      setTimeout(() => {
-        // Check if player inventory is still open before updating
-        if (lastWindowType === null) {
-          showInventoryPlayer()
-        }
-      }, 0) // todo patch instead and make reactive
-      remotePlayerSkin = a ?? ''
-      return remotePlayerSkin
-    })
-  }
+  // openInventoryProxy.inventory = {
+  //   type: 'player',
+  // }
+
+  // modelViewerState.model = {
+  //   positioning: {
+  //     windowWidth: 176,
+  //     windowHeight: 166,
+  //     x: 25,
+  //     y: 8,
+  //     width: 50,
+  //     height: 70,
+  //     scaled: true,
+  //     onlyInitialScale: true,
+  //   },
+  //   followCursor: true,
+  //   followCursorCenter: {
+  //     x: 51,
+  //     y: 27,
+  //   },
+  //   // models: ['https://bucket.mcraft.fun/sitarbuckss.glb'],
+  //   // debug: true,
+  //   steveModelSkin: appViewer.playerState.reactive.playerSkin ?? (typeof remotePlayerSkin === 'string' ? remotePlayerSkin : ''),
+  // }
+  // if (remotePlayerSkin === undefined && !appViewer.playerState.reactive.playerSkin) {
+  //   remotePlayerSkin = loadSkinFromUsername(bot.username, 'skin').then(a => {
+  //     setTimeout(() => {
+  //       // Check if player inventory is still open before updating
+  //       if (lastWindowType === null) {
+  //         showInventoryPlayer()
+  //       }
+  //     }, 0) // todo patch instead and make reactive
+  //     remotePlayerSkin = a ?? ''
+  //     return remotePlayerSkin
+  //   })
+  // }
 }
 
 export const onGameLoad = () => {
@@ -577,7 +582,10 @@ const openWindow = (type: string | undefined, title: string | any = undefined) =
 let destroyFn = () => { }
 
 export const openPlayerInventory = () => {
-  openWindow(undefined)
+  openInventoryProxy.inventory = {
+    type: 'player',
+  }
+  // openWindow(undefined)
 }
 
 const getResultingRecipe = (slots: Array<Item | null>, gridRows: number) => {

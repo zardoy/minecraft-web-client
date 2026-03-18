@@ -1,6 +1,7 @@
 import { TextureProvider, ScaleProvider, InventoryProvider, InventoryOverlay, createMineflayerConnector, MineflayerBot, InventoryOverlayProps } from 'minecraft-inventory/src'
 import { useMemo } from 'react'
 import { proxy, useSnapshot } from 'valtio'
+import { localTexturesConfig } from 'minecraft-inventory/src/generated/localTextures'
 import { useAppScale } from '../../scaleInterface'
 
 export const openInventoryProxy = proxy({
@@ -21,13 +22,13 @@ export const Inventory = () => {
     width: '100%',
     height: '100dvh',
     zIndex: 1000,
-    // backgroundColor: 'rgba(0, 0, 0, 0.5)',
   }}>
-    <TextureProvider>
+    <TextureProvider config={localTexturesConfig}>
       <ScaleProvider scale={appScale}>
         <InventoryProvider connector={connector}>
           <InventoryOverlay
             showJEI
+            enableNotes
             {...inventory}
           />
         </InventoryProvider>

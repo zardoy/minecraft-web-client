@@ -80,7 +80,7 @@
     "lodash-es": "^4.17.21",
     "mcraft-fun-mineflayer": "^0.1.23",
     "minecraft-data": "3.106.0",
-    "minecraft-inventory": "^0.1.2",
+    "minecraft-inventory": "^0.1.4",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
     "minecraft-renderer": "^0.1.33",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
