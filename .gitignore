@@ -22,3 +22,4 @@ config.local.json
 logs/
 
 src/react/npmReactComponents.ts
+.env*.local

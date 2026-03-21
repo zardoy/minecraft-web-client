@@ -144,6 +144,9 @@ export const watchOptionsAfterViewerInit = () => {
     bot.on('weatherUpdate', () => {
       updateRaining()
     })
+    bot.on('rain', () => {
+      updateRaining()
+    })
   })
 }
 

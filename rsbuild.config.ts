@@ -248,6 +248,8 @@ const appConfig = defineConfig({
                     // copy mesher worker
                     if (fs.existsSync('./node_modules/minecraft-renderer/wasm/wasm_mesher_bg.wasm')) {
                         fs.copyFileSync('./node_modules/minecraft-renderer/wasm/wasm_mesher_bg.wasm', './dist/wasm_mesher_bg.wasm')
+                    } else {
+                        console.warn('wasm_mesher_bg.wasm not found')
                     }
                     if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesherWasm.js')) {
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', './dist/mesherWasm.js')
@@ -257,6 +259,8 @@ const appConfig = defineConfig({
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js', './dist/mesher.js')
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js.map', './dist/mesher.js.map')
                         fs.copyFileSync('./node_modules/minecraft-renderer/dist/threeWorker.js', './dist/threeWorker.js')
+                    } else {
+                        throw new Error('mesher.js not found')
                     }
                     fs.writeFileSync('./dist/version.txt', buildingVersion, 'utf-8')
 
