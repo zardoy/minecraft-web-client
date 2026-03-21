@@ -649,32 +649,34 @@ export async function connect (connectOptions: ConnectOptions) {
       bot._client.emit('connect')
     } else {
       const setupConnectHandlers = () => {
-        Socket.prototype['handleStringMessage'] = function (message: string) {
+        bot._client.socket['handleStringMessage'] = function (message: string) {
           if (message.startsWith('proxy-message') || message.startsWith('proxy-command:')) { // for future
             return false
           }
           if (message.startsWith('proxy-shutdown:')) {
+            console.log('Got current connection proxy shutdown message', message)
             lastKnownKickReason = message.slice('proxy-shutdown:'.length)
             return false
           }
           return true
         }
+        const closeUnknownReason = () => {
+          if (!bot || ended) return
+          bot.emit('end', lastKnownKickReason ?? 'WebSocket connection closed with unknown reason')
+        }
+
         bot._client.socket.on('connect', () => {
           console.log('Proxy WebSocket connection established')
           //@ts-expect-error
           bot._client.socket._ws.addEventListener('close', () => {
             console.log('WebSocket connection closed')
             setTimeout(() => {
-              if (bot) {
-                bot.emit('end', 'WebSocket connection closed with unknown reason')
-              }
+              closeUnknownReason()
             }, 1000)
           })
           bot._client.socket.on('close', () => {
             setTimeout(() => {
-              if (bot) {
-                bot.emit('end', 'WebSocket connection closed with unknown reason')
-              }
+              closeUnknownReason()
             })
           })
         })
