@@ -72,7 +72,7 @@
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "express": "^4.18.2",
     "filesize": "^10.0.12",
-    "flying-squid": "npm:@zardoy/flying-squid@^0.0.118",
+    "flying-squid": "npm:@zardoy/flying-squid@^0.0.119",
     "framer-motion": "^12.9.2",
     "fs-extra": "^11.1.1",
     "google-drive-browserfs": "github:zardoy/browserfs#google-drive",
@@ -150,7 +150,7 @@
     "mc-assets": "^0.2.72",
     "minecraft-inventory-gui": "github:zardoy/minecraft-inventory-gui#next",
     "mineflayer": "github:zardoy/mineflayer#gen-the-master",
-    "mineflayer-mouse": "^0.1.25",
+    "mineflayer-mouse": "^0.1.26",
     "npm-run-all": "^4.1.5",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
@@ -231,8 +231,5 @@
     "ignorePatchFailures": false,
     "allowUnusedPatches": false
   },
-  "deployAlwaysUpdate": [
-    "minecraft-renderer"
-  ],
-  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
+  "packageManager": "pnpm@10.32.1"
 }
