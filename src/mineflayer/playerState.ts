@@ -87,6 +87,7 @@ export class PlayerStateControllerMain {
     bot.on('physicsTick', () => {
       if (this.isUsingItem) this.reactive.itemUsageTicks++
       updateSneakingOrFlying()
+      this.updateWalkDistAndBob()
     })
     // todo move from gameAdditionalState to reactive directly
     subscribeKey(gameAdditionalState, 'isSneaking', () => {
@@ -144,6 +145,27 @@ export class PlayerStateControllerMain {
     } else {
       this.reactive.movementState = 'NOT_MOVING'
     }
+  }
+
+  private updateWalkDistAndBob () {
+    if (!bot?.entity || this.disableStateUpdates) return
+
+    const { velocity } = bot.entity
+    const horizontalDist = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+
+    // Save previous values for interpolation
+    this.reactive.prevWalkDist = this.reactive.walkDist
+    this.reactive.prevBob = this.reactive.bob
+
+    // Accumulate walk distance with dampening factor
+    this.reactive.walkDist += horizontalDist * 0.6
+
+    // Smooth bob amplitude — vanilla: onGround && !isDeadOrDying && !isSwimming
+    // isSwimming = sprinting + in water (not just touching water)
+    const isSwimming = bot.controlState.sprint && bot.entity.isInWater
+    const isDeadOrDying = (bot.entity.health ?? 20) <= 0
+    const bobTarget = (bot.entity.onGround && !isDeadOrDying && !isSwimming) ? Math.min(0.1, horizontalDist) : 0
+    this.reactive.bob += (bobTarget - this.reactive.bob) * 0.4
   }
 
   // #region Held Item State
