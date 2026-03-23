@@ -162,7 +162,7 @@ export class PlayerStateControllerMain {
 
     // Smooth bob amplitude — vanilla: onGround && !isDeadOrDying && !isSwimming
     // isSwimming = sprinting + in water (not just touching water)
-    const isSwimming = bot.controlState.sprint && bot.entity.isInWater
+    const isSwimming = bot.controlState.sprint && this.reactive.inWater
     const isDeadOrDying = (bot.entity.health ?? 20) <= 0
     const bobTarget = (bot.entity.onGround && !isDeadOrDying && !isSwimming) ? Math.min(0.1, horizontalDist) : 0
     this.reactive.bob += (bobTarget - this.reactive.bob) * 0.4
