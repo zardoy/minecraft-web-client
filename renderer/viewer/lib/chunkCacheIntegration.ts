@@ -40,6 +40,11 @@ type SerializedBitArray = {
   valueMask?: number
 }
 
+type SerializedLegacyChunkSection = {
+  data: string | SerializedBitArray
+  palette?: number[] | null
+}
+
 type SerializedPaletteContainer =
   | {
     type: 'single'
@@ -57,7 +62,8 @@ type SerializedPaletteContainer =
   }
 
 type SerializedChunkSection = {
-  data: string | SerializedPaletteContainer
+  data: string | SerializedPaletteContainer | SerializedBitArray
+  palette?: number[] | null
 }
 
 // Store for block state IDs by section for hash computation
@@ -80,6 +86,15 @@ function createEmptySectionBlockStates (): Uint16Array {
   return new Uint16Array(SECTION_VOLUME)
 }
 
+function isSerializedBitArray (value: unknown): value is SerializedBitArray {
+  if (!value || typeof value !== 'object') return false
+  const bitArray = value as Partial<SerializedBitArray>
+  return Array.isArray(bitArray.data)
+    && typeof bitArray.capacity === 'number'
+    && typeof bitArray.bitsPerValue === 'number'
+    && bitArray.bitsPerValue > 0
+}
+
 function getSerializedBitArrayValue (bitArray: SerializedBitArray, index: number): number {
   const valuesPerLong = bitArray.valuesPerLong ?? Math.floor(64 / bitArray.bitsPerValue)
   const valueMask = bitArray.valueMask ?? ((1 << bitArray.bitsPerValue) - 1)
@@ -100,30 +115,56 @@ function getSerializedBitArrayValue (bitArray: SerializedBitArray, index: number
   return result & valueMask
 }
 
+function decodeBitArrayBlockStates (
+  bitArrayValue: unknown,
+  palette?: number[] | null
+): Uint16Array | null {
+  const parsedBitArray = parseJsonValue<SerializedBitArray>(bitArrayValue)
+  if (!isSerializedBitArray(parsedBitArray)) return null
+
+  const valuesPerLong = parsedBitArray.valuesPerLong ?? Math.floor(64 / parsedBitArray.bitsPerValue)
+  if (!Number.isFinite(valuesPerLong) || valuesPerLong <= 0) return null
+
+  const bitArray: SerializedBitArray = {
+    ...parsedBitArray,
+    valuesPerLong,
+    valueMask: parsedBitArray.valueMask ?? ((1 << parsedBitArray.bitsPerValue) - 1)
+  }
+
+  const blockStates = createEmptySectionBlockStates()
+  const length = Math.min(blockStates.length, bitArray.capacity)
+  for (let index = 0; index < length; index++) {
+    const value = getSerializedBitArrayValue(bitArray, index)
+    blockStates[index] = palette?.[value] ?? value
+  }
+  return blockStates
+}
+
 function decodePaletteContainerBlockStates (paletteContainerValue: unknown): Uint16Array | null {
   const paletteContainer = parseJsonValue<SerializedPaletteContainer>(paletteContainerValue)
-  if (!paletteContainer) return null
+  if (!paletteContainer || typeof paletteContainer !== 'object' || !('type' in paletteContainer)) return null
 
   if (paletteContainer.type === 'single') {
     return new Uint16Array(paletteContainer.capacity ?? SECTION_VOLUME).fill(paletteContainer.value)
   }
 
-  const bitArray = parseJsonValue<SerializedBitArray>(paletteContainer.data)
-  if (!bitArray) return null
+  return decodeBitArrayBlockStates(
+    paletteContainer.data,
+    paletteContainer.type === 'indirect' ? paletteContainer.palette : undefined
+  )
+}
 
-  const blockStates = createEmptySectionBlockStates()
-  if (paletteContainer.type === 'direct') {
-    for (let index = 0; index < blockStates.length; index++) {
-      blockStates[index] = getSerializedBitArrayValue(bitArray, index)
-    }
-    return blockStates
-  }
+function decodeChunkSectionBlockStates (sectionValue: unknown): Uint16Array | null {
+  const section = parseJsonValue<SerializedChunkSection & SerializedLegacyChunkSection>(sectionValue)
+  if (!section?.data) return null
 
-  for (let index = 0; index < blockStates.length; index++) {
-    const paletteIndex = getSerializedBitArrayValue(bitArray, index)
-    blockStates[index] = paletteContainer.palette[paletteIndex] ?? 0
-  }
-  return blockStates
+  const legacyBlockStates = decodeBitArrayBlockStates(
+    section.data,
+    Array.isArray(section.palette) ? section.palette : section.palette === null ? null : undefined
+  )
+  if (legacyBlockStates) return legacyBlockStates
+
+  return decodePaletteContainerBlockStates(section.data)
 }
 
 /**
@@ -173,10 +214,9 @@ export function extractChunkSectionBlockStates (chunkData: unknown): Map<number,
   const sectionBlockStatesByY = new Map<number, Uint16Array>()
   const minY = parsedChunk.minY ?? 0
   for (const [sectionIndex, sectionValue] of parsedChunk.sections.entries()) {
-    const section = parseJsonValue<SerializedChunkSection>(sectionValue)
-    if (!section?.data) return null
+    if (sectionValue === null) continue
 
-    const blockStates = decodePaletteContainerBlockStates(section.data)
+    const blockStates = decodeChunkSectionBlockStates(sectionValue)
     if (!blockStates) return null
 
     sectionBlockStatesByY.set(minY + sectionIndex * 16, blockStates)
