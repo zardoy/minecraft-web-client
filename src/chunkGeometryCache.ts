@@ -59,6 +59,10 @@ export interface SerializedGeometry {
   customBlockModels?: Record<string, string>
 }
 
+type CacheableMesherGeometryOutput = MesherGeometryOutput & {
+  transparentIndicesStart?: number
+}
+
 interface GeometryMetadata {
   blockHash: string
   lastAccessed: number
@@ -228,6 +232,7 @@ class ChunkGeometryCache {
    * Serialize geometry for storage
    */
   private serializeGeometry (geometry: MesherGeometryOutput): SerializedGeometry {
+    const geometryWithTransparency = geometry as CacheableMesherGeometryOutput
     return {
       sx: geometry.sx,
       sy: geometry.sy,
@@ -242,7 +247,7 @@ class ChunkGeometryCache {
       t_uvs: geometry.t_uvs ? [...geometry.t_uvs] : undefined,
       indices: [...geometry.indices],
       indicesCount: geometry.indicesCount,
-      transparentIndicesStart: geometry.transparentIndicesStart,
+      transparentIndicesStart: geometryWithTransparency.transparentIndicesStart ?? geometry.indicesCount,
       using32Array: geometry.using32Array,
       tiles: geometry.tiles,
       heads: geometry.heads,
@@ -264,7 +269,7 @@ class ChunkGeometryCache {
       throw new Error('Serialized geometry missing required fields (positions or indices)')
     }
 
-    return {
+    const geometry = {
       sx: serialized.sx,
       sy: serialized.sy,
       sz: serialized.sz,
@@ -280,7 +285,6 @@ class ChunkGeometryCache {
         ? new Uint32Array(serialized.indices)
         : new Uint16Array(serialized.indices),
       indicesCount: serialized.indicesCount,
-      transparentIndicesStart: serialized.transparentIndicesStart,
       using32Array: serialized.using32Array,
       tiles: serialized.tiles,
       heads: serialized.heads,
@@ -289,7 +293,10 @@ class ChunkGeometryCache {
       hadErrors: serialized.hadErrors,
       blocksCount: serialized.blocksCount,
       customBlockModels: serialized.customBlockModels
-    }
+    } as CacheableMesherGeometryOutput
+
+    geometry.transparentIndicesStart = serialized.transparentIndicesStart
+    return geometry
   }
 
   /**
