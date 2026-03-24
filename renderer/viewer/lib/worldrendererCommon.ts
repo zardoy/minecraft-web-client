@@ -11,12 +11,13 @@ import { dynamicMcDataFiles } from '../../buildMesherConfig.mjs'
 import type { ResourcesManagerTransferred } from '../../../src/resourcesManager'
 import { DisplayWorldOptions, GraphicsInitOptions, RendererReactiveState } from '../../../src/appViewer'
 import { SoundSystem } from '../three/threeJsSound'
+import { chunkGeometryCache } from '../../../src/chunkGeometryCache'
 import { buildCleanupDecorator } from './cleanupDecorator'
 import { HighestBlockInfo, CustomBlockModels, BlockStateModelInfo, getBlockAssetsCacheKey, MesherConfig, MesherMainEvent, MesherGeometryOutput } from './mesher/shared'
 import { chunkPos } from './simpleUtils'
 import { addNewStat, removeAllStats, updatePanesVisibility, updateStatText } from './ui/newStats'
 import { WorldDataEmitterWorker } from './worldDataEmitter'
-import { computeBlockHash, storeSectionBlockStates, clearSectionBlockStates, clearAllBlockStates, getSectionBlockStates, isGeometryCacheable, computeChunkDataHash } from './chunkCacheIntegration'
+import { computeBlockHash, storeSectionBlockStates, clearSectionBlockStates, clearAllBlockStates, getSectionBlockStates, isGeometryCacheable, computeChunkDataHash, extractChunkSectionBlockStates } from './chunkCacheIntegration'
 import { getPlayerStateUtils, PlayerStateReactive, PlayerStateRenderer, PlayerStateUtils } from './basePlayerState'
 import { MesherLogReader } from './mesherlogReader'
 import { setSkinsConfig } from './utils/skins'
@@ -204,6 +205,8 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
   geometryCache = new Map<string, { hash: string; geometry: MesherGeometryOutput }>()
   @worldCleanup()
   sectionHashes = new Map<string, string>()
+  @worldCleanup()
+  invalidatedSections = new Set<string>()
   geometryCacheHits = 0
   geometryCacheMisses = 0
 
@@ -416,15 +419,22 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       this.geometryReceiveCount[data.workerIndex]++
       const chunkCoords = data.key.split(',').map(Number)
       this.lastChunkDistance = Math.max(...this.getDistance(new Vec3(chunkCoords[0], 0, chunkCoords[2])))
+      this.invalidatedSections.delete(data.key)
 
       // Cache the geometry for later reuse
       if (isGeometryCacheable(data.geometry)) {
-        const sectionHash = this.sectionHashes.get(data.key) || 'unknown'
-        this.geometryCache.set(data.key, {
-          hash: sectionHash,
-          geometry: data.geometry
-        })
+        const sectionHash = this.sectionHashes.get(data.key)
+        if (sectionHash) {
+          const [x, y, z] = chunkCoords
+          void chunkGeometryCache.set(x, y, z, sectionHash, data.geometry)
+          this.geometryCache.set(data.key, {
+            hash: sectionHash,
+            geometry: data.geometry
+          })
+        }
         this.geometryCacheMisses++
+      } else {
+        this.geometryCache.delete(data.key)
       }
     }
     if (data.type === 'sectionFinished') { // on after load & unload section
@@ -656,7 +666,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
     updateStatText('downloaded-chunks', text)
   }
 
-  addColumn (x: number, z: number, chunk: any, isLightUpdate: boolean) {
+  async addColumn (x: number, z: number, chunk: any, isLightUpdate: boolean) {
     if (!this.active) return
     if (this.workers.length === 0) throw new Error('workers not initialized yet')
     this.initialChunksLoad = false
@@ -667,12 +677,32 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
     const chunkKey = `${x},${z}`
     const customBlockModels = this.protocolCustomBlocks.get(chunkKey)
 
-    // Compute hash from chunk data for cache validation
-    const chunkHash = computeChunkDataHash(chunk)
+    const parsedSectionBlockStates = extractChunkSectionBlockStates(chunk)
+    const fallbackChunkHash = parsedSectionBlockStates ? undefined : computeChunkDataHash(chunk)
+    const sectionCacheWarmupTasks: Array<Promise<void>> = []
     for (let y = this.worldMinYRender; y < this.worldSizeParams.worldHeight; y += 16) {
       const sectionKey = `${x},${y},${z}`
-      this.sectionHashes.set(sectionKey, chunkHash)
+      this.invalidatedSections.delete(sectionKey)
+
+      if (parsedSectionBlockStates) {
+        const blockStates = parsedSectionBlockStates.get(y) ?? new Uint16Array(16 * 16 * 16)
+        const sectionHash = computeBlockHash(blockStates)
+        storeSectionBlockStates(sectionKey, blockStates)
+        this.sectionHashes.set(sectionKey, sectionHash)
+        sectionCacheWarmupTasks.push((async () => {
+          const cachedGeometry = await chunkGeometryCache.get(x, y, z, sectionHash)
+          if (!cachedGeometry) return
+          this.geometryCache.set(sectionKey, {
+            hash: sectionHash,
+            geometry: cachedGeometry
+          })
+        })())
+      } else {
+        clearSectionBlockStates(sectionKey)
+        this.sectionHashes.set(sectionKey, fallbackChunkHash!)
+      }
     }
+    await Promise.all(sectionCacheWarmupTasks)
 
     for (const worker of this.workers) {
       worker.postMessage({
@@ -722,6 +752,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       this.initialChunkLoadWasStartedIn = undefined
     }
     for (let y = this.worldSizeParams.minY; y < this.worldSizeParams.worldHeight; y += 16) {
+      this.clearSectionCacheTracking(`${x},${y},${z}`)
       this.setSectionDirty(new Vec3(x, y, z), false)
       delete this.finishedSections[`${x},${y},${z}`]
     }
@@ -734,6 +765,29 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       this.logWorkerWork('# all chunks unloaded. New log started')
       void this.mesherLogReader?.maybeStartReplay()
     }
+  }
+
+  clearSectionCacheTracking (sectionKey: string): void {
+    this.sectionHashes.delete(sectionKey)
+    this.invalidatedSections.delete(sectionKey)
+    clearSectionBlockStates(sectionKey)
+  }
+
+  updateSectionHashFromStoredStates (sectionKey: string, pos: Vec3, stateId: number | undefined): void {
+    const blockStates = getSectionBlockStates(sectionKey)
+    if (!blockStates) {
+      if (stateId !== undefined) {
+        this.sectionHashes.delete(sectionKey)
+      }
+      return
+    }
+
+    if (stateId !== undefined) {
+      const blockIndex = ((Math.floor(pos.y) & 15) << 8) | ((Math.floor(pos.z) & 15) << 4) | (Math.floor(pos.x) & 15)
+      blockStates[blockIndex] = stateId
+    }
+
+    this.sectionHashes.set(sectionKey, computeBlockHash(blockStates))
   }
 
   setBlockStateId (pos: Vec3, stateId: number | undefined, needAoRecalculation = true) {
@@ -787,15 +841,20 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
         currentLoadChunkBatch = {
           data: [],
           timeout: setTimeout(() => {
-            for (const args of currentLoadChunkBatch!.data) {
-              this.queuedChunks.delete(`${args[0]},${args[1]}`)
-              this.addColumn(...args as Parameters<typeof this.addColumn>)
-            }
-            for (const fn of this.queuedFunctions) {
-              fn()
-            }
-            this.queuedFunctions = []
-            currentLoadChunkBatch = null
+            void (async () => {
+              try {
+                await Promise.all(currentLoadChunkBatch!.data.map(async (args) => {
+                  this.queuedChunks.delete(`${args[0]},${args[1]}`)
+                  await this.addColumn(...args as Parameters<typeof this.addColumn>)
+                }))
+              } finally {
+                for (const fn of this.queuedFunctions) {
+                  fn()
+                }
+                this.queuedFunctions = []
+                currentLoadChunkBatch = null
+              }
+            })()
           }, this.worldRendererConfig.addChunksBatchWaitTime)
         }
       }
@@ -880,20 +939,25 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
   /**
    * Invalidate cached geometry for a section (called when blocks change)
    */
-  invalidateSectionCache (pos: Vec3): void {
-    const sectionKey = `${Math.floor(pos.x / 16) * 16},${Math.floor(pos.y / 16) * 16},${Math.floor(pos.z / 16) * 16}`
+  invalidateSectionCache (pos: Vec3, stateId?: number): void {
+    const sectionX = Math.floor(pos.x / 16) * 16
+    const sectionY = Math.floor(pos.y / 16) * 16
+    const sectionZ = Math.floor(pos.z / 16) * 16
+    const sectionKey = `${sectionX},${sectionY},${sectionZ}`
     this.geometryCache.delete(sectionKey)
-    this.sectionHashes.delete(sectionKey)
-    clearSectionBlockStates(sectionKey)
+    this.invalidatedSections.add(sectionKey)
+    this.updateSectionHashFromStoredStates(sectionKey, pos, stateId)
+    void chunkGeometryCache.invalidate(sectionX, sectionY, sectionZ)
   }
 
   setBlockStateIdInner (pos: Vec3, stateId: number | undefined, needAoRecalculation = true) {
     const chunkKey = `${Math.floor(pos.x / 16) * 16},${Math.floor(pos.z / 16) * 16}`
-    const blockPosKey = `${pos.x},${pos.y},${pos.z}`
     const customBlockModels = this.protocolCustomBlocks.get(chunkKey) || {}
 
-    // Invalidate cache for the affected section since a block changed
-    this.invalidateSectionCache(pos)
+    const invalidateAndDirtySection = (dirtyPos: Vec3, nextStateId?: number) => {
+      this.invalidateSectionCache(dirtyPos, nextStateId)
+      this.setSectionDirty(dirtyPos, true, true)
+    }
 
     for (const worker of this.workers) {
       worker.postMessage({
@@ -904,36 +968,36 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       })
     }
     this.logWorkerWork(`-> blockUpdate ${JSON.stringify({ pos, stateId, customBlockModels })}`)
-    this.setSectionDirty(pos, true, true)
+    invalidateAndDirtySection(pos, stateId)
     if (this.neighborChunkUpdates) {
-      if ((pos.x & 15) === 0) this.setSectionDirty(pos.offset(-16, 0, 0), true, true)
-      if ((pos.x & 15) === 15) this.setSectionDirty(pos.offset(16, 0, 0), true, true)
-      if ((pos.y & 15) === 0) this.setSectionDirty(pos.offset(0, -16, 0), true, true)
-      if ((pos.y & 15) === 15) this.setSectionDirty(pos.offset(0, 16, 0), true, true)
-      if ((pos.z & 15) === 0) this.setSectionDirty(pos.offset(0, 0, -16), true, true)
-      if ((pos.z & 15) === 15) this.setSectionDirty(pos.offset(0, 0, 16), true, true)
+      if ((pos.x & 15) === 0) invalidateAndDirtySection(pos.offset(-16, 0, 0))
+      if ((pos.x & 15) === 15) invalidateAndDirtySection(pos.offset(16, 0, 0))
+      if ((pos.y & 15) === 0) invalidateAndDirtySection(pos.offset(0, -16, 0))
+      if ((pos.y & 15) === 15) invalidateAndDirtySection(pos.offset(0, 16, 0))
+      if ((pos.z & 15) === 0) invalidateAndDirtySection(pos.offset(0, 0, -16))
+      if ((pos.z & 15) === 15) invalidateAndDirtySection(pos.offset(0, 0, 16))
 
       if (needAoRecalculation) {
         // top view neighbors
-        if ((pos.x & 15) === 0 && (pos.z & 15) === 0) this.setSectionDirty(pos.offset(-16, 0, -16), true, true)
-        if ((pos.x & 15) === 15 && (pos.z & 15) === 0) this.setSectionDirty(pos.offset(16, 0, -16), true, true)
-        if ((pos.x & 15) === 0 && (pos.z & 15) === 15) this.setSectionDirty(pos.offset(-16, 0, 16), true, true)
-        if ((pos.x & 15) === 15 && (pos.z & 15) === 15) this.setSectionDirty(pos.offset(16, 0, 16), true, true)
+        if ((pos.x & 15) === 0 && (pos.z & 15) === 0) invalidateAndDirtySection(pos.offset(-16, 0, -16))
+        if ((pos.x & 15) === 15 && (pos.z & 15) === 0) invalidateAndDirtySection(pos.offset(16, 0, -16))
+        if ((pos.x & 15) === 0 && (pos.z & 15) === 15) invalidateAndDirtySection(pos.offset(-16, 0, 16))
+        if ((pos.x & 15) === 15 && (pos.z & 15) === 15) invalidateAndDirtySection(pos.offset(16, 0, 16))
 
         // side view neighbors (but ignore updates above)
         // z view neighbors
-        if ((pos.x & 15) === 0 && (pos.y & 15) === 0) this.setSectionDirty(pos.offset(-16, -16, 0), true, true)
-        if ((pos.x & 15) === 15 && (pos.y & 15) === 0) this.setSectionDirty(pos.offset(16, -16, 0), true, true)
+        if ((pos.x & 15) === 0 && (pos.y & 15) === 0) invalidateAndDirtySection(pos.offset(-16, -16, 0))
+        if ((pos.x & 15) === 15 && (pos.y & 15) === 0) invalidateAndDirtySection(pos.offset(16, -16, 0))
 
         // x view neighbors
-        if ((pos.z & 15) === 0 && (pos.y & 15) === 0) this.setSectionDirty(pos.offset(0, -16, -16), true, true)
-        if ((pos.z & 15) === 15 && (pos.y & 15) === 0) this.setSectionDirty(pos.offset(0, -16, 16), true, true)
+        if ((pos.z & 15) === 0 && (pos.y & 15) === 0) invalidateAndDirtySection(pos.offset(0, -16, -16))
+        if ((pos.z & 15) === 15 && (pos.y & 15) === 0) invalidateAndDirtySection(pos.offset(0, -16, 16))
 
         // x & z neighbors
-        if ((pos.y & 15) === 0 && (pos.x & 15) === 0 && (pos.z & 15) === 0) this.setSectionDirty(pos.offset(-16, -16, -16), true, true)
-        if ((pos.y & 15) === 0 && (pos.x & 15) === 15 && (pos.z & 15) === 0) this.setSectionDirty(pos.offset(16, -16, -16), true, true)
-        if ((pos.y & 15) === 0 && (pos.x & 15) === 0 && (pos.z & 15) === 15) this.setSectionDirty(pos.offset(-16, -16, 16), true, true)
-        if ((pos.y & 15) === 0 && (pos.x & 15) === 15 && (pos.z & 15) === 15) this.setSectionDirty(pos.offset(16, -16, 16), true, true)
+        if ((pos.y & 15) === 0 && (pos.x & 15) === 0 && (pos.z & 15) === 0) invalidateAndDirtySection(pos.offset(-16, -16, -16))
+        if ((pos.y & 15) === 0 && (pos.x & 15) === 15 && (pos.z & 15) === 0) invalidateAndDirtySection(pos.offset(16, -16, -16))
+        if ((pos.y & 15) === 0 && (pos.x & 15) === 0 && (pos.z & 15) === 15) invalidateAndDirtySection(pos.offset(-16, -16, 16))
+        if ((pos.y & 15) === 0 && (pos.x & 15) === 15 && (pos.z & 15) === 15) invalidateAndDirtySection(pos.offset(16, -16, 16))
       }
     }
   }
@@ -1020,9 +1084,8 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
     if (!this.workers.length || distance[0] > this.viewDistance || distance[1] > this.viewDistance) return
     const key = `${Math.floor(pos.x / 16) * 16},${Math.floor(pos.y / 16) * 16},${Math.floor(pos.z / 16) * 16}`
 
-    // Try to use cached geometry if available (only when setting dirty, not when clearing)
-    // Skip cache when using change worker to ensure proper tracking
-    if (value && !useChangeWorker && this.tryUseCachedGeometry(key)) {
+    // Try to use cached geometry if available when this section wasn't explicitly invalidated.
+    if (value && !this.invalidatedSections.has(key) && this.tryUseCachedGeometry(key)) {
       this.logWorkerWork(() => `<- cache hit for section ${key}`)
       return
     }

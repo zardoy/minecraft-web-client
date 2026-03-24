@@ -75,6 +75,7 @@ class ChunkGeometryCache {
   private metadata: ServerMetadata = { sections: {} }
   private metadataDirty = false
   private saveMetadataTimeout: ReturnType<typeof setTimeout> | null = null
+  private serverStatePromise: Promise<void> = Promise.resolve()
 
   /**
    * Initialize the cache system
@@ -114,23 +115,26 @@ class ChunkGeometryCache {
    * Set whether the server supports the chunk-cache channel
    */
   async setServerSupportsChannel (supports: boolean, serverAddress?: string): Promise<void> {
-    // Flush pending saves for the previous server before switching
-    await this.flush()
-    if (this.saveMetadataTimeout) {
-      clearTimeout(this.saveMetadataTimeout)
-      this.saveMetadataTimeout = null
-    }
-    this.metadataDirty = false
+    const nextState = this.serverStatePromise.then(async () => {
+      await this.flush()
+      if (this.saveMetadataTimeout) {
+        clearTimeout(this.saveMetadataTimeout)
+        this.saveMetadataTimeout = null
+      }
+      this.metadataDirty = false
 
-    this.serverSupportsChannel = supports
-    this.serverAddress = serverAddress || 'unknown'
-    this.memoryCache.clear()
-    this.metadata = { sections: {} }
+      this.serverSupportsChannel = supports
+      this.serverAddress = serverAddress || 'unknown'
+      this.memoryCache.clear()
+      this.metadata = { sections: {} }
 
-    console.debug(`Geometry cache: server=${this.serverAddress}, supportsChannel=${supports}`)
+      console.debug(`Geometry cache: server=${this.serverAddress}, supportsChannel=${supports}`)
 
-    // Load existing metadata for this server
-    await this.loadMetadata()
+      await this.loadMetadata()
+    })
+
+    this.serverStatePromise = nextState
+    await nextState
   }
 
   /**
@@ -232,10 +236,10 @@ class ChunkGeometryCache {
       normals: [...geometry.normals],
       colors: [...geometry.colors],
       uvs: [...geometry.uvs],
-      t_positions: geometry.t_positions,
-      t_normals: geometry.t_normals,
-      t_colors: geometry.t_colors,
-      t_uvs: geometry.t_uvs,
+      t_positions: geometry.t_positions ? [...geometry.t_positions] : undefined,
+      t_normals: geometry.t_normals ? [...geometry.t_normals] : undefined,
+      t_colors: geometry.t_colors ? [...geometry.t_colors] : undefined,
+      t_uvs: geometry.t_uvs ? [...geometry.t_uvs] : undefined,
       indices: [...geometry.indices],
       indicesCount: geometry.indicesCount,
       transparentIndicesStart: geometry.transparentIndicesStart,
@@ -268,10 +272,10 @@ class ChunkGeometryCache {
       normals: new Float32Array(serialized.normals),
       colors: new Float32Array(serialized.colors),
       uvs: new Float32Array(serialized.uvs),
-      t_positions: serialized.t_positions,
-      t_normals: serialized.t_normals,
-      t_colors: serialized.t_colors,
-      t_uvs: serialized.t_uvs,
+      t_positions: serialized.t_positions ? [...serialized.t_positions] : undefined,
+      t_normals: serialized.t_normals ? [...serialized.t_normals] : undefined,
+      t_colors: serialized.t_colors ? [...serialized.t_colors] : undefined,
+      t_uvs: serialized.t_uvs ? [...serialized.t_uvs] : undefined,
       indices: serialized.using32Array
         ? new Uint32Array(serialized.indices)
         : new Uint16Array(serialized.indices),
@@ -292,6 +296,7 @@ class ChunkGeometryCache {
    * Get cached geometry by section key and block hash
    */
   async get (x: number, y: number, z: number, blockHash: string): Promise<MesherGeometryOutput | null> {
+    await this.serverStatePromise
     const memKey = this.getMemoryCacheKey(x, y, z)
     const sectionKey = `${x},${y},${z}`
 
@@ -356,6 +361,7 @@ class ChunkGeometryCache {
     blockHash: string,
     geometry: MesherGeometryOutput
   ): Promise<void> {
+    await this.serverStatePromise
     const memKey = this.getMemoryCacheKey(x, y, z)
     const sectionKey = `${x},${y},${z}`
     const chunkKey = `${x},${z}`
@@ -398,6 +404,7 @@ class ChunkGeometryCache {
    * Invalidate cache for a specific section
    */
   async invalidate (x: number, y: number, z: number): Promise<void> {
+    await this.serverStatePromise
     const memKey = this.getMemoryCacheKey(x, y, z)
     const sectionKey = `${x},${y},${z}`
 
@@ -419,6 +426,7 @@ class ChunkGeometryCache {
    * Clear all cached geometry for the current server
    */
   async clear (): Promise<void> {
+    await this.serverStatePromise
     // Clear memory cache for current server
     const serverPrefix = `${this.serverAddress}:`
     for (const key of this.memoryCache.keys()) {

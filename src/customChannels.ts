@@ -669,12 +669,23 @@ const registerChunkCacheChannel = () => {
   const CHANNEL_NAME = 'minecraft-web-client:chunk-cache'
   const CLIENT_CHANNEL = 'minecraft-web-client:chunk-cache-client'
 
-  // Initialize both cache systems
-  void chunkGeometryCache.init()
-  void chunkPacketCache.init()
-
   // Get server address for cache scoping
   const serverAddress = lastConnectOptions.value?.server || 'unknown'
+  const cacheInitPromise = Promise.all([
+    chunkGeometryCache.init(),
+    chunkPacketCache.init()
+  ])
+  let cacheStatePromise = Promise.resolve()
+  const updateCacheServerState = async (supportsChannel: boolean) => {
+    cacheStatePromise = cacheStatePromise.then(async () => {
+      await cacheInitPromise
+      await Promise.all([
+        chunkPacketCache.setServerInfo(serverAddress, supportsChannel),
+        chunkGeometryCache.setServerSupportsChannel(supportsChannel, serverAddress)
+      ])
+    })
+    return cacheStatePromise
+  }
 
   // Packet structure for server -> client messages
   // Server sends either:
@@ -728,8 +739,7 @@ const registerChunkCacheChannel = () => {
   })
 
   // Initialize caches with server support = false by default
-  void chunkPacketCache.setServerInfo(serverAddress, false)
-  void chunkGeometryCache.setServerSupportsChannel(false, serverAddress)
+  void updateCacheServerState(false)
 
   // Register the channel on client side
   bot._client.registerChannel(CHANNEL_NAME, serverToClientStructure, true)
@@ -737,7 +747,7 @@ const registerChunkCacheChannel = () => {
 
   // Listen for server channel registration via custom_payload
   // When server registers our channel, we know it supports chunk caching
-  bot._client.on('custom_payload' as any, (packet: { channel: string; data: Buffer }) => {
+  bot._client.on('custom_payload' as any, async (packet: { channel: string; data: Buffer }) => {
     // Check for minecraft:register (1.13+) or REGISTER (pre-1.13) packets
     if (packet.channel === 'minecraft:register' || packet.channel === 'REGISTER') {
       // Parse null-separated channel names from the data
@@ -748,13 +758,8 @@ const registerChunkCacheChannel = () => {
         if (!serverSupportsChannel) {
           serverSupportsChannel = true
           console.debug(`Server registered ${CHANNEL_NAME} channel - enabling chunk caching`)
-
-          // Update caches to enable persistent storage
-          void chunkPacketCache.setServerInfo(serverAddress, true)
-          void chunkGeometryCache.setServerSupportsChannel(true, serverAddress)
-
-          // Send cached chunks list to server now that we know it supports caching
-          void sendCachedChunksList()
+          await updateCacheServerState(true)
+          await sendCachedChunksList()
         }
       }
     }
@@ -765,9 +770,9 @@ const registerChunkCacheChannel = () => {
     // If we receive data on this channel, server definitely supports it
     if (!serverSupportsChannel) {
       serverSupportsChannel = true
-      void chunkPacketCache.setServerInfo(serverAddress, true)
-      void chunkGeometryCache.setServerSupportsChannel(true, serverAddress)
+      await updateCacheServerState(true)
     }
+    await cacheStatePromise
 
     const chunkKey = `${data.x},${data.z}`
 
@@ -812,6 +817,7 @@ const registerChunkCacheChannel = () => {
   // Intercept map_chunk packets to cache them
   bot._client.on('packet', async (packetData: any, meta: { name: string }) => {
     if (meta.name !== 'map_chunk') return
+    await cacheStatePromise
 
     const chunkKey = `${packetData.x},${packetData.z}`
     const pending = pendingChunkHashes.get(chunkKey)
@@ -864,6 +870,7 @@ const registerChunkCacheChannel = () => {
    */
   async function sendCachedChunksList (): Promise<void> {
     try {
+      await cacheStatePromise
       const cachedChunks = await chunkPacketCache.getCachedChunksInfo()
 
       if (cachedChunks.length === 0) {
@@ -887,31 +894,7 @@ const registerChunkCacheChannel = () => {
  * Handles all version-specific fields by serializing the entire packet
  */
 function serializeMapChunkPacket (packet: any): ArrayBuffer {
-  // Create a serializable copy that handles all buffer/typed array fields
-  const serializable: Record<string, any> = {}
-
-  for (const key of Object.keys(packet)) {
-    const value = packet[key]
-    if (value === undefined || value === null) {
-      serializable[key] = value
-    } else if (Buffer.isBuffer(value)) {
-      // Mark as buffer for reconstruction
-      serializable[key] = { __type: 'buffer', data: [...value] }
-    } else if (ArrayBuffer.isView(value)) {
-      // Handle typed arrays (Int32Array, Uint8Array, etc.)
-      serializable[key] = {
-        __type: 'typedArray',
-        arrayType: value.constructor.name,
-        data: [...value as any]
-      }
-    } else if (value instanceof ArrayBuffer) {
-      serializable[key] = { __type: 'buffer', data: [...new Uint8Array(value)] }
-    } else {
-      serializable[key] = value
-    }
-  }
-
-  const json = JSON.stringify(serializable)
+  const json = JSON.stringify(serializeBinaryValue(packet))
   const encoder = new TextEncoder()
   const encoded = encoder.encode(json)
   // Ensure proper ArrayBuffer bounds (TextEncoder always returns offset 0, but be safe)
@@ -925,23 +908,68 @@ function serializeMapChunkPacket (packet: any): ArrayBuffer {
 function deserializeMapChunkPacket (buffer: Buffer): any {
   const decoder = new TextDecoder()
   const json = decoder.decode(buffer)
-  const parsed = JSON.parse(json)
+  return deserializeBinaryValue(JSON.parse(json))
+}
 
-  // Reconstruct buffer and typed array fields
-  for (const key of Object.keys(parsed)) {
-    const value = parsed[key]
-    if (value && typeof value === 'object' && value.__type) {
-      if (value.__type === 'buffer') {
-        parsed[key] = Buffer.from(value.data)
-      } else if (value.__type === 'typedArray') {
-        // Reconstruct the correct typed array type
-        const TypedArrayConstructor = getTypedArrayConstructor(value.arrayType)
-        parsed[key] = new TypedArrayConstructor(value.data)
-      }
+function serializeBinaryValue (value: any, seen = new WeakSet<object>()): any {
+  if (value === undefined) return { __type: 'undefined' }
+  if (value === null || typeof value !== 'object') return value
+
+  if (Buffer.isBuffer(value)) {
+    return { __type: 'buffer', data: [...value] }
+  }
+
+  if (value instanceof ArrayBuffer) {
+    return { __type: 'buffer', data: [...new Uint8Array(value)] }
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    if (value instanceof DataView) {
+      return { __type: 'buffer', data: [...new Uint8Array(value.buffer, value.byteOffset, value.byteLength)] }
+    }
+
+    return {
+      __type: 'typedArray',
+      arrayType: value.constructor.name,
+      data: [...value as any]
     }
   }
 
-  return parsed
+  if (seen.has(value)) {
+    throw new Error('Cannot serialize cyclic map_chunk packet data')
+  }
+
+  seen.add(value)
+  try {
+    if (Array.isArray(value)) {
+      return value.map(entry => serializeBinaryValue(entry, seen))
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, serializeBinaryValue(entry, seen)])
+    )
+  } finally {
+    seen.delete(value)
+  }
+}
+
+function deserializeBinaryValue (value: any): any {
+  if (value === null || typeof value !== 'object') return value
+
+  if (value.__type === 'undefined') return undefined
+  if (value.__type === 'buffer') return Buffer.from(value.data)
+  if (value.__type === 'typedArray') {
+    const TypedArrayConstructor = getTypedArrayConstructor(value.arrayType)
+    return new TypedArrayConstructor(value.data)
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(entry => deserializeBinaryValue(entry))
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, deserializeBinaryValue(entry)])
+  )
 }
 
 /**

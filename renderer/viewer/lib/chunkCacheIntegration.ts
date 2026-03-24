@@ -30,8 +30,101 @@
 
 import type { MesherGeometryOutput } from './mesher/shared'
 
+const SECTION_VOLUME = 16 * 16 * 16
+
+type SerializedBitArray = {
+  data: number[]
+  capacity: number
+  bitsPerValue: number
+  valuesPerLong?: number
+  valueMask?: number
+}
+
+type SerializedPaletteContainer =
+  | {
+    type: 'single'
+    value: number
+    capacity?: number
+  }
+  | {
+    type: 'indirect'
+    palette: number[]
+    data: string | SerializedBitArray
+  }
+  | {
+    type: 'direct'
+    data: string | SerializedBitArray
+  }
+
+type SerializedChunkSection = {
+  data: string | SerializedPaletteContainer
+}
+
 // Store for block state IDs by section for hash computation
 const sectionBlockStates = new Map<string, Uint16Array>()
+
+function parseJsonValue<T> (value: unknown): T | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T
+    } catch {
+      return null
+    }
+  }
+  if (typeof value === 'object') return value as T
+  return null
+}
+
+function createEmptySectionBlockStates (): Uint16Array {
+  return new Uint16Array(SECTION_VOLUME)
+}
+
+function getSerializedBitArrayValue (bitArray: SerializedBitArray, index: number): number {
+  const valuesPerLong = bitArray.valuesPerLong ?? Math.floor(64 / bitArray.bitsPerValue)
+  const valueMask = bitArray.valueMask ?? ((1 << bitArray.bitsPerValue) - 1)
+  const startLongIndex = Math.floor(index / valuesPerLong)
+  const indexInLong = (index - startLongIndex * valuesPerLong) * bitArray.bitsPerValue
+  if (indexInLong >= 32) {
+    const startLong = bitArray.data[startLongIndex * 2 + 1] ?? 0
+    return (startLong >>> (indexInLong - 32)) & valueMask
+  }
+
+  const startLong = bitArray.data[startLongIndex * 2] ?? 0
+  let result = startLong >>> indexInLong
+  const endBitOffset = indexInLong + bitArray.bitsPerValue
+  if (endBitOffset > 32) {
+    const endLong = bitArray.data[startLongIndex * 2 + 1] ?? 0
+    result |= endLong << (32 - indexInLong)
+  }
+  return result & valueMask
+}
+
+function decodePaletteContainerBlockStates (paletteContainerValue: unknown): Uint16Array | null {
+  const paletteContainer = parseJsonValue<SerializedPaletteContainer>(paletteContainerValue)
+  if (!paletteContainer) return null
+
+  if (paletteContainer.type === 'single') {
+    return new Uint16Array(paletteContainer.capacity ?? SECTION_VOLUME).fill(paletteContainer.value)
+  }
+
+  const bitArray = parseJsonValue<SerializedBitArray>(paletteContainer.data)
+  if (!bitArray) return null
+
+  const blockStates = createEmptySectionBlockStates()
+  if (paletteContainer.type === 'direct') {
+    for (let index = 0; index < blockStates.length; index++) {
+      blockStates[index] = getSerializedBitArrayValue(bitArray, index)
+    }
+    return blockStates
+  }
+
+  for (let index = 0; index < blockStates.length; index++) {
+    const paletteIndex = getSerializedBitArrayValue(bitArray, index)
+    blockStates[index] = paletteContainer.palette[paletteIndex] ?? 0
+  }
+  return blockStates
+}
 
 /**
  * Store block state IDs for a section (called when chunk data is loaded)
@@ -65,6 +158,31 @@ export function clearSectionBlockStates (sectionKey: string): void {
  */
 export function clearAllBlockStates (): void {
   sectionBlockStates.clear()
+}
+
+/**
+ * Decode serialized chunk JSON into per-section block state arrays.
+ */
+export function extractChunkSectionBlockStates (chunkData: unknown): Map<number, Uint16Array> | null {
+  const parsedChunk = parseJsonValue<{
+    minY?: number
+    sections?: unknown[]
+  }>(chunkData)
+  if (!parsedChunk?.sections || !Array.isArray(parsedChunk.sections)) return null
+
+  const sectionBlockStatesByY = new Map<number, Uint16Array>()
+  const minY = parsedChunk.minY ?? 0
+  for (const [sectionIndex, sectionValue] of parsedChunk.sections.entries()) {
+    const section = parseJsonValue<SerializedChunkSection>(sectionValue)
+    if (!section?.data) return null
+
+    const blockStates = decodePaletteContainerBlockStates(section.data)
+    if (!blockStates) return null
+
+    sectionBlockStatesByY.set(minY + sectionIndex * 16, blockStates)
+  }
+
+  return sectionBlockStatesByY
 }
 
 /**
@@ -144,7 +262,9 @@ export function computeChunkDataHash (chunkData: unknown): string {
   // Type guard: validate input is hashable
   let data: Uint8Array
 
-  if (chunkData instanceof ArrayBuffer) {
+  if (typeof chunkData === 'string') {
+    data = new TextEncoder().encode(chunkData)
+  } else if (chunkData instanceof ArrayBuffer) {
     data = new Uint8Array(chunkData)
   } else if (ArrayBuffer.isView(chunkData)) {
     // Handle TypedArrays (Uint8Array, Int32Array, etc.)
