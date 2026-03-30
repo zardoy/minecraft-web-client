@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import { subscribe, useSnapshot } from 'valtio'
-import { openItemsCanvas, upInventoryItems } from '../inventoryWindows'
 import { activeModalStack, isGameActive, miscUiState } from '../globalState'
 import { currentScaling } from '../scaleInterface'
 import { watchUnloadForCleanup } from '../gameUnload'
@@ -236,7 +235,8 @@ export default () => {
     })
   }, [])
 
-  return gameMode === 'spectator' ? null : <HotbarInner />
+  // return gameMode === 'spectator' ? null : <HotbarInner />
+  return null // TODO!
 }
 
 const Portal = ({ children, to = document.body }) => {
