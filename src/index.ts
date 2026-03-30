@@ -318,7 +318,11 @@ export async function connect (connectOptions: ConnectOptions) {
     signal: errorAbortController.signal
   })
   window.addEventListener('error', (e) => {
-    handleError(e.message)
+    const statusAtError = appStatusState.status
+    setTimeout(() => {
+      if (appStatusState.status !== statusAtError || miscUiState.gameLoaded) return
+      handleError(e.message)
+    }, 10_000)
   }, {
     signal: errorAbortController.signal
   })

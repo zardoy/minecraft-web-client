@@ -67,6 +67,8 @@ div.chat-wrapper:not(.display-mobile):not(.input-mobile) {
   padding: 0 2px;
   /* input padding */
   width: 100%;
+  /* Above typing indicator so tab completion list is clickable */
+  z-index: 2;
 }
 
 .input-mobile .chat-completions {
