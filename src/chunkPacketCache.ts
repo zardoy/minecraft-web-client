@@ -397,8 +397,7 @@ class ChunkPacketCache {
 
     const toDelete = chunkCount - MAX_CACHE_SIZE + Math.floor(MAX_CACHE_SIZE * 0.1)
 
-    for (let i = 0; i < toDelete && i < entries.length; i++) {
-      const [chunkKey] = entries[i]
+    await Promise.all(entries.slice(0, toDelete).map(async ([chunkKey]) => {
       const [x, z] = chunkKey.split(',').map(Number)
 
       // Remove from memory cache
@@ -417,7 +416,7 @@ class ChunkPacketCache {
       } catch (error) {
         // Ignore deletion errors
       }
-    }
+    }))
 
     console.debug(`Evicted ${toDelete} old chunks from cache`)
   }

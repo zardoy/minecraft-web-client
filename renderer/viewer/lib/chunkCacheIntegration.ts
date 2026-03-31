@@ -29,6 +29,7 @@
  */
 
 import type { MesherGeometryOutput } from './mesher/shared'
+import { computeBlockStateHash } from '../../../src/blockHash'
 
 const SECTION_VOLUME = 16 * 16 * 16
 
@@ -226,39 +227,11 @@ export function extractChunkSectionBlockStates (chunkData: unknown): Map<number,
 }
 
 /**
- * Compute a simple hash from block state IDs
- * Uses a fast non-cryptographic hash for performance
+ * Compute the shared section hash used by both renderer-side lookups and
+ * persistent geometry cache metadata.
  */
 export function computeBlockHash (blockStateIds: Uint16Array): string {
-  // Use FNV-1a hash for fast hashing
-  let hash = 2_166_136_261 // FNV offset basis
-  for (const stateId of blockStateIds) {
-    hash ^= stateId
-    hash = Math.imul(hash, 16_777_619) // FNV prime
-  }
-  // Convert to unsigned 32-bit and then to hex
-  return (hash >>> 0).toString(16).padStart(8, '0')
-}
-
-/**
- * Generate a simple hash from block state IDs (async version using crypto.subtle)
- * Use this for more secure hashing when persistent storage is used
- */
-export async function computeBlockHashAsync (blockStateIds: Uint16Array): Promise<string> {
-  if (globalThis.crypto?.subtle) {
-    try {
-      // Pass the typed array view directly (not .buffer which includes the entire ArrayBuffer)
-      const viewBytes = new Uint8Array(blockStateIds.buffer, blockStateIds.byteOffset, blockStateIds.byteLength)
-      const buffer = await crypto.subtle.digest('SHA-256', viewBytes)
-      const hashArray = [...new Uint8Array(buffer)]
-      // Use first 8 bytes for a shorter hash
-      return hashArray.slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
-    } catch {
-      // Fall back to simple hash
-      return computeBlockHash(blockStateIds)
-    }
-  }
-  return computeBlockHash(blockStateIds)
+  return computeBlockStateHash(blockStateIds)
 }
 
 /**
@@ -298,7 +271,7 @@ export function createChunkKey (x: number, z: number): string {
  * Compute a hash from raw chunk data (ArrayBuffer, TypedArray, or ArrayLike)
  * Uses FNV-1a for fast hashing
  */
-export function computeChunkDataHash (chunkData: unknown): string {
+export function computeChunkDataHash (chunkData: unknown): string | null {
   // Type guard: validate input is hashable
   let data: Uint8Array
 
@@ -315,14 +288,14 @@ export function computeChunkDataHash (chunkData: unknown): string {
       // eslint-disable-next-line unicorn/prefer-spread -- ArrayLike is not Iterable
       data = new Uint8Array(Array.from(chunkData as ArrayLike<number>))
     } catch {
-      // Fallback for invalid data - return a default hash
-      console.warn('computeChunkDataHash: Invalid chunk data, using fallback hash')
-      return '00000000'
+      // Invalid chunk-like data should skip cache warming instead of polluting
+      // unrelated sections with a shared sentinel hash.
+      console.warn('computeChunkDataHash: Invalid chunk data, skipping fallback hash')
+      return null
     }
   } else {
-    // Unknown type - return fallback hash
-    console.warn('computeChunkDataHash: Unknown chunk data type, using fallback hash')
-    return '00000000'
+    console.warn('computeChunkDataHash: Unknown chunk data type, skipping fallback hash')
+    return null
   }
 
   // Use FNV-1a hash

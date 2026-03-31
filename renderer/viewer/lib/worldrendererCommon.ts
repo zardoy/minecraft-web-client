@@ -678,7 +678,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
     const customBlockModels = this.protocolCustomBlocks.get(chunkKey)
 
     const parsedSectionBlockStates = extractChunkSectionBlockStates(chunk)
-    const fallbackChunkHash = parsedSectionBlockStates ? undefined : computeChunkDataHash(chunk)
+    const fallbackChunkHash = parsedSectionBlockStates ? null : computeChunkDataHash(chunk)
     const sectionCacheWarmupTasks: Array<Promise<void>> = []
     for (let y = this.worldMinYRender; y < this.worldSizeParams.worldHeight; y += 16) {
       const sectionKey = `${x},${y},${z}`
@@ -699,7 +699,9 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
         })())
       } else {
         clearSectionBlockStates(sectionKey)
-        this.sectionHashes.set(sectionKey, fallbackChunkHash!)
+        if (fallbackChunkHash !== null) {
+          this.sectionHashes.set(sectionKey, fallbackChunkHash)
+        }
       }
     }
     await Promise.all(sectionCacheWarmupTasks)

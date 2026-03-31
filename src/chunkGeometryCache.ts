@@ -17,6 +17,7 @@ import fs from 'fs'
 import { join } from 'path'
 import sanitize from 'sanitize-filename'
 import type { MesherGeometryOutput } from '../renderer/viewer/lib/mesher/shared'
+import { computeBlockStateHash } from './blockHash'
 import { mkdirRecursive, existsViaStats } from './browserfs'
 
 const CACHE_BASE = '/data/geometry-cache'
@@ -192,33 +193,10 @@ class ChunkGeometryCache {
   }
 
   /**
-   * Generate a hash for chunk block data
+   * Generate the same block hash contract used by the renderer cache lookup path.
    */
   async generateBlockHash (blockStateIds: Uint16Array | number[]): Promise<string> {
-    const data = blockStateIds instanceof Uint16Array
-      ? blockStateIds
-      : new Uint16Array(blockStateIds)
-
-    // Check for WebCrypto availability
-    if (globalThis.crypto?.subtle) {
-      try {
-        // Pass the typed array view directly (not .buffer which includes the entire ArrayBuffer)
-        const viewBytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-        const buffer = await crypto.subtle.digest('SHA-256', viewBytes)
-        const hashArray = [...new Uint8Array(buffer)]
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-      } catch {
-        // Fall through to FNV-1a fallback
-      }
-    }
-
-    // Fallback to FNV-1a hash when WebCrypto is unavailable
-    let hash = 2_166_136_261 // FNV offset basis
-    for (const stateId of data) {
-      hash ^= stateId
-      hash = Math.imul(hash, 16_777_619) // FNV prime
-    }
-    return (hash >>> 0).toString(16).padStart(8, '0')
+    return computeBlockStateHash(blockStateIds)
   }
 
   /**
@@ -277,10 +255,10 @@ class ChunkGeometryCache {
       normals: new Float32Array(serialized.normals),
       colors: new Float32Array(serialized.colors),
       uvs: new Float32Array(serialized.uvs),
-      t_positions: serialized.t_positions ? [...serialized.t_positions] : undefined,
-      t_normals: serialized.t_normals ? [...serialized.t_normals] : undefined,
-      t_colors: serialized.t_colors ? [...serialized.t_colors] : undefined,
-      t_uvs: serialized.t_uvs ? [...serialized.t_uvs] : undefined,
+      t_positions: serialized.t_positions ? new Float32Array(serialized.t_positions) : undefined,
+      t_normals: serialized.t_normals ? new Float32Array(serialized.t_normals) : undefined,
+      t_colors: serialized.t_colors ? new Float32Array(serialized.t_colors) : undefined,
+      t_uvs: serialized.t_uvs ? new Float32Array(serialized.t_uvs) : undefined,
       indices: serialized.using32Array
         ? new Uint32Array(serialized.indices)
         : new Uint16Array(serialized.indices),
@@ -492,8 +470,7 @@ class ChunkGeometryCache {
 
     const toDelete = sectionCount - MAX_CACHE_SIZE + Math.floor(MAX_CACHE_SIZE * 0.1)
 
-    for (let i = 0; i < toDelete && i < entries.length; i++) {
-      const [sectionKey] = entries[i]
+    await Promise.all(entries.slice(0, toDelete).map(async ([sectionKey]) => {
       const [x, y, z] = sectionKey.split(',').map(Number)
 
       // Remove from memory cache
@@ -512,7 +489,7 @@ class ChunkGeometryCache {
       } catch (error) {
         // Ignore deletion errors
       }
-    }
+    }))
 
     console.debug(`Evicted ${toDelete} old geometry entries from cache`)
   }

@@ -10,6 +10,7 @@ import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
 import { chunkGeometryCache } from './chunkGeometryCache'
 import { chunkPacketCache, CachedChunkInfo } from './chunkPacketCache'
+import { consumeReplayedChunkPacket, createReplayedChunkPacketTracker, emitReplayedMapChunk } from './chunkCacheReplay'
 
 const isWebSocketServer = (server: string | undefined) => {
   if (!server) return false
@@ -713,6 +714,7 @@ const registerChunkCacheChannel = () => {
   // Track pending chunk hashes from server (for chunks we'll receive via map_chunk)
   // Stores {hash, timestamp} to enable TTL-based cleanup
   const pendingChunkHashes = new Map<string, { hash: string; timestamp: number }>()
+  const replayedChunkPackets = createReplayedChunkPacketTracker()
   const PENDING_HASH_TTL = 30_000 // 30 seconds TTL for pending hashes
 
   // Track whether server supports the channel (detected via custom_payload)
@@ -793,7 +795,8 @@ const registerChunkCacheChannel = () => {
           if (deserialized.x === undefined || deserialized.z === undefined) {
             throw new Error('Invalid deserialized packet: missing x or z coordinates')
           }
-          bot._client.emit('packet', deserialized, { name: 'map_chunk' })
+          // Preserve the packet-event shape expected by downstream validators/listeners.
+          emitReplayedMapChunk(bot._client, replayedChunkPackets, deserialized, packetBuffer)
           console.debug(`Emitted cached map_chunk for ${chunkKey}`)
         } catch (error) {
           console.warn(`Cache corrupt for ${chunkKey}:`, error)
@@ -818,6 +821,10 @@ const registerChunkCacheChannel = () => {
   bot._client.on('packet', async (packetData: any, meta: { name: string }) => {
     if (meta.name !== 'map_chunk') return
     await cacheStatePromise
+
+    if (consumeReplayedChunkPacket(replayedChunkPackets, packetData)) {
+      return
+    }
 
     const chunkKey = `${packetData.x},${packetData.z}`
     const pending = pendingChunkHashes.get(chunkKey)
