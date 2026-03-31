@@ -81,7 +81,7 @@
     "mcraft-fun-mineflayer": "^0.1.23",
     "minecraft-data": "3.106.0",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
-    "minecraft-renderer": "^0.1.23",
+    "minecraft-renderer": "^0.1.33",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
     "mojangson": "^2.0.4",
     "net-browserify": "github:zardoy/prismarinejs-net-browserify",
