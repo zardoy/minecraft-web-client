@@ -28,8 +28,8 @@
  * - Each server has isolated cache storage to prevent data conflicts
  */
 
-import type { MesherGeometryOutput } from './mesher/shared'
 import { computeBlockStateHash } from '../../../src/blockHash'
+import type { MesherGeometryOutput } from './mesher/shared'
 
 const SECTION_VOLUME = 16 * 16 * 16
 

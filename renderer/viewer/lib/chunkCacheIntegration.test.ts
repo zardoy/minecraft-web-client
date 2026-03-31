@@ -1,5 +1,6 @@
 import { expect, test, beforeEach } from 'vitest'
 
+import { computeBlockStateHash } from '../../../src/blockHash'
 import {
   computeBlockHash,
   computeChunkDataHash,
@@ -12,7 +13,6 @@ import {
   parseSectionKey,
   storeSectionBlockStates,
 } from './chunkCacheIntegration'
-import { computeBlockStateHash } from '../../../src/blockHash'
 
 const prismarineChunk: (version: string) => any = require('prismarine-chunk')
 
@@ -80,7 +80,7 @@ test('storeSectionBlockStates / getSectionBlockStates round-trip', () => {
   const retrieved = getSectionBlockStates(key)
 
   expect(retrieved).not.toBeNull()
-  expect(Array.from(retrieved!)).toEqual([10, 20, 30])
+  expect([...retrieved!]).toEqual([10, 20, 30])
 })
 
 test('storeSectionBlockStates accepts number[] and stores as Uint16Array', () => {
@@ -88,7 +88,7 @@ test('storeSectionBlockStates accepts number[] and stores as Uint16Array', () =>
   storeSectionBlockStates(key, [5, 10, 15])
   const retrieved = getSectionBlockStates(key)
   expect(retrieved).toBeInstanceOf(Uint16Array)
-  expect(Array.from(retrieved!)).toEqual([5, 10, 15])
+  expect([...retrieved!]).toEqual([5, 10, 15])
 })
 
 test('getSectionBlockStates returns null for unknown key', () => {
