@@ -136,7 +136,14 @@ function decodeBitArrayBlockStates (
   const length = Math.min(blockStates.length, bitArray.capacity)
   for (let index = 0; index < length; index++) {
     const value = getSerializedBitArrayValue(bitArray, index)
-    blockStates[index] = palette?.[value] ?? value
+    if (!palette) {
+      blockStates[index] = value
+      continue
+    }
+
+    // Invalid palette indexes can show up in malformed serialized chunks. Fall
+    // back to the raw value explicitly so the behavior is intentional.
+    blockStates[index] = value < palette.length ? palette[value] : value
   }
   return blockStates
 }
@@ -218,7 +225,10 @@ export function extractChunkSectionBlockStates (chunkData: unknown): Map<number,
     if (sectionValue === null) continue
 
     const blockStates = decodeChunkSectionBlockStates(sectionValue)
-    if (!blockStates) return null
+    if (!blockStates) {
+      console.warn(`Skipping invalid chunk section at y=${minY + sectionIndex * 16}`)
+      continue
+    }
 
     sectionBlockStatesByY.set(minY + sectionIndex * 16, blockStates)
   }

@@ -846,8 +846,12 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
             void (async () => {
               try {
                 await Promise.all(currentLoadChunkBatch!.data.map(async (args) => {
-                  this.queuedChunks.delete(`${args[0]},${args[1]}`)
-                  await this.addColumn(...args as Parameters<typeof this.addColumn>)
+                  try {
+                    this.queuedChunks.delete(`${args[0]},${args[1]}`)
+                    await this.addColumn(...args as Parameters<typeof this.addColumn>)
+                  } catch (error) {
+                    console.error(`Failed to addColumn for ${args[0]},${args[1]}`, error)
+                  }
                 }))
               } finally {
                 for (const fn of this.queuedFunctions) {

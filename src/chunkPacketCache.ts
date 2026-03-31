@@ -343,13 +343,7 @@ class ChunkPacketCache {
    * Clear all cached packets for current server
    */
   async clear (): Promise<void> {
-    // Clear memory cache for current server
-    const serverPrefix = `${this.serverAddress}:`
-    for (const key of this.memoryCache.keys()) {
-      if (key.startsWith(serverPrefix)) {
-        this.memoryCache.delete(key)
-      }
-    }
+    this.memoryCache.clear()
 
     // Clear metadata
     this.metadata = { chunks: {} }

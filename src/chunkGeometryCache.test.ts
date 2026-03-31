@@ -2,10 +2,13 @@ import fs from 'fs'
 import os from 'os'
 import { join } from 'path'
 import { afterEach, expect, test, vi } from 'vitest'
+import { ChunkGeometryCache } from './chunkGeometryCache'
 
 vi.mock('./browserfs', () => ({
-  mkdirRecursive: async (dir: string) => fs.promises.mkdir(dir, { recursive: true }),
-  existsViaStats: async (path: string) => {
+  async mkdirRecursive (dir: string) {
+    return fs.promises.mkdir(dir, { recursive: true })
+  },
+  async existsViaStats (path: string) {
     try {
       await fs.promises.stat(path)
       return true
@@ -14,8 +17,6 @@ vi.mock('./browserfs', () => ({
     }
   }
 }))
-
-import { ChunkGeometryCache } from './chunkGeometryCache'
 
 const tempDirs: string[] = []
 
@@ -94,8 +95,8 @@ test('ChunkGeometryCache persists and reloads cached geometry from disk', async 
   const loaded = await secondCache.get(0, 16, 0, 'deadbeef')
 
   expect(loaded).not.toBeNull()
-  expect(Array.from(loaded!.positions)).toEqual([0, 1, 2])
-  expect(Array.from(loaded!.indices)).toEqual([0, 1, 2])
+  expect([...loaded!.positions]).toEqual([0, 1, 2])
+  expect([...loaded!.indices]).toEqual([0, 1, 2])
   expect(secondCache.getStats().diskSize).toBe(1)
 })
 
@@ -211,7 +212,7 @@ test('ChunkGeometryCache preserves transparent geometry arrays across disk round
     t_uvs: new Float32Array([0.1, 0.2]),
     transparentIndicesStart: 1,
     using32Array: false
-  } as any
+  }
 
   await firstCache.set(0, 0, 0, 'transp-hash', geo)
   await firstCache.flush()
@@ -223,9 +224,9 @@ test('ChunkGeometryCache preserves transparent geometry arrays across disk round
   const loaded = await secondCache.get(0, 0, 0, 'transp-hash')
   expect(loaded).not.toBeNull()
   expect(loaded!.t_positions).toBeInstanceOf(Float32Array)
-  expect(Array.from(loaded!.t_positions!)).toEqual([3, 4, 5])
+  expect([...loaded!.t_positions!]).toEqual([3, 4, 5])
   expect(loaded!.t_normals).toBeInstanceOf(Float32Array)
-  expect(Array.from(loaded!.t_normals!)).toEqual([0, 1, 0])
+  expect([...loaded!.t_normals!]).toEqual([0, 1, 0])
   expect((loaded as any).transparentIndicesStart).toBe(1)
 })
 
@@ -242,7 +243,7 @@ test('ChunkGeometryCache uses Uint32Array for indices when using32Array is true'
     indices: new Uint32Array([0, 1, 2, 3]),
     indicesCount: 4,
     using32Array: true
-  } as any
+  }
 
   await cache.set(0, 0, 0, 'u32-hash', geo)
   await cache.flush()
@@ -254,7 +255,7 @@ test('ChunkGeometryCache uses Uint32Array for indices when using32Array is true'
   const loaded = await freshCache.get(0, 0, 0, 'u32-hash')
   expect(loaded).not.toBeNull()
   expect(loaded!.indices).toBeInstanceOf(Uint32Array)
-  expect(Array.from(loaded!.indices)).toEqual([0, 1, 2, 3])
+  expect([...loaded!.indices]).toEqual([0, 1, 2, 3])
 })
 
 // ─── stale file cleanup ───────────────────────────────────────────────────────

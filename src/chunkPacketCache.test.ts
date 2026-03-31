@@ -2,10 +2,13 @@ import fs from 'fs'
 import os from 'os'
 import { join } from 'path'
 import { afterEach, expect, test, vi } from 'vitest'
+import { ChunkPacketCache } from './chunkPacketCache'
 
 vi.mock('./browserfs', () => ({
-  mkdirRecursive: async (dir: string) => fs.promises.mkdir(dir, { recursive: true }),
-  existsViaStats: async (path: string) => {
+  async mkdirRecursive (dir: string) {
+    return fs.promises.mkdir(dir, { recursive: true })
+  },
+  async existsViaStats (path: string) {
     try {
       await fs.promises.stat(path)
       return true
@@ -14,8 +17,6 @@ vi.mock('./browserfs', () => ({
     }
   }
 }))
-
-import { ChunkPacketCache } from './chunkPacketCache'
 
 const tempDirs: string[] = []
 
@@ -63,7 +64,7 @@ test('ChunkPacketCache persists and reloads cached chunk packets from disk', asy
   expect(cachedChunkInfo).toEqual([{ x: 0, z: 0, hash: 'abcd1234' }])
   expect(loaded).not.toBeNull()
   expect(loaded?.hash).toBe('abcd1234')
-  expect(Array.from(new Uint8Array(loaded!.packetData))).toEqual([1, 2, 3, 4, 5, 6])
+  expect([...new Uint8Array(loaded!.packetData)]).toEqual([1, 2, 3, 4, 5, 6])
   expect(secondCache.getStats().diskSize).toBe(1)
 })
 
