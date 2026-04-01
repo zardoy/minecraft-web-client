@@ -94,7 +94,7 @@
     "net-browserify": "github:zardoy/prismarinejs-net-browserify",
     "node-gzip": "^1.1.2",
     "peerjs": "^1.5.5",
-    "pixelarticons": "^1.8.1",
+    "pixelarticons": "1.8.1",
     "pretty-bytes": "^6.1.1",
     "prismarine-provider-anvil": "github:zardoy/prismarine-provider-anvil#everything",
     "prosemirror-example-setup": "^1.2.3",
