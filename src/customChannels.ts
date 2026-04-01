@@ -63,12 +63,25 @@ const registerConnectMetadataChannel = () => {
   ]
 
   bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
+
+  // Send client metadata to server
   bot._client.writeChannel(CHANNEL_NAME, {
     metadata: JSON.stringify({
       version: process.env.RELEASE_TAG,
       build: process.env.BUILD_VERSION,
       ...window.serverMetadataConnect,
     })
+  })
+
+  // Listen for server metadata
+  bot._client.on(CHANNEL_NAME as any, (data) => {
+    try {
+      const metadata = JSON.parse(data.metadata)
+      window.serverMetadata = metadata
+      console.debug('Received server metadata:', metadata)
+    } catch (error) {
+      console.warn('Failed to parse server metadata:', error)
+    }
   })
 }
 

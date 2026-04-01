@@ -33,7 +33,7 @@ export const setup = (version, initialBlocks: Array<[number[], string]>) => {
     }
   }
 
-  setBlockStatesData(blockStatesModels, blocksAtlasesJson, true, false, version)
+  setBlockStatesData(blockStatesModels, blocksAtlasesJson, true, false, version, { blocks: mcData.blocksArray })
   const reload = () => {
     mesherWorld.removeColumn(0, 0)
     mesherWorld.addColumn(0, 0, chunk1.toJson())

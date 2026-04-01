@@ -19,6 +19,10 @@ export const WAYPOINT_CONFIG = {
     pixelSize: 50,
     paddingPx: 50,
   },
+  // Default visual scale factor (can be overridden globally or per-waypoint)
+  DEFAULT_VISUAL_SCALE: 1,
+  // Default opacity (can be overridden globally or per-waypoint)
+  DEFAULT_OPACITY: 1,
 }
 
 export type WaypointSprite = {
@@ -51,14 +55,31 @@ export function createWaypointSprite (options: {
   // Y offset in world units used by updateScaleWorld only (screen-pixel API ignores this)
   labelYOffset?: number,
   metadata?: any,
+  visualScale?: number,
+  opacity?: number,
 }): WaypointSprite {
   const color = options.color ?? 0xFF_00_00
   const depthTest = options.depthTest ?? false
   const labelYOffset = options.labelYOffset ?? 1.5
 
+  // Get visual scale from options, metadata, server metadata, or default
+  // Priority: options.visualScale > metadata.visualScale > window.serverMetadata?.waypointVisualScale > DEFAULT
+  const visualScale = options.visualScale
+    ?? options.metadata?.visualScale
+    ?? (typeof window === 'undefined' ? undefined : (window as any).serverMetadata?.waypointVisualScale)
+    ?? WAYPOINT_CONFIG.DEFAULT_VISUAL_SCALE
+
+  // Get opacity from options, metadata, server metadata, or default
+  // Priority: options.opacity > metadata.opacity > window.serverMetadata?.waypointOpacity > DEFAULT
+  const opacity = options.opacity
+    ?? options.metadata?.opacity
+    ?? (typeof window === 'undefined' ? undefined : (window as any).serverMetadata?.waypointOpacity)
+    ?? WAYPOINT_CONFIG.DEFAULT_OPACITY
+
   // Build combined sprite
-  const sprite = createCombinedSprite(color, options.label ?? '', '0m', depthTest)
+  const sprite = createCombinedSprite(color, options.label ?? '', '0m', depthTest, visualScale)
   sprite.renderOrder = 10
+  sprite.material.opacity = opacity
   let currentLabel = options.label ?? ''
 
   // Performance optimization: cache distance text to avoid unnecessary updates
@@ -79,7 +100,7 @@ export function createWaypointSprite (options: {
   group.position.set(x, y, z)
 
   function setColor (newColor: number) {
-    const canvas = drawCombinedCanvas(newColor, currentLabel, '0m')
+    const canvas = drawCombinedCanvas(newColor, currentLabel, '0m', visualScale)
     const texture = new THREE.CanvasTexture(canvas)
     const mat = sprite.material
     mat.map?.dispose()
@@ -89,7 +110,7 @@ export function createWaypointSprite (options: {
 
   function setLabel (newLabel?: string) {
     currentLabel = newLabel ?? ''
-    const canvas = drawCombinedCanvas(color, currentLabel, '0m')
+    const canvas = drawCombinedCanvas(color, currentLabel, '0m', visualScale)
     const texture = new THREE.CanvasTexture(canvas)
     const mat = sprite.material
     mat.map?.dispose()
@@ -104,7 +125,7 @@ export function createWaypointSprite (options: {
     }
     lastDistanceText = distanceText
 
-    const canvas = drawCombinedCanvas(color, label, distanceText)
+    const canvas = drawCombinedCanvas(color, label, distanceText, visualScale)
     const texture = new THREE.CanvasTexture(canvas)
     const mat = sprite.material
     mat.map?.dispose()
@@ -129,8 +150,8 @@ export function createWaypointSprite (options: {
   ) {
     const vFovRad = cameraFov * Math.PI / 180
     const worldUnitsPerScreenHeightAtDist = Math.tan(vFovRad / 2) * 2 * distance
-    // Use configured target screen size
-    const scale = worldUnitsPerScreenHeightAtDist * (WAYPOINT_CONFIG.TARGET_SCREEN_PX / viewportHeightPx)
+    // Use configured target screen size with visual scale multiplier
+    const scale = worldUnitsPerScreenHeightAtDist * (WAYPOINT_CONFIG.TARGET_SCREEN_PX * visualScale / viewportHeightPx)
     sprite.scale.set(scale, scale, 1)
   }
 
@@ -159,7 +180,7 @@ export function createWaypointSprite (options: {
     ctx.fill()
 
     const texture = new THREE.CanvasTexture(canvas)
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false })
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, opacity })
     arrowSprite = new THREE.Sprite(material)
     arrowSprite.renderOrder = 12
     arrowSprite.visible = false
@@ -278,9 +299,9 @@ export function createWaypointSprite (options: {
     const angle = Math.atan2(ry, rx)
     arrowSprite.material.rotation = angle - Math.PI / 2
 
-    // Constant pixel size for arrow (use fixed placement distance)
+    // Constant pixel size for arrow (use fixed placement distance) with visual scale
     const worldUnitsPerScreenHeightAtDist = Math.tan(vFovRad / 2) * 2 * placeDist
-    const sPx = worldUnitsPerScreenHeightAtDist * (WAYPOINT_CONFIG.ARROW.pixelSize / viewportHeightPx)
+    const sPx = worldUnitsPerScreenHeightAtDist * (WAYPOINT_CONFIG.ARROW.pixelSize * visualScale / viewportHeightPx)
     arrowSprite.scale.set(sPx, sPx, 1)
     return false
   }
@@ -343,7 +364,7 @@ export function createWaypointSprite (options: {
 }
 
 // Internal helpers
-function drawCombinedCanvas (color: number, id: string, distance: string): HTMLCanvasElement {
+function drawCombinedCanvas (color: number, id: string, distance: string, visualScale = 1): HTMLCanvasElement {
   const scale = WAYPOINT_CONFIG.CANVAS_SCALE * (globalThis.devicePixelRatio || 1)
   const size = WAYPOINT_CONFIG.CANVAS_SIZE * scale
   const canvas = document.createElement('canvas')
@@ -354,11 +375,11 @@ function drawCombinedCanvas (color: number, id: string, distance: string): HTMLC
   // Clear canvas
   ctx.clearRect(0, 0, size, size)
 
-  // Draw dot
+  // Draw dot with visual scale applied
   const centerX = size / 2
   const dotY = Math.round(size * WAYPOINT_CONFIG.LAYOUT.DOT_Y)
-  const radius = Math.round(size * 0.05) // Dot takes up ~12% of canvas height
-  const borderWidth = Math.max(2, Math.round(4 * scale))
+  const radius = Math.round(size * 0.05 * visualScale) // Dot takes up ~5% of canvas height, scaled
+  const borderWidth = Math.max(2, Math.round(4 * scale * visualScale))
 
   // Outer border (black)
   ctx.beginPath()
@@ -376,11 +397,11 @@ function drawCombinedCanvas (color: number, id: string, distance: string): HTMLC
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
-  // Title
-  const nameFontPx = Math.round(size * 0.08) // ~8% of canvas height
-  const distanceFontPx = Math.round(size * 0.06) // ~6% of canvas height
+  // Title with visual scale applied
+  const nameFontPx = Math.round(size * 0.08 * visualScale) // ~8% of canvas height, scaled
+  const distanceFontPx = Math.round(size * 0.06 * visualScale) // ~6% of canvas height, scaled
   ctx.font = `bold ${nameFontPx}px mojangles`
-  ctx.lineWidth = Math.max(2, Math.round(3 * scale))
+  ctx.lineWidth = Math.max(2, Math.round(3 * scale * visualScale))
   const nameY = Math.round(size * WAYPOINT_CONFIG.LAYOUT.NAME_Y)
 
   ctx.strokeStyle = 'black'
@@ -388,9 +409,9 @@ function drawCombinedCanvas (color: number, id: string, distance: string): HTMLC
   ctx.fillStyle = 'white'
   ctx.fillText(id, centerX, nameY)
 
-  // Distance
+  // Distance with visual scale applied
   ctx.font = `bold ${distanceFontPx}px mojangles`
-  ctx.lineWidth = Math.max(2, Math.round(2 * scale))
+  ctx.lineWidth = Math.max(2, Math.round(2 * scale * visualScale))
   const distanceY = Math.round(size * WAYPOINT_CONFIG.LAYOUT.DISTANCE_Y)
 
   ctx.strokeStyle = 'black'
@@ -401,8 +422,8 @@ function drawCombinedCanvas (color: number, id: string, distance: string): HTMLC
   return canvas
 }
 
-function createCombinedSprite (color: number, id: string, distance: string, depthTest: boolean): THREE.Sprite {
-  const canvas = drawCombinedCanvas(color, id, distance)
+function createCombinedSprite (color: number, id: string, distance: string, depthTest: boolean, visualScale = 1): THREE.Sprite {
+  const canvas = drawCombinedCanvas(color, id, distance, visualScale)
   const texture = new THREE.CanvasTexture(canvas)
   texture.anisotropy = 1
   texture.magFilter = THREE.LinearFilter

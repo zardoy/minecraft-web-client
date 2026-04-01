@@ -1,7 +1,6 @@
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isStringAllowed, MessageFormatPart } from '../chatUtils'
-import { gameAdditionalState } from '../globalState'
 import { MessagePart } from './MessageFormatted'
 import './Chat.css'
 import { isIos, reactKeyForMessage } from './utils'
@@ -9,6 +8,7 @@ import Button from './Button'
 import { pixelartIcons } from './PixelartIcon'
 import { useScrollBehavior } from './hooks/useScrollBehavior'
 import { withInjectableUi } from './extendableSystem'
+import { useTypingIndicatorText } from './useTypingIndicatorText'
 
 export type Message = {
   parts: MessageFormatPart[],
@@ -138,20 +138,13 @@ const ChatBase = ({
   const [rightNowAtBottom, setRightNowAtBottom] = useState(false)
 
   // Typing indicator state
-  const { typingUsers } = useSnapshot(gameAdditionalState)
-  const typingIndicatorText = useMemo(() => {
-    const activeTypingUsers = typingUsers.filter(user => !user.timestamp || Date.now() - user.timestamp < 2000)
-    if (activeTypingUsers.length === 0) return ''
-    if (activeTypingUsers.length === 1) return `${activeTypingUsers[0]?.username || 'Someone'} is typing...`
-    if (activeTypingUsers.length === 2) return `${activeTypingUsers[0]?.username || 'Someone'} and ${activeTypingUsers[1]?.username || 'Someone'} are typing...`
-    const usernames = activeTypingUsers.slice(0, -1).map(user => user?.username || 'Someone').join(', ')
-    const lastUser = activeTypingUsers.at(-1)?.username || 'Someone'
-    return `${usernames} and ${lastUser} are typing...`
-  }, [typingUsers])
+  const typingIndicatorText = useTypingIndicatorText()
 
   const typingIndicator = typingIndicatorText ? (
     <div style={{
       position: 'relative',
+      /* Below chat-completions (z-index 2) so tab completion list stays on top */
+      zIndex: 1,
     }}>
       <div style={{
         fontSize: '9px',
@@ -179,16 +172,6 @@ const ChatBase = ({
     </div>
   ) : null
 
-  // Clean up old typing users every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now()
-      gameAdditionalState.typingUsers = gameAdditionalState.typingUsers.filter(user => !user.timestamp || now - user.timestamp < 2000)
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [])
-
   useEffect(() => {
     if (!debugChatScroll) return
     const interval = setInterval(() => {
@@ -207,23 +190,43 @@ const ChatBase = ({
   }
 
   const acceptComplete = (item: string) => {
-    const base = completeRequestValue.current === '/' ? '' : getCompleteValue()
-    updateInputValue(base + item)
-    // Record ping completion in history
+    const cursorPos = chatInput.current.selectionEnd ?? chatInput.current.value.length
+    const valueBeforeCursor = chatInput.current.value.slice(0, cursorPos)
+    const valueAfterCursor = chatInput.current.value.slice(cursorPos)
+
+    let prefix: string
+    let suffix: string
+    if (item.startsWith('@')) {
+      // Ping: word starts at @, ends at next space
+      const atIndex = valueBeforeCursor.lastIndexOf('@')
+      prefix = atIndex >= 0 ? valueBeforeCursor.slice(0, atIndex) : valueBeforeCursor
+      const spaceInAfter = valueAfterCursor.indexOf(' ')
+      suffix = spaceInAfter >= 0 ? valueAfterCursor.slice(spaceInAfter) : ''
+    } else {
+      // Command/other: replace current space-separated token, preserve rest
+      const lastSpaceInBefore = valueBeforeCursor.lastIndexOf(' ')
+      prefix = lastSpaceInBefore >= 0 ? valueBeforeCursor.slice(0, lastSpaceInBefore + 1) : (valueBeforeCursor.startsWith('/') ? '' : valueBeforeCursor)
+      const firstSpaceInAfter = valueAfterCursor.indexOf(' ')
+      suffix = firstSpaceInAfter >= 0 ? valueAfterCursor.slice(firstSpaceInAfter) : ''
+    }
+    const newValue = prefix + item + suffix
+    const newCursorPos = prefix.length + item.length
+    updateInputValue(newValue, newCursorPos)
+
     if (item.startsWith('@')) {
       const newHistory = [item, ...pingHistoryRef.current.filter((x: string) => x !== item)].slice(0, 10)
       pingHistoryRef.current = newHistory
-      // todo use appStorage
       window.localStorage.pingHistory = JSON.stringify(newHistory)
     }
     chatInput.current.focus()
   }
 
-  const updateInputValue = (newValue: string) => {
+  const updateInputValue = (newValue: string, cursorPos?: number) => {
     chatInput.current.value = newValue
     onMainInputChange()
     setTimeout(() => {
-      chatInput.current.setSelectionRange(newValue.length, newValue.length)
+      const pos = cursorPos ?? newValue.length
+      chatInput.current.setSelectionRange(pos, pos)
     }, 0)
   }
 

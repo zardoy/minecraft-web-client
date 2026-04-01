@@ -18,7 +18,7 @@ const gameModes = ['survival', 'creative'/* , 'adventure', 'spectator' */]
 export const creatingWorldState = proxy({
   title: '',
   type: worldTypes[0],
-  gameMode: gameModes[0],
+  gameMode: 'creative',
   version: '',
   plugins: [] as string[]
 })
@@ -69,10 +69,12 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
       {/* <Button onClick={() => customizeClick()} disabled>
         Customize
       </Button> */}
-      <Button onClick={() => {
-        const index = gameModes.indexOf(gameMode)
-        creatingWorldState.gameMode = gameModes[index === gameModes.length - 1 ? 0 : index + 1]
-      }}
+      <Button
+        onClick={() => {
+          const index = gameModes.indexOf(gameMode)
+          creatingWorldState.gameMode = gameModes[index === gameModes.length - 1 ? 0 : index + 1]
+        }}
+        disabled
       >
         Game Mode: {gameMode}
       </Button>

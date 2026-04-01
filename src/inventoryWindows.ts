@@ -499,6 +499,10 @@ const openWindow = (type: string | undefined, title: string | any = undefined) =
     }
   }
   lastWindow.pwindow.onJeiClick = (slotItem, _index, isRightclick) => {
+    if (!slotItem) {
+      console.warn('onJeiClick called with undefined slotItem')
+      return
+    }
     if (versionToNumber(bot.version) < versionToNumber('1.13')) {
       alert('Item give is broken on 1.12.2 and below, we are working on it!')
       return
@@ -520,8 +524,16 @@ const openWindow = (type: string | undefined, title: string | any = undefined) =
     })
     if (bot.game.gameMode === 'creative') {
       const freeSlot = bot.inventory.firstEmptyInventorySlot()
-      if (freeSlot === null) return
-      void bot.creative.setInventorySlot(freeSlot, item)
+      if (freeSlot === null) {
+        console.warn('[JEI] no free inventory slot available')
+        return
+      }
+      bot._client.write('set_creative_slot', {
+        slot: freeSlot,
+        item: PrismarineItem.toNotch(item)
+      })
+      //@ts-expect-error
+      bot._setSlot(freeSlot, item)
     } else {
       modelViewerState.model = undefined
       inv.canvasManager.children[0].showRecipesOrUsages(!isRightclick, mapSlots([item], true)[0])

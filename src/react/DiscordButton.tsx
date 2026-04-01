@@ -7,7 +7,7 @@ import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 export const DiscordButton = ({ text, style }: { text?: string, style?: Record<string, any> }) => {
   const links: DropdownButtonItem[] = [
     {
-      text: 'Pro Enthusiasts Server (ask for invite)',
+      text: 'Support Official Server (mcraft.fun)',
       clickHandler: () => openURL('https://discord.mcraft.fun')
     },
     {

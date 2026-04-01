@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { formatMessage, isStringAllowed } from '../chatUtils'
@@ -12,6 +13,28 @@ import { hideNotification, notificationProxy, showNotification } from './Notific
 import { getServerIndex, updateLoadedServerData } from './serversStorage'
 import { showOptionsModal } from './SelectOption'
 import { withInjectableUi } from './extendableSystem'
+import { useTypingIndicatorText } from './useTypingIndicatorText'
+
+const TypingIndicatorOverlay = () => {
+  const typingIndicatorText = useTypingIndicatorText()
+  if (!typingIndicatorText) return null
+
+  return <div style={{
+    position: 'fixed',
+    /* Above hotbar (~50px). Same vertical zone as chat messages (bottom: 40px) */
+    bottom: 'calc(27px + env(safe-area-inset-bottom, 0px))',
+    left: 2,
+    fontSize: '9px',
+    color: 'white',
+    textShadow: '1px 1px 0px #3f3f3f',
+    fontFamily: 'mojangles, minecraft, monospace',
+    padding: '2px 4px',
+    /* Portal to body so we're above hotbar (z-index 8). Below modals (12). When modals open, --has-modals-z becomes -1 */
+    zIndex: 'var(--has-modals-z, 11)',
+  }}>
+    {typingIndicatorText}
+  </div>
+}
 
 const ChatProviderBase = () => {
   const [messages, setMessages] = useState([] as Message[])
@@ -30,7 +53,8 @@ const ChatProviderBase = () => {
     chatVanillaRestrictions,
     debugChatScroll,
     chatPingExtension,
-    chatSpellCheckEnabled
+    chatSpellCheckEnabled,
+    chatAlwaysDisplayTypingIndicator
   } = useSnapshot(options)
   const isUsingMicrosoftAuth = useMemo(() => !!lastConnectOptions.value?.authenticatedAccount, [])
   const { forwardChat } = useSnapshot(viewerVersionState)
@@ -67,106 +91,109 @@ const ChatProviderBase = () => {
 
   const disabledReason = disconnectedCleanup ? 'You have been disconnected from the server on ' + new Date(disconnectedCleanup.date).toLocaleString() : undefined
 
-  return <Chat
-    chatVanillaRestrictions={chatVanillaRestrictions}
-    debugChatScroll={debugChatScroll}
-    allowSelection={chatSelect}
-    usingTouch={!!usingTouch}
-    opacity={(isChatActive ? chatOpacityOpened : chatOpacity) / 100}
-    messages={messages}
-    opened={isChatActive}
-    placeholder={forwardChat || !viewerConnection ? undefined : 'Chat forwarding is not enabled in the plugin settings'}
-    inputDisabled={disabledReason}
-    currentPlayerName={chatPingExtension ? bot.username : undefined}
-    spellCheckEnabled={chatSpellCheckEnabled}
-    onSpellCheckEnabledChange={(enabled) => {
-      options.chatSpellCheckEnabled = enabled
-    }}
-    getPingComplete={async (value) => {
-      const players = Object.keys(bot.players)
-      return players.filter(name => (!value || name.toLowerCase().includes(value.toLowerCase())) && name !== bot.username).map(name => `@${name}`)
-    }}
-    sendMessage={async (message) => {
+  return <>
+    <Chat
+      chatVanillaRestrictions={chatVanillaRestrictions}
+      debugChatScroll={debugChatScroll}
+      allowSelection={chatSelect}
+      usingTouch={!!usingTouch}
+      opacity={(isChatActive ? chatOpacityOpened : chatOpacity) / 100}
+      messages={messages}
+      opened={isChatActive}
+      placeholder={forwardChat || !viewerConnection ? undefined : 'Chat forwarding is not enabled in the plugin settings'}
+      inputDisabled={disabledReason}
+      currentPlayerName={chatPingExtension ? bot.username : undefined}
+      spellCheckEnabled={chatSpellCheckEnabled}
+      onSpellCheckEnabledChange={(enabled) => {
+        options.chatSpellCheckEnabled = enabled
+      }}
+      getPingComplete={async (value) => {
+        const players = Object.keys(bot.players)
+        return players.filter(name => (!value || name.toLowerCase().includes(value.toLowerCase())) && name !== bot.username).map(name => `@${name}`)
+      }}
+      sendMessage={async (message) => {
       // Record ping command time
-      if (message === '/ping') {
-        lastPingTime.current = Date.now()
-      }
+        if (message === '/ping') {
+          lastPingTime.current = Date.now()
+        }
 
-      const builtinHandled = tryHandleBuiltinCommand(message)
-      if (getServerIndex() !== undefined && (message.startsWith('/login') || message.startsWith('/register')) && options.saveLoginPassword !== 'never') {
-        const savePassword = () => {
-          let hadPassword = false
-          updateLoadedServerData((server) => {
-            server.autoLogin ??= {}
-            const password = message.split(' ')[1]
-            hadPassword = !!server.autoLogin[bot.username]
-            server.autoLogin[bot.username] = password
-            return { ...server }
-          })
-          if (options.saveLoginPassword === 'always') {
-            const message = hadPassword ? 'Password updated in browser for auto-login' : 'Password saved in browser for auto-login'
-            showNotification(message, undefined, false, undefined)
+        const builtinHandled = tryHandleBuiltinCommand(message)
+        if (getServerIndex() !== undefined && (message.startsWith('/login') || message.startsWith('/register')) && options.saveLoginPassword !== 'never') {
+          const savePassword = () => {
+            let hadPassword = false
+            updateLoadedServerData((server) => {
+              server.autoLogin ??= {}
+              const password = message.split(' ')[1]
+              hadPassword = !!server.autoLogin[bot.username]
+              server.autoLogin[bot.username] = password
+              return { ...server }
+            })
+            if (options.saveLoginPassword === 'always') {
+              const message = hadPassword ? 'Password updated in browser for auto-login' : 'Password saved in browser for auto-login'
+              showNotification(message, undefined, false, undefined)
+            } else {
+              hideNotification()
+            }
+          }
+          if (options.saveLoginPassword === 'prompt') {
+            showNotification('Click here to save your password in browser for auto-login', undefined, false, undefined, savePassword)
           } else {
+            savePassword()
+          }
+          notificationProxy.id = 'auto-login'
+          const listener = () => {
             hideNotification()
           }
+          bot.on('kicked', listener)
+          setTimeout(() => {
+            bot.removeListener('kicked', listener)
+          }, 2000)
         }
-        if (options.saveLoginPassword === 'prompt') {
-          showNotification('Click here to save your password in browser for auto-login', undefined, false, undefined, savePassword)
-        } else {
-          savePassword()
-        }
-        notificationProxy.id = 'auto-login'
-        const listener = () => {
-          hideNotification()
-        }
-        bot.on('kicked', listener)
-        setTimeout(() => {
-          bot.removeListener('kicked', listener)
-        }, 2000)
-      }
-      if (!builtinHandled) {
-        if (chatVanillaRestrictions && !miscUiState.flyingSquid) {
-          const validation = isStringAllowed(message)
-          if (!validation.valid) {
-            const choice = await showOptionsModal(`Can't send invalid characters to vanilla server (${validation.invalid?.join(', ')}). You can use them only in command blocks.`, [
-              'Remove Them & Send'
-            ])
-            if (!choice) return
-            message = validation.clean!
+        if (!builtinHandled) {
+          if (chatVanillaRestrictions && !miscUiState.flyingSquid) {
+            const validation = isStringAllowed(message)
+            if (!validation.valid) {
+              const choice = await showOptionsModal(`Can't send invalid characters to vanilla server (${validation.invalid?.join(', ')}). You can use them only in command blocks.`, [
+                'Remove Them & Send'
+              ])
+              if (!choice) return
+              message = validation.clean!
+            }
           }
-        }
 
-        if (message) {
-          bot.chat(message)
+          if (message) {
+            bot.chat(message)
+          }
         }
-      }
-    }}
-    onClose={() => {
-      hideCurrentModal()
-    }}
-    fetchCompletionItems={async (triggerKind, completeValue) => {
-      if ((triggerKind === 'explicit' || options.autoRequestCompletions)) {
-        let items = [] as string[]
-        try {
-          items = await bot.tabComplete(completeValue, true, true)
-        } catch (err) { }
-        if (typeof items[0] === 'object') {
+      }}
+      onClose={() => {
+        hideCurrentModal()
+      }}
+      fetchCompletionItems={async (triggerKind, completeValue) => {
+        if ((triggerKind === 'explicit' || options.autoRequestCompletions)) {
+          let items = [] as string[]
+          try {
+            items = await bot.tabComplete(completeValue, true, true)
+          } catch (err) { }
+          if (typeof items[0] === 'object') {
           // @ts-expect-error
-          if (items[0].match) items = items.map(i => i.match)
-        }
-        if (completeValue === '/') {
-          if (!items[0]?.startsWith('/')) {
+            if (items[0].match) items = items.map(i => i.match)
+          }
+          if (completeValue === '/') {
+            if (!items[0]?.startsWith('/')) {
             // normalize
-            items = items.map(item => `/${item}`)
+              items = items.map(item => `/${item}`)
+            }
+            if (items.length) {
+              items = [...items, ...getBuiltinCommandsList()]
+            }
           }
-          if (items.length) {
-            items = [...items, ...getBuiltinCommandsList()]
-          }
+          return items
         }
-        return items
-      }
-    }}
-  />
+      }}
+    />
+    {chatAlwaysDisplayTypingIndicator && !isChatActive && <TypingIndicatorOverlay />}
+  </>
 }
 
 export default withInjectableUi(ChatProviderBase, 'chatProvider')

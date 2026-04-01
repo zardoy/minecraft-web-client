@@ -5,7 +5,7 @@
   flex-direction: row-reverse;
   left: calc(50% + 91px);
   transform: translate(-100%);
-  bottom: calc(var(--safe-area-inset-bottom) + 30px);
+  bottom: calc(var(--safe-area-inset-bottom) + 6px);
   --kind: 0;
   --lightened: 0;
   --offset: calc(-1 * (52px + (9px * (4 * var(--kind) + var(--lightened) * 2))));

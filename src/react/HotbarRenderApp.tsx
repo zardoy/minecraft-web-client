@@ -12,6 +12,7 @@ import { triggerCommand } from '../controls'
 import MessageFormattedString from './MessageFormattedString'
 import SharedHudVars from './SharedHudVars'
 
+export const BASE_HOTBAR_HEIGHT = 25
 
 const ItemName = ({ itemKey }: { itemKey: string }) => {
   const [show, setShow] = useState(false)
@@ -106,7 +107,7 @@ const HotbarInner = () => {
     function setSize () {
       canvasManager.setScale(currentScaling.scale)
 
-      canvasManager.windowHeight = 25 * canvasManager.scale
+      canvasManager.windowHeight = BASE_HOTBAR_HEIGHT * canvasManager.scale
       canvasManager.windowWidth = (210 - (inv.inventory.supportsOffhand ? 0 : 25) + (mobileOpenInventory ? 28 : 0)) * canvasManager.scale
     }
     setSize()

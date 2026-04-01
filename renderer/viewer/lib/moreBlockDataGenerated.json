@@ -710,5 +710,13 @@
         "frogspawn": "rgb(64, 64, 255)",
         "reinforced_deepslate": "rgb(100, 100, 100)",
         "decorated_pot": "rgb(142, 60, 46)"
+    },
+    "hasSemiTransparentTextuersRegex": {
+        "_stained_glass$": true,
+        "_stained_glass_pane$": true,
+        "^ice$": true,
+        "^tinted_glass$": true,
+        "^slime_block$": true,
+        "^honey_block$": true
     }
 }

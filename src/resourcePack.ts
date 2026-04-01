@@ -559,12 +559,9 @@ const updateAllReplacableTextures = async () => {
   for (const [key, { cssVar, cssVarRepeat, resourcePackPath }] of vars) {
     const resPath = `${basePath}/assets/${resourcePackPath}`
     if (cssVar) {
-
       await setCustomCss(resPath, cssVar, cssVarRepeat ?? 1)
-    } else {
-
-      await setCustomPicture(key, resPath)
     }
+    await setCustomPicture(key, resPath)
   }
 }
 

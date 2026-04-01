@@ -2,16 +2,18 @@ import { Vec3 } from 'vec3'
 import worldBlockProvider, { WorldBlockProvider } from 'mc-assets/dist/worldBlockProvider'
 import legacyJson from '../../../../src/preflatMap.json'
 import { BlockType } from '../../../playground/shared'
-import { World, BlockModelPartsResolved, WorldBlock as Block, WorldBlock } from './world'
-import { BlockElement, buildRotationMatrix, elemFaces, matmul3, matmulmat3, vecadd3, vecsub3 } from './modelsGeometryCommon'
+import moreBlockData from '../moreBlockDataGenerated.json'
 import { INVISIBLE_BLOCKS } from './worldConstants'
 import { MesherGeometryOutput, HighestBlockInfo } from './shared'
+import { BlockElement, buildRotationMatrix, elemFaces, matmul3, matmulmat3, vecadd3, vecsub3 } from './modelsGeometryCommon'
+import { World, BlockModelPartsResolved, WorldBlock as Block, WorldBlock } from './world'
 
 
 let blockProvider: WorldBlockProvider
 
 const tints: any = {}
 let needTiles = false
+let semiTransparentBlocks: string[] = []
 
 let tintsData
 try {
@@ -664,7 +666,7 @@ export function getSectionGeometry (sx: number, sy: number, sz: number, world: W
 
             for (const element of model.elements ?? []) {
               const ao = model.ao ?? block.boundingBox !== 'empty'
-              if (block.transparent) {
+              if (block.transparent && semiTransparentBlocks.includes(block.name)) {
                 const pos = cursor.clone()
                 delayedRender.push(() => {
                   renderElement(world, pos, element, ao, attr, globalMatrix, globalShift, block, biome)
@@ -750,7 +752,7 @@ function arrayNeedsUint32 (array) {
 
 }
 
-export const setBlockStatesData = (blockstatesModels, blocksAtlas: any, _needTiles = false, useUnknownBlockModel = true, version = 'latest') => {
+export const setBlockStatesData = (blockstatesModels, blocksAtlas: any, _needTiles = false, useUnknownBlockModel = true, version = 'latest', mcData = (globalThis as any).mcData) => {
   blockProvider = worldBlockProvider(blockstatesModels, blocksAtlas, version)
   globalThis.blockProvider = blockProvider
   if (useUnknownBlockModel) {
@@ -758,4 +760,28 @@ export const setBlockStatesData = (blockstatesModels, blocksAtlas: any, _needTil
   }
 
   needTiles = _needTiles
+
+  // Cache semi-transparent blocks based on regex patterns from moreBlockDataGenerated.json
+  const regexPatterns = Object.keys(moreBlockData.hasSemiTransparentTextuersRegex || {})
+  semiTransparentBlocks = []
+
+  // Get all block names from blockstatesModels
+  if (!Array.isArray(mcData.blocks)) throw new Error('mcData.blocks is not an array')
+  const allBlockNames = mcData.blocks.map(block => block.name)
+
+  // Filter blocks that match any of the regex patterns
+  for (const blockName of allBlockNames) {
+    for (const pattern of regexPatterns) {
+      try {
+        const regex = new RegExp(pattern)
+        if (regex.test(blockName)) {
+          semiTransparentBlocks.push(blockName)
+          break // Only add once per block
+        }
+      } catch (err) {
+        // Invalid regex pattern, skip
+        console.warn('Invalid regex pattern in hasSemiTransparentTextuersRegex:', pattern)
+      }
+    }
+  }
 }
