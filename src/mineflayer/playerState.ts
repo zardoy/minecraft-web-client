@@ -151,7 +151,7 @@ export class PlayerStateControllerMain {
     if (!bot?.entity || this.disableStateUpdates) return
 
     const { velocity } = bot.entity
-    const horizontalDist = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+    const horizontalDist = Math.hypot(velocity.x, velocity.z)
 
     // Save previous values for interpolation
     this.reactive.prevWalkDist = this.reactive.walkDist

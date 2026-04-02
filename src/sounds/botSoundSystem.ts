@@ -1,5 +1,6 @@
 import { Vec3 } from 'vec3'
 import { versionToNumber, loadScript } from 'minecraft-renderer/src/lib/utils'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import type { Block } from 'prismarine-block'
 import { subscribeKey } from 'valtio/utils'
 import { miscUiState } from '../globalState'
@@ -8,7 +9,6 @@ import { loadOrPlaySound } from '../basicSounds'
 import { getActiveResourcepackBasePath, resourcePackState } from '../resourcePack'
 import { showNotification } from '../react/NotificationProvider'
 import { pixelartIcons } from '../react/PixelartIcon'
-import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { createSoundMap, SoundMap } from './soundsMap'
 import { musicSystem } from './musicSystem'
 import './customSoundSystem'
@@ -226,13 +226,13 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
 subscribeKey(miscUiState, 'gameLoaded', () => {
   if (!miscUiState.gameLoaded) return
 
-  function buildFloorMap(x: number, y: number, z: number): number[] {
+  function buildFloorMap (x: number, y: number, z: number): number[] {
     const floorMap: number[] = []
     for (let dz = -2; dz <= 2; dz++) {
       for (let dx = -2; dx <= 2; dx++) {
         const columnX = x + dx
         const columnZ = z + dz
-        let floorY = y - 20  // fallback: deep below
+        let floorY = y - 20 // fallback: deep below
         for (let scanY = y; scanY >= y - 20; scanY--) {
           try {
             const block = bot.world.getBlock(new Vec3(columnX, scanY, columnZ))
