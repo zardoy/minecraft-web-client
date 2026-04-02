@@ -149,8 +149,8 @@ importers:
         specifier: github:PrismarineJS/node-minecraft-protocol#master
         version: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/dfecf1e9e449ed1d75d14f7fd146257edf0a207e(patch_hash=8a96528ea049e1239226caa349378cdf79f8b39939b5b502d226d643aac8ca24)(encoding@0.1.13)
       minecraft-renderer:
-        specifier: ^0.1.23
-        version: 0.1.23(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.106.0)(react@18.3.1)(three@0.154.0)
+        specifier: ^0.1.33
+        version: 0.1.33(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.106.0)(react@18.3.1)(three@0.154.0)
       mineflayer-item-map-downloader:
         specifier: github:zardoy/mineflayer-item-map-downloader
         version: https://codeload.github.com/zardoy/mineflayer-item-map-downloader/tar.gz/a8d210ecdcf78dd082fa149a96e1612cc9747824(patch_hash=a731ebbace2d8790c973ab3a5ba33494a6e9658533a9710dd8ba36f86db061ad)(encoding@0.1.13)
@@ -6165,8 +6165,8 @@ packages:
     version: 1.65.0
     engines: {node: '>=22'}
 
-  minecraft-renderer@0.1.23:
-    resolution: {integrity: sha512-IGZBkZgY++CGsPzC8hHavj8jac9o0MWQO4ueiPFqmw4lRgqk7ISHPYd+9sFbHVR65U5qUMCEUe6tdX+822iaLQ==}
+  minecraft-renderer@0.1.33:
+    resolution: {integrity: sha512-Nk9pmEWgwwg2Wz0+xOeIFG8+EEcHSZGwcbqPkFYjKNyJ0dUQAm74ocllReLZnh8N/Jz9/aSQmYRJwiPWRuyplw==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     peerDependencies:
       contro-max: '*'
@@ -15835,7 +15835,7 @@ snapshots:
       - encoding
       - supports-color
 
-  minecraft-renderer@0.1.23(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.106.0)(react@18.3.1)(three@0.154.0):
+  minecraft-renderer@0.1.33(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.106.0)(react@18.3.1)(three@0.154.0):
     dependencies:
       '@tweenjs/tween.js': 20.0.3
       '@types/events': 3.0.3
