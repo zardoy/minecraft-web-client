@@ -8,6 +8,7 @@ import { loadOrPlaySound } from '../basicSounds'
 import { getActiveResourcepackBasePath, resourcePackState } from '../resourcePack'
 import { showNotification } from '../react/NotificationProvider'
 import { pixelartIcons } from '../react/PixelartIcon'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { createSoundMap, SoundMap } from './soundsMap'
 import { musicSystem } from './musicSystem'
 import './customSoundSystem'
@@ -219,6 +220,59 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
   }
 
   registerEvents()
+})
+
+// Break particles: registered independently of sound system
+subscribeKey(miscUiState, 'gameLoaded', () => {
+  if (!miscUiState.gameLoaded) return
+
+  function buildFloorMap(x: number, y: number, z: number): number[] {
+    const floorMap: number[] = []
+    for (let dz = -2; dz <= 2; dz++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const columnX = x + dx
+        const columnZ = z + dz
+        let floorY = y - 20  // fallback: deep below
+        for (let scanY = y; scanY >= y - 20; scanY--) {
+          try {
+            const block = bot.world.getBlock(new Vec3(columnX, scanY, columnZ))
+            if (block && block.boundingBox === 'block') {
+              floorY = scanY + 1
+              break
+            }
+          } catch {
+            break
+          }
+        }
+        floorMap.push(floorY)
+      }
+    }
+    return floorMap
+  }
+
+  let diggingBlock: Block | null = null
+  customEvents.on('digStart', () => {
+    diggingBlock = bot.blockAtCursor(5)
+  })
+  bot.on('diggingCompleted', () => {
+    if (diggingBlock) {
+      const pos = diggingBlock.position
+      const floorMap = buildFloorMap(pos.x, pos.y, pos.z)
+      getThreeJsRendererMethods()?.spawnBlockBreakParticles(pos.x, pos.y, pos.z, diggingBlock.name, floorMap)
+    }
+  })
+  bot._client.on('world_event', ({ effectId, location, data, global: disablePosVolume }) => {
+    if (effectId === 2001 && !disablePosVolume) {
+      const block = loadedData.blocksByStateId[data]
+      if (block) {
+        const x = Math.floor(location.x)
+        const y = Math.floor(location.y)
+        const z = Math.floor(location.z)
+        const floorMap = buildFloorMap(x, y, z)
+        getThreeJsRendererMethods()?.spawnBlockBreakParticles(x, y, z, block.name, floorMap)
+      }
+    }
+  })
 })
 
 subscribeKey(resourcePackState, 'resourcePackInstalled', async () => {
