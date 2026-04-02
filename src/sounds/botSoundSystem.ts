@@ -273,6 +273,13 @@ subscribeKey(miscUiState, 'gameLoaded', () => {
       }
     }
   })
+  bot.on('blockBreakProgressStage', (block, stage) => {
+    if (stage === null) return
+    const pos = block.position
+    const face = (block as any).face ?? 1
+    const floorMap = buildFloorMap(pos.x, pos.y, pos.z)
+    getThreeJsRendererMethods()?.spawnBlockCrackParticle(pos.x, pos.y, pos.z, face, block.name, floorMap)
+  })
 })
 
 subscribeKey(resourcePackState, 'resourcePackInstalled', async () => {
