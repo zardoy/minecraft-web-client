@@ -81,6 +81,7 @@ const HotbarInner = () => {
   useEffect(() => {
     const controller = new AbortController()
 
+    // @ts-expect-error -- openItemsCanvas removed during inventory rework (PR #518). HotbarInner is dead code (returns null).
     const inv = openItemsCanvas('HotbarWin', {
       _client: {
         write () {}
@@ -115,6 +116,7 @@ const HotbarInner = () => {
     container.current.appendChild(inv.canvas)
     const upHotbarItems = () => {
       if (!appViewer.resourcesManager?.itemsAtlasParser) return
+      // @ts-expect-error -- upInventoryItems removed during inventory rework (PR #518). HotbarInner is dead code (returns null).
       globalThis.debugHotbarItems = upInventoryItems(true, inv)
     }
 
