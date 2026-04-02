@@ -258,7 +258,8 @@ subscribeKey(miscUiState, 'gameLoaded', () => {
     if (diggingBlock) {
       const pos = diggingBlock.position
       const floorMap = buildFloorMap(pos.x, pos.y, pos.z)
-      getThreeJsRendererMethods()?.spawnBlockBreakParticles(pos.x, pos.y, pos.z, diggingBlock.name, floorMap)
+      const biomeName = (diggingBlock as any).biome?.name ?? 'plains'
+      getThreeJsRendererMethods()?.spawnBlockBreakParticles(pos.x, pos.y, pos.z, diggingBlock.name, floorMap, biomeName)
     }
   })
   bot._client.on('world_event', ({ effectId, location, data, global: disablePosVolume }) => {
@@ -269,7 +270,12 @@ subscribeKey(miscUiState, 'gameLoaded', () => {
         const y = Math.floor(location.y)
         const z = Math.floor(location.z)
         const floorMap = buildFloorMap(x, y, z)
-        getThreeJsRendererMethods()?.spawnBlockBreakParticles(x, y, z, block.name, floorMap)
+        let biomeName = 'plains'
+        try {
+          const worldBlock = bot.world.getBlock(new Vec3(x, y, z))
+          biomeName = (worldBlock as any)?.biome?.name ?? 'plains'
+        } catch {}
+        getThreeJsRendererMethods()?.spawnBlockBreakParticles(x, y, z, block.name, floorMap, biomeName)
       }
     }
   })
@@ -278,7 +284,8 @@ subscribeKey(miscUiState, 'gameLoaded', () => {
     const pos = block.position
     const face = (block as any).face ?? 1
     const floorMap = buildFloorMap(pos.x, pos.y, pos.z)
-    getThreeJsRendererMethods()?.spawnBlockCrackParticle(pos.x, pos.y, pos.z, face, block.name, floorMap)
+    const biomeName = (block as any).biome?.name ?? 'plains'
+    getThreeJsRendererMethods()?.spawnBlockCrackParticle(pos.x, pos.y, pos.z, face, block.name, floorMap, biomeName)
   })
 })
 
