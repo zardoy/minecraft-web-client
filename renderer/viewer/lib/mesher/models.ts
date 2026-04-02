@@ -458,7 +458,7 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
 
         const ao = (side1Block && side2Block) ? 0 : (3 - (side1Block + side2Block + cornerBlock))
         // todo light should go upper on lower blocks
-        light = sideShading * (0.4+0.2*ao) * (cornerLightResult / 15)
+        light = sideShading * (0.4 + 0.2 * ao) * (cornerLightResult / 15)
         aos.push(ao)
       }
 
