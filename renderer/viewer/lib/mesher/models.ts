@@ -387,7 +387,9 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
     const aos: number[] = []
     const neighborPos = position.plus(new Vec3(...dir))
     // 10%
-    const baseLight = world.getLight(neighborPos, undefined, undefined, block.name) / 15
+    const sideShading = 0.75 + 0.25*dir[1] + 0.05*(Math.abs(dir[2])-3*Math.abs(dir[0]))
+    const faceLight = world.getLight(neighborPos, undefined, undefined, block.name)
+    const baseLight = sideShading * faceLight / 15
     for (const pos of corners) {
       let vertex = [
         (pos[0] ? maxx : minx),
@@ -444,7 +446,7 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
           const cornerLightDir = getVec(new Vec3(...cornerDir))
           const cornerLight = world.getLight(cursor.plus(cornerLightDir))
           // interpolate
-          const lights = [side1Light, side2Light, cornerLight, baseLight * 15]
+          const lights = [side1Light, side2Light, cornerLight, faceLight]
           cornerLightResult = lights.reduce((acc, cur) => acc + cur, 0) / lights.length
         }
 
@@ -456,7 +458,7 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
 
         const ao = (side1Block && side2Block) ? 0 : (3 - (side1Block + side2Block + cornerBlock))
         // todo light should go upper on lower blocks
-        light = (ao + 1) / 4 * (cornerLightResult / 15)
+        light = sideShading * (0.4+0.2*ao) * (cornerLightResult / 15)
         aos.push(ao)
       }
 

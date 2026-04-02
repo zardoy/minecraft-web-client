@@ -46,7 +46,7 @@ export class WorldRendererThree extends WorldRendererCommon {
   directionalLight = new THREE.DirectionalLight(0xff_ff_ff, 0.5)
   entities = new Entities(this)
   cameraGroupVr?: THREE.Object3D
-  material = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, alphaTest: 0.1 })
+  material = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, alphaTest: 0.1 })
   itemsTexture: THREE.Texture
   cursorBlock: CursorBlock
   onRender: Array<() => void> = []
