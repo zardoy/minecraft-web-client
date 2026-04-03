@@ -429,7 +429,7 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
         const side2 = world.getBlock(cursor.offset(...side2Dir))
         const corner = world.getBlock(cursor.offset(...cornerDir))
 
-        let cornerLightResult = baseLight * 15
+        let cornerLightResult = faceLight
 
         if (smoothLighting) {
           const dirVec = new Vec3(...dir)
