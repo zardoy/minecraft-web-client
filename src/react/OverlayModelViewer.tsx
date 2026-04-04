@@ -38,6 +38,7 @@ export const modelViewerState = proxy({
     playModelAnimationSpeed?: number
     playModelAnimationLoop?: boolean
     followCursorCenterDebug?: boolean
+    zIndex?: number
   }
 })
 globalThis.modelViewerState = modelViewerState
@@ -706,7 +707,7 @@ export default () => {
     <div
       className='overlay-model-viewer-container'
       style={{
-        zIndex: 100,
+        zIndex: model.zIndex ?? 100,
         position: 'fixed',
         inset: 0,
         width: '100dvw',
