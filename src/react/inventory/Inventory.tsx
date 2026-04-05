@@ -79,6 +79,14 @@ export const Inventory = () => {
     })
   }, [textureVersion, !!inventoryType])
 
+  // Destroy connector on unmount — handles E-key close (unmount without handleClose)
+  useEffect(() => {
+    if (!connector) return
+    return () => {
+      connector.sendAction({ type: 'close' })
+    }
+  }, [connector])
+
   // Clear caches and force connector refresh on resource-pack changes
   useEffect(() => {
     const refresh = () => {
@@ -111,9 +119,9 @@ export const Inventory = () => {
   )
 
   const handleClose = useCallback(() => {
-    if (bot.currentWindow) (bot.currentWindow as any).close?.()
+    connector?.sendAction({ type: 'close' })
     hideCurrentModal()
-  }, [])
+  }, [connector])
 
   const renderEntity = useCallback((w: number, h: number) => {
     return <InventoryEntityBridge width={w} height={h} />
