@@ -387,8 +387,11 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
     const aos: number[] = []
     const neighborPos = position.plus(new Vec3(...dir))
     // 10%
-    const sideShading = 0.75 + 0.25*dir[1] + 0.05*(Math.abs(dir[2])-3*Math.abs(dir[0]))
+    const { smoothLighting, shadingTheme } = world.config
     const faceLight = world.getLight(neighborPos, undefined, undefined, block.name)
+    const sideShading = (shadingTheme === 'high-contrast') ?
+    (0.8 + 0.5*Math.max(0.0,0.66*dir[0]+0.66*dir[1]+0.33*dir[2])) : //old directional light behavior
+    (0.75 + 0.25*dir[1] + 0.05*(Math.abs(dir[2])-3*Math.abs(dir[0])));
     const baseLight = sideShading * faceLight / 15
     for (const pos of corners) {
       let vertex = [
@@ -416,7 +419,7 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
       }
 
       let light = 1
-      const { smoothLighting } = world.config
+      
       // const smoothLighting = true
       if (doAO) {
         const dx = pos[0] * 2 - 1
@@ -456,9 +459,12 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
 
         // TODO: correctly interpolate ao light based on pos (evaluate once for each corner of the block)
 
-        const ao = (side1Block && side2Block) ? 0 : (3 - (side1Block + side2Block + cornerBlock))
+        let ao = (side1Block && side2Block) ? 0 : (3 - (side1Block + side2Block + cornerBlock))
+        const ao_bias = (shadingTheme === 'high-contrast') ? 0.25 : 0.4;
+        const ao_scale = (shadingTheme === 'high-contrast') ? 0.25 : 0.2;
+
         // todo light should go upper on lower blocks
-        light = sideShading * (0.4 + 0.2 * ao) * (cornerLightResult / 15)
+        light = sideShading * (ao * ao_scale + ao_bias) * (cornerLightResult / 15)
         aos.push(ao)
       }
 

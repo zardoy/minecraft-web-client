@@ -140,7 +140,11 @@ importers:
         version: 4.17.21
       mcraft-fun-mineflayer:
         specifier: ^0.1.23
+<<<<<<< HEAD
         version: 0.1.23(encoding@0.1.13)(mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13))
+=======
+        version: 0.1.23(encoding@0.1.13)(mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/2cd1e3da257a0c0415e9dc5524fb14bd5844f0d8(encoding@0.1.13))
+>>>>>>> upstream/main
       minecraft-data:
         specifier: 3.106.0
         version: 3.106.0
@@ -345,7 +349,11 @@ importers:
         version: https://codeload.github.com/zardoy/minecraft-inventory-gui/tar.gz/ae382e30ad66c3ca40f51ff3376605e8c67413db(@types/react@18.3.18)(react@18.3.1)
       mineflayer:
         specifier: github:zardoy/mineflayer#gen-the-master
+<<<<<<< HEAD
         version: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13)
+=======
+        version: https://codeload.github.com/zardoy/mineflayer/tar.gz/2cd1e3da257a0c0415e9dc5524fb14bd5844f0d8(encoding@0.1.13)
+>>>>>>> upstream/main
       mineflayer-mouse:
         specifier: ^0.1.26
         version: 0.1.26
@@ -6732,9 +6740,22 @@ packages:
     resolution: {integrity: sha512-fTHGUx+xy/43mA3of0cUQCSoXTQF6jvV7t8ALAIKKnvYCW5Y9Zcth0mZS5nUFszkJyYj47r7G44SjCHAS1sxvA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
+<<<<<<< HEAD
   mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801:
     resolution: {tarball: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801}
     version: 8.0.0
+=======
+  mineflayer-pathfinder@2.4.5:
+    resolution: {integrity: sha512-Jh3JnUgRLwhMh2Dugo4SPza68C41y+NPP5sdsgxRu35ydndo70i1JJGxauVWbXrpNwIxYNztUw78aFyb7icw8g==}
+
+  mineflayer@4.30.0:
+    resolution: {integrity: sha512-GtW4hkijyZbSu5LKYYD89xZu+XY7OoP7IkrCnNEn6EdPm0+vr2THoJgFGKrlze9/81+T+P3E4qvJXNFiU/zeJg==}
+    engines: {node: '>=22'}
+
+  mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/2cd1e3da257a0c0415e9dc5524fb14bd5844f0d8:
+    resolution: {tarball: https://codeload.github.com/zardoy/mineflayer/tar.gz/2cd1e3da257a0c0415e9dc5524fb14bd5844f0d8}
+    version: 4.30.0
+>>>>>>> upstream/main
     engines: {node: '>=22'}
 
   minimalistic-assert@1.0.1:
@@ -17048,6 +17069,7 @@ snapshots:
       maxrects-packer: '@zardoy/maxrects-packer@2.7.4'
       zod: 3.24.2
 
+<<<<<<< HEAD
   mc-bridge@0.1.3(minecraft-data@3.106.0):
     dependencies:
       minecraft-data: 3.106.0
@@ -17059,6 +17081,15 @@ snapshots:
       minecraft-protocol: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/9bc871da00a82058ad68f7fb6fd661c268f6a7a9(patch_hash=8a96528ea049e1239226caa349378cdf79f8b39939b5b502d226d643aac8ca24)(encoding@0.1.13)
       mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13)
       prismarine-item: 1.17.0
+=======
+  mcraft-fun-mineflayer@0.1.23(encoding@0.1.13)(mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/2cd1e3da257a0c0415e9dc5524fb14bd5844f0d8(encoding@0.1.13)):
+    dependencies:
+      '@zardoy/flying-squid': 0.0.49(encoding@0.1.13)
+      exit-hook: 2.2.1
+      minecraft-protocol: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/6c2204a813690ead420e2b8c7f0ef32ca357d176(patch_hash=a8726e6981ddc3486262d981d1e2030f379901c055ac9c4bf3036b4149e860e0)(encoding@0.1.13)
+      mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/2cd1e3da257a0c0415e9dc5524fb14bd5844f0d8(encoding@0.1.13)
+      prismarine-item: 1.16.0
+>>>>>>> upstream/main
       ws: 8.18.1
     transitivePeerDependencies:
       - bufferutil
@@ -17452,7 +17483,35 @@ snapshots:
       prismarine-chat: 1.11.0
       prismarine-chunk: https://codeload.github.com/zardoy/prismarine-chunk/tar.gz/ec44d01fbe2e3a310c605761688a85119f056332(minecraft-data@3.106.0)
       prismarine-entity: 2.5.0
+<<<<<<< HEAD
       prismarine-item: 1.17.0
+=======
+      prismarine-item: 1.16.0
+      prismarine-nbt: 2.7.0
+      prismarine-physics: https://codeload.github.com/zardoy/prismarine-physics/tar.gz/353e25b800149393f40539ec381218be44cbb03b
+      prismarine-recipe: 1.3.1(prismarine-registry@1.11.0)
+      prismarine-registry: 1.11.0
+      prismarine-windows: 2.9.0
+      prismarine-world: https://codeload.github.com/zardoy/prismarine-world/tar.gz/ab2146c9933eef3247c3f64446de4ccc2c484c7c
+      protodef: 1.18.0
+      typed-emitter: 1.4.0
+      vec3: 0.1.10
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
+  mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/2cd1e3da257a0c0415e9dc5524fb14bd5844f0d8(encoding@0.1.13):
+    dependencies:
+      '@nxg-org/mineflayer-physics-util': 1.8.10
+      minecraft-data: 3.92.0
+      minecraft-protocol: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/6c2204a813690ead420e2b8c7f0ef32ca357d176(patch_hash=a8726e6981ddc3486262d981d1e2030f379901c055ac9c4bf3036b4149e860e0)(encoding@0.1.13)
+      prismarine-biome: 1.3.0(minecraft-data@3.92.0)(prismarine-registry@1.11.0)
+      prismarine-block: https://codeload.github.com/zardoy/prismarine-block/tar.gz/853c559bff2b402863ee9a75b125a3ca320838f9
+      prismarine-chat: 1.11.0
+      prismarine-chunk: https://codeload.github.com/zardoy/prismarine-chunk/tar.gz/c5feac83b61d95feb4d4f22c063dacfb8c192a9f(minecraft-data@3.92.0)
+      prismarine-entity: 2.5.0
+      prismarine-item: 1.16.0
+>>>>>>> upstream/main
       prismarine-nbt: 2.7.0
       prismarine-physics: https://codeload.github.com/zardoy/prismarine-physics/tar.gz/353e25b800149393f40539ec381218be44cbb03b
       prismarine-recipe: 1.3.1(prismarine-registry@1.11.0)

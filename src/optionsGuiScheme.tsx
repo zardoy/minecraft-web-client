@@ -77,6 +77,7 @@ export const guiOptionsScheme: {
         text: 'Day Cycle',
       },
       smoothLighting: {},
+      shadingTheme: {},
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
       },

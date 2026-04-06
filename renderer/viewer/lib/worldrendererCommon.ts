@@ -47,6 +47,7 @@ export const defaultWorldRendererConfig = {
   // Rendering engine settings
   dayCycle: true,
   smoothLighting: true,
+  shadingTheme: 'high-contrast',
   enableLighting: true,
   starfield: true,
   defaultSkybox: true,
@@ -572,6 +573,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       enableLighting: this.worldRendererConfig.enableLighting,
       skyLight,
       smoothLighting: this.worldRendererConfig.smoothLighting,
+      shadingTheme: this.worldRendererConfig.shadingTheme, //TODO if we ever add Nether shading, it should probably be selected here based on dimension
       outputFormat: this.outputFormat,
       // textureSize: this.resourcesManager.currentResources!.blocksAtlasParser.atlas.latest.width,
       debugModelVariant: this.worldRendererConfig.debugModelVariant,
