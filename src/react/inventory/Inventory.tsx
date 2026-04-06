@@ -15,7 +15,7 @@ import { useAppScale } from '../../scaleInterface'
 import { activeModalStack, hideCurrentModal } from '../../globalState'
 import { options } from '../../optionsStorage'
 import { getJeiItems, getItemRecipes, getItemUsages } from '../../inventoryWindows'
-import { buildItemMapper, textureConfig, clearInventoryCaches } from './sharedConnectorSetup'
+import { buildItemMapper, textureConfig, clearInventoryCaches, formatWindowTitle } from './sharedConnectorSetup'
 import { modelViewerState } from '../OverlayModelViewer'
 
 export { clearInventoryCaches } from './sharedConnectorSetup'
@@ -76,6 +76,7 @@ export const Inventory = () => {
     if (!inventoryType) return null
     return createMineflayerConnector(bot as MineflayerBot, {
       itemMapper: buildItemMapper(bot.version),
+      formatTitle: formatWindowTitle,
     })
   }, [textureVersion, !!inventoryType])
 

@@ -92,6 +92,7 @@ const HotbarInner = () => {
   const connector = useMemo(() => {
     return createMineflayerConnector(bot as MineflayerBot, {
       itemMapper: buildItemMapper(bot.version),
+      hotbarOnly: true,
     })
   }, [textureVersion])
 
