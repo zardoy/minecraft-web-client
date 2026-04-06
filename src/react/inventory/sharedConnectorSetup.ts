@@ -135,3 +135,43 @@ export const textureConfig = {
     return `${REMOTE_ASSETS}/block/${item.name ?? item.type}.png`
   },
 }
+
+// ----- Window title formatter – resolves JSON text components to display strings -----
+
+/** Parse a raw window title (JSON string, NBT object, or plain text) into a readable string. */
+export function formatWindowTitle (rawTitle: any): string {
+  if (rawTitle == null) return ''
+  if (typeof rawTitle === 'string') {
+    // Try to parse JSON text component
+    if (rawTitle.startsWith('{') || rawTitle.startsWith('"')) {
+      try {
+        return formatWindowTitle(JSON.parse(rawTitle))
+      } catch {
+        // Not valid JSON — treat as plain text
+      }
+    }
+    return rawTitle
+  }
+  if (typeof rawTitle === 'object') {
+    // Handle NBT-simplified format: { value: "...", type: "string" }
+    if ('value' in rawTitle && rawTitle.type === 'string') {
+      return formatWindowTitle(rawTitle.value)
+    }
+    // Handle translate key: { translate: "container.chestDouble" }
+    if (rawTitle.translate) {
+      const lang = (globalThis as any).loadedData?.language
+      return lang?.[rawTitle.translate] ?? rawTitle.translate
+    }
+    // Handle text key: { text: "Custom Name" }
+    if (typeof rawTitle.text === 'string') {
+      return rawTitle.text
+    }
+    // Handle extra/with arrays by joining
+    if (rawTitle.extra) {
+      return (rawTitle.extra as any[]).map(formatWindowTitle).join('')
+    }
+    // Fallback: stringify for non-empty objects
+    if (typeof rawTitle[''] === 'string') return rawTitle['']
+  }
+  return String(rawTitle)
+}
