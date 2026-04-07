@@ -15,14 +15,14 @@ import { useAppScale } from '../../scaleInterface'
 import { activeModalStack, hideCurrentModal } from '../../globalState'
 import { options } from '../../optionsStorage'
 import { getJeiItems, getItemRecipes, getItemUsages } from '../../inventoryWindows'
-import { buildItemMapper, textureConfig, clearInventoryCaches, formatWindowTitle } from './sharedConnectorSetup'
 import { modelViewerState } from '../OverlayModelViewer'
+import { buildItemMapper, textureConfig, clearInventoryCaches, formatWindowTitle } from './sharedConnectorSetup'
 
 export { clearInventoryCaches } from './sharedConnectorSetup'
 
 // ----- Entity model bridge -----
 
-function InventoryEntityBridge({ width, height }: { width: number; height: number }) {
+function InventoryEntityBridge ({ width, height }: { width: number; height: number }) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
