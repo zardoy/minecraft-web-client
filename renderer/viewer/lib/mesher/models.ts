@@ -387,11 +387,15 @@ function renderElement (world: World, cursor: Vec3, element: BlockElement, doAO:
     const aos: number[] = []
     const neighborPos = position.plus(new Vec3(...dir))
     // 10%
-    const { smoothLighting, shadingTheme } = world.config
+    const { smoothLighting, shadingTheme, cardinalLight } = world.config
     const faceLight = world.getLight(neighborPos, undefined, undefined, block.name)
     const sideShading = (shadingTheme === 'high-contrast') ?
     (0.8 + 0.5*Math.max(0.0,0.66*dir[0]+0.66*dir[1]+0.33*dir[2])) : //old directional light behavior
-    (0.75 + 0.25*dir[1] + 0.05*(Math.abs(dir[2])-3*Math.abs(dir[0])));
+    (
+      cardinalLight === 'nether' ?
+      (0.5 + Math.abs(0.1*dir[0]+0.4*dir[1]+0.3*dir[2])) : 
+      (0.75 + 0.25*dir[1] + 0.05*(Math.abs(dir[2])-3*Math.abs(dir[0])))
+    );
     const baseLight = sideShading * faceLight / 15
     for (const pos of corners) {
       let vertex = [
