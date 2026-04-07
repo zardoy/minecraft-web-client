@@ -140,7 +140,7 @@ importers:
         version: 4.17.21
       mcraft-fun-mineflayer:
         specifier: ^0.1.23
-        version: 0.1.23(encoding@0.1.13)(mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13))
+        version: 0.1.23(encoding@0.1.13)(mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1(encoding@0.1.13))
       minecraft-data:
         specifier: 3.103.0
         version: 3.103.0
@@ -345,7 +345,7 @@ importers:
         version: 0.2.72
       mineflayer:
         specifier: github:zardoy/mineflayer#gen-the-master
-        version: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13)
+        version: https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1(encoding@0.1.13)
       mineflayer-mouse:
         specifier: ^0.1.25
         version: 0.1.25
@@ -6714,8 +6714,8 @@ packages:
     resolution: {integrity: sha512-6QyPT7b7ETNmCy5A34eQ5nSLkBWMNX7c4UWFo7VOU8igCzGag9oPKRlY7GGjZzmTdhe+bXGfA1qb63CaZnML1w==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801:
-    resolution: {tarball: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801}
+  mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1:
+    resolution: {tarball: https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1}
     version: 8.0.0
     engines: {node: '>=22'}
 
@@ -11372,7 +11372,7 @@ snapshots:
     dependencies:
       '@nxg-org/mineflayer-util-plugin': 1.8.4
       minecraft-data: 3.103.0
-      mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13)
+      mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1(encoding@0.1.13)
       prismarine-block: https://codeload.github.com/zardoy/prismarine-block/tar.gz/853c559bff2b402863ee9a75b125a3ca320838f9
       prismarine-item: 1.18.0
       prismarine-physics: https://codeload.github.com/zardoy/prismarine-physics/tar.gz/353e25b800149393f40539ec381218be44cbb03b
@@ -17034,12 +17034,12 @@ snapshots:
     dependencies:
       minecraft-data: 3.103.0
 
-  mcraft-fun-mineflayer@0.1.23(encoding@0.1.13)(mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13)):
+  mcraft-fun-mineflayer@0.1.23(encoding@0.1.13)(mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1(encoding@0.1.13)):
     dependencies:
       '@zardoy/flying-squid': 0.0.49(encoding@0.1.13)
       exit-hook: 2.2.1
       minecraft-protocol: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/3fabf16c61995b7a2c6d4d2902f7af99d0fe0a77(patch_hash=8a96528ea049e1239226caa349378cdf79f8b39939b5b502d226d643aac8ca24)(encoding@0.1.13)
-      mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13)
+      mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1(encoding@0.1.13)
       prismarine-item: 1.18.0
       ws: 8.18.1
     transitivePeerDependencies:
@@ -17410,7 +17410,7 @@ snapshots:
 
   mineflayer-item-map-downloader@https://codeload.github.com/zardoy/mineflayer-item-map-downloader/tar.gz/a8d210ecdcf78dd082fa149a96e1612cc9747824(patch_hash=a731ebbace2d8790c973ab3a5ba33494a6e9658533a9710dd8ba36f86db061ad)(encoding@0.1.13):
     dependencies:
-      mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13)
+      mineflayer: https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1(encoding@0.1.13)
       sharp: 0.30.7
     transitivePeerDependencies:
       - encoding
@@ -17425,7 +17425,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/4697107a98be5b8f0e1a0b130839cedc752e2801(encoding@0.1.13):
+  mineflayer@https://codeload.github.com/zardoy/mineflayer/tar.gz/f94428c114162ee5d0bfcf0c23654a356be7c2f1(encoding@0.1.13):
     dependencies:
       '@nxg-org/mineflayer-physics-util': 1.8.19
       minecraft-data: 3.103.0
