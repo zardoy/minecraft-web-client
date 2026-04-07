@@ -5,4 +5,6 @@ import { createBundledTexturesConfig } from 'minecraft-inventory/src/bundledText
  * Used by Inventory.tsx for getGuiTextureUrl and by resourcePack.ts
  * to push resource-pack overrides via setOverride().
  */
-export const inventoryBundledConfig = createBundledTexturesConfig()
+export const inventoryBundledConfig = createBundledTexturesConfig({
+  remoteFallback: false
+})
