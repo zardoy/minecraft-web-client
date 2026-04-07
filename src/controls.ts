@@ -762,6 +762,7 @@ document.addEventListener('keydown', (e) => {
   if (contro.pressedKeys.has('F3')) {
     const keybind = f3Keybinds.find((v) => v.key === e.code)
     if (keybind && (keybind.enabled?.() ?? true)) {
+      e.preventDefault() // F4 etc. have browser defaults (e.g. F4 focuses URL bar)
       void keybind.action()
       e.stopPropagation()
     }

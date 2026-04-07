@@ -80,14 +80,14 @@
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "express": "^4.18.2",
     "filesize": "^10.0.12",
-    "flying-squid": "npm:@zardoy/flying-squid@^0.0.118",
+    "flying-squid": "npm:@zardoy/flying-squid@^0.0.119",
     "framer-motion": "^12.9.2",
     "fs-extra": "^11.1.1",
     "google-drive-browserfs": "github:zardoy/browserfs#google-drive",
     "jszip": "^3.10.1",
     "lodash-es": "^4.17.21",
     "mcraft-fun-mineflayer": "^0.1.23",
-    "minecraft-data": "3.103.0",
+    "minecraft-data": "3.106.0",
     "minecraft-inventory": "^0.1.7",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
@@ -205,7 +205,7 @@
       "diamond-square": "github:zardoy/diamond-square",
       "prismarine-block": "github:zardoy/prismarine-block#next-era",
       "prismarine-world": "github:zardoy/prismarine-world#next-era",
-      "minecraft-data": "3.103.0",
+      "minecraft-data": "3.106.0",
       "prismarine-provider-anvil": "github:zardoy/prismarine-provider-anvil#everything",
       "prismarine-physics": "github:zardoy/prismarine-physics",
       "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
@@ -238,5 +238,5 @@
     "ignorePatchFailures": false,
     "allowUnusedPatches": false
   },
-  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
+  "packageManager": "pnpm@10.32.1"
 }
