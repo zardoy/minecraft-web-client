@@ -143,7 +143,7 @@ export const Inventory = () => {
               jeiOnGetUsages={handleGetUsages}
               onClose={handleClose}
               renderEntity={renderEntity}
-              noWatermark
+              enableNotes
             />
           </InventoryProvider>
         </ScaleProvider>
