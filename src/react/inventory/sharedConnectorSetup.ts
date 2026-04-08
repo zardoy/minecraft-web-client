@@ -26,7 +26,7 @@ function getAtlas (texture: string): CanvasImageSource | null {
 }
 
 /** Extract a single-face sprite from the GUI or items atlas as a data URL. */
-function extractSpriteDataUrl (texture: string, slice: number[]): string | undefined {
+export function extractSpriteDataUrl (texture: string, slice: number[]): string | undefined {
   const atlas = getAtlas(texture)
   if (!atlas || !slice) return undefined
   const [x, y, w, h] = slice
@@ -48,7 +48,7 @@ function extractSpriteDataUrl (texture: string, slice: number[]): string | undef
 }
 
 /** Build an isometric BlockTextureRender from blockData returned by renderSlot. */
-function buildBlockTexture (blockData: Record<string, { slice: number[] } | undefined>): BlockTextureRender | undefined {
+export function buildBlockTexture (blockData: Record<string, { slice: number[] } | undefined>): BlockTextureRender | undefined {
   const source = getAtlas('blocks')
   if (!source) return undefined
 
@@ -62,8 +62,8 @@ function buildBlockTexture (blockData: Record<string, { slice: number[] } | unde
 
   const top = getFace('top', 'up', 'all', 'south', 'east', 'west', 'north')
   if (!top) return undefined
-  const left = getFace('west', 'north', 'all', 'south', 'east') ?? top
-  const right = getFace('south', 'east', 'all', 'north', 'west') ?? top
+  const left = getFace('left', 'east', 'west', 'all') ?? top
+  const right = getFace('right', 'north', 'south', 'all') ?? top
 
   return {
     source: source as unknown as HTMLImageElement,
@@ -112,7 +112,9 @@ export function buildItemMapper (version: string) {
         displayName,
         texture,
         blockTexture,
-        durability: (slot.durabilityUsed ?? undefined) as number | undefined,
+        durability: (slot.maxDurability != null && slot.durabilityUsed != null)
+          ? slot.maxDurability - slot.durabilityUsed
+          : undefined,
         maxDurability: (slot.maxDurability ?? undefined) as number | undefined,
         enchantments: slot.enchants?.map((e: any) => ({ name: e.name, level: e.lvl })),
       }

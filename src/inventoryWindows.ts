@@ -8,13 +8,15 @@ import { versionToNumber } from 'renderer/viewer/common/utils'
 import { getInventoryType } from 'minecraft-inventory/src/registry'
 import type { RecipeGuide, ItemStack as InventoryItemStack } from 'minecraft-inventory/src/types'
 import type { JEIItem } from 'minecraft-inventory/src/components/JEI/JEI'
+import { renderSlot } from 'renderer/viewer/three/renderSlot'
 import { activeModalStack, hideCurrentModal, hideModal, miscUiState, showModal } from './globalState'
 import { options } from './optionsStorage'
 import { displayClientChat } from './botUtils'
 import { getItemDescription } from './itemsDescriptions'
 import { MessageFormatPart } from './chatUtils'
-import { getItemNameRaw, RenderItem } from './mineflayer/items'
+import { getItemModelName, getItemNameRaw, RenderItem } from './mineflayer/items'
 import { clearInventoryCaches } from './react/inventory/Inventory'
+import { buildBlockTexture, extractSpriteDataUrl } from './react/inventory/sharedConnectorSetup'
 
 let PrismarineItem: typeof Item
 
@@ -331,6 +333,7 @@ export const getItemUsages = (itemName: string): RecipeGuide[] => {
 
 /**
  * Returns all JEI items (custom categories + vanilla items) for the new inventory UI.
+ * Items are enriched with texture/blockTexture data from the rendering pipeline.
  */
 export const getJeiItems = (): JEIItem[] => {
   if (!PrismarineItem) return []
@@ -347,5 +350,34 @@ export const getJeiItems = (): JEIItem[] => {
     displayName: item.displayName,
   }))
 
-  return [...customItems, ...vanillaItems]
+  const allItems = [...customItems, ...vanillaItems]
+
+  // Enrich items with texture data if the rendering pipeline is available
+  if (!appViewer?.resourcesManager?.currentResources) return allItems
+
+  const resourcesManager = appViewer.resourcesManager
+  const playerState = appViewer.playerState?.reactive
+  if (!playerState) return allItems
+
+  for (const item of allItems) {
+    try {
+      const modelName = getItemModelName(
+        { name: item.name, nbt: null },
+        { 'minecraft:display_context': 'gui' },
+        resourcesManager,
+        playerState
+      )
+      const slotProps = renderSlot({ modelName, originalItemName: item.name }, resourcesManager)
+
+      if (slotProps.blockData) {
+        item.blockTexture = buildBlockTexture(slotProps.blockData as Record<string, { slice: number[] } | undefined>)
+      } else if (slotProps.slice) {
+        item.texture = extractSpriteDataUrl(slotProps.texture, slotProps.slice)
+      }
+    } catch {
+      // Skip texture enrichment for items that fail — they'll fall back to CDN sprites
+    }
+  }
+
+  return allItems
 }
