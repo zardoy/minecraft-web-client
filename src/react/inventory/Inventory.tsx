@@ -134,7 +134,7 @@ export const Inventory = () => {
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
       <TextureProvider config={textureConfig}>
         <ScaleProvider scale={appScale}>
-          <InventoryProvider connector={connector}>
+          <InventoryProvider connector={connector} noPlaceholders>
             <InventoryOverlay
               type={inventoryType}
               showJEI={jeiEnabled}
