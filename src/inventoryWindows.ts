@@ -248,12 +248,35 @@ const ingredientToItem = (recipeItem) => (recipeItem === null ? null : new Prism
 
 // ----- New React inventory exports -----
 
+/** Enrich a single item with texture data from the rendering pipeline (same as JEI enrichment) */
+const enrichItemTexture = (item: InventoryItemStack): void => {
+  if (!appViewer?.resourcesManager?.currentResources) return
+  const playerState = appViewer.playerState?.reactive
+  if (!playerState) return
+  try {
+    const modelName = getItemModelName(
+      { name: item.name ?? '', nbt: null },
+      { 'minecraft:display_context': 'gui' },
+      appViewer.resourcesManager,
+      playerState
+    )
+    const slotProps = renderSlot({ modelName, originalItemName: item.name ?? '' }, appViewer.resourcesManager)
+    if (slotProps.blockData) {
+      item.blockTexture = buildBlockTexture(slotProps.blockData as Record<string, { slice: number[] } | undefined>)
+    } else if (slotProps.slice) {
+      item.texture = extractSpriteDataUrl(slotProps.texture, slotProps.slice)
+    }
+  } catch { /* skip items that fail enrichment */ }
+}
+
 /** Helper: convert a minecraft-data item ID to a minimal ItemStack for recipe guides */
 const idToItemStack = (id: number | null | undefined): InventoryItemStack | null => {
   if (!id) return null
   const data = loadedData.items[id]
   if (!data) return null
-  return { type: id, count: 1, name: data.name, displayName: data.displayName }
+  const stack: InventoryItemStack = { type: id, count: 1, name: data.name, displayName: data.displayName }
+  enrichItemTexture(stack)
+  return stack
 }
 
 /**
@@ -281,6 +304,7 @@ export const getItemRecipes = (itemName: string): RecipeGuide[] => {
     const resultData = resultId ? loadedData.items[resultId as number] : undefined
     if (!resultData) continue
     const resultStack: InventoryItemStack = { type: resultId, count: resultCount, name: resultData.name, displayName: resultData.displayName }
+    enrichItemTexture(resultStack)
 
     if ('inShape' in recipe && recipe.inShape) {
       // Expand shaped recipe into a 9-element 3x3 grid (top-left aligned)
