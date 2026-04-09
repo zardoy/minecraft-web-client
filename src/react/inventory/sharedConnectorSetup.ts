@@ -20,8 +20,16 @@ function getAtlas (texture: string): CanvasImageSource | null {
   if (!appViewer?.resourcesManager) return null
   const r = appViewer.resourcesManager
   if (texture === 'gui') return (r.currentResources?.guiAtlas?.image ?? null) as unknown as CanvasImageSource | null
-  if (texture === 'items') return (r.itemsAtlasParser?.latestImage ?? null) as unknown as CanvasImageSource | null
-  if (texture === 'blocks') return (r.blocksAtlasParser?.latestImage ?? null) as unknown as CanvasImageSource | null
+  if (texture === 'items') return (r.currentResources?.itemsAtlasImage ?? null) as unknown as CanvasImageSource | null
+  if (texture === 'blocks') return (r.currentResources?.blocksAtlasImage ?? null) as unknown as CanvasImageSource | null
+  return null
+}
+
+/** Get atlas source suitable for the block renderer (accepts string data URLs). */
+function getAtlasForBlockRenderer (texture: string): HTMLImageElement | string | null {
+  if (!appViewer?.resourcesManager) return null
+  const r = appViewer.resourcesManager
+  if (texture === 'blocks') return (r.blocksAtlasParser?.latestImage ?? null)
   return null
 }
 
@@ -49,7 +57,7 @@ export function extractSpriteDataUrl (texture: string, slice: number[]): string 
 
 /** Build an isometric BlockTextureRender from blockData returned by renderSlot. */
 export function buildBlockTexture (blockData: Record<string, { slice: number[] } | undefined>): BlockTextureRender | undefined {
-  const source = getAtlas('blocks')
+  const source = getAtlasForBlockRenderer('blocks')
   if (!source) return undefined
 
   const getFace = (...names: string[]): { slice: [number, number, number, number] } | undefined => {
