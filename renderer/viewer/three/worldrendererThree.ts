@@ -273,7 +273,7 @@ export class WorldRendererThree extends WorldRendererCommon {
     this.scene.background = new THREE.Color(color[0], color[1], color[2])
   }
   changeCardinalLight (cardinalLight: string): void {
-    this.worldRendererConfig.cardinalLight = cardinalLight;
+    this.worldRendererConfig.cardinalLight = cardinalLight
   }
 
   timeUpdated (newTime: number): void {

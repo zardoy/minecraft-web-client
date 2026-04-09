@@ -254,8 +254,8 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
   },
   shadingTheme: {
     possibleValues: [
-      ['high-contrast','High Contrast'],
-      ['vanilla','Vanilla']
+      ['high-contrast', 'High Contrast'],
+      ['vanilla', 'Vanilla']
     ]
   },
   wysiwygSignEditor: {
