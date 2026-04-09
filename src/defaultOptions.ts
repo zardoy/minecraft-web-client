@@ -100,7 +100,7 @@ export const defaultOptions = {
   showCursorBlockInSpectator: false,
   renderEntities: true,
   smoothLighting: true,
-  shadingTheme: 'high-contrast',
+  vanillaLook: false,
   newVersionsLighting: false,
   chatSelect: true,
   autoJump: 'auto' as 'auto' | 'always' | 'never',
@@ -250,12 +250,6 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
       ['auto', 'Auto'],
       ['blue', 'Blue'],
       ['classic', 'Classic']
-    ]
-  },
-  shadingTheme: {
-    possibleValues: [
-      ['high-contrast', 'High Contrast'],
-      ['vanilla', 'Vanilla']
     ]
   },
   wysiwygSignEditor: {

@@ -68,6 +68,9 @@ export const guiOptionsScheme: {
       activeRenderer: {
         text: 'Renderer',
       },
+      vanillaLook: {
+        tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
+      },
     },
     {
       custom () {
@@ -77,7 +80,6 @@ export const guiOptionsScheme: {
         text: 'Day Cycle',
       },
       smoothLighting: {},
-      shadingTheme: {},
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
       },

@@ -156,8 +156,11 @@ export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
               : (currentIndex + 1) % possibleValues.length
             options[item.id] = getOptionValue(possibleValues[nextIndex])
           }
+        } else if (possibleValues && possibleValues.length === 1) {
+          // Only one choice: keep it (do not use boolean ! which breaks string/enum values)
+          options[item.id] = getOptionValue(possibleValues[0])
         } else {
-          // Boolean toggle or single value
+          // Boolean toggle
           options[item.id] = !options[item.id]
         }
       }
