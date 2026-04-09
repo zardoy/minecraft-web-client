@@ -126,15 +126,13 @@ export function buildItemMapper (version: string) {
 
 // ----- Texture config – delegates GUI lookups to inventoryBundledConfig -----
 
-const REMOTE_ASSETS = 'https://raw.githubusercontent.com/zardoy/mc-assets/refs/heads/gh-pages/1.21.11/textures'
-
 export const textureConfig = {
   getGuiTextureUrl: (path: string) => inventoryBundledConfig.getGuiTextureUrl(path),
-  getItemTextureUrl (item: ItemStack) {
-    return `${REMOTE_ASSETS}/item/${item.name ?? item.type}.png`
+  getItemTextureUrl (_item: ItemStack) {
+    return ''
   },
-  getBlockTextureUrl (item: ItemStack) {
-    return `${REMOTE_ASSETS}/block/${item.name ?? item.type}.png`
+  getBlockTextureUrl (_item: ItemStack) {
+    return ''
   },
 }
 
