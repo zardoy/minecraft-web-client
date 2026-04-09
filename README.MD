@@ -18,7 +18,7 @@ Don't confuse this with [Eaglercraft](https://eagsrc.webmc.xyz) which is a REAL 
 
 For building the project yourself / contributing, see [Development, Debugging & Contributing](#development-debugging--contributing). For reference at what and how web technologies / frameworks are used, see [TECH.md](./TECH.md) (also for comparison with Eaglercraft).
 
-> **Note**: You can deploy it on your own server in less than a minute using a one-liner script from the [Minecraft Everywhere repo](https://github.com/zardoy/minecraft-everywhere).
+> **Note**: See [Self-hosting & proxy](#servers--proxy) for Docker, proxy-only setups, and a one-liner VPS script with [Minecraft Everywhere](https://github.com/zardoy/minecraft-everywhere).
 
 ### Big Features
 
@@ -78,15 +78,9 @@ Whatever offline mode you used (zip, folder, just singleplayer), you can always 
 
 ### Servers & Proxy
 
-You can play almost on any Java server, vanilla servers are fully supported.
-See the [Mineflayer](https://github.com/PrismarineJS/mineflayer) repo for the list of supported versions (should support majority of versions).
-There is a built-in proxy, but you can also host your own! Just clone the repo, run `pnpm i` (see CONTRIBUTING.MD) and run `pnpm prod-start`, then you can specify `http://localhost:8080` in the proxy field. You can also deploy it to a cloud service:
+You can play on almost any Java server; vanilla servers are fully supported. See the [Mineflayer](https://github.com/PrismarineJS/mineflayer) repo for supported protocol versions.
 
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?name=minecraft-web-client&type=git&repository=zardoy%2Fminecraft-web-client&branch=next&builder=dockerfile&env%5B%5D=&ports=8080%3Bhttp%3B%2F)
-
-> **Note**: If you want to make **your own** Minecraft server accessible to web clients (without our proxies), you can use [mwc-proxy](https://github.com/zardoy/mwc-proxy) - a lightweight JS WebSocket proxy that runs on the same server as your Minecraft server, allowing players to connect directly via `wss://play.example.com`. `?client_mcraft` is added to the URL, so the proxy will know that it's this client.
-
-Proxy servers are used to connect to Minecraft servers that use the TCP protocol. When you connect to a server with a proxy, a WebSocket connection is created between you (browser client) and the proxy server; then the proxy connects to the Minecraft server and sends the data to the client (you) without any packet deserialization to avoid additional delays. That said all Minecraft protocol packets are processed by the client, right in your browser.
+**How it works:** browsers speak WebSockets; Minecraft Java uses TCP. A **proxy** bridges the two. When you connect with a proxy URL enabled, your browser talks to the proxy over WebSocket **using the proxy's IP**; the proxy opens a TCP connection to the Minecraft server and forwards bytes without deserializing packets. All protocol handling still runs in the browser (Mineflayer in the client).
 
 ```mermaid
 graph LR
@@ -101,12 +95,29 @@ So if the server is located in Europe and you are connecting from Europe, you wi
 
 Again, the proxy server is not a part of the client, it is a separate service that you can host yourself.
 
-### Docker Files
+#### Self-hosting
 
-- [Main Dockerfile](./Dockerfile) - for production build & offline/private usage. Includes full web-app + proxy server for connecting to Minecraft servers.
-- [Proxy Dockerfile](./Dockerfile.proxy) - for proxy server only - that one you would be able to specify in the proxy field on the client (`docker build . -f Dockerfile.proxy -t minecraft-web-proxy`)
+| What you want | What to run |
+|---------------|-------------|
+| **Full stack** (your own full game copy + bundled proxy) | This repo: local dev with `pnpm i` and `pnpm prod-start` (see [CONTRIBUTING.md](./CONTRIBUTING.md)), or **Docker** with the [main Dockerfile](./Dockerfile) below. |
+| **Proxy only** (keep using a public game client e.g. [mcraft.fun](https://mcraft.fun)) | Run **[mwc-proxy](https://github.com/zardoy/mwc-proxy)** somewhere that can reach your Minecraft server (often same host/VPC); follow that README for the rest. **Where to host:** your own PC or home network often behaves better than a cloud relay—some servers flag datacenter IPs like “VPN” traffic; for casual play, any reachable host is fine. **URL in the client:** paste your relay’s URL into the **proxy** field; you still have to make it reachable (reverse proxy **with SSL**, **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)**, temporary URL services like cloudflared are not recommended). **Note:** the Minecraft server sees **your relay’s public IP** on the TCP leg (the proxy → server connection). You do **not** need this web-client repo for proxy-only. |
+| **One-liner deploy on a VPS** | [Minecraft Everywhere](https://github.com/zardoy/minecraft-everywhere) provides a **one-liner** script that can deploy these variants (your own full game copy, proxy, or combined setups)—pick what you need from that repo’s instructions. |
 
-In case of using docker, you don't have to follow preparation steps from CONTRIBUTING.MD, like installing Node.js, pnpm, etc.
+Public deployments (e.g. GitHub Pages) ship without your private TCP endpoint; for your own server you still point the client at **your** proxy (e.g. mwc-proxy or a stack you deployed with the script above).
+
+**Koyeb (full app from this repo):**
+
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?name=minecraft-web-client&type=git&repository=zardoy%2Fminecraft-web-client&branch=next&builder=dockerfile&env%5B%5D=&ports=8080%3Bhttp%3B%2F)
+
+> **mwc-proxy vs this repo’s proxy:** [mwc-proxy](https://github.com/zardoy/mwc-proxy) is the lightweight standalone WebSocket→TCP bridge you run next to your world. This repo can embed a compatible proxy in `prod-start` / Docker. For “I only need a relay for the hosted client,” use mwc-proxy.
+
+### Docker (self-hosted)
+
+Use Docker when you want a reproducible install without local Node/pnpm setup (see [CONTRIBUTING.md](./CONTRIBUTING.md) only if you build from source).
+
+**[Dockerfile](./Dockerfile)** — production image: **your own full game copy (web client) + proxy** in one process. Good when you host the full stack yourself.
+
+For **proxy only**, use **[mwc-proxy](https://github.com/zardoy/mwc-proxy)** (including its Docker options) instead of maintaining a second image in this repo.
 
 ### Rendering
 
