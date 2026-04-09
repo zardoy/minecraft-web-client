@@ -78,6 +78,7 @@ export const contro = new ControMax({
       zoom: ['KeyC'],
       viewerConsole: ['Backquote'],
       togglePerspective: ['F5', 'Up'],
+      takeScreenshot: ['F2'],
     },
     ui: {
       toggleFullscreen: ['F11'],
@@ -144,6 +145,22 @@ const setSprinting = (state: boolean) => {
 
 const isSpectatingEntity = () => {
   return appViewer.playerState.utils.isSpectatingEntity()
+}
+
+let lastScreenshotAt = 0
+const screenshotRepeatCooldownMs = 500
+
+export const takeScreenshotAction = () => {
+  const now = Date.now()
+  if (now - lastScreenshotAt < screenshotRepeatCooldownMs) return
+  lastScreenshotAt = now
+  const canvas = document.getElementById('viewer-canvas') as HTMLCanvasElement | null
+  if (!canvas) return
+  const link = document.createElement('a')
+  link.href = canvas.toDataURL('image/png')
+  const date = new Date()
+  link.download = `screenshot ${date.toLocaleString().replaceAll('.', '-').replace(',', '')}.png`
+  link.click()
 }
 
 contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
@@ -488,6 +505,13 @@ const isCommandAvailableAfterDisconnect = (command: Command) => {
 
 contro.on('trigger', ({ command }) => {
   if (isCommandDisabled(command)) return
+
+  if (command === 'general.takeScreenshot') {
+    if (isGameActive(true)) {
+      takeScreenshotAction()
+    }
+    return
+  }
 
   const willContinue = !isGameActive(true)
   alwaysPressedHandledCommand(command)
@@ -867,18 +891,6 @@ window.addEventListener('keydown', (e) => {
   } else {
     document.dispatchEvent(new Event('pointerlockchange'))
   }
-})
-
-window.addEventListener('keydown', (e) => {
-  if (e.code !== 'F2' || e.repeat || !isGameActive(true)) return
-  e.preventDefault()
-  const canvas = document.getElementById('viewer-canvas') as HTMLCanvasElement
-  if (!canvas) return
-  const link = document.createElement('a')
-  link.href = canvas.toDataURL('image/png')
-  const date = new Date()
-  link.download = `screenshot ${date.toLocaleString().replaceAll('.', '-').replace(',', '')}.png`
-  link.click()
 })
 
 window.addEventListener('keydown', (e) => {
