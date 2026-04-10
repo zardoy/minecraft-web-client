@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useMemo, useCallback, useRef, useState } from 'react'
+import { useEffect, useMemo, useCallback, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import {
   TextureProvider,
@@ -15,48 +15,11 @@ import { useAppScale } from '../../scaleInterface'
 import { activeModalStack, hideCurrentModal } from '../../globalState'
 import { options } from '../../optionsStorage'
 import { getJeiItems, getItemRecipes, getItemUsages } from '../../inventoryWindows'
-import { modelViewerState } from '../OverlayModelViewer'
+import { PlayerModelViewer } from './PlayerModelViewer'
 import { buildItemMapper, textureConfig, clearInventoryCaches, formatWindowTitle } from './sharedConnectorSetup'
 
 export { clearInventoryCaches } from './sharedConnectorSetup'
 
-// ----- Entity model bridge -----
-
-function InventoryEntityBridge ({ width, height }: { width: number; height: number }) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-
-    const rect = el.getBoundingClientRect()
-    const skinUrl = (appViewer?.playerState?.reactive as any)?.playerSkin ?? ''
-
-    modelViewerState.model = {
-      steveModelSkin: skinUrl,
-      positioning: {
-        windowWidth: window.innerWidth,
-        windowHeight: window.innerHeight,
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height,
-      },
-      zIndex: 1001,
-      followCursor: true,
-      followCursorCenter: {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      },
-    }
-
-    return () => {
-      modelViewerState.model = undefined
-    }
-  }, [width, height])
-
-  return <div ref={ref} style={{ width: '100%', height: '100%' }} />
-}
 
 // ----- Inventory component -----
 
@@ -149,7 +112,7 @@ export const Inventory = () => {
   }, [connector])
 
   const renderEntity = useCallback((w: number, h: number) => {
-    return <InventoryEntityBridge width={w} height={h} />
+    return <PlayerModelViewer width={w} height={h} />
   }, [])
 
   if (!inventoryType || !connector) return null
