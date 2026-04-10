@@ -63,6 +63,13 @@ function InventoryEntityBridge ({ width, height }: { width: number; height: numb
 export const Inventory = () => {
   const appScale = useAppScale()
   const [textureVersion, setTextureVersion] = useState(0)
+  const [gameMode, setGameMode] = useState(bot.game?.gameMode ?? '')
+
+  useEffect(() => {
+    const onGame = () => setGameMode(bot.game.gameMode)
+    bot.on('game', onGame)
+    return () => { bot.removeListener('game', onGame) }
+  }, [])
 
   const modalStack = useSnapshot(activeModalStack) as Array<{ reactType: string }>
   const activeInvModal = useMemo(
@@ -119,6 +126,23 @@ export const Inventory = () => {
     [],
   )
 
+  const handleJeiItemGive = useCallback((item: JEIItem, count: number) => {
+    if (!item.type || !loadedData.items[item.type]) return
+    const PrismarineItem = require('prismarine-item')(bot.version)
+    const pItem = new PrismarineItem(item.type, count, item.metadata ?? 0)
+    const freeSlot = bot.inventory.firstEmptyInventorySlot()
+    if (freeSlot === null) return
+    bot._client.write('set_creative_slot', {
+      slot: freeSlot,
+      item: PrismarineItem.toNotch(pItem)
+    })
+    // @ts-expect-error _setSlot is private
+    bot._setSlot(freeSlot, pItem)
+  }, [])
+
+  const handleJeiItemClick = useCallback((item: JEIItem) => handleJeiItemGive(item, 1), [handleJeiItemGive])
+  const handleJeiItemRightClick = useCallback((item: JEIItem) => handleJeiItemGive(item, 64), [handleJeiItemGive])
+
   const handleClose = useCallback(() => {
     connector?.sendAction({ type: 'close' })
     hideCurrentModal()
@@ -141,6 +165,8 @@ export const Inventory = () => {
               jeiItems={jeiEnabled ? jeiItems : []}
               jeiOnGetRecipes={handleGetRecipes}
               jeiOnGetUsages={handleGetUsages}
+              jeiOnItemClick={gameMode === 'creative' ? handleJeiItemClick : undefined}
+              jeiOnItemRightClick={gameMode === 'creative' ? handleJeiItemRightClick : undefined}
               onClose={handleClose}
               renderEntity={renderEntity}
               enableNotes
