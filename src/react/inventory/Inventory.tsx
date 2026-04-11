@@ -74,6 +74,7 @@ export const Inventory = () => {
 
   const jeiEnabled = options.jeiEnabled === true
     || (Array.isArray(options.jeiEnabled) && options.jeiEnabled.includes(bot.game?.gameMode as any))
+  const { inventoryNotesEnabled } = options
 
   const jeiItems = useMemo(
     (): JEIItem[] => (inventoryType && jeiEnabled ? getJeiItems() : []),
@@ -132,7 +133,7 @@ export const Inventory = () => {
               jeiOnItemRightClick={gameMode === 'creative' ? handleJeiItemRightClick : undefined}
               onClose={handleClose}
               renderEntity={renderEntity}
-              enableNotes
+              enableNotes={inventoryNotesEnabled}
             />
           </InventoryProvider>
         </ScaleProvider>

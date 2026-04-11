@@ -59,6 +59,7 @@ export const defaultOptions = {
   // todo ui setting, maybe enable by default?
   waitForChunksRender: false as 'sp-only' | boolean,
   jeiEnabled: true as boolean | Array<'creative' | 'survival' | 'adventure' | 'spectator'>,
+  inventoryNotesEnabled: true as boolean,
   modsSupport: false,
   modsAutoUpdate: 'check' as 'check' | 'never' | 'always',
   modsUpdatePeriodCheck: 24, // hours
