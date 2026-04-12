@@ -1,4 +1,4 @@
-import { proxy } from 'valtio'
+import { proxy, subscribe } from 'valtio'
 
 import { RecipeItem } from 'minecraft-data'
 import { flat } from '@xmcl/text-component'
@@ -23,6 +23,11 @@ let PrismarineItem: typeof Item
 export const jeiCustomCategories = proxy({
   value: [] as Array<{ id: string, categoryTitle: string, items: any[] }>
 })
+
+// ----- JEI items cache -----
+let jeiItemsCache: JEIItem[] | null = null
+const clearJeiItemsCache = () => { jeiItemsCache = null }
+subscribe(jeiCustomCategories, clearJeiItemsCache)
 
 export const onGameLoad = () => {
   PrismarineItem = PItem(bot.version)
@@ -116,8 +121,8 @@ export const onGameLoad = () => {
 
   if (!appViewer.resourcesManager['_inventoryChangeTracked']) {
     appViewer.resourcesManager['_inventoryChangeTracked'] = true
-    appViewer.resourcesManager.on('assetsInventoryReady', () => clearInventoryCaches())
-    appViewer.resourcesManager.on('assetsTexturesUpdated', () => clearInventoryCaches())
+    appViewer.resourcesManager.on('assetsInventoryReady', () => { clearJeiItemsCache(); clearInventoryCaches() })
+    appViewer.resourcesManager.on('assetsTexturesUpdated', () => { clearJeiItemsCache(); clearInventoryCaches() })
   }
 }
 
@@ -360,6 +365,7 @@ export const getItemUsages = (itemName: string): RecipeGuide[] => {
  * Items are enriched with texture/blockTexture data from the rendering pipeline.
  */
 export const getJeiItems = (): JEIItem[] => {
+  if (jeiItemsCache) return jeiItemsCache
   if (!PrismarineItem) return []
 
   const customItems: JEIItem[] = jeiCustomCategories.value.flatMap(cat => (cat.items).filter(Boolean).map(item => ({
@@ -403,5 +409,6 @@ export const getJeiItems = (): JEIItem[] => {
     }
   }
 
+  jeiItemsCache = allItems
   return allItems
 }

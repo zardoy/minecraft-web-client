@@ -76,9 +76,25 @@ export const Inventory = () => {
     || (Array.isArray(options.jeiEnabled) && options.jeiEnabled.includes(bot.game?.gameMode as any))
   const { inventoryNotesEnabled } = options
 
+  // Defer JEI mount by 2 animation frames so the inventory window appears first
+  const [jeiReady, setJeiReady] = useState(false)
+  useEffect(() => {
+    if (!inventoryType || !jeiEnabled) {
+      setJeiReady(false)
+      return
+    }
+    let cancelled = false
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setJeiReady(true)
+      })
+    })
+    return () => { cancelled = true }
+  }, [!!inventoryType, jeiEnabled])
+
   const jeiItems = useMemo(
-    (): JEIItem[] => (inventoryType && jeiEnabled ? getJeiItems() : []),
-    [!!inventoryType, jeiEnabled],
+    (): JEIItem[] => (jeiReady ? getJeiItems() : []),
+    [jeiReady],
   )
 
   const handleGetRecipes = useCallback(
@@ -125,8 +141,8 @@ export const Inventory = () => {
           <InventoryProvider connector={connector} noPlaceholders>
             <InventoryOverlay
               type={inventoryType}
-              showJEI={jeiEnabled}
-              jeiItems={jeiEnabled ? jeiItems : []}
+              showJEI={jeiEnabled && jeiReady}
+              jeiItems={jeiReady ? jeiItems : []}
               jeiOnGetRecipes={handleGetRecipes}
               jeiOnGetUsages={handleGetUsages}
               jeiOnItemClick={gameMode === 'creative' ? handleJeiItemClick : undefined}
