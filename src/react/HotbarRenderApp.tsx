@@ -15,6 +15,7 @@ import { useAppScale } from '../scaleInterface'
 import { getItemNameRaw } from '../mineflayer/items'
 import { isInRealGameSession } from '../utils'
 import { triggerCommand } from '../controls'
+import { openPlayerInventory } from '../inventoryWindows'
 import MessageFormattedString from './MessageFormattedString'
 import SharedHudVars from './SharedHudVars'
 import { textureConfig, buildItemMapper, clearInventoryCaches } from './inventory/sharedConnectorSetup'
@@ -95,6 +96,16 @@ const HotbarInner = () => {
       hotbarOnly: true,
     })
   }, [textureVersion])
+
+  // Listen for the hotbar connector's 'open-inventory' action → open the real inventory modal.
+  // The hotbar connector (hotbarOnly:true) only emits windowOpen via sendAction({type:'open-inventory'}).
+  useEffect(() => {
+    return connector.subscribe((event) => {
+      if (event.type === 'windowOpen') {
+        openPlayerInventory()
+      }
+    })
+  }, [connector])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -179,8 +190,31 @@ const HotbarInner = () => {
           className='hotbar'
           style={{
             position: 'absolute',
-            pointerEvents: 'none',
+            pointerEvents: isMobile ? 'auto' : 'none',
             bottom: 'var(--hud-bottom-raw)',
+          }}
+          onTouchStart={(e) => {
+            (e.currentTarget as any)._touchStart = Date.now()
+          }}
+          onTouchEnd={(e) => {
+            const startTime = (e.currentTarget as any)._touchStart
+            if (!startTime || Date.now() - startTime > 300) return // Only quick taps
+
+            const target = e.target as HTMLElement
+            if (target.closest('.mc-inv-hotbar-open-inv') || target.closest('.mc-inv-hotbar-offhand')) return
+
+            const rect = e.currentTarget.getBoundingClientRect()
+            const touchX = e.changedTouches[0].clientX - rect.left
+            const touchY = e.changedTouches[0].clientY - rect.top
+
+            if (touchX < 0 || touchX > rect.width) return
+            if (touchY < 0 || touchY > rect.height) return
+
+            const slotWidth = rect.width / 9
+            const slot = Math.min(8, Math.max(0, Math.floor(touchX / slotWidth)))
+            if (slot !== bot.quickBarSlot) {
+              bot.setQuickBarSlot(slot)
+            }
           }}
         >
           <TextureProvider config={textureConfig}>
