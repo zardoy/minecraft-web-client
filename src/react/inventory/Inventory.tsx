@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useMemo, useCallback, useState } from 'react'
 import { useSnapshot } from 'valtio'
+import PItem from 'prismarine-item'
 import {
   TextureProvider,
   ScaleProvider,
@@ -44,9 +45,19 @@ export const Inventory = () => {
   // Recreate connector when textures refresh so itemMapper re-extracts sprites
   const connector = useMemo(() => {
     if (!inventoryType) return null
+    const Item = PItem(bot.version)
     return createMineflayerConnector(bot as MineflayerBot, {
       itemMapper: buildItemMapper(bot.version),
       formatTitle: formatWindowTitle,
+      computeAnvilCost: (item1, item2) => {
+        if (!item1) return null
+        try {
+          const result = Item.anvil(item1 as any, item2 as any, bot.game.gameMode === 'creative', undefined)
+          return result.xpCost
+        } catch (e) {
+          return null
+        }
+      },
     })
   }, [textureVersion, !!inventoryType])
 
