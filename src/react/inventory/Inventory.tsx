@@ -149,7 +149,11 @@ export const Inventory = () => {
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
       <TextureProvider config={textureConfig}>
         <ScaleProvider scale={appScale}>
-          <InventoryProvider connector={connector} noPlaceholders>
+          <InventoryProvider
+            connector={connector}
+            noPlaceholders
+            resolveEnchantmentName={(id) => (globalThis as any).loadedData?.enchantments?.[id]?.displayName}
+          >
             <InventoryOverlay
               type={inventoryType}
               showJEI={jeiEnabled && jeiReady}
