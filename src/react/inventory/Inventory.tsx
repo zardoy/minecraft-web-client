@@ -49,7 +49,7 @@ export const Inventory = () => {
     return createMineflayerConnector(bot as MineflayerBot, {
       itemMapper: buildItemMapper(bot.version),
       formatTitle: formatWindowTitle,
-      computeAnvilCost: (item1, item2) => {
+      computeAnvilCost (item1, item2) {
         if (!item1) return null
         try {
           const result = Item.anvil(item1 as any, item2 as any, bot.game.gameMode === 'creative', undefined)
@@ -83,9 +83,11 @@ export const Inventory = () => {
     }
   }, [])
 
-  const jeiEnabled = options.jeiEnabled === true
-    || (Array.isArray(options.jeiEnabled) && options.jeiEnabled.includes(bot.game?.gameMode as any))
-  const { inventoryNotesEnabled } = options
+  const jeiEnabled = options.inventoryJei === true
+    || (Array.isArray(options.inventoryJei) && options.inventoryJei.includes(bot.game?.gameMode as any))
+  const inventoryNotesEnabled = options.inventoryNotes
+  const inventoryPlaceholdersEnabled = options.inventoryPlaceholders
+  const inventoryPlayerModelEnabled = options.inventoryPlayerModel
 
   // Defer JEI mount by 2 animation frames so the inventory window appears first
   const [jeiReady, setJeiReady] = useState(false)
@@ -151,7 +153,7 @@ export const Inventory = () => {
         <ScaleProvider scale={appScale}>
           <InventoryProvider
             connector={connector}
-            noPlaceholders
+            noPlaceholders={!inventoryPlaceholdersEnabled}
             resolveEnchantmentName={(id) => (globalThis as any).loadedData?.enchantments?.[id]?.displayName}
           >
             <InventoryOverlay
@@ -163,7 +165,7 @@ export const Inventory = () => {
               jeiOnItemClick={gameMode === 'creative' ? handleJeiItemClick : undefined}
               jeiOnItemRightClick={gameMode === 'creative' ? handleJeiItemRightClick : undefined}
               onClose={handleClose}
-              renderEntity={renderEntity}
+              renderEntity={inventoryPlayerModelEnabled ? renderEntity : undefined}
               enableNotes={inventoryNotesEnabled}
             />
           </InventoryProvider>

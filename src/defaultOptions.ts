@@ -58,8 +58,10 @@ export const defaultOptions = {
   preciseMouseInput: false,
   // todo ui setting, maybe enable by default?
   waitForChunksRender: false as 'sp-only' | boolean,
-  jeiEnabled: true as boolean | Array<'creative' | 'survival' | 'adventure' | 'spectator'>,
-  inventoryNotesEnabled: true as boolean,
+  inventoryJei: true as boolean | Array<'creative' | 'survival' | 'adventure' | 'spectator'>,
+  inventoryNotes: true as boolean,
+  inventoryPlaceholders: false,
+  inventoryPlayerModel: true,
   modsSupport: false,
   modsAutoUpdate: 'check' as 'check' | 'never' | 'always',
   modsUpdatePeriodCheck: 24, // hours
