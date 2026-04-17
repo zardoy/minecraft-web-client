@@ -13,7 +13,7 @@ import {
   type RecipeGuide,
 } from 'minecraft-inventory/src'
 import { useAppScale } from '../../scaleInterface'
-import { activeModalStack, hideCurrentModal } from '../../globalState'
+import { activeModalStack, hideCurrentModal, openOptionsMenu } from '../../globalState'
 import { options } from '../../optionsStorage'
 import { getJeiItems, getItemRecipes, getItemUsages } from '../../inventoryWindows'
 import { PlayerModelViewer } from './PlayerModelViewer'
@@ -41,6 +41,8 @@ export const Inventory = () => {
     [modalStack],
   )
   const inventoryType = activeInvModal?.reactType.replace('player_win:', '') ?? null
+  // Hide inventory overlay when another modal (e.g. settings) is stacked on top
+  const isInventoryOnTop = modalStack.at(-1)?.reactType === activeInvModal?.reactType
 
   // Recreate connector when textures refresh so itemMapper re-extracts sprites
   const connector = useMemo(() => {
@@ -148,7 +150,7 @@ export const Inventory = () => {
   if (!inventoryType || !connector) return null
 
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: isInventoryOnTop ? undefined : 'none' }}>
       <TextureProvider config={textureConfig}>
         <ScaleProvider scale={appScale}>
           <InventoryProvider
@@ -167,6 +169,7 @@ export const Inventory = () => {
               onClose={handleClose}
               renderEntity={inventoryPlayerModelEnabled ? renderEntity : undefined}
               enableNotes={inventoryNotesEnabled}
+              onOpenSettings={() => openOptionsMenu('inventory')}
             />
           </InventoryProvider>
         </ScaleProvider>
