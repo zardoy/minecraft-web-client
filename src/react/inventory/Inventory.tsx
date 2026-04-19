@@ -109,7 +109,7 @@ export const Inventory = () => {
 
   const jeiItems = useMemo(
     (): JEIItem[] => (jeiReady ? getJeiItems() : []),
-    [jeiReady],
+    [jeiReady, textureVersion],
   )
 
   const handleGetRecipes = useCallback(
