@@ -120,7 +120,7 @@ export function buildItemMapper (version: string) {
         displayName,
         texture,
         blockTexture,
-        durability: (slot.maxDurability != null && slot.durabilityUsed != null)
+        durability: (typeof slot.maxDurability === 'number' && typeof slot.durabilityUsed === 'number')
           ? slot.maxDurability - slot.durabilityUsed
           : undefined,
         maxDurability: (slot.maxDurability ?? undefined) as number | undefined,
@@ -148,7 +148,7 @@ export const textureConfig = {
 
 /** Parse a raw window title (JSON string, NBT object, or plain text) into a readable string. */
 export function formatWindowTitle (rawTitle: any): string {
-  if (rawTitle == null) return ''
+  if (rawTitle === null || rawTitle === undefined) return ''
   if (typeof rawTitle === 'string') {
     // Try to parse JSON text component
     if (rawTitle.startsWith('{') || rawTitle.startsWith('"')) {

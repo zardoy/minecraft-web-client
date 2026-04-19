@@ -774,7 +774,21 @@ export default () => {
             )
           })()
         ) : null}
-        {model.steveModelSkin !== undefined ? (
+        {model.steveModelSkin === undefined ? (
+          <div
+            ref={containerRef}
+            className='overlay-model-viewer'
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width,
+              height,
+              pointerEvents: 'auto',
+              backgroundColor: model.debug ? 'red' : undefined,
+            }}
+          />
+        ) : (
           <div
             className='overlay-model-viewer'
             style={{
@@ -793,20 +807,6 @@ export default () => {
               computeNormalized={computeNormalizedFromClient}
             />
           </div>
-        ) : (
-          <div
-            ref={containerRef}
-            className='overlay-model-viewer'
-            style={{
-              position: 'absolute',
-              left: x,
-              top: y,
-              width,
-              height,
-              pointerEvents: 'auto',
-              backgroundColor: model.debug ? 'red' : undefined,
-            }}
-          />
         )}
       </div>
     </div>

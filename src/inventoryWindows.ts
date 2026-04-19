@@ -385,7 +385,7 @@ export const getJeiItems = (): JEIItem[] => {
   // Enrich items with texture data if the rendering pipeline is available
   if (!appViewer?.resourcesManager?.currentResources) return allItems
 
-  const resourcesManager = appViewer.resourcesManager
+  const { resourcesManager } = appViewer
   const playerState = appViewer.playerState?.reactive
   if (!playerState) return allItems
 
