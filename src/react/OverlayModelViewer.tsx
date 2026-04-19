@@ -1,5 +1,5 @@
 import { proxy, useSnapshot, subscribe } from 'valtio'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
@@ -154,6 +154,7 @@ export const PlayerModelCanvas = ({
   computeNormalized?: (clientX: number, clientY: number) => { normalizedX: number; normalizedY: number }
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [skinReady, setSkinReady] = useState(false)
   const playerObjectRef = useRef<PlayerObjectType | null>(null)
   const sceneRef = useRef<{
     renderer: THREE.WebGLRenderer
@@ -281,7 +282,10 @@ export const PlayerModelCanvas = ({
     const playerObject = playerObjectRef.current
     const s = sceneRef.current
     if (!playerObject || !s) return
-    void applySkinToPlayerObject(playerObject, skinUrl).then(s.render)
+    void applySkinToPlayerObject(playerObject, skinUrl).then(() => {
+      s.render()
+      setSkinReady(true)
+    })
   }, [skinUrl])
 
   // Propagate size changes to the running renderer
@@ -294,7 +298,7 @@ export const PlayerModelCanvas = ({
     s.render()
   }, [width, height])
 
-  return <div ref={containerRef} style={{ width, height, overflow: 'hidden', pointerEvents: 'auto' }} />
+  return <div ref={containerRef} style={{ width, height, overflow: 'hidden', pointerEvents: 'auto', visibility: skinReady ? 'visible' : 'hidden' }} />
 }
 
 export default () => {
