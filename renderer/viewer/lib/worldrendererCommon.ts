@@ -47,6 +47,8 @@ export const defaultWorldRendererConfig = {
   // Rendering engine settings
   dayCycle: true,
   smoothLighting: true,
+  shadingTheme: 'high-contrast',
+  cardinalLight: 'default',
   enableLighting: true,
   starfield: true,
   defaultSkybox: true,
@@ -171,6 +173,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
   soundSystem: SoundSystem | undefined
 
   abstract changeBackgroundColor (color: [number, number, number]): void
+  abstract changeCardinalLight (string): void
 
   worldRendererConfig: WorldRendererConfig
   playerStateReactive: PlayerStateReactive
@@ -343,6 +346,9 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
   watchReactivePlayerState () {
     this.onReactivePlayerStateUpdated('backgroundColor', (value) => {
       this.changeBackgroundColor(value)
+    })
+    this.onReactivePlayerStateUpdated('cardinalLight', (value) => {
+      this.changeCardinalLight(value)
     })
   }
 
@@ -572,6 +578,8 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       enableLighting: this.worldRendererConfig.enableLighting,
       skyLight,
       smoothLighting: this.worldRendererConfig.smoothLighting,
+      shadingTheme: this.worldRendererConfig.shadingTheme,
+      cardinalLight: this.worldRendererConfig.cardinalLight,
       outputFormat: this.outputFormat,
       // textureSize: this.resourcesManager.currentResources!.blocksAtlasParser.atlas.latest.width,
       debugModelVariant: this.worldRendererConfig.debugModelVariant,

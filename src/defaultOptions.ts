@@ -103,6 +103,7 @@ export const defaultOptions = {
   showCursorBlockInSpectator: false,
   renderEntities: true,
   smoothLighting: true,
+  vanillaLook: false,
   newVersionsLighting: false,
   chatSelect: true,
   autoJump: 'auto' as 'auto' | 'always' | 'never',

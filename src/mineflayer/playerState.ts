@@ -53,6 +53,14 @@ export class PlayerStateControllerMain {
         hasSkyLight = data.dimension.value.has_skylight.value
       } catch {}
       this.reactive.lightingDisabled = bot.game.dimension === 'the_nether' || bot.game.dimension === 'the_end' || !hasSkyLight
+      let cardinalLight = 'default'
+      try {
+        cardinalLight = data.dimension.value.effects.value === 'minecraft:the_nether' ? 'nether' : 'default'
+      } catch {}
+      try {
+        cardinalLight = data.dimension.value.cardinal_light.value //servers after 1.21.11, untested
+      } catch {}
+      this.reactive.cardinalLight = cardinalLight
     }
 
     bot._client.on('login', (packet) => {

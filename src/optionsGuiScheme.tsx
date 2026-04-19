@@ -68,6 +68,9 @@ export const guiOptionsScheme: {
       activeRenderer: {
         text: 'Renderer',
       },
+      vanillaLook: {
+        tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
+      },
     },
     {
       custom () {
