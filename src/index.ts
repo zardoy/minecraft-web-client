@@ -833,7 +833,7 @@ export async function connect (connectOptions: ConnectOptions) {
       console.log('bot spawned - starting viewer')
       await appViewer.startWorld(bot.world, renderDistance)
       if (appViewer.backend) {
-        void appViewer.worldView!.init(bot.entity.position)
+        void appViewer.worldView!.init(bot.entity.position, bot)
       }
 
       initMotionTracking()
