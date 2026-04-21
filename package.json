@@ -20,7 +20,7 @@
     "test:e2e": "start-test http-get://localhost:8080 test:cypress",
     "prod-start": "node server.js --prod",
     "test-mc-server": "tsx cypress/minecraft-server.mjs",
-    "lint": "eslint \"{src,cypress,renderer}/**/*.{ts,js,jsx,tsx}\"",
+    "lint": "eslint \"{src,cypress}/**/*.{ts,js,jsx,tsx}\"",
     "lint-fix": "pnpm lint --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build && node scripts/build.js moveStorybookFiles",
@@ -79,7 +79,8 @@
     "jszip": "^3.10.1",
     "lodash-es": "^4.17.21",
     "mcraft-fun-mineflayer": "^0.1.23",
-    "minecraft-data": "3.106.0",
+    "minecraft-data": "0.0.0",
+    "minecraft-inventory": "^0.1.37",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
     "minecraft-renderer": "^0.1.34",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
@@ -148,9 +149,8 @@
     "http-server": "^14.1.1",
     "https-browserify": "^1.0.0",
     "mc-assets": "^0.2.72",
-    "minecraft-inventory-gui": "github:zardoy/minecraft-inventory-gui#next",
-    "mineflayer": "github:zardoy/mineflayer#gen-the-master",
-    "mineflayer-mouse": "^0.1.26",
+    "mineflayer": "0.0.0",
+    "mineflayer-mouse": "0.1.28",
     "npm-run-all": "^4.1.5",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
@@ -215,7 +215,7 @@
     "patchedDependencies": {
       "pixelarticons@1.8.1": "patches/pixelarticons@1.8.1.patch",
       "mineflayer-item-map-downloader@1.2.0": "patches/mineflayer-item-map-downloader@1.2.0.patch",
-      "minecraft-protocol": "patches/minecraft-protocol.patch"
+      "minecraft-protocol": "patches/minecraft-protocol@1.66.0.patch"
     },
     "ignoredBuiltDependencies": [
       "canvas",

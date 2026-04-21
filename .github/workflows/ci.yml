@@ -32,6 +32,7 @@ jobs:
           cp -r dist package/
           cd package
           zip -r ../self-host.zip .
+      # - run: pnpm build-storybook
       - run: pnpm test-unit
       - run: pnpm lint
 

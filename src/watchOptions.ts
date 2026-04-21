@@ -108,6 +108,10 @@ export const watchOptionsAfterViewerInit = () => {
     appViewer.inWorldRenderingConfig.smoothLighting = options.smoothLighting
   })
 
+  watchValue(options, o => {
+    appViewer.inWorldRenderingConfig.shadingTheme = o.vanillaLook ? 'vanilla' : 'high-contrast'
+  })
+
   subscribeKey(options, 'newVersionsLighting', () => {
     appViewer.inWorldRenderingConfig.enableLighting = !bot.supportFeature('blockStateId') || options.newVersionsLighting
   })

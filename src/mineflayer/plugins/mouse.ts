@@ -45,7 +45,9 @@ function cursorBlockDisplay (bot: Bot) {
 }
 
 export default (bot: Bot) => {
-  bot.loadPlugin(createMouse({}))
+  bot.loadPlugin(createMouse({
+    useMineflayerInteractMethods: false,
+  }))
 
   domListeners(bot)
   cursorBlockDisplay(bot)

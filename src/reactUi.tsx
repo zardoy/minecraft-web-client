@@ -75,6 +75,7 @@ import AllSettingsEditor from './react/AllSettingsEditor'
 import { isPlayground, urlParams } from './playgroundIntegration'
 import { withInjectableUi } from './react/extendableSystem'
 import { hadReactUiRegistered } from './clientMods'
+import { Inventory } from './react/inventory/Inventory'
 
 const isFirefox = ua.getBrowser().name === 'Firefox'
 if (isFirefox) {
@@ -204,6 +205,7 @@ const InGameUi = () => {
     <PerComponentErrorBoundary>
       <SignEditorProvider />
       <DisplayQr />
+      <Inventory />
     </PerComponentErrorBoundary>
     <RobustPortal to={document.body}>
       {displayFullmap && <MinimapProvider adapter={adapter} displayMode='fullmapOnly' />}
