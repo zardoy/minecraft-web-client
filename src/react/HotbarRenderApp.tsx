@@ -1,16 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
-import { subscribe, useSnapshot } from 'valtio'
-import { openItemsCanvas, upInventoryItems } from '../inventoryWindows'
-import { activeModalStack, isGameActive, miscUiState } from '../globalState'
-import { currentScaling } from '../scaleInterface'
-import { watchUnloadForCleanup } from '../gameUnload'
+import { useSnapshot } from 'valtio'
+import {
+  TextureProvider,
+  ScaleProvider,
+  InventoryProvider,
+  InventoryWindow,
+  createMineflayerConnector,
+  type MineflayerBot,
+} from 'minecraft-inventory/src'
+import { activeModalStack, miscUiState } from '../globalState'
+import { useAppScale } from '../scaleInterface'
 import { getItemNameRaw } from '../mineflayer/items'
 import { isInRealGameSession } from '../utils'
 import { triggerCommand } from '../controls'
+import { openPlayerInventory } from '../inventoryWindows'
 import MessageFormattedString from './MessageFormattedString'
 import SharedHudVars from './SharedHudVars'
+import { textureConfig, buildItemMapper, clearInventoryCaches } from './inventory/sharedConnectorSetup'
 
 export const BASE_HOTBAR_HEIGHT = 25
 
@@ -73,77 +81,36 @@ const ItemName = ({ itemKey }: { itemKey: string }) => {
 }
 
 const HotbarInner = () => {
-  const container = useRef<HTMLDivElement>(null!)
   const [itemKey, setItemKey] = useState('')
+  const [textureVersion, setTextureVersion] = useState(0)
   const hasModals = useSnapshot(activeModalStack).length
   const { currentTouch, appConfig } = useSnapshot(miscUiState)
-  const mobileOpenInventory = currentTouch && !appConfig?.disabledCommands?.includes('general.inventory')
+  const appScale = useAppScale()
+
+  const supportsOffhand = !bot.supportFeature('doesntHaveOffHandSlot')
+  const isMobile = currentTouch && !appConfig?.disabledCommands?.includes('general.inventory')
+
+  const connector = useMemo(() => {
+    return createMineflayerConnector(bot as MineflayerBot, {
+      itemMapper: buildItemMapper(bot.version),
+      hotbarOnly: true,
+    })
+  }, [textureVersion])
+
+  // Listen for the hotbar connector's 'open-inventory' action → open the real inventory modal.
+  // The hotbar connector (hotbarOnly:true) only emits windowOpen via sendAction({type:'open-inventory'}).
+  useEffect(() => {
+    return connector.subscribe((event) => {
+      if (event.type === 'windowOpen') {
+        openPlayerInventory()
+      }
+    })
+  }, [connector])
 
   useEffect(() => {
     const controller = new AbortController()
 
-    const inv = openItemsCanvas('HotbarWin', {
-      _client: {
-        write () {}
-      },
-      clickWindow (slot, mouseButton, mode) {
-        if (mouseButton === 1) {
-          console.log('right click')
-          return
-        }
-        const hotbarSlot = slot - bot.inventory.hotbarStart
-        if (hotbarSlot < 0 || hotbarSlot > 8) return
-        bot.setQuickBarSlot(hotbarSlot)
-      },
-    } as any)
-    const { canvasManager } = inv
-    inv.inventory.supportsOffhand = !bot.supportFeature('doesntHaveOffHandSlot')
-    inv.pwindow.disablePicking = true
-
-    canvasManager.children[0].disableHighlight = true
-    canvasManager.minimizedWindow = true
-    canvasManager.minimizedWindow = true
-
-    function setSize () {
-      canvasManager.setScale(currentScaling.scale)
-
-      canvasManager.windowHeight = BASE_HOTBAR_HEIGHT * canvasManager.scale
-      canvasManager.windowWidth = (210 - (inv.inventory.supportsOffhand ? 0 : 25) + (mobileOpenInventory ? 28 : 0)) * canvasManager.scale
-    }
-    setSize()
-    watchUnloadForCleanup(subscribe(currentScaling, setSize))
-    inv.canvas.style.pointerEvents = 'auto'
-    container.current.appendChild(inv.canvas)
-    const upHotbarItems = () => {
-      if (!appViewer.resourcesManager?.itemsAtlasParser) return
-      globalThis.debugHotbarItems = upInventoryItems(true, inv)
-    }
-
-    canvasManager.canvas.onclick = (e) => {
-      if (!isGameActive(true)) return
-      const pos = inv.canvasManager.getMousePos(inv.canvas, e)
-      if (canvasManager.canvas.width - pos.x < 35 * inv.canvasManager.scale && mobileOpenInventory) {
-        triggerCommand('general.inventory', true)
-        triggerCommand('general.inventory', false)
-      }
-    }
-
-    globalThis.debugUpHotbarItems = upHotbarItems
-    upHotbarItems()
-    bot.inventory.on('updateSlot', upHotbarItems)
-    appViewer.resourcesManager.on('assetsTexturesUpdated', upHotbarItems)
-    appViewer.resourcesManager.on('assetsInventoryReady', () => {
-      upHotbarItems()
-    })
-
-    const setSelectedSlot = (index: number) => {
-      if (index === bot.quickBarSlot) return
-      bot.setQuickBarSlot(index)
-      if (!bot.inventory.slots?.[bot.quickBarSlot + 36]) setItemKey('')
-    }
     const heldItemChanged = () => {
-      inv.inventory.activeHotbarSlot = bot.quickBarSlot
-
       if (!bot.inventory.slots?.[bot.quickBarSlot + 36]) {
         setItemKey('')
         return
@@ -152,49 +119,54 @@ const HotbarInner = () => {
       const itemNbt = item.nbt ? JSON.stringify(item.nbt) : ''
       setItemKey(`${item.name}_split_${item.type}_split_${item.metadata}_split_${itemNbt}_split_${JSON.stringify(item['components'] ?? [])}`)
     }
-    heldItemChanged()
+    heldItemChanged() // initial call
     bot.on('heldItemChanged' as any, heldItemChanged)
 
     document.addEventListener('wheel', (e) => {
       if (!isInRealGameSession()) return
       e.preventDefault()
       const newSlot = ((bot.quickBarSlot + Math.sign(e.deltaY)) % 9 + 9) % 9
-      setSelectedSlot(newSlot)
+      if (newSlot !== bot.quickBarSlot) bot.setQuickBarSlot(newSlot)
     }, {
       passive: false,
-      signal: controller.signal
+      signal: controller.signal,
     })
 
     document.addEventListener('keydown', (e) => {
       if (!isInRealGameSession()) return
       const numPressed = +((/Digit(\d)/.exec(e.code))?.[1] ?? -1)
       if (numPressed < 1 || numPressed > 9) return
-      setSelectedSlot(numPressed - 1)
+      const newSlot = numPressed - 1
+      if (newSlot !== bot.quickBarSlot) bot.setQuickBarSlot(newSlot)
     }, {
       passive: false,
-      signal: controller.signal
+      signal: controller.signal,
     })
 
     let touchStart = 0
     document.addEventListener('touchstart', (e) => {
-      if ((e.target as HTMLElement).closest('.hotbar')) {
-        touchStart = Date.now()
-      } else {
-        touchStart = 0
-      }
-    })
+      touchStart = (e.target as HTMLElement).closest('.hotbar') ? Date.now() : 0
+    }, { signal: controller.signal })
     document.addEventListener('touchend', (e) => {
       if (touchStart && (e.target as HTMLElement).closest('.hotbar') && Date.now() - touchStart > 700) {
         triggerCommand('general.dropStack', true)
         triggerCommand('general.dropStack', false)
       }
       touchStart = 0
-    })
+    }, { signal: controller.signal })
+
+    const refresh = () => {
+      clearInventoryCaches()
+      setTextureVersion(v => v + 1)
+    }
+    appViewer.resourcesManager.on('assetsTexturesUpdated', refresh)
+    appViewer.resourcesManager.on('assetsInventoryReady', refresh)
 
     return () => {
-      inv.destroy()
       controller.abort()
-      appViewer.resourcesManager.off('assetsTexturesUpdated', upHotbarItems)
+      bot.off('heldItemChanged' as any, heldItemChanged)
+      appViewer.resourcesManager.off('assetsTexturesUpdated', refresh)
+      appViewer.resourcesManager.off('assetsInventoryReady', refresh)
     }
   }, [])
 
@@ -216,13 +188,49 @@ const HotbarInner = () => {
         }}>
         <div
           className='hotbar'
-          ref={container}
           style={{
             position: 'absolute',
-            pointerEvents: 'none',
-            bottom: 'var(--hud-bottom-raw)'
+            pointerEvents: isMobile ? 'auto' : 'none',
+            bottom: 'var(--hud-bottom-raw)',
           }}
-        />
+          onTouchStart={(e) => {
+            (e.currentTarget as any)._touchStart = Date.now()
+          }}
+          onTouchEnd={(e) => {
+            const startTime = (e.currentTarget as any)._touchStart
+            if (!startTime || Date.now() - startTime > 300) return // Only quick taps
+
+            const target = e.target as HTMLElement
+            if (target.closest('.mc-inv-hotbar-open-inv') || target.closest('.mc-inv-hotbar-offhand')) return
+
+            const rect = e.currentTarget.getBoundingClientRect()
+            const touchX = e.changedTouches[0].clientX - rect.left
+            const touchY = e.changedTouches[0].clientY - rect.top
+
+            if (touchX < 0 || touchX > rect.width) return
+            if (touchY < 0 || touchY > rect.height) return
+
+            const slotWidth = rect.width / 9
+            const slot = Math.min(8, Math.max(0, Math.floor(touchX / slotWidth)))
+            if (slot !== bot.quickBarSlot) {
+              bot.setQuickBarSlot(slot)
+            }
+          }}
+        >
+          <TextureProvider config={textureConfig}>
+            <ScaleProvider scale={appScale}>
+              <InventoryProvider connector={connector}>
+                <InventoryWindow
+                  type="hotbar"
+                  properties={{
+                    showOffhand: supportsOffhand ? 1 : 0,
+                    container: isMobile ? 1 : 0,
+                  }}
+                />
+              </InventoryProvider>
+            </ScaleProvider>
+          </TextureProvider>
+        </div>
       </div>
     </Portal>
   </SharedHudVars>
@@ -231,11 +239,10 @@ const HotbarInner = () => {
 export default () => {
   const [gameMode, setGameMode] = useState(bot.game?.gameMode ?? 'creative')
   useEffect(() => {
-    bot.on('game', () => {
-      setGameMode(bot.game.gameMode)
-    })
+    const onGame = () => setGameMode(bot.game.gameMode)
+    bot.on('game', onGame)
+    return () => { bot.off('game', onGame) }
   }, [])
-
   return gameMode === 'spectator' ? null : <HotbarInner />
 }
 

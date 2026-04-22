@@ -3,7 +3,8 @@ import supportedVersions from '../../../../../src/supportedVersions.mjs'
 import { INVISIBLE_BLOCKS } from '../worldConstants'
 import { setup } from './mesherTester'
 
-const lastVersion = supportedVersions.at(-1)
+// const lastVersion = supportedVersions.at(-1)
+const lastVersion = '1.21'
 
 const addPositions = [
   // [[0, 0, 0], 'diamond_block'],

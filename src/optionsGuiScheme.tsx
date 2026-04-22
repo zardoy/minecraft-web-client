@@ -68,6 +68,9 @@ export const guiOptionsScheme: {
       activeRenderer: {
         text: 'Renderer',
       },
+      vanillaLook: {
+        tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
+      },
     },
     {
       custom () {
@@ -194,16 +197,16 @@ export const guiOptionsScheme: {
                 return
               }
               if (choice === 'Uninstall') {
-              // todo make hidable
+                // todo make hidable
                 setLoadingScreenStatus('Uninstalling texturepack')
                 await uninstallResourcePack()
                 setLoadingScreenStatus(undefined)
               }
             } else {
-            // if (!fsState.inMemorySave && isGameActive(false)) {
-            //   alert('Unable to install resource pack in loaded save for now')
-            //   return
-            // }
+              // if (!fsState.inMemorySave && isGameActive(false)) {
+              //   alert('Unable to install resource pack in loaded save for now')
+              //   return
+              // }
               openFilePicker('resourcepack')
             }
           }}
@@ -255,6 +258,13 @@ export const guiOptionsScheme: {
         unit: '',
         delayApply: true,
       },
+    },
+    {
+      custom () {
+        return <Button label='Inventory & containers...' onClick={() => openOptionsMenu('inventory')} inScreen />
+      },
+    },
+    {
       custom () {
         return <Category>Chat</Category>
       },
@@ -669,8 +679,56 @@ export const guiOptionsScheme: {
       }
     }
   ],
+  inventory: [
+    {
+      custom () {
+        return <Category>Inventory & containers</Category>
+      },
+    },
+    {
+      custom () {
+        const { inventoryJei } = useSnapshot(options)
+        const isOff = inventoryJei === false || (Array.isArray(inventoryJei) && inventoryJei.length === 0)
+        const displayLabel = isOff ? 'Off' : inventoryJei === true ? 'On' : 'Partial'
+        return (
+          <Button
+            inScreen
+            label={`JEI sidebar: ${displayLabel}`}
+            title='Recipe/item list beside the inventory (chests, crafting, player inventory, etc.). Click toggles JEI fully on or off; Partial means per-game-mode filtering is set (e.g. from advanced settings).'
+            onClick={() => {
+              options.inventoryJei = !!isOff
+            }}
+          />
+        )
+      },
+    },
+    {
+      inventoryNotes: {
+        text: 'Side notes panel',
+        tooltip: 'Show extra note slots in container UIs where supported.',
+      },
+    },
+    {
+      inventoryPlaceholders: {
+        text: 'Slot hints',
+        tooltip: 'Show placeholder hints in empty inventory slots when supported.',
+      },
+    },
+    {
+      inventoryPlayerModel: {
+        text: 'Dynamic player preview',
+        tooltip: 'Show the rotating player model in the survival inventory when supported.',
+      },
+    },
+    {
+      unimplementedContainers: {
+        text: 'Try unknown containers',
+        tooltip: 'If the server opens a container type the client does not implement yet, show a generic chest-style UI instead of failing.',
+      },
+    },
+  ],
 }
-export type OptionsGroupType = 'main' | 'render' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import'
+export type OptionsGroupType = 'main' | 'render' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import' | 'inventory'
 
 const Category = ({ children }) => <div style={{
   fontSize: 9,

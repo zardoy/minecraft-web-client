@@ -33,6 +33,10 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
   if (Object.keys(options.touchControlsPositions ?? {}).length === 0) {
     options.touchControlsPositions = defaultOptions.touchControlsPositions
   }
+  if (options.jeiEnabled) {
+    options.inventoryJeiEnabled = options.jeiEnabled
+    delete options.jeiEnabled
+  }
   if (options.touchControlsPositions?.jump === undefined) {
     options.touchControlsPositions!.jump = defaultOptions.touchControlsPositions.jump
   }

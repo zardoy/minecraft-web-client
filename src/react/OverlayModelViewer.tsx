@@ -1,5 +1,5 @@
 import { proxy, useSnapshot, subscribe } from 'valtio'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
@@ -38,6 +38,7 @@ export const modelViewerState = proxy({
     playModelAnimationSpeed?: number
     playModelAnimationLoop?: boolean
     followCursorCenterDebug?: boolean
+    zIndex?: number
   }
 })
 globalThis.modelViewerState = modelViewerState
@@ -126,6 +127,180 @@ const isMeshTransparent = (mesh: THREE.Mesh): boolean => {
   return mesh.material.transparent
 }
 
+/**
+ * Shared player model renderer that mounts directly into its host container.
+ * Unlike the default OverlayModelViewer (which uses position:fixed + global modelViewerState),
+ * this component renders at the given dimensions without any absolute positioning —
+ * suitable for embedding inside inventory UI slots or any other container.
+ *
+ * The `skinUrl` prop is reactive: changing it re-applies the skin on the already-running scene.
+ */
+export const PlayerModelCanvas = ({
+  width,
+  height,
+  skinUrl = '',
+  followCursor = true,
+  computeNormalized,
+}: {
+  width: number
+  height: number
+  skinUrl?: string
+  followCursor?: boolean
+  /** Optional override for cursor normalisation. Receives raw clientX/Y and must return
+   *  values in [-1, 1] relative to the desired center point. When omitted the canvas
+   *  bounding-rect center is used (correct for inline/container mounting). Pass this when
+   *  the viewer is inside a scaled overlay so cursor coords can be projected relative to
+   *  the virtual window instead of the physical canvas element. */
+  computeNormalized?: (clientX: number, clientY: number) => { normalizedX: number; normalizedY: number }
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [skinReady, setSkinReady] = useState(false)
+  const playerObjectRef = useRef<PlayerObjectType | null>(null)
+  const sceneRef = useRef<{
+    renderer: THREE.WebGLRenderer
+    camera: THREE.PerspectiveCamera
+    scene: THREE.Scene
+    controls: OrbitControls
+    render: () => void
+  } | null>(null)
+  // Always-fresh ref so the pointer-move closure never goes stale
+  const computeNormalizedRef = useRef(computeNormalized)
+  useEffect(() => { computeNormalizedRef.current = computeNormalized })
+
+  // Three.js scene setup — runs once on mount
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const scene = new THREE.Scene()
+    scene.background = null
+
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000)
+    camera.position.set(0, 0, 3)
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+    renderer.useLegacyLights = false
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace
+    renderer.setPixelRatio(window.devicePixelRatio || 1)
+    renderer.setSize(width, height)
+    container.appendChild(renderer.domElement)
+
+    const controls = new OrbitControls(camera, renderer.domElement)
+    controls.minPolarAngle = Math.PI / 2
+    controls.maxPolarAngle = Math.PI / 2
+    controls.enableDamping = true
+    controls.dampingFactor = 0.05
+
+    const ambientLight = new THREE.AmbientLight(0xff_ff_ff, 3)
+    scene.add(ambientLight)
+    const cameraLight = new THREE.PointLight(0xff_ff_ff, 0.6)
+    camera.add(cameraLight)
+    scene.add(camera)
+
+    const { playerObject, wrapper } = createPlayerObject({ scale: 1 })
+    playerObject.ears.visible = false
+    playerObject.cape.visible = false
+
+    wrapper.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material]
+        for (const mat of mats) setupMaterialTransparency(mat)
+      }
+    })
+
+    // Scale to fill camera view
+    const box = new THREE.Box3().setFromObject(wrapper)
+    const size = box.getSize(new THREE.Vector3())
+    const center = box.getCenter(new THREE.Vector3())
+    const cameraDistance = camera.position.z
+    const fov = camera.fov * Math.PI / 180
+    const visibleHeight = 2 * Math.tan(fov / 2) * cameraDistance
+    const visibleWidth = visibleHeight * (width / height)
+    const scaleFactor = Math.min(visibleHeight / size.y, visibleWidth / size.x)
+    wrapper.scale.multiplyScalar(scaleFactor)
+    wrapper.position.sub(center.multiplyScalar(scaleFactor))
+    wrapper.rotation.set(0, 0, 0)
+    scene.add(wrapper)
+
+    playerObjectRef.current = playerObject
+    const render = () => { renderer.render(scene, camera) }
+    sceneRef.current = { renderer, camera, scene, controls, render }
+
+    controls.addEventListener('change', render)
+    render()
+
+    // Cursor-following: rotate head/body toward pointer
+    let waitingRender = false
+    const handlePointerMove = (event: PointerEvent) => {
+      const el = containerRef.current
+      if (!el) return
+      let nx: number
+      let ny: number
+      if (computeNormalizedRef.current) {
+        const result = computeNormalizedRef.current(event.clientX, event.clientY)
+        nx = THREE.MathUtils.clamp(result.normalizedX, -1, 1)
+        ny = THREE.MathUtils.clamp(result.normalizedY, -1, 1)
+      } else {
+        const rect = el.getBoundingClientRect()
+        nx = THREE.MathUtils.clamp((event.clientX - (rect.left + rect.width / 2)) / (rect.width / 2), -1, 1)
+        ny = THREE.MathUtils.clamp((event.clientY - (rect.top + rect.height / 2)) / (rect.height / 2), -1, 1)
+      }
+      const maxAngle = Math.PI * (60 / 180)
+      playerObject.skin.head.rotation.y = THREE.MathUtils.lerp(playerObject.skin.head.rotation.y, nx * maxAngle, 0.1)
+      playerObject.skin.head.rotation.x = THREE.MathUtils.lerp(playerObject.skin.head.rotation.x, ny * maxAngle, 0.1)
+      playerObject.rotation.y = THREE.MathUtils.lerp(playerObject.rotation.y, nx * maxAngle * 0.3, 0.05)
+      if (!waitingRender) {
+        requestAnimationFrame(() => { render(); waitingRender = false })
+        waitingRender = true
+      }
+    }
+    if (followCursor) window.addEventListener('pointermove', handlePointerMove)
+
+    return () => {
+      if (followCursor) window.removeEventListener('pointermove', handlePointerMove)
+      controls.removeEventListener('change', render)
+      controls.dispose()
+      wrapper.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material]
+          for (const mat of mats) (mat as THREE.Material).dispose()
+          child.geometry?.dispose()
+        }
+      })
+      if ((playerObject.skin as any).map) {
+        ((playerObject.skin as any).map as THREE.Texture).dispose()
+      }
+      renderer.dispose()
+      renderer.domElement?.remove()
+      sceneRef.current = null
+      playerObjectRef.current = null
+    }
+  }, [])
+
+  // Reactively re-apply skin whenever the skinUrl prop changes (including initial mount)
+  useEffect(() => {
+    const playerObject = playerObjectRef.current
+    const s = sceneRef.current
+    if (!playerObject || !s) return
+    void applySkinToPlayerObject(playerObject, skinUrl).then(() => {
+      s.render()
+      setSkinReady(true)
+    })
+  }, [skinUrl])
+
+  // Propagate size changes to the running renderer
+  useEffect(() => {
+    const s = sceneRef.current
+    if (!s) return
+    s.renderer.setSize(width, height)
+    s.camera.aspect = width / height
+    s.camera.updateProjectionMatrix()
+    s.render()
+  }, [width, height])
+
+  return <div ref={containerRef} style={{ width, height, overflow: 'hidden', pointerEvents: 'auto', visibility: skinReady ? 'visible' : 'hidden' }} />
+}
+
 export default () => {
   const { model } = useSnapshot(modelViewerState)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -134,7 +309,6 @@ export default () => {
     camera: THREE.PerspectiveCamera
     renderer: THREE.WebGLRenderer
     controls: OrbitControls
-    playerObject?: PlayerObjectType
     dispose: () => void
   }>()
   const initialScale = useMemo(() => {
@@ -142,14 +316,12 @@ export default () => {
   }, [])
   globalThis.sceneRef = sceneRef
 
-  // Cursor following state
-  const cursorPosition = useRef<{ x: number, y: number }>({ x: 0, y: 0 }) // window clientX/clientY in px
-  const isFollowingCursor = useRef(false)
   const getUiScaleFactor = (scaled?: boolean, onlyInitialScale?: boolean) => {
     return scaled ? (onlyInitialScale ? initialScale : currentScaling.scale) : 1
   }
   const windowRef = useRef<HTMLDivElement>(null)
-  // Shared helper to compute normalized cursor from window clientX/Y taking scale & center into account
+  // Compute normalised cursor coords relative to the virtual window space (used by PlayerModelCanvas
+  // when mounted inside the overlay so head-tracking works across the scaled inventory window).
   const computeNormalizedFromClient = (clientX: number, clientY: number) => {
     const { positioning, followCursorCenter } = modelViewerState.model!
     const { windowWidth, windowHeight } = positioning
@@ -406,7 +578,9 @@ export default () => {
   }, [model?.models])
 
   useEffect(() => {
-    if (!model || !containerRef.current) return
+    // Steve/player model is handled declaratively by <PlayerModelCanvas> in the JSX below.
+    // This effect only manages the Three.js scene for GLTF/OBJ external models.
+    if (!model || !containerRef.current || model.steveModelSkin !== undefined) return
 
     // Setup scene
     const scene = new THREE.Scene()
@@ -452,51 +626,6 @@ export default () => {
     camera.add(cameraLight)
     scene.add(camera)
 
-    // Cursor following function
-    const updatePlayerLookAt = () => {
-      if (!isFollowingCursor.current || !sceneRef.current?.playerObject) return
-
-      const { playerObject } = sceneRef.current
-      const { x, y } = cursorPosition.current
-
-      // Convert clientX/clientY to normalized coordinates centered by followCursorCenter
-      const { normalizedX, normalizedY } = computeNormalizedFromClient(x, y)
-
-      // Calculate head rotation based on cursor position
-      // Limit head movement to ±60 degrees
-      const maxHeadYaw = Math.PI * (60 / 180)
-      const maxHeadPitch = Math.PI * (60 / 180)
-
-      const clampedX = THREE.MathUtils.clamp(normalizedX, -1, 1)
-      const clampedY = THREE.MathUtils.clamp(normalizedY, -1, 1)
-
-      const headYaw = clampedX * maxHeadYaw
-      const headPitch = clampedY * maxHeadPitch
-
-      // Apply head rotation with smooth interpolation
-      const lerpFactor = 0.1 // Smooth interpolation factor
-      playerObject.skin.head.rotation.y = THREE.MathUtils.lerp(
-        playerObject.skin.head.rotation.y,
-        headYaw,
-        lerpFactor
-      )
-      playerObject.skin.head.rotation.x = THREE.MathUtils.lerp(
-        playerObject.skin.head.rotation.x,
-        headPitch,
-        lerpFactor
-      )
-
-      // Apply slight body rotation for more natural movement
-      const bodyYaw = headYaw * 0.3 // Body follows head but with less rotation
-      playerObject.rotation.y = THREE.MathUtils.lerp(
-        playerObject.rotation.y,
-        bodyYaw,
-        lerpFactor * 0.5 // Slower body movement
-      )
-
-      render()
-    }
-
     // Render function
     const render = () => {
       renderer.render(scene, camera)
@@ -517,106 +646,7 @@ export default () => {
       controls.addEventListener('change', render)
       // Initial render
       render()
-      // Render after model loads
-      if (model.steveModelSkin !== undefined) {
-        // Create player model
-        const { playerObject, wrapper } = createPlayerObject({
-          scale: 1 // Start with base scale, will adjust below
-        })
-        playerObject.ears.visible = false
-        playerObject.cape.visible = false
-
-        // Enable shadows for player object and setup transparency
-        wrapper.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.castShadow = true
-            child.receiveShadow = true
-
-            // Setup transparency for player object materials
-            if (child.material) {
-              if (Array.isArray(child.material)) {
-                for (const mat of child.material) {
-                  setupMaterialTransparency(mat)
-                }
-              } else {
-                setupMaterialTransparency(child.material)
-              }
-            }
-          }
-        })
-
-        // Calculate proper scale and positioning for camera view
-        const box = new THREE.Box3().setFromObject(wrapper)
-        const size = box.getSize(new THREE.Vector3())
-        const center = box.getCenter(new THREE.Vector3())
-
-        // Calculate scale to fit within camera view (considering FOV and distance)
-        const cameraDistance = camera.position.z
-        const fov = camera.fov * Math.PI / 180 // Convert to radians
-        const visibleHeight = 2 * Math.tan(fov / 2) * cameraDistance
-        const visibleWidth = visibleHeight * (model.positioning.width / model.positioning.height)
-
-        const scaleFactor = Math.min(
-          (visibleHeight) / size.y,
-          (visibleWidth) / size.x
-        )
-
-        wrapper.scale.multiplyScalar(scaleFactor)
-
-        // Center the player object
-        wrapper.position.sub(center.multiplyScalar(scaleFactor))
-
-        // Rotate to face camera (remove the default 180° rotation)
-        wrapper.rotation.set(0, 0, 0)
-
-        scene.add(wrapper)
-        sceneRef.current = {
-          ...sceneRef.current!,
-          playerObject
-        }
-
-        void applySkinToPlayerObject(playerObject, model.steveModelSkin).then(() => {
-          setTimeout(render, 0)
-        })
-
-        // Set up cursor following if enabled
-        if (model.followCursor) {
-          isFollowingCursor.current = true
-        }
-      }
     }
-
-    // Window cursor tracking for followCursor
-    let lastCursorUpdate = 0
-    let waitingRender = false
-    const handleWindowPointerMove = (event: PointerEvent) => {
-      if (!model.followCursor) return
-
-      // Track cursor position as window clientX/clientY in px
-      const newPosition = {
-        x: event.clientX,
-        y: event.clientY
-      }
-      cursorPosition.current = newPosition
-      globalThis.cursorPosition = newPosition // Expose for debug
-      lastCursorUpdate = Date.now()
-      updatePlayerLookAt()
-      if (!waitingRender) {
-        requestAnimationFrame(() => {
-          render()
-          waitingRender = false
-        })
-        waitingRender = true
-      }
-    }
-
-    // Add window event listeners
-    if (model.followCursor) {
-      window.addEventListener('pointermove', handleWindowPointerMove)
-      isFollowingCursor.current = true
-    }
-
-    // Note: animation state subscriptions moved to useEffect hooks below to satisfy TS types
 
     // Store refs for cleanup
     sceneRef.current = {
@@ -629,12 +659,9 @@ export default () => {
         if (!model.continiousRender) {
           controls.removeEventListener('change', render)
         }
-        if (model.followCursor) {
-          window.removeEventListener('pointermove', handleWindowPointerMove)
-        }
         if (rafIdRef.current !== undefined) cancelAnimationFrame(rafIdRef.current)
 
-        // Clean up loaded models
+        // Clean up loaded GLTF/OBJ models
         for (const [modelUrl, model] of loadedModels.current) {
           scene.remove(model)
           model.traverse((child) => {
@@ -660,10 +687,6 @@ export default () => {
         animationMixers.current.clear()
         gltfClips.current.clear()
 
-        const playerObject = sceneRef.current?.playerObject
-        if (playerObject?.skin.map) {
-          (playerObject.skin.map as unknown as THREE.Texture).dispose()
-        }
         renderer.dispose()
         renderer.domElement?.remove()
       }
@@ -706,7 +729,7 @@ export default () => {
     <div
       className='overlay-model-viewer-container'
       style={{
-        zIndex: 100,
+        zIndex: model.zIndex ?? 100,
         position: 'fixed',
         inset: 0,
         width: '100dvw',
@@ -751,19 +774,40 @@ export default () => {
             )
           })()
         ) : null}
-        <div
-          ref={containerRef}
-          className='overlay-model-viewer'
-          style={{
-            position: 'absolute',
-            left: x,
-            top: y,
-            width,
-            height,
-            pointerEvents: 'auto',
-            backgroundColor: model.debug ? 'red' : undefined,
-          }}
-        />
+        {model.steveModelSkin === undefined ? (
+          <div
+            ref={containerRef}
+            className='overlay-model-viewer'
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width,
+              height,
+              pointerEvents: 'auto',
+              backgroundColor: model.debug ? 'red' : undefined,
+            }}
+          />
+        ) : (
+          <div
+            className='overlay-model-viewer'
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              pointerEvents: 'auto',
+              backgroundColor: model.debug ? 'red' : undefined,
+            }}
+          >
+            <PlayerModelCanvas
+              width={width}
+              height={height}
+              skinUrl={model.steveModelSkin}
+              followCursor={model.followCursor}
+              computeNormalized={computeNormalizedFromClient}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

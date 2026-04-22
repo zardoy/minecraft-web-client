@@ -4,6 +4,7 @@ import fs from 'fs'
 import JSZip from 'jszip'
 import { proxy, subscribe } from 'valtio'
 import { armorTextures } from 'renderer/viewer/three/entity/armorModels'
+import { allTexturePaths } from 'minecraft-inventory/src/bundledTexturesConfig'
 import { copyFilesAsyncWithProgress, mkdirRecursive, removeFileRecursiveAsync } from './browserfs'
 import { showNotification } from './react/NotificationProvider'
 import { options } from './optionsStorage'
@@ -12,6 +13,7 @@ import { appReplacableResources, resourcesContentOriginal } from './generated/re
 import { gameAdditionalState, miscUiState } from './globalState'
 import { watchUnloadForCleanup } from './gameUnload'
 import { createConsoleLogProgressReporter, createFullScreenProgressReporter, ProgressReporter } from './core/progressReporter'
+import { inventoryBundledConfig } from './react/inventory/inventoryTexturesConfig'
 
 export const resourcePackState = proxy({
   resourcePackInstalled: false,
@@ -563,6 +565,19 @@ const updateAllReplacableTextures = async () => {
     }
     await setCustomPicture(key, resPath)
   }
+
+  // Apply resource-pack overrides for inventory GUI textures via the bundled config
+  inventoryBundledConfig.clearOverrides()
+  if (basePath) {
+    for (const texPath of allTexturePaths) {
+      const fsPath = `${basePath}/assets/minecraft/textures/${texPath}`
+      if (await existsAsync(fsPath)) {
+        const file = await fs.promises.readFile(fsPath, 'base64')
+        inventoryBundledConfig.setOverride(texPath, `data:image/png;base64,${file}`)
+      }
+    }
+  }
+  inventoryBundledConfig.resetRenderedSlots()
 }
 
 const repeatArr = (arr, i) => Array.from({ length: i }, () => arr)

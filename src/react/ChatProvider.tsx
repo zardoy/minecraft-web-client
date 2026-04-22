@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { formatMessage, isStringAllowed } from '../chatUtils'
@@ -18,21 +19,21 @@ const TypingIndicatorOverlay = () => {
   const typingIndicatorText = useTypingIndicatorText()
   if (!typingIndicatorText) return null
 
-  return (
-    <div style={{
-      position: 'fixed',
-      bottom: 3,
-      left: 2,
-      fontSize: '9px',
-      color: 'white',
-      textShadow: '1px 1px 0px #3f3f3f',
-      fontFamily: 'mojangles, minecraft, monospace',
-      padding: '2px 4px',
-      zIndex: 40,
-    }}>
-      {typingIndicatorText}
-    </div>
-  )
+  return <div style={{
+    position: 'fixed',
+    /* Above hotbar (~50px). Same vertical zone as chat messages (bottom: 40px) */
+    bottom: 'calc(27px + env(safe-area-inset-bottom, 0px))',
+    left: 2,
+    fontSize: '9px',
+    color: 'white',
+    textShadow: '1px 1px 0px #3f3f3f',
+    fontFamily: 'mojangles, minecraft, monospace',
+    padding: '2px 4px',
+    /* Portal to body so we're above hotbar (z-index 8). Below modals (12). When modals open, --has-modals-z becomes -1 */
+    zIndex: 'var(--has-modals-z, 11)',
+  }}>
+    {typingIndicatorText}
+  </div>
 }
 
 const ChatProviderBase = () => {

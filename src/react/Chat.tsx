@@ -143,6 +143,8 @@ const ChatBase = ({
   const typingIndicator = typingIndicatorText ? (
     <div style={{
       position: 'relative',
+      /* Below chat-completions (z-index 2) so tab completion list stays on top */
+      zIndex: 1,
     }}>
       <div style={{
         fontSize: '9px',
@@ -188,23 +190,43 @@ const ChatBase = ({
   }
 
   const acceptComplete = (item: string) => {
-    const base = completeRequestValue.current === '/' ? '' : getCompleteValue()
-    updateInputValue(base + item)
-    // Record ping completion in history
+    const cursorPos = chatInput.current.selectionEnd ?? chatInput.current.value.length
+    const valueBeforeCursor = chatInput.current.value.slice(0, cursorPos)
+    const valueAfterCursor = chatInput.current.value.slice(cursorPos)
+
+    let prefix: string
+    let suffix: string
+    if (item.startsWith('@')) {
+      // Ping: word starts at @, ends at next space
+      const atIndex = valueBeforeCursor.lastIndexOf('@')
+      prefix = atIndex >= 0 ? valueBeforeCursor.slice(0, atIndex) : valueBeforeCursor
+      const spaceInAfter = valueAfterCursor.indexOf(' ')
+      suffix = spaceInAfter >= 0 ? valueAfterCursor.slice(spaceInAfter) : ''
+    } else {
+      // Command/other: replace current space-separated token, preserve rest
+      const lastSpaceInBefore = valueBeforeCursor.lastIndexOf(' ')
+      prefix = lastSpaceInBefore >= 0 ? valueBeforeCursor.slice(0, lastSpaceInBefore + 1) : (valueBeforeCursor.startsWith('/') ? '' : valueBeforeCursor)
+      const firstSpaceInAfter = valueAfterCursor.indexOf(' ')
+      suffix = firstSpaceInAfter >= 0 ? valueAfterCursor.slice(firstSpaceInAfter) : ''
+    }
+    const newValue = prefix + item + suffix
+    const newCursorPos = prefix.length + item.length
+    updateInputValue(newValue, newCursorPos)
+
     if (item.startsWith('@')) {
       const newHistory = [item, ...pingHistoryRef.current.filter((x: string) => x !== item)].slice(0, 10)
       pingHistoryRef.current = newHistory
-      // todo use appStorage
       window.localStorage.pingHistory = JSON.stringify(newHistory)
     }
     chatInput.current.focus()
   }
 
-  const updateInputValue = (newValue: string) => {
+  const updateInputValue = (newValue: string, cursorPos?: number) => {
     chatInput.current.value = newValue
     onMainInputChange()
     setTimeout(() => {
-      chatInput.current.setSelectionRange(newValue.length, newValue.length)
+      const pos = cursorPos ?? newValue.length
+      chatInput.current.setSelectionRange(pos, pos)
     }, 0)
   }
 
