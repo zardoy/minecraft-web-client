@@ -87,7 +87,7 @@
     "lodash-es": "^4.17.21",
     "mcraft-fun-mineflayer": "^0.1.23",
     "minecraft-data": "0.0.0",
-    "minecraft-inventory": "^0.1.37",
+    "minecraft-inventory": "^0.1.43",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
     "mojangson": "^2.0.4",
