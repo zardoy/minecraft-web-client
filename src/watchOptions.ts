@@ -99,6 +99,7 @@ export const watchOptionsAfterViewerInit = () => {
     appViewer.inWorldRenderingConfig._experimentalSmoothChunkLoading = o.rendererSharedOptions._experimentalSmoothChunkLoading
     appViewer.inWorldRenderingConfig._renderByChunks = o.rendererSharedOptions._renderByChunks
     appViewer.inWorldRenderingConfig.wasmMesher = o.wasmExperimentalMesher
+    appViewer.inWorldRenderingConfig.wasmColumnMesher = o.wasmExperimentalColumnMesher
 
     setSkinsConfig({ apiEnabled: o.loadPlayerSkins })
   })
