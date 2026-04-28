@@ -41,7 +41,6 @@ export const defaultOptions = {
   loadPlayerSkins: true,
   renderEars: true,
   wasmExperimentalMesher: false,
-  wasmExperimentalColumnMesher: false,
   lowMemoryMode: false,
   starfieldRendering: true,
   defaultSkybox: true,

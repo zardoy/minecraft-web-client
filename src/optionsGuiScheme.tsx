@@ -131,9 +131,6 @@ export const guiOptionsScheme: {
       wasmExperimentalMesher: {
         text: 'WASM Mesher (Experimental)',
       },
-      wasmExperimentalColumnMesher: {
-        text: 'WASM Column Mesher (Experimental, requires WASM Mesher)',
-      },
       lowMemoryMode: {
         text: 'Low Memory Mode',
         enableWarning: 'Enabling it will make chunks load ~4x slower. When in the game, app needs to be reloaded to apply this setting.',
