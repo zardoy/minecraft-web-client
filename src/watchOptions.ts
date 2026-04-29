@@ -8,6 +8,7 @@ import { options, watchValue } from './optionsStorage'
 import { reloadChunks } from './utils'
 import { miscUiState } from './globalState'
 import { isCypress } from './standaloneUtils'
+import { isSafari } from './react/utils'
 
 subscribeKey(options, 'renderDistance', reloadChunks)
 subscribeKey(options, 'multiplayerRenderDistance', reloadChunks)
@@ -99,6 +100,11 @@ export const watchOptionsAfterViewerInit = () => {
     appViewer.inWorldRenderingConfig._experimentalSmoothChunkLoading = o.rendererSharedOptions._experimentalSmoothChunkLoading
     appViewer.inWorldRenderingConfig._renderByChunks = o.rendererSharedOptions._renderByChunks
     appViewer.inWorldRenderingConfig.wasmMesher = o.wasmExperimentalMesher
+    // iOS Safari (and desktop Safari) crash before they hit RAM limits
+    // visible to JS. Until the planned WASM dump-based path lands,
+    // disable the worker-side conversion cache on Safari to keep memory
+    // bounded — trades meshing speed for stability. Vitaly 2026-04-29.
+    appViewer.inWorldRenderingConfig.disableMesherConversionCache = isSafari
 
     setSkinsConfig({ apiEnabled: o.loadPlayerSkins })
   })
