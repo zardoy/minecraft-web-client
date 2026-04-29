@@ -659,10 +659,11 @@ export const f3Keybinds: Array<{
   {
     key: 'KeyA',
     action () {
-      //@ts-expect-error
-      const loadedChunks = Object.entries(worldView.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
+      const wv = appViewer.worldView
+      if (!wv) return
+      const loadedChunks = Object.entries(wv.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
       for (const [x, z] of loadedChunks) {
-        appViewer.worldView!.unloadChunk({ x, z })
+        wv.unloadChunk({ x, z })
       }
       // for (const child of viewer.scene.children) {
       //   if (child.name === 'chunk') { // should not happen
