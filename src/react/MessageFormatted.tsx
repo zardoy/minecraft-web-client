@@ -4,9 +4,13 @@ import { noCase } from 'change-case'
 import mojangson from 'mojangson'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import { MessageFormatOptions, MessageFormatPart } from '../chatUtils'
+import { lastConnectOptions } from '../appStatus'
+import { monitorLoginAttempt } from '../loginAttemptMonitor'
 import { chatInputValueGlobal } from './Chat'
 import './MessageFormatted.css'
 import { showOptionsModal } from './SelectOption'
+import { showAutoFillLoginModal } from './AutoFillLoginModal'
+import { findServerPassword } from './serversStorage'
 
 const hoverItemToText = (hoverEvent: MessageFormatPart['hoverEvent']) => {
   try {
@@ -65,6 +69,42 @@ const clickEventToProps = (clickEvent: MessageFormatPart['clickEvent']) => {
       }
     }
   }
+  const customAction = (clickEvent as { action: string }).action
+  if (customAction === 'open_auto_fill_login' || customAction === 'open_auto_fill_register') {
+    return {
+      onClick () {
+        const mode: 'login' | 'register' = customAction === 'open_auto_fill_register' ? 'register' : 'login'
+        void openAutoFillLogin(mode)
+      }
+    }
+  }
+}
+
+const openAutoFillLogin = async (mode: 'login' | 'register') => {
+  const serverIp = lastConnectOptions.value?.server
+  const username = (globalThis as any).bot?.username as string | undefined
+  if (!serverIp || !username) {
+    console.warn('[openAutoFillLogin] missing serverIp or username', { serverIp, username })
+    return
+  }
+  const prefilledPassword = findServerPassword()
+  const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
+  if (!result?.password) return
+  const { password } = result
+  const { bot } = (globalThis as any)
+  if (mode === 'register') {
+    bot.chat(`/register ${password} ${password}`)
+  } else {
+    bot.chat(`/login ${password}`)
+  }
+  monitorLoginAttempt({
+    password,
+    mode,
+    source: 'modal',
+    serverIp,
+    username,
+    preSaved: false
+  })
 }
 
 export const MessagePart = ({ part, formatOptions, ...props }: { part: MessageFormatPart, formatOptions?: MessageFormatOptions } & ComponentProps<'span'>) => {
