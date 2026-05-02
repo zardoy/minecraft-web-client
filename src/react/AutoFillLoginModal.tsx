@@ -66,6 +66,7 @@ export default () => {
   const isModalActive = useIsModalActive('auto-fill-login')
   const passwordRef = useRef<HTMLInputElement>(null)
   const confirmRef = useRef<HTMLInputElement>(null)
+  const usernameRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -77,8 +78,11 @@ export default () => {
       if (confirmRef.current) {
         confirmRef.current.value = ''
       }
+      if (usernameRef.current) {
+        usernameRef.current.value = `${serverIp}-${username}`
+      }
     }
-  }, [isModalActive, prefilledPassword])
+  }, [isModalActive, prefilledPassword, serverIp, username])
 
   if (!isModalActive) return null
 
@@ -119,11 +123,11 @@ export default () => {
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
         <input
+          ref={usernameRef}
           type="text"
           name="username"
           autoComplete="username"
-          readOnly
-          value={identifier}
+          defaultValue={identifier}
           style={inputStyle}
         />
         <div style={captionStyle}>Used as identifier in your password manager</div>
