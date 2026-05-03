@@ -82,6 +82,7 @@ export const defaultOptions = {
   disableBlockEntityTextures: false,
   singleplayerAutoSave: false,
   showChunkBorders: false, // todo rename option
+  rendererFuturisticReveal: false,
   frameLimit: false as number | false,
   alwaysBackupWorldBeforeLoading: undefined as boolean | undefined | null,
   alwaysShowMobileControls: false,

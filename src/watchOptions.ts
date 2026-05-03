@@ -34,6 +34,10 @@ export const watchOptionsAfterViewerInit = () => {
   })
 
   watchValue(options, o => {
+    appViewer.inWorldRenderingConfig.futuristicReveal = o.rendererFuturisticReveal
+  })
+
+  watchValue(options, o => {
     appViewer.inWorldRenderingConfig.mesherWorkers = o.lowMemoryMode ? 1 : o.numWorkers
   })
 
