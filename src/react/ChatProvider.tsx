@@ -10,6 +10,7 @@ import { lastConnectOptions } from '../appStatus'
 import { createLoginPromptDebouncer, detectLoginPrompt } from '../loginPromptDetector'
 import { displayClientChat } from '../botUtils'
 import { isLoginMonitorActive, monitorLoginAttempt } from '../loginAttemptMonitor'
+import { runAuthFlow } from '../authCommands'
 import Chat, { Message } from './Chat'
 import { useIsModalActive } from './utilsApp'
 import { findServerPassword, getServerIndex, saveServerPassword } from './serversStorage'
@@ -99,19 +100,7 @@ const ChatProviderBase = () => {
             .then(result => {
               if (!result?.password) return
               if (promptKind === 'changepassword' && !result.newPassword) return
-              const cmd = promptKind === 'changepassword'
-                ? `/changepassword ${result.password} ${result.newPassword}`
-                : `/unregister ${result.password}`
-              try { bot.chat(cmd) } catch {}
-              monitorLoginAttempt({
-                password: result.password,
-                newPassword: result.newPassword,
-                mode: promptKind,
-                source: 'modal',
-                serverIp: serverKey,
-                username: bot.username,
-                preSaved: false
-              })
+              runAuthFlow(bot, promptKind, result, { serverIp: serverKey, username: bot.username, source: 'modal' })
             })
         } else {
           const makeExtra = (kind: 'changepassword' | 'unregister') => ({
@@ -130,18 +119,7 @@ const ChatProviderBase = () => {
           void showAutoFillLoginModal({ mode, serverIp: serverKey, username: bot.username })
             .then(result => {
               if (!result?.password) return
-              const cmd = mode === 'register'
-                ? `/register ${result.password} ${result.password}`
-                : `/login ${result.password}`
-              try { bot.chat(cmd) } catch {}
-              monitorLoginAttempt({
-                password: result.password,
-                mode,
-                source: 'modal',
-                serverIp: serverKey,
-                username: bot.username,
-                preSaved: false
-              })
+              runAuthFlow(bot, mode, result, { serverIp: serverKey, username: bot.username, source: 'modal' })
             })
         } else {
           const makeExtra = (kind: 'login' | 'register') => ({

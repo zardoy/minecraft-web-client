@@ -2,7 +2,7 @@ import { proxy, subscribe, useSnapshot } from 'valtio'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isStringAllowed, MessageFormatPart } from '../chatUtils'
 import { lastConnectOptions } from '../appStatus'
-import { monitorLoginAttempt } from '../loginAttemptMonitor'
+import { runAuthFlow } from '../authCommands'
 import { MessagePart } from './MessageFormatted'
 import './Chat.css'
 import { isIos, reactKeyForMessage } from './utils'
@@ -555,25 +555,7 @@ const ChatBase = ({
               const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
               if (!result?.password) return
               if (mode === 'changepassword' && !result.newPassword) return
-              const cmd = mode === 'login'
-                ? `/login ${result.password}`
-                : mode === 'register'
-                  ? `/register ${result.password} ${result.password}`
-                  : mode === 'changepassword'
-                    ? `/changepassword ${result.password} ${result.newPassword}`
-                    : `/unregister ${result.password}`
-              try {
-                bot?.chat(cmd)
-              } catch {}
-              monitorLoginAttempt({
-                password: result.password,
-                newPassword: result.newPassword,
-                mode,
-                source: 'modal',
-                serverIp,
-                username,
-                preSaved: false
-              })
+              runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
               chatInput.current.value = ''
               onMainInputChange()
             }}

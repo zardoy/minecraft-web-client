@@ -2,6 +2,7 @@ import { formatMessage } from './chatUtils'
 import { showAutoFillLoginModal } from './react/AutoFillLoginModal'
 import { clearServerPassword, findServerPassword, saveServerPassword } from './react/serversStorage'
 import { showNotification } from './react/NotificationProvider'
+import { runAuthFlow } from './authCommands'
 
 type Source = 'manual' | 'modal'
 
@@ -113,21 +114,7 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
           .then(result => {
             if (!result?.password) return
             if (mode === 'changepassword' && !result.newPassword) return
-            const cmd = mode === 'register'
-              ? `/register ${result.password} ${result.password}`
-              : mode === 'changepassword'
-                ? `/changepassword ${result.password} ${result.newPassword}`
-                : `/login ${result.password}`
-            try { bot.chat(cmd) } catch {}
-            monitorLoginAttempt({
-              password: result.password,
-              newPassword: result.newPassword,
-              mode,
-              source: 'modal',
-              serverIp,
-              username,
-              preSaved: false
-            })
+            runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
           })
       }, 50)
     }

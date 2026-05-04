@@ -5,7 +5,7 @@ import mojangson from 'mojangson'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import { MessageFormatOptions, MessageFormatPart } from '../chatUtils'
 import { lastConnectOptions } from '../appStatus'
-import { monitorLoginAttempt } from '../loginAttemptMonitor'
+import { runAuthFlow } from '../authCommands'
 import { chatInputValueGlobal } from './Chat'
 import './MessageFormatted.css'
 import { showOptionsModal } from './SelectOption'
@@ -93,31 +93,8 @@ const openAutoFillLogin = async (mode: 'login' | 'register' | 'changepassword' |
   const prefilledPassword = findServerPassword()
   const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
   if (!result?.password) return
-  const { password } = result
   const { bot } = (globalThis as any)
-  switch (mode) {
-    case 'register':
-      bot.chat(`/register ${password} ${password}`)
-      break
-    case 'changepassword':
-      if (!result.newPassword) return
-      bot.chat(`/changepassword ${password} ${result.newPassword}`)
-      break
-    case 'unregister':
-      bot.chat(`/unregister ${password}`)
-      break
-    default:
-      bot.chat(`/login ${password}`)
-  }
-  monitorLoginAttempt({
-    password,
-    newPassword: result.newPassword,
-    mode,
-    source: 'modal',
-    serverIp,
-    username,
-    preSaved: false
-  })
+  runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
 }
 
 export const MessagePart = ({ part, formatOptions, ...props }: { part: MessageFormatPart, formatOptions?: MessageFormatOptions } & ComponentProps<'span'>) => {
