@@ -7,7 +7,8 @@ type Source = 'manual' | 'modal'
 
 interface MonitorOptions {
   password: string
-  mode: 'login' | 'register'
+  newPassword?: string
+  mode: 'login' | 'register' | 'changepassword' | 'unregister'
   source: Source
   serverIp?: string
   username?: string
@@ -19,7 +20,8 @@ interface ActiveMonitor {
   cleanup: () => void
 }
 
-const FAILURE_REGEX = /wrong password|incorrect password|invalid password|wrong username|login failed|access denied|неверн|неправильн|пароль[^а-яё]*невер/i
+const FAILURE_REGEX = /wrong password|incorrect password|invalid password|wrong username|login failed|access denied|old password is wrong|неверн|неправильн|пароль[^а-яё]*невер/i
+const SUCCESS_REGEX = /password changed|password successfully updated|account removed|пароль изменён|аккаунт удалён/i
 
 let activeMonitor: ActiveMonitor | undefined
 
@@ -92,14 +94,19 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     finished = true
     cleanup()
 
-    if (opts.preSaved) {
+    // For unregister, never clear the saved password on failure —
+    // the old password may still be valid (user just typed it wrong).
+    if (opts.preSaved && opts.mode !== 'unregister') {
       try { clearServerPassword() } catch (err) { console.error('clearServerPassword failed', err) }
     }
 
-    const subtitle = opts.preSaved ? 'Saved password was cleared' : 'Try again'
-    showNotification('Auto-fill login: wrong password', subtitle, true)
+    const subtitle = opts.preSaved && opts.mode !== 'unregister' ? 'Saved password was cleared' : 'Try again'
+    const title = opts.mode === 'changepassword' ? 'Auto-fill: password change failed'
+      : opts.mode === 'unregister' ? 'Auto-fill: unregister failed'
+        : 'Auto-fill login: wrong password'
+    showNotification(title, subtitle, true)
 
-    if (opts.source === 'modal' && opts.serverIp && opts.username) {
+    if (opts.source === 'modal' && opts.serverIp && opts.username && opts.mode !== 'unregister') {
       const { serverIp, username, mode } = opts
       setTimeout(() => {
         void showAutoFillLoginModal({ mode, serverIp, username })
@@ -111,6 +118,19 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     if (finished) return
     finished = true
     cleanup()
+
+    if (opts.mode === 'unregister') {
+      try { clearServerPassword() } catch (err) { console.error('clearServerPassword failed', err) }
+      showNotification('Account unregistered', 'Saved password was removed', false)
+      return
+    }
+
+    if (opts.mode === 'changepassword' && opts.newPassword) {
+      onSuccessSave({ ...opts, password: opts.newPassword })
+      showNotification('Password changed', 'Saved password was updated', false)
+      return
+    }
+
     if (!opts.preSaved) {
       onSuccessSave(opts)
     } else if (opts.username && opts.serverIp) {
@@ -122,8 +142,13 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
 
   function messageListener (message: any) {
     const text = extractText(message)
-    if (text && FAILURE_REGEX.test(text)) {
+    if (!text) return
+    if (FAILURE_REGEX.test(text)) {
       onFailure()
+      return
+    }
+    if ((opts.mode === 'changepassword' || opts.mode === 'unregister') && SUCCESS_REGEX.test(text)) {
+      onSuccess()
     }
   }
 

@@ -42,6 +42,18 @@ describe('detectLoginPrompt', () => {
     expect(detectLoginPrompt('Steve: anyone got diamonds?')).toBeNull()
   })
 
+  test('detects changepassword prompt', () => {
+    expect(detectLoginPrompt('Use /changepassword <old> <new>')).toBe('changepassword')
+  })
+
+  test('detects unregister prompt', () => {
+    expect(detectLoginPrompt('You can delete your account with /unregister')).toBe('unregister')
+  })
+
+  test('detects Russian changepassword prompt', () => {
+    expect(detectLoginPrompt('Используйте /changepassword для смены пароля')).toBe('changepassword')
+  })
+
   test('does not match /loginfoo (word boundary)', () => {
     expect(detectLoginPrompt('try /loginfoo to do something')).toBeNull()
   })

@@ -126,7 +126,7 @@ const ChatBase = ({
   const [inputKey, setInputKey] = useState(0)
   const pingHistoryRef = useRef(JSON.parse(window.localStorage.pingHistory || '[]'))
 
-  const [autoFillHint, setAutoFillHint] = useState<'login' | 'register' | null>(null)
+  const [autoFillHint, setAutoFillHint] = useState<'login' | 'register' | 'changepassword' | 'unregister' | null>(null)
 
   const [completePadText, setCompletePadText] = useState('')
   const completeRequestValue = useRef('')
@@ -350,8 +350,8 @@ const ChatBase = ({
   const onMainInputChange = () => {
     const inputValue = chatInput.current.value
     if (usingTouch) {
-      const match = /^\/(login|register)( |$)/i.exec(inputValue)
-      setAutoFillHint(match ? (match[1].toLowerCase() as 'login' | 'register') : null)
+      const match = /^\/(login|register|changepassword|unregister)( |$)/i.exec(inputValue)
+      setAutoFillHint(match ? (match[1].toLowerCase() as 'login' | 'register' | 'changepassword' | 'unregister') : null)
     } else if (autoFillHint !== null) {
       setAutoFillHint(null)
     }
@@ -554,14 +554,20 @@ const ChatBase = ({
               const prefilledPassword = findServerPassword()
               const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
               if (!result?.password) return
+              if (mode === 'changepassword' && !result.newPassword) return
               const cmd = mode === 'login'
                 ? `/login ${result.password}`
-                : `/register ${result.password} ${result.password}`
+                : mode === 'register'
+                  ? `/register ${result.password} ${result.password}`
+                  : mode === 'changepassword'
+                    ? `/changepassword ${result.password} ${result.newPassword}`
+                    : `/unregister ${result.password}`
               try {
                 bot?.chat(cmd)
               } catch {}
               monitorLoginAttempt({
                 password: result.password,
+                newPassword: result.newPassword,
                 mode,
                 source: 'modal',
                 serverIp,

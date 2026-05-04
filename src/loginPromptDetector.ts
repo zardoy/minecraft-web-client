@@ -1,7 +1,7 @@
 // Pure detection logic for AuthMe-style login/register prompts in chat.
 // See issue #527 (auto-fill server login).
 
-export type LoginPromptKind = 'login' | 'register' | 'either'
+export type LoginPromptKind = 'login' | 'register' | 'either' | 'changepassword' | 'unregister'
 
 const stripFormatting = (text: string): string => {
   // Remove Minecraft section-sign formatting codes (§x).
@@ -10,15 +10,23 @@ const stripFormatting = (text: string): string => {
 
 const LOGIN_CMD_RE = /(?:^|\W)\/login\b/i
 const REGISTER_CMD_RE = /(?:^|\W)\/register\b/i
+const CHANGEPASSWORD_CMD_RE = /(?:^|\W)\/changepassword\b/i
+const UNREGISTER_CMD_RE = /(?:^|\W)\/unregister\b/i
 
 export const detectLoginPrompt = (text: string): LoginPromptKind | null => {
   if (!text) return null
   const cleaned = stripFormatting(text)
   const hasLogin = LOGIN_CMD_RE.test(cleaned)
   const hasRegister = REGISTER_CMD_RE.test(cleaned)
+  const hasChangePassword = CHANGEPASSWORD_CMD_RE.test(cleaned)
+  const hasUnregister = UNREGISTER_CMD_RE.test(cleaned)
+
+  // Legacy either only applies to login/register.
   if (hasLogin && hasRegister) return 'either'
   if (hasLogin) return 'login'
   if (hasRegister) return 'register'
+  if (hasChangePassword) return 'changepassword'
+  if (hasUnregister) return 'unregister'
   return null
 }
 

@@ -70,17 +70,20 @@ const clickEventToProps = (clickEvent: MessageFormatPart['clickEvent']) => {
     }
   }
   const customAction = (clickEvent as { action: string }).action
-  if (customAction === 'open_auto_fill_login' || customAction === 'open_auto_fill_register') {
+  if (customAction === 'open_auto_fill_login' || customAction === 'open_auto_fill_register' || customAction === 'open_change_password' || customAction === 'open_unregister') {
     return {
       onClick () {
-        const mode: 'login' | 'register' = customAction === 'open_auto_fill_register' ? 'register' : 'login'
+        const mode: 'login' | 'register' | 'changepassword' | 'unregister' =
+          customAction === 'open_auto_fill_register' ? 'register' :
+            customAction === 'open_change_password' ? 'changepassword' :
+              customAction === 'open_unregister' ? 'unregister' : 'login'
         void openAutoFillLogin(mode)
       }
     }
   }
 }
 
-const openAutoFillLogin = async (mode: 'login' | 'register') => {
+const openAutoFillLogin = async (mode: 'login' | 'register' | 'changepassword' | 'unregister') => {
   const serverIp = lastConnectOptions.value?.server
   const username = (globalThis as any).bot?.username as string | undefined
   if (!serverIp || !username) {
@@ -92,13 +95,23 @@ const openAutoFillLogin = async (mode: 'login' | 'register') => {
   if (!result?.password) return
   const { password } = result
   const { bot } = (globalThis as any)
-  if (mode === 'register') {
-    bot.chat(`/register ${password} ${password}`)
-  } else {
-    bot.chat(`/login ${password}`)
+  switch (mode) {
+    case 'register':
+      bot.chat(`/register ${password} ${password}`)
+      break
+    case 'changepassword':
+      if (!result.newPassword) return
+      bot.chat(`/changepassword ${password} ${result.newPassword}`)
+      break
+    case 'unregister':
+      bot.chat(`/unregister ${password}`)
+      break
+    default:
+      bot.chat(`/login ${password}`)
   }
   monitorLoginAttempt({
     password,
+    newPassword: result.newPassword,
     mode,
     source: 'modal',
     serverIp,

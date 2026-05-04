@@ -92,7 +92,17 @@ const ChatProviderBase = () => {
             preSaved: true,
           })
         }
-      } else if (promptKind && serverKey && !savedPassword && loginPromptDebouncer.current.shouldTrigger(serverKey)) {
+      } else if (promptKind && serverKey && (promptKind === 'changepassword' || promptKind === 'unregister') && loginPromptDebouncer.current.shouldTrigger(serverKey)) {
+        const makeExtra = (kind: 'changepassword' | 'unregister') => ({
+          text: `Click here to auto-fill ${kind}`,
+          color: 'aqua',
+          underlined: true,
+          clickEvent: { action: kind === 'changepassword' ? 'open_change_password' : 'open_unregister', value: '' },
+          hoverEvent: { action: 'show_text', value: 'Open password-manager-friendly modal' }
+        })
+        const emoji = promptKind === 'changepassword' ? '🗝️ ' : '⚠️ '
+        displayClientChat({ text: emoji, extra: [makeExtra(promptKind)] })
+      } else if (promptKind && serverKey && !savedPassword && (promptKind === 'login' || promptKind === 'register' || promptKind === 'either') && loginPromptDebouncer.current.shouldTrigger(serverKey)) {
         const makeExtra = (kind: 'login' | 'register') => ({
           text: `Click here to auto-fill ${kind}`,
           color: 'aqua',
