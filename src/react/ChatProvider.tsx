@@ -13,6 +13,7 @@ import { isLoginMonitorActive, monitorLoginAttempt } from '../loginAttemptMonito
 import Chat, { Message } from './Chat'
 import { useIsModalActive } from './utilsApp'
 import { findServerPassword, getServerIndex, saveServerPassword } from './serversStorage'
+import { showAutoFillLoginModal } from './AutoFillLoginModal'
 import { showOptionsModal } from './SelectOption'
 import { withInjectableUi } from './extendableSystem'
 import { useTypingIndicatorText } from './useTypingIndicatorText'
@@ -93,27 +94,68 @@ const ChatProviderBase = () => {
           })
         }
       } else if (promptKind && serverKey && (promptKind === 'changepassword' || promptKind === 'unregister') && loginPromptDebouncer.current.shouldTrigger(serverKey)) {
-        const makeExtra = (kind: 'changepassword' | 'unregister') => ({
-          text: `Click here to auto-fill ${kind}`,
-          color: 'aqua',
-          underlined: true,
-          clickEvent: { action: kind === 'changepassword' ? 'open_change_password' : 'open_unregister', value: '' },
-          hoverEvent: { action: 'show_text', value: 'Open password-manager-friendly modal' }
-        })
-        const emoji = promptKind === 'changepassword' ? '🗝️ ' : '⚠️ '
-        displayClientChat({ text: emoji, extra: [makeExtra(promptKind)] })
+        if (options.autoOpenAuthModal) {
+          void showAutoFillLoginModal({ mode: promptKind, serverIp: serverKey, username: bot.username, prefilledPassword: findServerPassword() })
+            .then(result => {
+              if (!result?.password) return
+              if (promptKind === 'changepassword' && !result.newPassword) return
+              const cmd = promptKind === 'changepassword'
+                ? `/changepassword ${result.password} ${result.newPassword}`
+                : `/unregister ${result.password}`
+              try { bot.chat(cmd) } catch {}
+              monitorLoginAttempt({
+                password: result.password,
+                newPassword: result.newPassword,
+                mode: promptKind,
+                source: 'modal',
+                serverIp: serverKey,
+                username: bot.username,
+                preSaved: false
+              })
+            })
+        } else {
+          const makeExtra = (kind: 'changepassword' | 'unregister') => ({
+            text: `Click here to auto-fill ${kind}`,
+            color: 'aqua',
+            underlined: true,
+            clickEvent: { action: kind === 'changepassword' ? 'open_change_password' : 'open_unregister', value: '' },
+            hoverEvent: { action: 'show_text', value: 'Open password-manager-friendly modal' }
+          })
+          const emoji = promptKind === 'changepassword' ? '🗝️ ' : '⚠️ '
+          displayClientChat({ text: emoji, extra: [makeExtra(promptKind)] })
+        }
       } else if (promptKind && serverKey && !savedPassword && (promptKind === 'login' || promptKind === 'register' || promptKind === 'either') && loginPromptDebouncer.current.shouldTrigger(serverKey)) {
-        const makeExtra = (kind: 'login' | 'register') => ({
-          text: `Click here to auto-fill ${kind}`,
-          color: 'aqua',
-          underlined: true,
-          clickEvent: { action: `open_auto_fill_${kind}`, value: '' },
-          hoverEvent: { action: 'show_text', value: 'Open password-manager-friendly login modal' }
-        })
-        const extra = promptKind === 'either'
-          ? [makeExtra('login'), { text: ' / ' }, makeExtra('register')]
-          : [makeExtra(promptKind)]
-        displayClientChat({ text: '🔐 ', extra })
+        if (options.autoOpenAuthModal) {
+          const mode = promptKind === 'either' ? 'login' : promptKind
+          void showAutoFillLoginModal({ mode, serverIp: serverKey, username: bot.username })
+            .then(result => {
+              if (!result?.password) return
+              const cmd = mode === 'register'
+                ? `/register ${result.password} ${result.password}`
+                : `/login ${result.password}`
+              try { bot.chat(cmd) } catch {}
+              monitorLoginAttempt({
+                password: result.password,
+                mode,
+                source: 'modal',
+                serverIp: serverKey,
+                username: bot.username,
+                preSaved: false
+              })
+            })
+        } else {
+          const makeExtra = (kind: 'login' | 'register') => ({
+            text: `Click here to auto-fill ${kind}`,
+            color: 'aqua',
+            underlined: true,
+            clickEvent: { action: `open_auto_fill_${kind}`, value: '' },
+            hoverEvent: { action: 'show_text', value: 'Open password-manager-friendly login modal' }
+          })
+          const extra = promptKind === 'either'
+            ? [makeExtra('login'), { text: ' / ' }, makeExtra('register')]
+            : [makeExtra(promptKind)]
+          displayClientChat({ text: '🔐 ', extra })
+        }
       }
 
       // Handle ping response

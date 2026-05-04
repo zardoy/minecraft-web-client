@@ -1,6 +1,6 @@
 import { formatMessage } from './chatUtils'
 import { showAutoFillLoginModal } from './react/AutoFillLoginModal'
-import { clearServerPassword, saveServerPassword } from './react/serversStorage'
+import { clearServerPassword, findServerPassword, saveServerPassword } from './react/serversStorage'
 import { showNotification } from './react/NotificationProvider'
 
 type Source = 'manual' | 'modal'
@@ -109,7 +109,26 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     if (opts.source === 'modal' && opts.serverIp && opts.username && opts.mode !== 'unregister') {
       const { serverIp, username, mode } = opts
       setTimeout(() => {
-        void showAutoFillLoginModal({ mode, serverIp, username })
+        void showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword: findServerPassword() })
+          .then(result => {
+            if (!result?.password) return
+            if (mode === 'changepassword' && !result.newPassword) return
+            const cmd = mode === 'register'
+              ? `/register ${result.password} ${result.password}`
+              : mode === 'changepassword'
+                ? `/changepassword ${result.password} ${result.newPassword}`
+                : `/login ${result.password}`
+            try { bot.chat(cmd) } catch {}
+            monitorLoginAttempt({
+              password: result.password,
+              newPassword: result.newPassword,
+              mode,
+              source: 'modal',
+              serverIp,
+              username,
+              preSaved: false
+            })
+          })
       }, 50)
     }
   }
