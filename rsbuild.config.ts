@@ -16,6 +16,7 @@ import { genLargeDataAliases } from './scripts/genLargeDataAliases'
 import sharp from 'sharp'
 import supportedVersions from './src/supportedVersions.mjs'
 import { startWsServer } from './scripts/wsServer'
+import { applyWatermarkPackagesToConfig } from './scripts/watermarkLockfilePins'
 
 const SINGLE_FILE_BUILD = process.env.SINGLE_FILE_BUILD === 'true'
 
@@ -31,6 +32,9 @@ try { require('./localSettings.js') } catch { }
 const execAsync = promisify(childProcess.exec)
 
 const buildingVersion = new Date().toISOString().split(':')[0]
+
+const buildTime = new Date()
+const buildDisplayDate = `${String(buildTime.getDate()).padStart(2, '0')}.${String(buildTime.getMonth() + 1).padStart(2, '0')}.${String(buildTime.getFullYear()).slice(-2)}`
 
 const dev = process.env.NODE_ENV === 'development'
 const disableServiceWorker = process.env.DISABLE_SERVICE_WORKER === 'true'
@@ -49,12 +53,33 @@ if (fs.existsSync('./assets/release.json')) {
 }
 
 const configJson = JSON.parse(fs.readFileSync('./config.json', 'utf8'))
+
+// Precedence (last write wins): base config.json → LOCAL_CONFIG_FILE → CONFIG_JSON (CI / PR)
 try {
-    Object.assign(configJson, JSON.parse(fs.readFileSync(process.env.LOCAL_CONFIG_FILE || './config.local.json', 'utf8')))
-} catch (err) {}
+    const localConfigFile = process.env.LOCAL_CONFIG_FILE || './config.local.json'
+    if (fs.existsSync(localConfigFile)) {
+        const localConfig = JSON.parse(fs.readFileSync(localConfigFile, 'utf8'))
+        Object.assign(configJson, localConfig)
+    }
+} catch (err) {
+    console.warn('Failed to parse LOCAL_CONFIG_FILE:', err)
+}
+
+if (process.env.CONFIG_JSON) {
+    try {
+        const prConfig = JSON.parse(process.env.CONFIG_JSON)
+        Object.assign(configJson, prConfig)
+        console.log('Applied config from CONFIG_JSON env var:', Object.keys(prConfig).join(', '))
+    } catch (err) {
+        console.warn('Failed to parse CONFIG_JSON env var:', err)
+    }
+}
+
 if (dev) {
     configJson.defaultProxy = ':8080'
 }
+
+applyWatermarkPackagesToConfig(configJson as Record<string, unknown>, path.resolve('pnpm-lock.yaml'))
 
 const configSource = (SINGLE_FILE_BUILD ? 'BUNDLED' : (process.env.CONFIG_JSON_SOURCE || 'REMOTE')) as 'BUNDLED' | 'REMOTE'
 
@@ -155,6 +180,7 @@ const appConfig = defineConfig({
         // ],
         define: {
             'process.env.BUILD_VERSION': JSON.stringify(!dev ? buildingVersion : 'undefined'),
+            'process.env.BUILD_DISPLAY_DATE': JSON.stringify(buildDisplayDate),
             'process.env.MAIN_MENU_LINKS': JSON.stringify(process.env.MAIN_MENU_LINKS),
             'process.env.SINGLE_FILE_BUILD': JSON.stringify(process.env.SINGLE_FILE_BUILD),
             'process.env.SINGLE_FILE_BUILD_MODE': JSON.stringify(process.env.SINGLE_FILE_BUILD),

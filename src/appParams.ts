@@ -13,6 +13,8 @@ export type AppQsParams = {
   lockConnect?: string
   autoConnect?: string
   alwaysReconnect?: string
+  chunkTemplate?: string
+  chunkTemplateBlockMap?: string
   // googledrive.ts params
   state?: string
   // ServersListProvider.tsx params

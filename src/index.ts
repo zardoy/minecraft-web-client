@@ -144,7 +144,9 @@ const loadSingleplayer = (serverOverrides = {}, flattenedServerOverrides = {}, c
     serverOverrides,
     serverOverridesFlat: {
       ...flattenedServerOverrides,
-      ...serverSettingsQs
+      ...serverSettingsQs,
+      chunkTemplate: appQueryParams.chunkTemplate,
+      blockMap: appQueryParams.chunkTemplateBlockMap
     },
     ...connectOptions
   })
