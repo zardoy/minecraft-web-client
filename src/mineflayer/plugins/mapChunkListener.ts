@@ -72,13 +72,7 @@ const botInit = () => {
       const rawPacket = new Uint8Array(buf.byteLength)
       rawPacket.set(buf)
 
-      // Cast: `setRawMapChunk` is a new event introduced in this branch
-      // of `minecraft-renderer`. Web-client consumes the renderer via
-      // `file:../minecraft-renderer` which pnpm content-addresses at
-      // install time, so the published .d.ts here is stale until the
-      // renderer is reinstalled. Runtime is unaffected — the worker
-      // already understands the message.
-      ;(appViewer.worldView as any)?.emit('setRawMapChunk', {
+      appViewer.worldView?.emit('setRawMapChunk', {
         x, z, rawPacket, protocol, numSections,
       })
     } catch (err) {
