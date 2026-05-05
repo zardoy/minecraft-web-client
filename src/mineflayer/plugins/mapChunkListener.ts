@@ -1,9 +1,15 @@
 /**
- * Stage 3 of issue-15-wasm — capture raw `map_chunk` packet bytes from
- * mineflayer and forward them to the WASM mesher worker (via worldView →
- * worldrendererCommon → worker.postMessage). The worker can then call
- * `parseMapChunkV18Plus` directly on those bytes and skip the JS hot loop
- * `convertChunkToWasm` for protocol >= 757 (1.18+).
+ * Capture raw `map_chunk` packet bytes from mineflayer and forward them
+ * to the WASM mesher worker (via worldView → worldrendererCommon →
+ * worker.postMessage). The worker can then call `parseMapChunkV18Plus`
+ * directly on those bytes and skip the JS hot loop `convertChunkToWasm`
+ * for protocol >= 757 (1.18+).
+ *
+ * For protocol 756 (1.17/1.17.1) the wire format differs (separate
+ * `update_light` packet, flat biomes, explicit section bit-mask), so we
+ * subscribe to the parsed `map_chunk` event instead and forward the
+ * already-extracted `chunkData` + `bitMap` to the worker, which calls
+ * `parseChunkSectionsV17`.
  *
  * Mineflayer is left untouched: it keeps parsing the column for
  * `bot.blockAt`, physics, inventory, etc. We just piggy-back on the same
@@ -11,6 +17,11 @@
  */
 
 import { appViewer } from '../../appViewer'
+
+// 1.17 max bits per block (long-array values use 15 bpv when bitsPerBlock
+// exceeds the per-section palette threshold of 8). Matches
+// `wasm-mesher/src/parser_v17.rs::MAX_BITS_PER_BLOCK_V17`.
+const MAX_BITS_PER_BLOCK_V17 = 15
 
 const readVarInt = (buf: Buffer, offset: number): { value: number, bytesRead: number } | null => {
   let value = 0
@@ -24,6 +35,43 @@ const readVarInt = (buf: Buffer, offset: number): { value: number, bytesRead: nu
     if (shift > 35) return null
   }
   return null
+}
+
+// minecraft-protocol parses `i64` either as a `[hi, lo]` number pair or as
+// a native bigint depending on the build. Normalise to flat
+// `[lo0, hi0, lo1, hi1, ...]` u32 pairs the WASM parser expects.
+const bitMapToLoHi = (bitMap: any[]): Uint32Array | null => {
+  if (!Array.isArray(bitMap)) return null
+  const out = new Uint32Array(bitMap.length * 2)
+  for (let i = 0; i < bitMap.length; i++) {
+    const entry = bitMap[i]
+    if (typeof entry === 'bigint') {
+      out[i * 2] = Number(entry & 0xffffffffn) >>> 0
+      out[i * 2 + 1] = Number((entry >> 32n) & 0xffffffffn) >>> 0
+    } else if (Array.isArray(entry) && entry.length === 2) {
+      // protodef i64 → [hi, lo]
+      const [hi, lo] = entry
+      out[i * 2] = (lo as number) >>> 0
+      out[i * 2 + 1] = (hi as number) >>> 0
+    } else {
+      return null
+    }
+  }
+  return out
+}
+
+const resolveNumSections = (chunkX: number, chunkZ: number, fallback: number): number => {
+  try {
+    const column: any = (bot as any).world?.getColumn?.(chunkX, chunkZ)
+    if (column) {
+      const n = column.numSections
+        ?? (column.worldHeight ? column.worldHeight >> 4 : undefined)
+      if (typeof n === 'number') return n
+    }
+  } catch {}
+  const worldHeight = (bot as any).game?.height
+    ?? (bot as any).world?.worldHeight
+  return typeof worldHeight === 'number' ? worldHeight >> 4 : fallback
 }
 
 export default () => {
@@ -44,28 +92,16 @@ const botInit = () => {
       const chunkZ = buf.readInt32BE(pid.bytesRead + 4)
 
       const protocol = (bot as any).protocolVersion as number | undefined
+      // 1.18+ (protocol 757+): the raw bytes go straight to
+      // `parseMapChunkV18Plus`. Earlier protocols use a different wire
+      // format and are handled by the parsed-packet listener below.
       if (typeof protocol !== 'number' || protocol < 757) return
 
       // Block-coord origin used by the renderer's chunk pipeline.
       const x = chunkX * 16
       const z = chunkZ * 16
 
-      // Prefer mineflayer's freshly-loaded column for an authoritative
-      // section count; if it isn't available yet (raw arrived before the
-      // parsed event), derive it from worldHeight. 1.18+ defaults to 24.
-      let numSections: number | undefined
-      try {
-        const column: any = (bot as any).world?.getColumn?.(chunkX, chunkZ)
-        if (column) {
-          numSections = column.numSections
-            ?? (column.worldHeight ? column.worldHeight >> 4 : undefined)
-        }
-      } catch {}
-      if (!numSections) {
-        const worldHeight = (bot as any).game?.height
-          ?? (bot as any).world?.worldHeight
-        numSections = typeof worldHeight === 'number' ? worldHeight >> 4 : 24
-      }
+      const numSections = resolveNumSections(chunkX, chunkZ, 24)
 
       // Copy out of mineflayer's buffer so the WASM worker can keep the
       // bytes around (mineflayer may pool/reuse the underlying memory).
@@ -77,6 +113,51 @@ const botInit = () => {
       })
     } catch (err) {
       console.warn('[mapChunkListener] failed to forward raw map_chunk:', err)
+    }
+  })
+
+  // 1.17 / 1.17.1 path. mineflayer's parsed packet already extracted the
+  // bit-mask, biomes and the chunkData buffer; we hand them straight to
+  // the worker so it can call `parseChunkSectionsV17`.
+  bot._client.on('map_chunk' as any, (packet: any) => {
+    try {
+      const protocol = (bot as any).protocolVersion as number | undefined
+      if (typeof protocol !== 'number' || protocol >= 757) return
+      // We only support 1.17/1.17.1 (protocol 755/756) for now. Older
+      // protocols have yet another packet shape and stay on the JS path.
+      if (protocol < 755) return
+
+      const chunkX = packet.x as number
+      const chunkZ = packet.z as number
+      if (typeof chunkX !== 'number' || typeof chunkZ !== 'number') return
+
+      const bitMapLoHi = bitMapToLoHi(packet.bitMap)
+      if (!bitMapLoHi) return
+
+      const chunkDataBuf: Buffer | undefined = packet.chunkData
+      if (!chunkDataBuf || chunkDataBuf.length === 0) return
+      const chunkData = new Uint8Array(chunkDataBuf.byteLength)
+      chunkData.set(chunkDataBuf)
+
+      const numSections = resolveNumSections(chunkX, chunkZ, 16)
+
+      let biomes: Int32Array | undefined
+      if (Array.isArray(packet.biomes) && packet.biomes.length > 0) {
+        biomes = Int32Array.from(packet.biomes as number[])
+      }
+
+      appViewer.worldView?.emit('setParsedMapChunkV17', {
+        x: chunkX * 16,
+        z: chunkZ * 16,
+        protocol,
+        numSections,
+        maxBitsPerBlock: MAX_BITS_PER_BLOCK_V17,
+        chunkData,
+        bitMapLoHi,
+        biomes,
+      })
+    } catch (err) {
+      console.warn('[mapChunkListener] failed to forward parsed map_chunk (1.17):', err)
     }
   })
 }
