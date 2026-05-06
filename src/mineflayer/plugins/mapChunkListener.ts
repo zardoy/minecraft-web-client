@@ -193,4 +193,81 @@ const botInit = () => {
       console.warn('[mapChunkListener] failed to forward raw update_light (1.17):', err)
     }
   })
+
+  // 1.16.x (protocol 735..754) parsed map_chunk path. The 1.16 wire format
+  // uses a varint bit-mask (single number, only 16 sections) and inline
+  // biomes as a flat varint[1024]. Hand the parsed payload to the worker
+  // so `parser_v16_v17` can decode the section blob.
+  bot._client.on('map_chunk' as any, (packet: any) => {
+    try {
+      const protocol = (bot as any).protocolVersion as number | undefined
+      if (typeof protocol !== 'number' || protocol < 735 || protocol > 754) return
+
+      const chunkX = packet.x as number
+      const chunkZ = packet.z as number
+      if (typeof chunkX !== 'number' || typeof chunkZ !== 'number') return
+
+      const chunkDataBuf: Buffer | undefined = packet.chunkData
+      if (!chunkDataBuf || chunkDataBuf.length === 0) return
+      const chunkData = new Uint8Array(chunkDataBuf.byteLength)
+      chunkData.set(chunkDataBuf)
+
+      const bitMap = typeof packet.bitMap === 'number' ? packet.bitMap : Number(packet.bitMap)
+      if (!Number.isFinite(bitMap)) return
+
+      const biomesSrc: number[] | undefined = Array.isArray(packet.biomes) ? packet.biomes : undefined
+      const biomes = Int32Array.from(biomesSrc ?? [])
+
+      // TODO: drop `as any` once renderer pnpm install picks up the
+      // setParsedMapChunkV16 / setUpdateLightV16 event types.
+      ;(appViewer.worldView as any)?.emit('setParsedMapChunkV16', {
+        x: chunkX,
+        z: chunkZ,
+        chunkData,
+        bitMap,
+        biomes,
+        protocol,
+      })
+    } catch (err) {
+      console.warn('[mapChunkListener] failed to forward parsed map_chunk (1.16):', err)
+    }
+  })
+
+  // 1.16.x update_light. Same shape as the 1.17 raw forward, but we also
+  // extract chunkX/Z in JS (skip the varint packet-id, then two varints).
+  bot._client.on('raw.update_light' as any, (rawBuffer: Buffer | Uint8Array) => {
+    try {
+      const protocol = (bot as any).protocolVersion as number | undefined
+      if (typeof protocol !== 'number' || protocol < 735 || protocol > 754) return
+
+      const buf = Buffer.isBuffer(rawBuffer) ? rawBuffer : Buffer.from(rawBuffer)
+      if (buf.length === 0) return
+
+      const pid = readVarInt(buf, 0)
+      if (!pid) return
+      const xv = readVarInt(buf, pid.bytesRead)
+      if (!xv) return
+      const zv = readVarInt(buf, pid.bytesRead + xv.bytesRead)
+      if (!zv) return
+      // varints encode signed values via zig-zag in some packets, but
+      // mineflayer-protocol's update_light uses plain varint for chunkX/Z
+      // (which is what the WASM parser expects to receive verbatim).
+      const x = xv.value | 0
+      const z = zv.value | 0
+
+      const rawPacket = new Uint8Array(buf.byteLength)
+      rawPacket.set(buf)
+
+      // TODO: drop `as any` once renderer pnpm install picks up the
+      // setUpdateLightV16 event type.
+      ;(appViewer.worldView as any)?.emit('setUpdateLightV16', {
+        x,
+        z,
+        rawPacket,
+        protocol,
+      })
+    } catch (err) {
+      console.warn('[mapChunkListener] failed to forward raw update_light (1.16):', err)
+    }
+  })
 }
