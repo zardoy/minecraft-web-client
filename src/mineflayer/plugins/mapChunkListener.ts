@@ -160,4 +160,37 @@ const botInit = () => {
       console.warn('[mapChunkListener] failed to forward parsed map_chunk (1.17):', err)
     }
   })
+
+  // 1.17 light arrives in a separate `update_light` packet. We forward the
+  // raw bytes (including the leading varint packet-id) to the worker — it
+  // calls `parseUpdateLightV17` which extracts chunkX/Z and the per-block
+  // sky/block-light arrays in one shot. The worker keys the cache by the
+  // (x, z) it gets back from WASM, so JS doesn't need to peek at varints.
+  bot._client.on('raw.update_light' as any, (rawBuffer: Buffer | Uint8Array) => {
+    try {
+      const protocol = (bot as any).protocolVersion as number | undefined
+      if (typeof protocol !== 'number' || protocol >= 757 || protocol < 755) return
+
+      const buf = Buffer.isBuffer(rawBuffer) ? rawBuffer : Buffer.from(rawBuffer)
+      if (buf.length === 0) return
+
+      const rawPacket = new Uint8Array(buf.byteLength)
+      rawPacket.set(buf)
+
+      // 1.17 always has worldHeight=256 → 16 sections; resolveNumSections
+      // would need (chunkX, chunkZ) which we don't decode in JS. The
+      // game-level fallback is exactly what we want here.
+      const numSections = ((bot as any).game?.height
+        ?? (bot as any).world?.worldHeight
+        ?? 256) >> 4
+
+      appViewer.worldView?.emit('setUpdateLightV17', {
+        protocol,
+        numSections,
+        rawPacket,
+      })
+    } catch (err) {
+      console.warn('[mapChunkListener] failed to forward raw update_light (1.17):', err)
+    }
+  })
 }
