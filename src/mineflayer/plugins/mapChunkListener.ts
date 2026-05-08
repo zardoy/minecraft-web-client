@@ -108,7 +108,8 @@ const botInit = () => {
       const rawPacket = new Uint8Array(buf.byteLength)
       rawPacket.set(buf)
 
-      appViewer.worldView?.emit('setRawMapChunk', {
+      appViewer.backend?.backendMethods?.feedChunkPacket?.({
+        kind: 'setRawMapChunk',
         x, z, rawPacket, protocol, numSections,
       })
     } catch (err) {
@@ -146,7 +147,8 @@ const botInit = () => {
         biomes = Int32Array.from(packet.biomes as number[])
       }
 
-      appViewer.worldView?.emit('setParsedMapChunkV17', {
+      appViewer.backend?.backendMethods?.feedChunkPacket?.({
+        kind: 'setParsedMapChunkV17',
         x: chunkX * 16,
         z: chunkZ * 16,
         protocol,
@@ -184,7 +186,8 @@ const botInit = () => {
         ?? (bot as any).world?.worldHeight
         ?? 256) >> 4
 
-      appViewer.worldView?.emit('setUpdateLightV17', {
+      appViewer.backend?.backendMethods?.feedChunkPacket?.({
+        kind: 'setUpdateLightV17',
         protocol,
         numSections,
         rawPacket,
@@ -218,9 +221,8 @@ const botInit = () => {
       const biomesSrc: number[] | undefined = Array.isArray(packet.biomes) ? packet.biomes : undefined
       const biomes = Int32Array.from(biomesSrc ?? [])
 
-      // TODO: drop `as any` once renderer pnpm install picks up the
-      // setParsedMapChunkV16 / setUpdateLightV16 event types.
-      ;(appViewer.worldView as any)?.emit('setParsedMapChunkV16', {
+      appViewer.backend?.backendMethods?.feedChunkPacket?.({
+        kind: 'setParsedMapChunkV16',
         x: chunkX,
         z: chunkZ,
         chunkData,
@@ -258,9 +260,8 @@ const botInit = () => {
       const rawPacket = new Uint8Array(buf.byteLength)
       rawPacket.set(buf)
 
-      // TODO: drop `as any` once renderer pnpm install picks up the
-      // setUpdateLightV16 event type.
-      ;(appViewer.worldView as any)?.emit('setUpdateLightV16', {
+      appViewer.backend?.backendMethods?.feedChunkPacket?.({
+        kind: 'setUpdateLightV16',
         x,
         z,
         rawPacket,
