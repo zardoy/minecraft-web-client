@@ -62,7 +62,7 @@ export const appAndRendererSharedConfig = () => defineConfig({
     tools: {
         rspack (config, helpers) {
             const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, './package.json'), 'utf8'))
-            const hasFileProtocol = Object.values(packageJson.pnpm.overrides).some((dep) => (dep as string).startsWith('file:'))
+            const hasFileProtocol = Object.values((packageJson.pnpm ?? packageJson).overrides ?? {}).some((dep) => (dep as string).startsWith('file:'))
             if (hasFileProtocol) {
                 // enable node_modules watching
                 config.watchOptions.ignored = /\.git/

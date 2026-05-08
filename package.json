@@ -231,5 +231,31 @@
     "ignorePatchFailures": false,
     "allowUnusedPatches": false
   },
-  "packageManager": "pnpm@10.32.1"
+  "packageManager": "pnpm@10.32.1",
+  "overrides": {
+    "mineflayer": "github:zardoy/mineflayer#gen-the-master",
+    "@nxg-org/mineflayer-physics-util": "1.8.19",
+    "buffer": "^6.0.3",
+    "vec3": "0.1.10",
+    "three": "0.154.0",
+    "@types/three": "0.154.0",
+    "diamond-square": "github:zardoy/diamond-square",
+    "prismarine-block": "github:zardoy/prismarine-block#next-era",
+    "prismarine-world": "github:zardoy/prismarine-world#next-era",
+    "minecraft-data": "3.105.0",
+    "prismarine-provider-anvil": "github:zardoy/prismarine-provider-anvil#everything",
+    "prismarine-physics": "github:zardoy/prismarine-physics",
+    "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
+    "react": "^18.2.0",
+    "prismarine-chunk": "github:zardoy/prismarine-chunk#master",
+    "prismarine-item": "latest"
+  },
+  "patchedDependencies": {
+    "pixelarticons@1.8.1": "patches/pixelarticons@1.8.1.patch",
+    "mineflayer-item-map-downloader@1.2.0": "patches/mineflayer-item-map-downloader@1.2.0.patch",
+    "minecraft-protocol": "patches/minecraft-protocol@1.66.0.patch"
+  },
+  "workspaces": [
+    "."
+  ]
 }
