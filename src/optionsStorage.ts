@@ -44,31 +44,11 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
     options.touchInteractionType = 'buttons'
   }
   if (options.lowMemoryMode) {
-    options.worldPerformance = 'low-energy'
+    options.rendererWorldPerformance = 'low-energy'
     delete options.lowMemoryMode
-  }
-  if ('numWorkers' in options) {
-    delete options.numWorkers
   }
 
   return options
-}
-const migrateOptionsLocalStorage = () => {
-  if (Object.keys(appStorage['options'] ?? {}).length) {
-    for (const key of Object.keys(appStorage['options'])) {
-      if (key === 'lowMemoryMode' && appStorage['options'][key]) {
-        appStorage.changedSettings.worldPerformance = 'low-energy'
-        continue
-      }
-      if (key === 'numWorkers') continue
-      if (!(key in defaultOptions)) continue // drop unknown options
-      const defaultValue = defaultOptions[key]
-      if (JSON.stringify(defaultValue) !== JSON.stringify(appStorage['options'][key])) {
-        appStorage.changedSettings[key] = appStorage['options'][key]
-      }
-    }
-    delete appStorage['options']
-  }
 }
 
 export type AppOptions = typeof defaultOptions
@@ -94,7 +74,6 @@ export const getChangedSettings = () => {
   )
 }
 
-migrateOptionsLocalStorage()
 export const options: AppOptions = proxy({
   ...defaultOptions,
   ...initialAppConfig.defaultSettings,

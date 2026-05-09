@@ -41,7 +41,8 @@ export const defaultOptions = {
   loadPlayerSkins: true,
   renderEars: true,
   wasmExperimentalMesher: true,
-  worldPerformance: 'normal' as 'low-energy' | 'normal' | 'maximum',
+  rendererWorldPerformance: 'normal' as 'low-energy' | 'normal' | 'maximum',
+  rendererMeshersCountOverride: null as number | null,
   starfieldRendering: true,
   defaultSkybox: true,
   enabledResourcepack: null as string | null,
@@ -277,7 +278,7 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
       ['no-buffers', 'No Buffers']
     ]
   },
-  worldPerformance: {
+  rendererWorldPerformance: {
     possibleValues: [
       ['low-energy', 'Low Energy'],
       ['normal', 'Normal'],

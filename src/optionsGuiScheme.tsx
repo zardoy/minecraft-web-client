@@ -116,6 +116,11 @@ export const guiOptionsScheme: {
       vanillaLook: {
         tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
       },
+      rendererWorldPerformance: {
+        text: 'World Performance',
+        tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
+        requiresRestart: true,
+      },
     },
     {
       custom () {
@@ -130,11 +135,6 @@ export const guiOptionsScheme: {
       },
       wasmExperimentalMesher: {
         text: 'WASM Mesher (Experimental)',
-      },
-      worldPerformance: {
-        text: 'World Performance',
-        tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
-        requiresRestart: true,
       },
       starfieldRendering: {},
       renderEntities: {},
