@@ -43,20 +43,12 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
   if (options.touchControlsType === 'joystick-buttons') {
     options.touchInteractionType = 'buttons'
   }
+  if (options.lowMemoryMode) {
+    options.rendererWorldPerformance = 'low-energy'
+    delete options.lowMemoryMode
+  }
 
   return options
-}
-const migrateOptionsLocalStorage = () => {
-  if (Object.keys(appStorage['options'] ?? {}).length) {
-    for (const key of Object.keys(appStorage['options'])) {
-      if (!(key in defaultOptions)) continue // drop unknown options
-      const defaultValue = defaultOptions[key]
-      if (JSON.stringify(defaultValue) !== JSON.stringify(appStorage['options'][key])) {
-        appStorage.changedSettings[key] = appStorage['options'][key]
-      }
-    }
-    delete appStorage['options']
-  }
 }
 
 export type AppOptions = typeof defaultOptions
@@ -82,7 +74,6 @@ export const getChangedSettings = () => {
   )
 }
 
-migrateOptionsLocalStorage()
 export const options: AppOptions = proxy({
   ...defaultOptions,
   ...initialAppConfig.defaultSettings,

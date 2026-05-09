@@ -82,7 +82,7 @@
     "minecraft-data": "0.0.0",
     "minecraft-inventory": "^0.1.43",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
-    "minecraft-renderer": "^0.1.37",
+    "minecraft-renderer": "^0.1.40",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
     "mojangson": "^2.0.4",
     "net-browserify": "github:zardoy/prismarinejs-net-browserify",

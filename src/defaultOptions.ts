@@ -41,7 +41,8 @@ export const defaultOptions = {
   loadPlayerSkins: true,
   renderEars: true,
   wasmExperimentalMesher: true,
-  lowMemoryMode: false,
+  rendererWorldPerformance: 'normal' as 'low-energy' | 'normal' | 'maximum',
+  rendererMeshersCountOverride: null as number | null,
   starfieldRendering: true,
   defaultSkybox: true,
   enabledResourcepack: null as string | null,
@@ -88,7 +89,6 @@ export const defaultOptions = {
   alwaysShowMobileControls: false,
   excludeCommunicationDebugEvents: [] as string[],
   preventDevReloadWhilePlaying: false,
-  numWorkers: 4,
   localServerOptions: {
     gameMode: 1
   } as any,
@@ -276,6 +276,13 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
     possibleValues: [
       ['all', 'All'],
       ['no-buffers', 'No Buffers']
+    ]
+  },
+  rendererWorldPerformance: {
+    possibleValues: [
+      ['low-energy', 'Low Energy'],
+      ['normal', 'Normal'],
+      ['maximum', 'Maximum'],
     ]
   },
   // Custom string inputs (will use showInputsModal)

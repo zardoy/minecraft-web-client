@@ -116,6 +116,11 @@ export const guiOptionsScheme: {
       vanillaLook: {
         tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
       },
+      rendererWorldPerformance: {
+        text: 'World Performance',
+        tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
+        requiresRestart: true,
+      },
     },
     {
       custom () {
@@ -130,10 +135,6 @@ export const guiOptionsScheme: {
       },
       wasmExperimentalMesher: {
         text: 'WASM Mesher (Experimental)',
-      },
-      lowMemoryMode: {
-        text: 'Low Memory Mode',
-        enableWarning: 'Enabling it will make chunks load ~4x slower. When in the game, app needs to be reloaded to apply this setting.',
       },
       starfieldRendering: {},
       renderEntities: {},
