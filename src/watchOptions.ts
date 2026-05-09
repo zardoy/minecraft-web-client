@@ -38,7 +38,21 @@ export const watchOptionsAfterViewerInit = () => {
   })
 
   watchValue(options, o => {
-    appViewer.inWorldRenderingConfig.mesherWorkers = o.lowMemoryMode ? 1 : o.numWorkers
+    const wasmActive = o.wasmExperimentalMesher
+    switch (o.worldPerformance) {
+      case 'low-energy':
+        appViewer.inWorldRenderingConfig.mesherWorkers = 1
+        appViewer.inWorldRenderingConfig.dedicatedChangeWorker = false
+        break
+      case 'normal':
+        appViewer.inWorldRenderingConfig.mesherWorkers = 3
+        appViewer.inWorldRenderingConfig.dedicatedChangeWorker = !wasmActive
+        break
+      case 'maximum':
+        appViewer.inWorldRenderingConfig.mesherWorkers = Math.max(4, Math.min(navigator.hardwareConcurrency ?? 4, 8))
+        appViewer.inWorldRenderingConfig.dedicatedChangeWorker = false
+        break
+    }
   })
 
   watchValue(options, o => {

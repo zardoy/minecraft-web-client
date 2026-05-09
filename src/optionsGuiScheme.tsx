@@ -131,9 +131,10 @@ export const guiOptionsScheme: {
       wasmExperimentalMesher: {
         text: 'WASM Mesher (Experimental)',
       },
-      lowMemoryMode: {
-        text: 'Low Memory Mode',
-        enableWarning: 'Enabling it will make chunks load ~4x slower. When in the game, app needs to be reloaded to apply this setting.',
+      worldPerformance: {
+        text: 'World Performance',
+        tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
+        requiresRestart: true,
       },
       starfieldRendering: {},
       renderEntities: {},
