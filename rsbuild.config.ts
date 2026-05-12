@@ -246,8 +246,8 @@ const appConfig = defineConfig({
                     // childProcess.execSync('tsx ./scripts/genMcDataTypes.ts', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genPixelartTypes.ts', { stdio: 'inherit' })
                     // copy mesher worker
-                    if (fs.existsSync('./node_modules/minecraft-renderer/wasm/wasm_mesher_bg.wasm')) {
-                        fs.copyFileSync('./node_modules/minecraft-renderer/wasm/wasm_mesher_bg.wasm', './dist/wasm_mesher_bg.wasm')
+                    if (fs.existsSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm')) {
+                        fs.copyFileSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm', './dist/wasm_mesher_bg.wasm')
                     } else {
                         console.warn('wasm_mesher_bg.wasm not found')
                     }
