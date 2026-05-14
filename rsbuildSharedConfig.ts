@@ -52,6 +52,8 @@ export const appAndRendererSharedConfig = () => defineConfig({
             // enable shared array buffer
             'Cross-Origin-Opener-Policy': 'same-origin',
             'Cross-Origin-Embedder-Policy': 'require-corp',
+            // Match prod static servers: subresources/workers under COEP need CORP in dev.
+            'Cross-Origin-Resource-Policy': 'cross-origin',
         },
         open: process.env.OPEN_BROWSER === 'true',
     },

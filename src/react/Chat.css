@@ -2,7 +2,6 @@ div.chat-wrapper {
   z-index: -1;
   /* increase specificity */
   position: fixed;
-  /* z-index: 10; */
   padding-left: calc(env(safe-area-inset-left) / 2);
   padding-right: calc(env(safe-area-inset-right, 4px) / 2);
   box-sizing: content-box;
@@ -18,7 +17,8 @@ div.chat-wrapper:not(.display-mobile):not(.input-mobile) {
   padding: 4px;
   padding-left: 0;
   max-height: var(--chatHeight);
-  width: calc(var(--chatWidth) - 5px); /* Custom scrollbar width */
+  /* Custom scrollbar width */
+  width: calc(var(--chatWidth) - 5px);
   transform-origin: bottom left;
   transform: scale(var(--chatScale));
   pointer-events: none;
@@ -27,6 +27,11 @@ div.chat-wrapper:not(.display-mobile):not(.input-mobile) {
 /* Restore full width when chat is opened */
 .chat-messages-wrapper.chat-opened {
   width: var(--chatWidth);
+}
+
+/* fix progress message should be below chat messages when opened */
+div.chat-wrapper.chat-messages-wrapper.display-mobile.chat-opened {
+  z-index: 10;
 }
 
 .chat-input-wrapper {
@@ -123,7 +128,7 @@ div.chat-wrapper:not(.display-mobile):not(.input-mobile) {
   justify-content: flex-start;
 }
 
-.input-mobile .chat-completions-items > div {
+.input-mobile .chat-completions-items>div {
   padding: 4px 0;
   font-size: 10px;
 }

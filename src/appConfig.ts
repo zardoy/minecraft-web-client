@@ -93,7 +93,7 @@ function setWatermarkFromConfig (cfg: AppConfig | undefined) {
   if (!watermarkEl) {
     watermarkEl = document.createElement('div')
     watermarkEl.className = 'app-watermark'
-    watermarkEl.setAttribute('data-app-watermark', '')
+    watermarkEl.dataset.appWatermark = ''
     document.body.appendChild(watermarkEl)
   }
   watermarkEl.textContent = text
