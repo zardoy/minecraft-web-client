@@ -61,6 +61,7 @@ const useCommonComponentsProps = (item: OptionMeta) => {
   }
 }
 
+/** Prompt at most once per session per setting for restart/chunks-reload nags */
 const ignoreReloadWarningsCache = new Set<string>()
 
 // Helper functions for option value extraction
@@ -165,15 +166,15 @@ export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
         }
       }
 
-      const toCacheKey = cacheKey ?? item.id ?? ''
-      if (toCacheKey && !ignoreReloadWarningsCache.has(toCacheKey)) {
-        ignoreReloadWarningsCache.add(toCacheKey)
+      const reloadNagKey = cacheKey ?? item.id ?? ''
+      if (reloadNagKey && !ignoreReloadWarningsCache.has(reloadNagKey)) {
+        ignoreReloadWarningsCache.add(reloadNagKey)
 
         if (item.requiresRestart) {
           const result = await showOptionsModal(translate('The option requires a restart to take effect'), ['Restart', 'I will do it later'], {
             cancel: false,
           })
-          if (result) {
+          if (result === 'Restart') {
             reconnectReload()
           }
         }
@@ -181,7 +182,7 @@ export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
           const result = await showOptionsModal(translate('The option requires a chunks reload to take effect'), ['Reload', 'I will do it later'], {
             cancel: false,
           })
-          if (result) {
+          if (result === 'Reload') {
             reloadChunksAction()
           }
         }

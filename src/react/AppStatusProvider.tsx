@@ -47,8 +47,8 @@ const saveReconnectOptions = (options: ConnectOptions) => {
 export const reconnectReload = () => {
   if (lastConnectOptions.value) {
     saveReconnectOptions(lastConnectOptions.value)
-    window.location.reload()
   }
+  window.location.reload()
 }
 
 export const quickDevReconnect = () => {
