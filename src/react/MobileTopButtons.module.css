@@ -2,38 +2,79 @@
   display: none;
   flex-direction: row;
   position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%);
-  gap: 0 5px;
+  top: 12px;
+  right: 12px;
+  transform: none;
+  gap: 8px;
   z-index: var(--has-modals-z, 7);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .pause-btn,
 .chat-btn {
-  --scale: 1.3;
+  --scale: 1.2;
   border: none;
-  outline: 0.5px solid white;
+  outline: none;
   width: calc(14px * var(--scale));
   height: calc(14px * var(--scale));
   background-image: url('../../assets/gui.png');
   background-size: calc(256px * var(--scale));
   background-position-x: calc(var(--scale) * -202px);
   background-position-y: calc(var(--scale) * -66px);
+  opacity: 0.9;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.pause-btn:active,
+.chat-btn:active,
+.debug-btn:active {
+  transform: scale(0.95);
+  opacity: 1;
 }
 
 .chat-btn {
   background-position-y: calc(var(--scale) * -84px);
 }
+
 .debug-btn {
-  background: #9c8c86;
-  font-size: 8px;
-  /* todo make other buttons centered */
-  /* margin-right: 5px; */
+  background: rgba(156, 140, 134, 0.8);
+  font-size: 10px;
   color: white;
   font-family: minecraft, mojangles, monospace;
-  padding: 4px 6px;
-  outline: 0.5px solid white;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.pause-btn:hover,
+.chat-btn:hover,
+.debug-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.mobile-top-btns::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(45deg, rgba(255,255,255,0.1), transparent);
+  border-radius: 8px;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .tab-btn {
