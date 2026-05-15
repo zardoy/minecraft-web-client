@@ -539,7 +539,7 @@ export class WorldRendererThree extends WorldRendererCommon {
     const yOffset = this.playerStateReactive.eyeHeight
 
     this.updateCamera(pos?.offset(0, yOffset, 0) ?? null, yaw, pitch)
-    this.media.tryIntersectMedia()
+    // this.media.tryIntersectMedia()
     this.updateCameraSectionPos()
   }
 
