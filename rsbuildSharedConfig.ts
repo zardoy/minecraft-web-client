@@ -23,6 +23,7 @@ export const appAndRendererSharedConfig = () => defineConfig({
     },
     source: {
         alias: {
+            'esbuild-data': path.join(__dirname, `./src/shims/esbuildData.ts`),
             fs: path.join(__dirname, `./src/shims/fs.js`),
             http: 'http-browserify',
             stream: 'stream-browserify',

@@ -136,6 +136,17 @@ export const guiOptionsScheme: {
       wasmExperimentalMesher: {
         text: 'WASM Mesher (Experimental)',
       },
+      rendererShaderCubeBlocks: {
+        text: 'GPU Cube Blocks (Experimental)',
+        tooltip: 'Full 1×1 solid blocks via GPU shader (fewer CPU vertices). Requires WASM mesher and WebGL2. Reload chunks after toggling.',
+        requiresChunksReload: true,
+        disableIf: ['wasmExperimentalMesher', false],
+      },
+      rendererShaderCubeDebugMode: {
+        text: 'GPU Cube Debug',
+        tooltip: 'Off = normal. Hole test = discard sites. Tile index / Face id / Atlas alpha = diagnostics.',
+        disableIf: ['rendererShaderCubeBlocks', false],
+      },
       starfieldRendering: {},
       renderEntities: {},
       keepChunksDistance: {

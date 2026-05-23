@@ -41,6 +41,9 @@ export const defaultOptions = {
   loadPlayerSkins: true,
   renderEars: true,
   wasmExperimentalMesher: true,
+  /** GPU instanced shader path for full 1×1 cubes. Requires WASM mesher + WebGL2. */
+  rendererShaderCubeBlocks: false,
+  rendererShaderCubeDebugMode: 'off' as 'off' | 'holes' | 'texIndex' | 'faces' | 'atlasAlpha',
   rendererWorldPerformance: 'normal' as 'low-energy' | 'normal' | 'maximum',
   rendererMeshersCountOverride: null as number | null,
   starfieldRendering: true,
@@ -283,6 +286,15 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
       ['low-energy', 'Low Energy'],
       ['normal', 'Normal'],
       ['maximum', 'Maximum'],
+    ]
+  },
+  rendererShaderCubeDebugMode: {
+    possibleValues: [
+      ['off', 'Off'],
+      ['holes', 'Hole test (red)'],
+      ['texIndex', 'Tile index colors'],
+      ['faces', 'Face id colors'],
+      ['atlasAlpha', 'Atlas alpha'],
     ]
   },
   // Custom string inputs (will use showInputsModal)

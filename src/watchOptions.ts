@@ -122,6 +122,13 @@ export const watchOptionsAfterViewerInit = () => {
     appViewer.inWorldRenderingConfig._experimentalSmoothChunkLoading = o.rendererSharedOptions._experimentalSmoothChunkLoading
     appViewer.inWorldRenderingConfig._renderByChunks = o.rendererSharedOptions._renderByChunks
     appViewer.inWorldRenderingConfig.wasmMesher = o.wasmExperimentalMesher
+    appViewer.inWorldRenderingConfig.shaderCubeBlocks = o.rendererShaderCubeBlocks
+    appViewer.inWorldRenderingConfig.shaderCubeDebugMode =
+      o.rendererShaderCubeDebugMode === 'holes' ? 1
+        : o.rendererShaderCubeDebugMode === 'texIndex' ? 2
+          : o.rendererShaderCubeDebugMode === 'faces' ? 3
+            : o.rendererShaderCubeDebugMode === 'atlasAlpha' ? 4
+              : 0
     // iOS Safari (and desktop Safari) crash before they hit RAM limits
     // visible to JS. Until the planned WASM dump-based path lands,
     // disable the worker-side conversion cache on Safari to keep memory
