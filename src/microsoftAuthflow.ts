@@ -73,12 +73,23 @@ export default async ({ tokenCaches, proxyBaseUrl, setProgressText = (text) => {
 
           const processText = ({ done, value = undefined as Uint8Array | undefined }) => {
             if (done) {
+              // End-of-stream: flush TextDecoder's internal buffer (any
+              // incomplete UTF-8 sequence held by { stream: true }) and
+              // process the final event if it wasn't terminated by \n\n.
+              // Without this the last { token } / { newCache } update can
+              // be dropped when the server flushes the tail event without
+              // a closing delimiter.
+              buffer += decoder.decode()
+              const finalParts = buffer.split('\n\n')
+              buffer = finalParts.pop() ?? ''
+              for (const chunk of finalParts) processChunk(chunk)
+              if (buffer.trim()) processChunk(buffer)
               return
             }
 
             buffer += decoder.decode(value, { stream: true })
             const parts = buffer.split('\n\n')
-            buffer = parts.pop()!
+            buffer = parts.pop() ?? ''
 
             for (const chunk of parts) {
               processChunk(chunk)
