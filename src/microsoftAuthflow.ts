@@ -55,30 +55,32 @@ export default async ({ tokenCaches, proxyBaseUrl, setProgressText = (text) => {
 
           const reader = response.body!.getReader()
           const decoder = new TextDecoder('utf8')
+          let buffer = ''
+
+          const processChunk = (chunkStr) => {
+            let json: any
+            try {
+              json = JSON.parse(chunkStr)
+            } catch (err) {}
+            if (!json) return
+            if (json.user_code) {
+              onMsaCodeCallback(json)
+            }
+            if (json.error) throw new Error(`Auth server error: ${json.error}`)
+            if (json.token) result = json
+            if (json.newCache) setCacheResult(json.newCache)
+          }
 
           const processText = ({ done, value = undefined as Uint8Array | undefined }) => {
             if (done) {
               return
             }
 
-            const processChunk = (chunkStr) => {
-              let json: any
-              try {
-                json = JSON.parse(chunkStr)
-              } catch (err) {}
-              if (!json) return
-              if (json.user_code) {
-                onMsaCodeCallback(json)
-                // this.codeCallback(json)
-              }
-              if (json.error) throw new Error(`Auth server error: ${json.error}`)
-              if (json.token) result = json
-              if (json.newCache) setCacheResult(json.newCache)
-            }
+            buffer += decoder.decode(value, { stream: true })
+            const parts = buffer.split('\n\n')
+            buffer = parts.pop()!
 
-            const strings = decoder.decode(value)
-
-            for (const chunk of strings.split('\n\n')) {
+            for (const chunk of parts) {
               processChunk(chunk)
             }
 
