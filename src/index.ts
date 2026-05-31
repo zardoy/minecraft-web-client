@@ -54,7 +54,7 @@ import {
 } from './globalState'
 
 import { parseServerAddress } from './parseServerAddress'
-import { setLoadingScreenStatus, lastConnectOptions } from './appStatus'
+import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
 import { isCypress } from './standaloneUtils'
 
 import { startLocalServer, unsupportedLocalServerFeatures } from './createLocalServer'
@@ -285,8 +285,8 @@ export async function connect (connectOptions: ConnectOptions) {
       appStatusState.descriptionHint = `Last Server Packet: ${lastPacket}`
     }
   }
-  const handleError = (err) => {
-    console.error(err)
+  const handleError = (err: unknown, source: string) => {
+    console.error(`[${source}]`, err)
     if (err === 'ResizeObserver loop completed with undelivered notifications.') {
       return
     }
@@ -302,7 +302,7 @@ export async function connect (connectOptions: ConnectOptions) {
       hideModal(modal)
     }
 
-    setLoadingScreenStatus(`Error encountered. ${err}`, true)
+    setLoadingScreenStatus(formatLoadingScreenError(source, err), true)
     appStatusState.showReconnect = true
     onPossibleErrorDisconnect()
     handleSessionEnd()
@@ -320,7 +320,7 @@ export async function connect (connectOptions: ConnectOptions) {
       // ignore issues caused by chrome extension
       return
     }
-    handleError(e.reason)
+    handleError(e.reason, 'Unhandled promise rejection')
   }, {
     signal: errorAbortController.signal
   })
@@ -328,7 +328,7 @@ export async function connect (connectOptions: ConnectOptions) {
     const statusAtError = appStatusState.status
     setTimeout(() => {
       if (appStatusState.status !== statusAtError || miscUiState.gameLoaded) return
-      handleError(e.message)
+      handleError(e.error ?? e.message, 'Uncaught window error')
     }, 10_000)
   }, {
     signal: errorAbortController.signal
@@ -708,7 +708,7 @@ export async function connect (connectOptions: ConnectOptions) {
 
     }
   } catch (err) {
-    handleError(err)
+    handleError(err, 'Connection setup error')
   }
   if (!bot) return
 
@@ -718,7 +718,7 @@ export async function connect (connectOptions: ConnectOptions) {
   //   loadingScreen.maybeRecoverable = false
   // })
 
-  bot.on('error', handleError)
+  bot.on('error', (err) => handleError(err, 'Mineflayer error'))
 
   bot.on('kicked', (kickReason) => {
     console.log('You were kicked!', kickReason)
@@ -928,7 +928,7 @@ export async function connect (connectOptions: ConnectOptions) {
       setLoadingScreenStatus(undefined)
       hideCurrentScreens()
     } catch (err) {
-      handleError(err)
+      handleError(err, 'World load error')
     }
     lastConnectOptions.hadWorldLoaded = true
   }
