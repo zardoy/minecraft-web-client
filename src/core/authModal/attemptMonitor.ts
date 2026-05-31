@@ -2,7 +2,7 @@ import { formatMessage } from '../../chatUtils'
 import { showAutoFillLoginModal } from '../../react/AutoFillLoginModal'
 import { clearServerPassword, findServerPassword, saveServerPassword } from '../../react/serversStorage'
 import { showNotification } from '../../react/NotificationProvider'
-import { runAuthFlow } from '../../authCommands'
+import { runAuthFlow } from './authCommands'
 
 type MonitorSource = 'manual' | 'modal'
 

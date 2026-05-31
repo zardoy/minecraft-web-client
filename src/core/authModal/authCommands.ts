@@ -1,4 +1,4 @@
-import { monitorLoginAttempt } from './core/loginFeature'
+import { monitorLoginAttempt } from './attemptMonitor'
 
 export type AuthMode = 'login' | 'register' | 'changepassword' | 'unregister'
 

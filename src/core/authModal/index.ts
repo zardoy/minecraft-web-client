@@ -1,4 +1,10 @@
 export {
+  type AuthMode,
+  buildAuthCommand,
+  runAuthFlow,
+} from './authCommands'
+
+export {
   type LoginPromptKind,
   type LoginPromptDebouncer,
   detectLoginPrompt,
