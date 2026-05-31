@@ -2,6 +2,7 @@ export {
   type AuthMode,
   type AuthFlowResult,
   buildAuthCommand,
+  sendAuthCommand,
   runAuthFlow,
 } from './authCommands'
 

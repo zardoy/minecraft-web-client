@@ -2,6 +2,7 @@ import { proxy, useSnapshot } from 'valtio'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { hideCurrentModal, showModal } from '../globalState'
 import { useAppScale } from '../scaleInterface'
+import { buildAuthCommand, monitorLoginAttempt } from '../core/authModal'
 import Screen from './Screen'
 import { useIsModalActive } from './utilsApp'
 import { isSafari } from './utils'
@@ -16,7 +17,7 @@ const USE_IFRAME = false
 export type AutoFillLoginResult = {
   password: string
   newPassword?: string
-  reconnectForSave?: boolean
+  commandSent?: boolean
 }
 
 const state = proxy({
@@ -68,14 +69,11 @@ const captionStyle: React.CSSProperties = {
 
 const IDENTIFIER_HINT = 'Used as identifier in your password manager'
 
-const checkboxLabelStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
+const infoStyle: React.CSSProperties = {
   fontSize: 9,
   color: '#A0A0A0',
+  textAlign: 'center',
   maxWidth: 220,
-  cursor: 'pointer',
 }
 
 const decorativeCaptionStyle: React.CSSProperties = {
@@ -381,37 +379,53 @@ export default () => {
   const overlayIframeRef = useRef<HTMLIFrameElement>(null)
   const [error, setError] = useState('')
   const [confirmChecked, setConfirmChecked] = useState(false)
-  const [reconnectForSave, setReconnectForSave] = useState(true)
-  const reconnectForSaveRef = useRef(reconnectForSave)
-  reconnectForSaveRef.current = reconnectForSave
+  const [awaitingBrowserSave, setAwaitingBrowserSave] = useState(false)
+  const pendingResultRef = useRef<AutoFillLoginResult | undefined>(undefined)
 
   const identifier = `${serverIp}-${username}`
+  const usesSafariSaveStep = isSafari && (mode === 'register' || mode === 'changepassword')
 
   const finishSubmit = (result: AutoFillLoginResult) => {
     setError('')
-    resolve?.({
-      ...result,
-      reconnectForSave: isSafari && reconnectForSaveRef.current && (mode === 'register' || mode === 'changepassword')
-        ? true
-        : undefined,
-    })
+    resolve?.(result)
     resolve = undefined
     hideCurrentModal()
   }
 
-  const renderReconnectCheckbox = () => {
-    if (!isSafari) return null
-    return (
-      <label style={checkboxLabelStyle}>
-        <input
-          type="checkbox"
-          checked={reconnectForSave}
-          onChange={(e) => setReconnectForSave(e.target.checked)}
-          style={{ cursor: 'pointer' }}
-        />
-        {' '}Reconnect for save prompt
-      </label>
-    )
+  const sendCommandFromModal = (result: AutoFillLoginResult): boolean => {
+    const bot = window.bot as { chat: (message: string) => void } | undefined
+    const cmd = buildAuthCommand(mode, result.password, result.newPassword)
+    if (!bot || !cmd) return false
+    try { bot.chat(cmd) } catch {}
+    monitorLoginAttempt({
+      password: result.password,
+      newPassword: result.newPassword,
+      mode,
+      source: 'modal',
+      serverIp,
+      username,
+      preSaved: false,
+    })
+    return true
+  }
+
+  const beginSafariSaveStep = (result: AutoFillLoginResult) => {
+    if (!sendCommandFromModal(result)) {
+      setError('Could not send command')
+      return
+    }
+    pendingResultRef.current = result
+    setError('')
+    setAwaitingBrowserSave(true)
+  }
+
+  const handleSkipSave = () => {
+    const pending = pendingResultRef.current
+    if (!pending) {
+      handleCancel()
+      return
+    }
+    finishSubmit({ ...pending, commandSent: true })
   }
 
   const mountIframeForm = useCallback((iframeMode: IframeAuthMode) => {
@@ -437,7 +451,8 @@ export default () => {
 
     setError('')
     setConfirmChecked(false)
-    setReconnectForSave(true)
+    setAwaitingBrowserSave(false)
+    pendingResultRef.current = undefined
     const frame = requestAnimationFrame(() => mountIframeForm(mode))
 
     const onMessage = (event: MessageEvent) => {
@@ -462,7 +477,8 @@ export default () => {
 
     setError('')
     setConfirmChecked(false)
-    setReconnectForSave(true)
+    setAwaitingBrowserSave(false)
+    pendingResultRef.current = undefined
     if (passwordRef.current) {
       passwordRef.current.value = prefilledPassword ?? ''
     }
@@ -488,6 +504,9 @@ export default () => {
         : 'Auto-fill account deletion'
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (awaitingBrowserSave && usesSafariSaveStep) {
+      return
+    }
     event.preventDefault()
 
     if (mode === 'unregister') {
@@ -515,6 +534,10 @@ export default () => {
         setError('Passwords do not match')
         return
       }
+      if (usesSafariSaveStep) {
+        beginSafariSaveStep({ password })
+        return
+      }
       finishSubmit({ password })
       return
     }
@@ -539,6 +562,10 @@ export default () => {
         setError('New password must differ from old password')
         return
       }
+      if (usesSafariSaveStep) {
+        beginSafariSaveStep({ password: oldPassword, newPassword })
+        return
+      }
       finishSubmit({ password: oldPassword, newPassword })
       return
     }
@@ -552,6 +579,10 @@ export default () => {
   }
 
   const handleCancel = () => {
+    if (awaitingBrowserSave) {
+      handleSkipSave()
+      return
+    }
     setError('')
     resolve?.(undefined)
     resolve = undefined
@@ -641,7 +672,6 @@ export default () => {
         </div>
 
         <div style={{ ...verticalButtonsStyle, marginTop: ERROR_SLOT_HEIGHT - 4 }}>
-          {renderReconnectCheckbox()}
           <Button type="button" onClick={handleCancel}>Cancel</Button>
         </div>
       </div>
@@ -689,9 +719,14 @@ export default () => {
   }
 
   if (mode === 'register' || mode === 'changepassword') {
-    const submitLabel = mode === 'register' ? 'Register' : 'Change'
+    const firstSubmitLabel = mode === 'register' ? 'Register' : 'Change'
+    const submitLabel = awaitingBrowserSave ? 'Save to browser' : firstSubmitLabel
+    const secondaryLabel = awaitingBrowserSave ? 'Skip save' : 'Cancel'
+    const formAction = typeof window === 'undefined' ? '' : window.location.href.split('#')[0]
     return <Screen title={title} backdrop>
       <form
+        action={formAction}
+        method="post"
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
       >
@@ -702,6 +737,7 @@ export default () => {
             name="username"
             autoComplete="username"
             defaultValue={identifier}
+            readOnly={awaitingBrowserSave}
             style={inputStyle}
           />
           <div style={captionStyle}>{IDENTIFIER_HINT}</div>
@@ -713,55 +749,67 @@ export default () => {
               type="password"
               name="password"
               autoComplete="new-password"
-              autoFocus
+              autoFocus={!awaitingBrowserSave}
               defaultValue={prefilledPassword}
               placeholder="Password"
+              readOnly={awaitingBrowserSave}
               style={inputStyle}
             />
-            <input
-              ref={confirmRef}
-              type="password"
-              name="password-confirm"
-              autoComplete="new-password"
-              placeholder="Confirm password"
-              style={inputStyle}
-            />
+            {!awaitingBrowserSave && (
+              <input
+                ref={confirmRef}
+                type="password"
+                name="password-confirm"
+                autoComplete="new-password"
+                placeholder="Confirm password"
+                style={inputStyle}
+              />
+            )}
           </>
         ) : (
           <>
+            {!awaitingBrowserSave && (
+              <input
+                ref={passwordRef}
+                type="password"
+                name="old-password"
+                autoComplete="current-password"
+                autoFocus
+                defaultValue={prefilledPassword}
+                placeholder="Old password"
+                style={inputStyle}
+              />
+            )}
             <input
-              ref={passwordRef}
+              ref={awaitingBrowserSave ? passwordRef : newPasswordRef}
               type="password"
-              name="old-password"
-              autoComplete="current-password"
-              autoFocus
-              defaultValue={prefilledPassword}
-              placeholder="Old password"
-              style={inputStyle}
-            />
-            <input
-              ref={newPasswordRef}
-              type="password"
-              name="new-password"
+              name={awaitingBrowserSave ? 'password' : 'new-password'}
               autoComplete="new-password"
-              placeholder="New password"
+              autoFocus={awaitingBrowserSave}
+              defaultValue={awaitingBrowserSave ? pendingResultRef.current?.newPassword : undefined}
+              placeholder={awaitingBrowserSave ? 'Password' : 'New password'}
+              readOnly={awaitingBrowserSave}
               style={inputStyle}
             />
-            <input
-              ref={confirmRef}
-              type="password"
-              name="confirm-new-password"
-              autoComplete="new-password"
-              placeholder="Confirm new password"
-              style={inputStyle}
-            />
+            {!awaitingBrowserSave && (
+              <input
+                ref={confirmRef}
+                type="password"
+                name="confirm-new-password"
+                autoComplete="new-password"
+                placeholder="Confirm new password"
+                style={inputStyle}
+              />
+            )}
           </>
         )}
-        {renderReconnectCheckbox()}
+        {awaitingBrowserSave && (
+          <div style={infoStyle}>Command sent — save password in browser?</div>
+        )}
         {error && <div style={errorStyle}>{error}</div>}
         <div style={verticalButtonsStyle}>
           <Button type="submit">{submitLabel}</Button>
-          <Button type="button" onClick={handleCancel}>Cancel</Button>
+          <Button type="button" onClick={awaitingBrowserSave ? handleSkipSave : handleCancel}>{secondaryLabel}</Button>
         </div>
       </form>
     </Screen>

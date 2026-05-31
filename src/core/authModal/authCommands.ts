@@ -20,7 +20,21 @@ export const buildAuthCommand = (mode: AuthMode, password: string, newPassword?:
 export type AuthFlowResult = {
   password: string
   newPassword?: string
-  reconnectForSave?: boolean
+  /** Command was already sent from the modal (Safari save step). */
+  commandSent?: boolean
+}
+
+export const sendAuthCommand = (
+  bot: AuthFlowBot | undefined | null,
+  mode: AuthMode,
+  password: string,
+  newPassword?: string,
+): boolean => {
+  if (!bot) return false
+  const cmd = buildAuthCommand(mode, password, newPassword)
+  if (!cmd) return false
+  try { bot.chat(cmd) } catch {}
+  return true
 }
 
 export const runAuthFlow = (
@@ -29,14 +43,8 @@ export const runAuthFlow = (
   result: AuthFlowResult,
   ctx: { serverIp: string, username: string, source: 'manual' | 'modal', preSaved?: boolean }
 ): boolean => {
-  if (!bot) return false
-  const cmd = buildAuthCommand(mode, result.password, result.newPassword)
-  if (!cmd) return false
-  try { bot.chat(cmd) } catch {}
-  if (result.reconnectForSave) {
-    setTimeout(() => window.location.reload(), 10)
-    return true
-  }
+  if (result.commandSent) return true
+  if (!sendAuthCommand(bot, mode, result.password, result.newPassword)) return false
   monitorLoginAttempt({
     password: result.password,
     newPassword: result.newPassword,
