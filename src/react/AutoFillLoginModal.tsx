@@ -739,7 +739,6 @@ export default () => {
             name="username"
             autoComplete="username"
             defaultValue={identifier}
-            readOnly={awaitingBrowserSave}
             style={inputStyle}
           />
           <div style={captionStyle}>{IDENTIFIER_HINT}</div>
@@ -754,7 +753,6 @@ export default () => {
               autoFocus={!awaitingBrowserSave}
               defaultValue={prefilledPassword}
               placeholder="Password"
-              readOnly={awaitingBrowserSave}
               style={inputStyle}
             />
             {!awaitingBrowserSave && (
@@ -790,7 +788,6 @@ export default () => {
               autoFocus={awaitingBrowserSave}
               defaultValue={awaitingBrowserSave ? pendingResultRef.current?.newPassword : undefined}
               placeholder={awaitingBrowserSave ? 'Password' : 'New password'}
-              readOnly={awaitingBrowserSave}
               style={inputStyle}
             />
             {!awaitingBrowserSave && (
