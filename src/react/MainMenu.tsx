@@ -208,7 +208,19 @@ const MainMenuBase = ({
             onClick={onVersionStatusClick}
             className={styles['product-info']}
           >
-            Prismarine Web Client {versionStatus}
+            <span style={{
+              position: 'absolute',
+              left: '-9999px',
+              width: '1px',
+              height: '1px',
+              overflow: 'hidden',
+              clip: 'rect(1px, 1px, 1px, 1px)',
+              whiteSpace: 'nowrap'
+            }}>
+              Prismarine Web Client
+            </span>
+
+            V2 Presented by Sandexzx {versionStatus}
           </span>
         </div>
         <span className={styles['product-description']}>

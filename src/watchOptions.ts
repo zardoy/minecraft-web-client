@@ -119,8 +119,6 @@ export const watchOptionsAfterViewerInit = () => {
     appViewer.inWorldRenderingConfig.extraBlockRenderers = !o.disableBlockEntityTextures
     appViewer.inWorldRenderingConfig.fetchPlayerSkins = o.loadPlayerSkins
     appViewer.inWorldRenderingConfig.highlightBlockColor = o.highlightBlockColor
-    appViewer.inWorldRenderingConfig._experimentalSmoothChunkLoading = o.rendererSharedOptions._experimentalSmoothChunkLoading
-    appViewer.inWorldRenderingConfig._renderByChunks = o.rendererSharedOptions._renderByChunks
     appViewer.inWorldRenderingConfig.wasmMesher = o.wasmExperimentalMesher
     // iOS Safari (and desktop Safari) crash before they hit RAM limits
     // visible to JS. Until the planned WASM dump-based path lands,

@@ -121,6 +121,9 @@ export const guiOptionsScheme: {
         tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
         requiresRestart: true,
       },
+      menuBackgroundMode: {
+        text: 'Menu Background',
+      },
     },
     {
       custom () {
@@ -153,18 +156,6 @@ export const guiOptionsScheme: {
       },
       disableBlockEntityTextures: {
         tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps',
-      }
-    },
-    {
-      custom () {
-        const { _renderByChunks } = useSnapshot(options).rendererSharedOptions
-        return <Button
-          inScreen
-          label={`Batch Chunks Display ${_renderByChunks ? 'ON' : 'OFF'}`}
-          onClick={() => {
-            options.rendererSharedOptions._renderByChunks = !_renderByChunks
-          }}
-        />
       }
     },
     {

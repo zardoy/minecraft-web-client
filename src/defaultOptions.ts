@@ -1,3 +1,8 @@
+import {
+  RENDERER_DEFAULT_OPTIONS,
+  RENDERER_OPTIONS_META
+} from 'minecraft-renderer/src/three/menuBackground/defaultOptions'
+
 export const defaultOptions = {
   renderDistance: 3,
   keepChunksDistance: 1,
@@ -41,10 +46,7 @@ export const defaultOptions = {
   loadPlayerSkins: true,
   renderEars: true,
   wasmExperimentalMesher: true,
-  rendererWorldPerformance: 'normal' as 'low-energy' | 'normal' | 'maximum',
-  rendererMeshersCountOverride: null as number | null,
-  starfieldRendering: true,
-  defaultSkybox: true,
+  ...RENDERER_DEFAULT_OPTIONS,
   enabledResourcepack: null as string | null,
   useVersionsTextures: 'latest',
   serverResourcePacks: 'prompt' as 'prompt' | 'always' | 'never',
@@ -80,10 +82,8 @@ export const defaultOptions = {
   topRightTimeDisplay: 'only-fullscreen' as 'only-fullscreen' | 'always' | 'never',
 
   clipWorldBelowY: undefined as undefined | number, // will be removed
-  disableBlockEntityTextures: false,
   singleplayerAutoSave: false,
   showChunkBorders: false, // todo rename option
-  rendererFuturisticReveal: false,
   frameLimit: false as number | false,
   alwaysBackupWorldBeforeLoading: undefined as boolean | undefined | null,
   alwaysShowMobileControls: false,
@@ -113,8 +113,6 @@ export const defaultOptions = {
   vrSupport: true, // doesn't directly affect the VR mode, should only disable the button which is annoying to android users
   vrPageGameRendering: false,
   renderDebug: 'basic' as 'none' | 'advanced' | 'basic',
-  rendererPerfDebugOverlay: false,
-
   // advanced bot options
   autoRespawn: false,
   mutedSounds: [] as string[],
@@ -128,11 +126,7 @@ export const defaultOptions = {
   disabledUiParts: [] as string[],
   neighborChunkUpdates: true,
   highlightBlockColor: 'auto' as 'auto' | 'blue' | 'classic',
-  activeRenderer: 'auto' as 'auto' | string | null,
-  rendererSharedOptions: {
-    _experimentalSmoothChunkLoading: true,
-    _renderByChunks: false
-  }
+  activeRenderer: 'auto' as 'auto' | string | null
 }
 
 function getDefaultTouchControlsPositions () {
@@ -229,6 +223,7 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
   gpuPreference: {
     possibleValues: [['default', 'Auto'], ['high-performance', 'Dedicated'], ['low-power', 'Low Power']]
   },
+  ...RENDERER_OPTIONS_META,
   backgroundRendering: {
     possibleValues: [
       ['full', 'NO'],
@@ -276,13 +271,6 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
     possibleValues: [
       ['all', 'All'],
       ['no-buffers', 'No Buffers']
-    ]
-  },
-  rendererWorldPerformance: {
-    possibleValues: [
-      ['low-energy', 'Low Energy'],
-      ['normal', 'Normal'],
-      ['maximum', 'Maximum'],
     ]
   },
   // Custom string inputs (will use showInputsModal)
