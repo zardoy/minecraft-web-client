@@ -84,6 +84,7 @@
     "fs-extra": "^11.1.1",
     "google-drive-browserfs": "github:zardoy/browserfs#google-drive",
     "jszip": "^3.10.1",
+    "lil-gui": "^0.21.0",
     "lodash-es": "^4.17.21",
     "mcraft-fun-mineflayer": "^0.1.23",
     "minecraft-data": "0.0.0",

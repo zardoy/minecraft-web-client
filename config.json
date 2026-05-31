@@ -11,15 +11,15 @@
       "ip": "wss://play.mcraft.fun"
     },
     {
-      "ip": "wss://play2.mcraft.fun",
-      "description": "Mirror for play.mcraft.fun"
-    },
-    {
       "ip": "wss://play.webmc.fun",
       "name": "WebMC"
     },
     {
       "ip": "wss://ws.fuchsmc.net"
+    },
+    {
+      "ip": "wss://play2.mcraft.fun",
+      "description": "Mirror for play.mcraft.fun"
     },
     {
       "ip": "wss://play3.mcraft.fun",

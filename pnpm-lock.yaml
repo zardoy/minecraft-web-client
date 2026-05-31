@@ -135,6 +135,9 @@ importers:
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
+      lil-gui:
+        specifier: ^0.21.0
+        version: 0.21.0
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -6278,6 +6281,9 @@ packages:
 
   lil-gui@0.18.2:
     resolution: {integrity: sha512-DgdrLy3/KGC0PiQLKgOcJMPItP4xY4iWgJ9+91Zaxfr8GCTmMps05QS9w9jW7yspILlbscbquwjOwxmWnSx5Uw==}
+
+  lil-gui@0.21.0:
+    resolution: {integrity: sha512-tpvxN7v1GvE/Tv+GRopfOp0W7fVEjF4PltkuX8vOCIfim22rD1ztvfkoEMcv9lzQeuNUSeIrUmUjBwmlW/oUew==}
 
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
@@ -16794,6 +16800,8 @@ snapshots:
   lil-gui@0.17.0: {}
 
   lil-gui@0.18.2: {}
+
+  lil-gui@0.21.0: {}
 
   lines-and-columns@1.2.4: {}
 

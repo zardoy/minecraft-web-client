@@ -21,6 +21,9 @@ export const ua = new UAParser(navigator.userAgent)
 
 export const isIos = ua.getOS().name === 'iOS'
 
+// Safari (desktop or iOS) — WebKit memory limits are strict
+export const isSafari = ua.getBrowser().name === 'Safari' || isIos
+
 export const reactKeyForMessage = (message) => {
   return typeof message === 'string' ? message : JSON.stringify(message)
 }
