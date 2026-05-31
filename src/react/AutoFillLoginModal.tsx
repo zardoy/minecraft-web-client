@@ -7,6 +7,7 @@ import Screen from './Screen'
 import { useIsModalActive } from './utilsApp'
 import { isSafari } from './utils'
 import Button from './Button'
+import { reconnectReload } from './AppStatusProvider'
 
 type Mode = 'login' | 'register' | 'changepassword' | 'unregister'
 type IframeAuthMode = 'register' | 'changepassword'
@@ -507,6 +508,8 @@ export default () => {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (awaitingBrowserSave && usesSafariSaveStep) {
+      event.preventDefault()
+      reconnectReload()
       return
     }
     event.preventDefault()
