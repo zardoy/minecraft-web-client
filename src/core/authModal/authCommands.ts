@@ -34,7 +34,7 @@ export const runAuthFlow = (
   if (!cmd) return false
   try { bot.chat(cmd) } catch {}
   if (result.reconnectForSave) {
-    setTimeout(() => window.location.reload(), 100)
+    setTimeout(() => window.location.reload(), 10)
     return true
   }
   monitorLoginAttempt({
