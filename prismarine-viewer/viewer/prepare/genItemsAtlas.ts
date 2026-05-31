@@ -12,9 +12,15 @@ import { versionToNumber } from './utils'
 // todo move it, remove it
 const legacyInvsprite = JSON.parse(fs.readFileSync(join(__dirname, '../../../src/invsprite.json'), 'utf8'))
 
-//@ts-ignore
-const latestMcAssetsVersion = McAssets.versions.at(-1)!
-// const latestVersion = minecraftDataLoader.supportedVersions.pc.at(-1)
+// Use latest assets version that minecraft-data actually supports (overrides may pin data behind assets)
+const latestMcAssetsVersion = McAssets.versions.filter((v) => {
+  try {
+    minecraftDataLoader(v)
+    return true
+  } catch {
+    return false
+  }
+}).at(-1)!
 const mcData = minecraftDataLoader(latestMcAssetsVersion)
 const PBlock = BlockLoader(latestMcAssetsVersion)
 

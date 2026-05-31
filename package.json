@@ -55,7 +55,7 @@
     "esbuild": "^0.19.3",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "express": "^4.18.2",
-    "flying-squid": "npm:@zardoy/flying-squid@^0.0.15",
+    "flying-squid": "npm:@zardoy/flying-squid@0.0.15",
     "fs-extra": "^11.1.1",
     "google-drive-browserfs": "github:zardoy/browserfs#google-drive",
     "iconify-icon": "^1.0.8",
@@ -121,7 +121,7 @@
     "http-server": "^14.1.1",
     "https-browserify": "^1.0.0",
     "minecraft-inventory-gui": "github:zardoy/minecraft-inventory-gui#next",
-    "mineflayer": "github:PrismarineJS/mineflayer",
+    "mineflayer": "4.20.0",
     "mineflayer-pathfinder": "^2.4.4",
     "npm-run-all": "^4.1.5",
     "os-browserify": "^0.3.0",
@@ -145,13 +145,23 @@
   "pnpm": {
     "overrides": {
       "three": "0.154.0",
-      "diamond-square": "github:zardoy/diamond-square",
-      "prismarine-block": "github:zardoy/prismarine-block#next-era",
-      "prismarine-world": "github:zardoy/prismarine-world#next-era",
+      "diamond-square": "github:zardoy/diamond-square#915fce8e27fe8eb45464d89b9563956afa4f7687",
+      "prismarine-block": "github:zardoy/prismarine-block#ada4ec3fdfbbc1cc20ab01d0e23f0718a77cc1a0",
+      "prismarine-world": "github:zardoy/prismarine-world#6ae6f009d38460de284f8c226c665f04cbad9465",
       "minecraft-data": "3.62.0",
-      "prismarine-provider-anvil": "github:zardoy/prismarine-provider-anvil#everything",
-      "minecraft-protocol": "github:zardoy/minecraft-protocol#everything",
+      "minecraft-assets": "1.12.2",
+      "prismarine-provider-anvil": "github:zardoy/prismarine-provider-anvil#0ddcd9d48574113308e1fbebef60816aced0846f",
+      "minecraft-protocol": "github:zardoy/minecraft-protocol#2c14a686bfe7cbd9a5c87b629b402295ee86219f",
+      "prismarine-chunk": "1.35.0",
+      "prismarine-entity": "2.3.1",
+      "prismarine-item": "1.14.0",
+      "prismarine-nbt": "2.5.0",
+      "prismarine-windows": "2.9.0",
+      "long": "5.2.3",
+      "vec3": "0.1.8",
+      "mineflayer": "4.20.0",
       "react": "^18.2.0"
     }
-  }
+  },
+  "packageManager": "pnpm@10.8.0"
 }
