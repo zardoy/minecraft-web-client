@@ -509,6 +509,7 @@ export default () => {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (awaitingBrowserSave && usesSafariSaveStep) {
       event.preventDefault()
+      bot.end()
       reconnectReload()
       return
     }
