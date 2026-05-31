@@ -10,6 +10,15 @@ import Button from './Button'
 type Mode = 'login' | 'register' | 'changepassword' | 'unregister'
 type IframeAuthMode = 'register' | 'changepassword'
 
+/** When false, register/changepassword use native host inputs (no iframe overlay). */
+const USE_IFRAME = false
+
+export type AutoFillLoginResult = {
+  password: string
+  newPassword?: string
+  reconnectForSave?: boolean
+}
+
 const state = proxy({
   mode: 'login' as Mode,
   serverIp: '',
@@ -17,14 +26,14 @@ const state = proxy({
   prefilledPassword: '' as string | undefined,
 })
 
-let resolve: ((value: { password: string, newPassword?: string } | undefined) => void) | undefined
+let resolve: ((value: AutoFillLoginResult | undefined) => void) | undefined
 
 export const showAutoFillLoginModal = async (params: {
   mode: Mode
   serverIp: string
   username: string
   prefilledPassword?: string
-}): Promise<{ password: string, newPassword?: string } | undefined> => {
+}): Promise<AutoFillLoginResult | undefined> => {
   showModal({ reactType: 'auto-fill-login' })
   return new Promise((_resolve) => {
     resolve = _resolve
@@ -58,6 +67,16 @@ const captionStyle: React.CSSProperties = {
 }
 
 const IDENTIFIER_HINT = 'Used as identifier in your password manager'
+
+const checkboxLabelStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 9,
+  color: '#A0A0A0',
+  maxWidth: 220,
+  cursor: 'pointer',
+}
 
 const decorativeCaptionStyle: React.CSSProperties = {
   ...captionStyle,
@@ -362,8 +381,38 @@ export default () => {
   const overlayIframeRef = useRef<HTMLIFrameElement>(null)
   const [error, setError] = useState('')
   const [confirmChecked, setConfirmChecked] = useState(false)
+  const [reconnectForSave, setReconnectForSave] = useState(true)
+  const reconnectForSaveRef = useRef(reconnectForSave)
+  reconnectForSaveRef.current = reconnectForSave
 
   const identifier = `${serverIp}-${username}`
+
+  const finishSubmit = (result: AutoFillLoginResult) => {
+    setError('')
+    resolve?.({
+      ...result,
+      reconnectForSave: isSafari && reconnectForSaveRef.current && (mode === 'register' || mode === 'changepassword')
+        ? true
+        : undefined,
+    })
+    resolve = undefined
+    hideCurrentModal()
+  }
+
+  const renderReconnectCheckbox = () => {
+    if (!isSafari) return null
+    return (
+      <label style={checkboxLabelStyle}>
+        <input
+          type="checkbox"
+          checked={reconnectForSave}
+          onChange={(e) => setReconnectForSave(e.target.checked)}
+          style={{ cursor: 'pointer' }}
+        />
+        {' '}Reconnect for save prompt
+      </label>
+    )
+  }
 
   const mountIframeForm = useCallback((iframeMode: IframeAuthMode) => {
     const root = overlayRootRef.current
@@ -384,25 +433,20 @@ export default () => {
   }, [identifier, prefilledPassword, appScale])
 
   useEffect(() => {
-    if (!isModalActive || !isIframeAuthMode(mode)) return
+    if (!isModalActive || !USE_IFRAME || !isIframeAuthMode(mode)) return
 
     setError('')
     setConfirmChecked(false)
+    setReconnectForSave(true)
     const frame = requestAnimationFrame(() => mountIframeForm(mode))
 
     const onMessage = (event: MessageEvent) => {
       if (event.data?.type === IFRAME_SUBMIT_MSG.register) {
-        setError('')
-        resolve?.({ password: event.data.password })
-        resolve = undefined
-        hideCurrentModal()
+        finishSubmit({ password: event.data.password })
         return
       }
       if (event.data?.type === IFRAME_SUBMIT_MSG.changepassword) {
-        setError('')
-        resolve?.({ password: event.data.password, newPassword: event.data.newPassword })
-        resolve = undefined
-        hideCurrentModal()
+        finishSubmit({ password: event.data.password, newPassword: event.data.newPassword })
       }
     }
 
@@ -414,10 +458,11 @@ export default () => {
   }, [isModalActive, mode, mountIframeForm])
 
   useEffect(() => {
-    if (!isModalActive || isIframeAuthMode(mode)) return
+    if (!isModalActive || (USE_IFRAME && isIframeAuthMode(mode))) return
 
     setError('')
     setConfirmChecked(false)
+    setReconnectForSave(true)
     if (passwordRef.current) {
       passwordRef.current.value = prefilledPassword ?? ''
     }
@@ -444,9 +489,9 @@ export default () => {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const password = (passwordRef.current?.value ?? '').trim()
 
     if (mode === 'unregister') {
+      const password = (passwordRef.current?.value ?? '').trim()
       if (!password) {
         setError('Password is required')
         return
@@ -455,21 +500,55 @@ export default () => {
         setError('You must confirm account deletion')
         return
       }
-      setError('')
-      resolve?.({ password })
-      resolve = undefined
-      hideCurrentModal()
+      finishSubmit({ password })
       return
     }
 
+    if (mode === 'register') {
+      const password = (passwordRef.current?.value ?? '').trim()
+      const confirm = (confirmRef.current?.value ?? '').trim()
+      if (!password) {
+        setError('Password is required')
+        return
+      }
+      if (password !== confirm) {
+        setError('Passwords do not match')
+        return
+      }
+      finishSubmit({ password })
+      return
+    }
+
+    if (mode === 'changepassword') {
+      const oldPassword = (passwordRef.current?.value ?? '').trim()
+      const newPassword = (newPasswordRef.current?.value ?? '').trim()
+      const confirm = (confirmRef.current?.value ?? '').trim()
+      if (!oldPassword) {
+        setError('Old password is required')
+        return
+      }
+      if (!newPassword) {
+        setError('New password is required')
+        return
+      }
+      if (newPassword !== confirm) {
+        setError('New passwords do not match')
+        return
+      }
+      if (oldPassword === newPassword) {
+        setError('New password must differ from old password')
+        return
+      }
+      finishSubmit({ password: oldPassword, newPassword })
+      return
+    }
+
+    const password = (passwordRef.current?.value ?? '').trim()
     if (!password) {
       setError('Password is required')
       return
     }
-    setError('')
-    resolve?.({ password })
-    resolve = undefined
-    hideCurrentModal()
+    finishSubmit({ password })
   }
 
   const handleCancel = () => {
@@ -562,6 +641,7 @@ export default () => {
         </div>
 
         <div style={{ ...verticalButtonsStyle, marginTop: ERROR_SLOT_HEIGHT - 4 }}>
+          {renderReconnectCheckbox()}
           <Button type="button" onClick={handleCancel}>Cancel</Button>
         </div>
       </div>
@@ -604,8 +684,87 @@ export default () => {
     </Screen>
   }
 
-  if (mode === 'register' || mode === 'changepassword') {
+  if ((mode === 'register' || mode === 'changepassword') && USE_IFRAME) {
     return renderIframeAuthShell(mode)
+  }
+
+  if (mode === 'register' || mode === 'changepassword') {
+    const submitLabel = mode === 'register' ? 'Register' : 'Change'
+    return <Screen title={title} backdrop>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <input
+            ref={usernameRef}
+            type="text"
+            name="username"
+            autoComplete="username"
+            defaultValue={identifier}
+            style={inputStyle}
+          />
+          <div style={captionStyle}>{IDENTIFIER_HINT}</div>
+        </div>
+        {mode === 'register' ? (
+          <>
+            <input
+              ref={passwordRef}
+              type="password"
+              name="password"
+              autoComplete="new-password"
+              autoFocus
+              defaultValue={prefilledPassword}
+              placeholder="Password"
+              style={inputStyle}
+            />
+            <input
+              ref={confirmRef}
+              type="password"
+              name="password-confirm"
+              autoComplete="new-password"
+              placeholder="Confirm password"
+              style={inputStyle}
+            />
+          </>
+        ) : (
+          <>
+            <input
+              ref={passwordRef}
+              type="password"
+              name="old-password"
+              autoComplete="current-password"
+              autoFocus
+              defaultValue={prefilledPassword}
+              placeholder="Old password"
+              style={inputStyle}
+            />
+            <input
+              ref={newPasswordRef}
+              type="password"
+              name="new-password"
+              autoComplete="new-password"
+              placeholder="New password"
+              style={inputStyle}
+            />
+            <input
+              ref={confirmRef}
+              type="password"
+              name="confirm-new-password"
+              autoComplete="new-password"
+              placeholder="Confirm new password"
+              style={inputStyle}
+            />
+          </>
+        )}
+        {renderReconnectCheckbox()}
+        {error && <div style={errorStyle}>{error}</div>}
+        <div style={verticalButtonsStyle}>
+          <Button type="submit">{submitLabel}</Button>
+          <Button type="button" onClick={handleCancel}>Cancel</Button>
+        </div>
+      </form>
+    </Screen>
   }
 
   return <Screen title={title} backdrop>

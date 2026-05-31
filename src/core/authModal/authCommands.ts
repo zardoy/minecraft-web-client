@@ -17,16 +17,26 @@ export const buildAuthCommand = (mode: AuthMode, password: string, newPassword?:
   }
 }
 
+export type AuthFlowResult = {
+  password: string
+  newPassword?: string
+  reconnectForSave?: boolean
+}
+
 export const runAuthFlow = (
   bot: AuthFlowBot | undefined | null,
   mode: AuthMode,
-  result: { password: string, newPassword?: string },
+  result: AuthFlowResult,
   ctx: { serverIp: string, username: string, source: 'manual' | 'modal', preSaved?: boolean }
 ): boolean => {
   if (!bot) return false
   const cmd = buildAuthCommand(mode, result.password, result.newPassword)
   if (!cmd) return false
   try { bot.chat(cmd) } catch {}
+  if (result.reconnectForSave) {
+    setTimeout(() => window.location.reload(), 100)
+    return true
+  }
   monitorLoginAttempt({
     password: result.password,
     newPassword: result.newPassword,

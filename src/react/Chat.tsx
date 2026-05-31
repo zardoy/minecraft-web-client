@@ -349,12 +349,8 @@ const ChatBase = ({
 
   const onMainInputChange = () => {
     const inputValue = chatInput.current.value
-    if (usingTouch) {
-      const match = /^\/(login|register|changepassword|unregister)( |$)/i.exec(inputValue)
-      setAutoFillHint(match ? (match[1].toLowerCase() as 'login' | 'register' | 'changepassword' | 'unregister') : null)
-    } else if (autoFillHint !== null) {
-      setAutoFillHint(null)
-    }
+    const match = /^\/(login|register|changepassword|unregister)( |$)/i.exec(inputValue)
+    setAutoFillHint(match ? (match[1].toLowerCase() as 'login' | 'register' | 'changepassword' | 'unregister') : null)
 
     const lastWord = inputValue.slice(0, chatInput.current.selectionEnd ?? inputValue.length).split(' ').at(-1)!
     const isCommand = inputValue.startsWith('/')
@@ -542,7 +538,7 @@ const ChatBase = ({
       </div>
 
       <div className={`chat-wrapper chat-input-wrapper ${usingTouch ? 'input-mobile' : ''}`} hidden={!opened}>
-        {usingTouch && autoFillHint && (
+        {autoFillHint && (
           <div
             role="button"
             tabIndex={0}
@@ -561,9 +557,14 @@ const ChatBase = ({
             }}
             style={{
               position: 'absolute',
-              top: '100%',
               left: 0,
-              marginTop: 4,
+              ...(usingTouch ? {
+                top: '100%',
+                marginTop: 4,
+              } : {
+                bottom: '100%',
+                marginBottom: 4,
+              }),
               padding: '4px 6px',
               background: 'rgba(0, 0, 0, 0.7)',
               color: 'white',
