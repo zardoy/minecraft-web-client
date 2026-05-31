@@ -1,7 +1,10 @@
-import type { Bot } from 'mineflayer'
 import { monitorLoginAttempt } from './core/loginFeature'
 
 export type AuthMode = 'login' | 'register' | 'changepassword' | 'unregister'
+
+interface AuthFlowBot {
+  chat: (message: string) => void
+}
 
 export const buildAuthCommand = (mode: AuthMode, password: string, newPassword?: string): string | null => {
   switch (mode) {
@@ -15,7 +18,7 @@ export const buildAuthCommand = (mode: AuthMode, password: string, newPassword?:
 }
 
 export const runAuthFlow = (
-  bot: Bot | undefined | null,
+  bot: AuthFlowBot | undefined | null,
   mode: AuthMode,
   result: { password: string, newPassword?: string },
   ctx: { serverIp: string, username: string, source: 'manual' | 'modal', preSaved?: boolean }
