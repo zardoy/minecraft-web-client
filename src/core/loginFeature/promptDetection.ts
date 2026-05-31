@@ -4,7 +4,6 @@
 export type LoginPromptKind = 'login' | 'register' | 'either' | 'changepassword' | 'unregister'
 
 const stripFormatting = (text: string): string => {
-  // Remove Minecraft section-sign formatting codes (§x).
   return text.replaceAll(/\u00A7./g, '')
 }
 
@@ -21,7 +20,6 @@ export const detectLoginPrompt = (text: string): LoginPromptKind | null => {
   const hasChangePassword = CHANGEPASSWORD_CMD_RE.test(cleaned)
   const hasUnregister = UNREGISTER_CMD_RE.test(cleaned)
 
-  // Legacy either only applies to login/register.
   if (hasLogin && hasRegister) return 'either'
   if (hasLogin) return 'login'
   if (hasRegister) return 'register'

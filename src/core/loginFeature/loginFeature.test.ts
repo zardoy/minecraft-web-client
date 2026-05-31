@@ -1,5 +1,5 @@
 import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest'
-import { detectLoginPrompt, createLoginPromptDebouncer } from './loginPromptDetector'
+import { detectLoginPrompt, createLoginPromptDebouncer } from './promptDetection'
 
 describe('detectLoginPrompt', () => {
   test('detects AuthMe-like login message', () => {

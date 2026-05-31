@@ -1,16 +1,16 @@
-import { formatMessage } from './chatUtils'
-import { showAutoFillLoginModal } from './react/AutoFillLoginModal'
-import { clearServerPassword, findServerPassword, saveServerPassword } from './react/serversStorage'
-import { showNotification } from './react/NotificationProvider'
-import { runAuthFlow } from './authCommands'
+import { formatMessage } from '../../chatUtils'
+import { showAutoFillLoginModal } from '../../react/AutoFillLoginModal'
+import { clearServerPassword, findServerPassword, saveServerPassword } from '../../react/serversStorage'
+import { showNotification } from '../../react/NotificationProvider'
+import { runAuthFlow } from '../../authCommands'
 
-type Source = 'manual' | 'modal'
+type MonitorSource = 'manual' | 'modal'
 
 interface MonitorOptions {
   password: string
   newPassword?: string
   mode: 'login' | 'register' | 'changepassword' | 'unregister'
-  source: Source
+  source: MonitorSource
   serverIp?: string
   username?: string
   preSaved: boolean
@@ -95,8 +95,6 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     finished = true
     cleanup()
 
-    // For unregister, never clear the saved password on failure —
-    // the old password may still be valid (user just typed it wrong).
     if (opts.preSaved && opts.mode !== 'unregister') {
       try { clearServerPassword() } catch (err) { console.error('clearServerPassword failed', err) }
     }
@@ -140,8 +138,6 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     if (!opts.preSaved) {
       onSuccessSave(opts)
     } else if (opts.username && opts.serverIp) {
-      // Already saved in our storage; still nudge the browser's password manager
-      // to make sure the credential is stored there too (helps Chrome/Edge).
       void tryStoreInBrowserCredentials(opts.username, opts.password, opts.serverIp)
     }
   }

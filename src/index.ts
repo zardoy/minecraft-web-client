@@ -80,7 +80,7 @@ import { ConnectOptions, getVersionAutoSelect, downloadOtherGameData, downloadAl
 import { ref, subscribe } from 'valtio'
 import { signInMessageState } from './react/SignInMessageProvider'
 import { findServerPassword, updateAuthenticatedAccountData, updateLoadedServerData, updateServerConnectionHistory } from './react/serversStorage'
-import { monitorLoginAttempt } from './loginAttemptMonitor'
+import { monitorLoginAttempt } from './core/loginFeature'
 import { mainMenuState } from './react/MainMenuRenderApp'
 import './mobileShim'
 import { parseFormattedMessagePacket } from './botUtils'

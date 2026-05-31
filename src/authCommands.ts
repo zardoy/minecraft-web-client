@@ -1,5 +1,5 @@
 import type { Bot } from 'mineflayer'
-import { monitorLoginAttempt } from './loginAttemptMonitor'
+import { monitorLoginAttempt } from './core/loginFeature'
 
 export type AuthMode = 'login' | 'register' | 'changepassword' | 'unregister'
 
