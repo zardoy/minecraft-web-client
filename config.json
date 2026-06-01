@@ -18,7 +18,12 @@
       "ip": "wss://ws.fuchsmc.net"
     },
     {
-      "ip": "wss://play3.mcraft.fun"
+      "ip": "wss://play2.mcraft.fun",
+      "description": "Mirror for play.mcraft.fun"
+    },
+    {
+      "ip": "wss://play3.mcraft.fun",
+      "description": "Mirror for play.mcraft.fun"
     },
     {
       "ip": "wss://play-creative.mcraft.fun",

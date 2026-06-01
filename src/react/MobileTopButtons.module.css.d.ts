@@ -6,7 +6,9 @@ interface CssExports {
   'debug-btn': string;
   debugBtn: string;
   'mobile-top-btns': string;
+  'mobile-top-btns--portrait-tall': string;
   mobileTopBtns: string;
+  mobileTopBtnsPortraitTall: string;
   'pause-btn': string;
   pauseBtn: string;
   'tab-btn': string;

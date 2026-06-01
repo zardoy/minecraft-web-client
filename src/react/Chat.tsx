@@ -1,6 +1,8 @@
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isStringAllowed, MessageFormatPart } from '../chatUtils'
+import { lastConnectOptions } from '../appStatus'
+import { runAuthFlow } from '../core/authModal'
 import { MessagePart } from './MessageFormatted'
 import './Chat.css'
 import { isIos, reactKeyForMessage } from './utils'
@@ -9,6 +11,8 @@ import { pixelartIcons } from './PixelartIcon'
 import { useScrollBehavior } from './hooks/useScrollBehavior'
 import { withInjectableUi } from './extendableSystem'
 import { useTypingIndicatorText } from './useTypingIndicatorText'
+import { showAutoFillLoginModal } from './AutoFillLoginModal'
+import { findServerPassword } from './serversStorage'
 
 export type Message = {
   parts: MessageFormatPart[],
@@ -121,6 +125,8 @@ const ChatBase = ({
   const [preservedInputValue, setPreservedInputValue] = useState('')
   const [inputKey, setInputKey] = useState(0)
   const pingHistoryRef = useRef(JSON.parse(window.localStorage.pingHistory || '[]'))
+
+  const [autoFillHint, setAutoFillHint] = useState<'login' | 'register' | 'changepassword' | 'unregister' | null>(null)
 
   const [completePadText, setCompletePadText] = useState('')
   const completeRequestValue = useRef('')
@@ -342,8 +348,12 @@ const ChatBase = ({
   }, [opened])
 
   const onMainInputChange = () => {
-    const lastWord = chatInput.current.value.slice(0, chatInput.current.selectionEnd ?? chatInput.current.value.length).split(' ').at(-1)!
-    const isCommand = chatInput.current.value.startsWith('/')
+    const inputValue = chatInput.current.value
+    const match = /^\/(login|register|changepassword|unregister)( |$)/i.exec(inputValue)
+    setAutoFillHint(match ? (match[1].toLowerCase() as 'login' | 'register' | 'changepassword' | 'unregister') : null)
+
+    const lastWord = inputValue.slice(0, chatInput.current.selectionEnd ?? inputValue.length).split(' ').at(-1)!
+    const isCommand = inputValue.startsWith('/')
 
     if (lastWord.startsWith('@') && getPingComplete && !isCommand) {
       setCompletePadText(lastWord)
@@ -528,6 +538,48 @@ const ChatBase = ({
       </div>
 
       <div className={`chat-wrapper chat-input-wrapper ${usingTouch ? 'input-mobile' : ''}`} hidden={!opened}>
+        {autoFillHint && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={async () => {
+              const mode = autoFillHint
+              setAutoFillHint(null)
+              const serverIp = lastConnectOptions.value?.server ?? ''
+              const username = bot?.username ?? ''
+              const prefilledPassword = findServerPassword()
+              const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
+              if (!result?.password) return
+              if (mode === 'changepassword' && !result.newPassword) return
+              runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
+              chatInput.current.value = ''
+              onMainInputChange()
+            }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              ...(usingTouch ? {
+                top: '100%',
+                marginTop: 4,
+              } : {
+                bottom: '100%',
+                marginBottom: 4,
+              }),
+              padding: '4px 6px',
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              fontSize: 10,
+              fontFamily: 'mojangles, minecraft, monospace',
+              border: '1px solid #A0A0A0',
+              cursor: 'pointer',
+              zIndex: 10,
+              maxWidth: 'calc(100% - 4px)',
+              boxSizing: 'border-box',
+            }}
+          >
+            💡 Use Auto-fill UI for password manager
+          </div>
+        )}
         {usingTouch && (
           <>
             <Button

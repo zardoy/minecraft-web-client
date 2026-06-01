@@ -2,10 +2,11 @@ import { useSnapshot } from 'valtio'
 import { noCase } from 'change-case'
 import { titleCase } from 'title-case'
 import { useMemo } from 'react'
-import { disabledSettings, options, qsOptions } from '../optionsStorage'
+import { defaultOptions, disabledSettings, options, qsOptions } from '../optionsStorage'
 import { hideAllModals, miscUiState } from '../globalState'
 import { reloadChunksAction } from '../controls'
 import { optionsMeta } from '../defaultOptions'
+import { appStorage } from './appStorageProvider'
 import Button from './Button'
 import Slider from './Slider'
 import Screen from './Screen'
@@ -61,6 +62,23 @@ const useCommonComponentsProps = (item: OptionMeta) => {
   }
 }
 
+const isSettingChanged = (settingId: string) => {
+  return settingId in appStorage.changedSettings &&
+    JSON.stringify(appStorage.changedSettings[settingId]) !== JSON.stringify(defaultOptions[settingId])
+}
+
+const ChangedIndicator = () => (
+  <div style={{
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 3,
+    height: 3,
+    backgroundColor: 'rgb(77 160 255)',
+    pointerEvents: 'none',
+  }} />
+)
+
 /** Prompt at most once per session per setting for restart/chunks-reload nags */
 const ignoreReloadWarningsCache = new Set<string>()
 
@@ -88,8 +106,10 @@ export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
   cacheKey?: string,
 }) => {
   const { disabledBecauseOfSetting } = useCommonComponentsProps(item)
+  useSnapshot(appStorage)
 
   const optionValue = useSnapshot(options)[item.id!]
+  const isChanged = isSettingChanged(item.id!)
 
   // Get values from optionsMeta if available
   const meta = item.id ? optionsMeta[item.id as keyof typeof optionsMeta] : undefined
@@ -190,10 +210,11 @@ export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
     }}
     title={disabledReason ? `${disabledReason} | ${item.tooltip}` : item.tooltip}
     disabled={disabledBecauseOfSetting || !!item.disabledReason || isLocked(item)}
-    style={{
-      width: 150,
-    }}
-  />
+    inScreen
+    style={isChanged ? { position: 'relative', width: 150 } : { width: 150 }}
+  >
+    {isChanged && <ChangedIndicator />}
+  </Button>
 }
 
 export const OptionSlider = ({
@@ -206,8 +227,10 @@ export const OptionSlider = ({
   valueOverride?: number
 }) => {
   const { disabledBecauseOfSetting } = useCommonComponentsProps(item)
+  useSnapshot(appStorage)
 
   const optionValue = useSnapshot(options)[item.id!]
+  const isChanged = isSettingChanged(item.id!)
 
   const valueDisplay = useMemo(() => {
     if (item.valueText) return item.valueText(optionValue)
@@ -215,21 +238,24 @@ export const OptionSlider = ({
   }, [optionValue])
 
   return (
-    <Slider
-      label={item.text!}
-      value={valueOverride ?? options[item.id!]}
-      data-setting={item.id}
-      disabledReason={isLocked(item) ? 'qs' : disabledBecauseOfSetting ? `Disabled because ${item.disableIf![0]} is ${item.disableIf![1]}` : item.disabledReason}
-      min={item.min}
-      max={item.max}
-      unit={item.unit}
-      valueDisplay={valueDisplay}
-      updateOnDragEnd={item.delayApply}
-      updateValue={(value) => {
-        options[item.id!] = value
-        onChange?.(value)
-      }}
-    />
+    <div style={isChanged ? { position: 'relative' } : undefined}>
+      <Slider
+        label={item.text!}
+        value={valueOverride ?? options[item.id!]}
+        data-setting={item.id}
+        disabledReason={isLocked(item) ? 'qs' : disabledBecauseOfSetting ? `Disabled because ${item.disableIf![0]} is ${item.disableIf![1]}` : item.disabledReason}
+        min={item.min}
+        max={item.max}
+        unit={item.unit}
+        valueDisplay={valueDisplay}
+        updateOnDragEnd={item.delayApply}
+        updateValue={(value) => {
+          options[item.id!] = value
+          onChange?.(value)
+        }}
+      />
+      {isChanged && <ChangedIndicator />}
+    </div>
   )
 }
 

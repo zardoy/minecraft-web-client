@@ -43,11 +43,10 @@ const readVarInt = (buf: Buffer, offset: number): { value: number, bytesRead: nu
 const bitMapToLoHi = (bitMap: any[]): Uint32Array | null => {
   if (!Array.isArray(bitMap)) return null
   const out = new Uint32Array(bitMap.length * 2)
-  for (let i = 0; i < bitMap.length; i++) {
-    const entry = bitMap[i]
+  for (const [i, entry] of bitMap.entries()) {
     if (typeof entry === 'bigint') {
-      out[i * 2] = Number(entry & 0xffffffffn) >>> 0
-      out[i * 2 + 1] = Number((entry >> 32n) & 0xffffffffn) >>> 0
+      out[i * 2] = Number(entry & 0xff_ff_ff_ffn) >>> 0
+      out[i * 2 + 1] = Number((entry >> 32n) & 0xff_ff_ff_ffn) >>> 0
     } else if (Array.isArray(entry) && entry.length === 2) {
       // protodef i64 → [hi, lo]
       const [hi, lo] = entry
@@ -254,8 +253,8 @@ const botInit = () => {
       // varints encode signed values via zig-zag in some packets, but
       // mineflayer-protocol's update_light uses plain varint for chunkX/Z
       // (which is what the WASM parser expects to receive verbatim).
-      const x = xv.value | 0
-      const z = zv.value | 0
+      const x = Math.trunc(xv.value)
+      const z = Math.trunc(zv.value)
 
       const rawPacket = new Uint8Array(buf.byteLength)
       rawPacket.set(buf)

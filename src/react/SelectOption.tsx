@@ -65,11 +65,13 @@ export const showInputsModal = async <T extends Record<string, InputOption>>(
   {
     cancel = true,
     minecraftJsonMessage,
-    showConfirm = true
+    showConfirm = true,
+    confirmLabel = 'Confirm',
   }: {
     cancel?: boolean,
     minecraftJsonMessage?
     showConfirm?: boolean
+    confirmLabel?: string
   } = {}
 ): Promise<{
   [K in keyof T]: T[K] extends { type: 'text' }
@@ -98,7 +100,7 @@ export const showInputsModal = async <T extends Record<string, InputOption>>(
       minecraftJsonMessage: minecraftJsonMessageParsed,
       options: [],
       descriptions: [],
-      inputsConfirmButton: showConfirm ? 'Confirm' : '',
+      inputsConfirmButton: showConfirm ? confirmLabel : '',
       hoveredOptionIndex: -1
     })
   })

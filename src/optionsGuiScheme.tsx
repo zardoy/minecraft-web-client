@@ -5,7 +5,8 @@ import { versionToNumber } from 'mc-assets/dist/utils'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import Logo from 'minecraft-renderer/logo.webp'
 import { gameAdditionalState, miscUiState, openOptionsMenu, showModal } from './globalState'
-import { AppOptions, getChangedSettings, options, resetOptions } from './optionsStorage'
+import { AppOptions, getChangedSettings, options } from './optionsStorage'
+import { showResetSettingsModal } from './react/AllSettingsEditor'
 import Button from './react/Button'
 import { OptionMeta, OptionSlider } from './react/OptionsItems'
 import Slider from './react/Slider'
@@ -552,7 +553,7 @@ export const guiOptionsScheme: {
         return <Button
           inScreen
           onClick={() => {
-            if (confirm('Are you sure you want to reset all settings?')) resetOptions()
+            void showResetSettingsModal()
           }}
         >Reset settings</Button>
       },

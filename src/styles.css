@@ -15,7 +15,7 @@
   color: rgba(255, 255, 255, 0.92);
   background: rgba(0, 0, 0, 0.7);
   border-radius: 4px;
-  pointer-events: none;
+  cursor: pointer;
   user-select: none;
   white-space: pre-wrap;
   word-break: break-word;
@@ -34,6 +34,15 @@ body {
   height: 100vh !important;
   width: 100dvw !important;
   height: 100dvh !important;
+}
+
+/* Advanced renderer stats (`mc-renderer-debug-overlay`); below most HUD, dips under modals. */
+.mc-renderer-debug-overlay {
+  z-index: 10;
+}
+
+body.has-open-modals .mc-renderer-debug-overlay {
+  z-index: 5;
 }
 
 body.rotated {

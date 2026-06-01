@@ -58,8 +58,8 @@ export async function preloadMesherWorkerScript (opts?: {
     } finally {
       clearTimeout(t)
     }
-  } catch (e: unknown) {
-    const err = e as { name?: string; message?: string }
+  } catch (e: any) {
+    const err = e
     if (err?.name === 'AbortError') {
       throw new MesherWorkerPreloadError(
         `Mesher script fetch timed out after ${fetchTimeoutMs}ms (${scriptUrl}).`,
@@ -67,7 +67,7 @@ export async function preloadMesherWorkerScript (opts?: {
       )
     }
     throw new MesherWorkerPreloadError(
-      `Mesher script fetch failed (network): ${err?.message ?? e}. URL: ${scriptUrl}`,
+      `Mesher script fetch failed (network): ${err?.message ?? e ?? 'unknown error'}. URL: ${scriptUrl}`,
       { phase: 'fetch', code: 'network', detail: String(err?.message ?? e) }
     )
   }
