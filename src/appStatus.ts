@@ -9,7 +9,7 @@ const formatErrorDetail = (err: unknown): string => {
   const formatStack = (stack: string, fallbackMessage: string) => {
     const lines = stack.split('\n')
     const frame = lines[1]?.trim()
-    return frame ? `${lines[0]} ${frame}` : fallbackMessage
+    return frame ? `${lines[0]}\n\n${frame}` : fallbackMessage
   }
 
   if (err instanceof Error) {

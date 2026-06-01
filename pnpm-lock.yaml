@@ -21,6 +21,7 @@ overrides:
   react: ^18.2.0
   prismarine-chunk: github:zardoy/prismarine-chunk#master
   prismarine-item: latest
+  valtio: 1.13.2
 
 patchedDependencies:
   minecraft-protocol:
@@ -242,7 +243,7 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(react@18.3.1)(typescript@5.5.4)
       valtio:
-        specifier: ^1.11.1
+        specifier: 1.13.2
         version: 1.13.2(@types/react@18.3.18)(react@18.3.1)
       vec3:
         specifier: 0.1.10
@@ -4279,7 +4280,7 @@ packages:
   derive-valtio@0.1.0:
     resolution: {integrity: sha512-OCg2UsLbXK7GmmpzMXhYkdO64vhJ1ROUUGaTFyHjVwEdMEcTTRj7W1TxLbSBxdY8QLBPCcp66MTyaSy0RpO17A==}
     peerDependencies:
-      valtio: '*'
+      valtio: 1.13.2
 
   des.js@1.1.0:
     resolution: {integrity: sha512-r17GxjhUCjSRy8aiJpr8/UadFIzMzJGexI3Nmz4ADi9LYSFx4gTBp80+NaX/YsXWWLhpZ7v/v/ubEc/bCNfKwg==}
@@ -6918,9 +6919,6 @@ packages:
     resolution: {integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==}
     engines: {node: '>= 0.10'}
 
-  proxy-compare@2.5.1:
-    resolution: {integrity: sha512-oyfc0Tx87Cpwva5ZXezSp5V9vht1c7dZBhvuV/y3ctkgMVUmiAGDVeeB0dKhGSyT0v1ZTEQYpe/RXlBVBNuCLA==}
-
   proxy-compare@2.6.0:
     resolution: {integrity: sha512-8xuCeM3l8yqdmbPoYeLbrAXCBWu19XEYc5/F28f5qOaoAIMyfmBUkl5axiK+x9olUvRlcekvnm98AP9RDngOIw==}
 
@@ -8312,18 +8310,6 @@ packages:
   validate-npm-package-license@3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}
 
-  valtio@1.11.2:
-    resolution: {integrity: sha512-1XfIxnUXzyswPAPXo1P3Pdx2mq/pIqZICkWN60Hby0d9Iqb+MEIpqgYVlbflvHdrp2YR/q3jyKWRPJJ100yxaw==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      '@types/react': '>=16.8'
-      react: ^18.2.0
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      react:
-        optional: true
-
   valtio@1.13.2:
     resolution: {integrity: sha512-Qik0o+DSy741TmkqmRfjq+0xpZBXi/Y6+fXZLn0xNF1z/waFMbE3rkivv5Zcf9RrMUp6zswf2J7sbh2KBlba5A==}
     engines: {node: '>=12.20.0'}
@@ -9537,7 +9523,7 @@ snapshots:
       react-portal: 4.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-use: 17.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-use-measure: 2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      valtio: 1.11.2(@types/react@18.3.18)(react@18.3.1)
+      valtio: 1.13.2(@types/react@18.3.18)(react@18.3.1)
       zustand: 3.6.5(react@18.3.1)
     transitivePeerDependencies:
       - '@babel/core'
@@ -16731,8 +16717,6 @@ snapshots:
       forwarded: 0.2.0
       ipaddr.js: 1.9.1
 
-  proxy-compare@2.5.1: {}
-
   proxy-compare@2.6.0: {}
 
   proxy-from-env@1.0.0:
@@ -18371,14 +18355,6 @@ snapshots:
     dependencies:
       spdx-correct: 3.2.0
       spdx-expression-parse: 3.0.1
-
-  valtio@1.11.2(@types/react@18.3.18)(react@18.3.1):
-    dependencies:
-      proxy-compare: 2.5.1
-      use-sync-external-store: 1.2.0(react@18.3.1)
-    optionalDependencies:
-      '@types/react': 18.3.18
-      react: 18.3.1
 
   valtio@1.13.2(@types/react@18.3.18)(react@18.3.1):
     dependencies:

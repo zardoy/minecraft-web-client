@@ -26,7 +26,8 @@
     "build-storybook": "storybook build && node scripts/build.js moveStorybookFiles",
     "start-experiments": "vite --config experiments/vite.config.ts --host",
     "update-git-deps": "tsx scripts/updateGitDeps.ts",
-    "request-data": "tsx scripts/requestData.ts"
+    "request-data": "tsx scripts/requestData.ts",
+    "check-bundled-duplicates": "node scripts/findBundledDuplicateDeps.mjs"
   },
   "keywords": [
     "prismarine",
@@ -205,7 +206,8 @@
       "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
       "react": "^18.2.0",
       "prismarine-chunk": "github:zardoy/prismarine-chunk#master",
-      "prismarine-item": "latest"
+      "prismarine-item": "latest",
+      "valtio": "1.13.2"
     },
     "updateConfig": {
       "ignoreDependencies": [

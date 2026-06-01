@@ -138,6 +138,10 @@ export const guiOptionsScheme: {
         text: 'Lighting in Newer Versions',
       },
       rendererMesher: {},
+      rendererShaderCubeBlocks: {
+        text: 'Instanced Shader Cubes',
+        disableIf: ['rendererMesher', 'legacy-js'],
+      },
       starfieldRendering: {},
       renderEntities: {},
       keepChunksDistance: {
