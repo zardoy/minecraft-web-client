@@ -5,7 +5,6 @@ import {
 
 export const defaultOptions = {
   renderDistance: 3,
-  keepChunksDistance: 1,
   multiplayerRenderDistance: 3,
   closeConfirmation: true,
   autoFullScreen: false,
@@ -35,23 +34,15 @@ export const defaultOptions = {
   touchControlsSize: getTouchControlsSize(),
   touchMovementType: 'modern' as 'modern' | 'classic',
   touchInteractionType: 'classic' as 'classic' | 'buttons',
-  gpuPreference: 'default' as 'default' | 'high-performance' | 'low-power',
-  backgroundRendering: '20fps' as 'full' | '20fps' | '5fps',
   /** @unstable */
   disableAssets: false,
   /** @unstable */
   debugLogNotFrequentPackets: false,
   unimplementedContainers: false,
-  dayCycleAndLighting: true,
-  loadPlayerSkins: true,
-  renderEars: true,
-  wasmExperimentalMesher: true,
   ...RENDERER_DEFAULT_OPTIONS,
   enabledResourcepack: null as string | null,
   useVersionsTextures: 'latest',
   serverResourcePacks: 'prompt' as 'prompt' | 'always' | 'never',
-  showHand: true,
-  viewBobbing: true,
   displayRecordButton: true,
   packetsLoggerPreset: 'all' as 'all' | 'no-buffers',
   serversAutoVersionSelect: 'auto' as 'auto' | 'latest' | '1.20.4' | string,
@@ -81,10 +72,7 @@ export const defaultOptions = {
   // antiAliasing: false,
   topRightTimeDisplay: 'only-fullscreen' as 'only-fullscreen' | 'always' | 'never',
 
-  clipWorldBelowY: undefined as undefined | number, // will be removed
   singleplayerAutoSave: false,
-  showChunkBorders: false, // todo rename option
-  frameLimit: false as number | false,
   alwaysBackupWorldBeforeLoading: undefined as boolean | undefined | null,
   alwaysShowMobileControls: false,
   excludeCommunicationDebugEvents: [] as string[],
@@ -103,17 +91,10 @@ export const defaultOptions = {
   errorReporting: true,
   /** Actually might be useful */
   showCursorBlockInSpectator: false,
-  renderEntities: true,
-  smoothLighting: true,
-  vanillaLook: false,
-  newVersionsLighting: false,
   chatSelect: true,
   autoOpenAuthModal: false,
   autoJump: 'auto' as 'auto' | 'always' | 'never',
   autoParkour: false,
-  vrSupport: true, // doesn't directly affect the VR mode, should only disable the button which is annoying to android users
-  vrPageGameRendering: false,
-  renderDebug: 'basic' as 'none' | 'advanced' | 'basic',
   // advanced bot options
   autoRespawn: false,
   mutedSounds: [] as string[],
@@ -126,7 +107,6 @@ export const defaultOptions = {
   displayBossBars: true,
   disabledUiParts: [] as string[],
   neighborChunkUpdates: true,
-  highlightBlockColor: 'auto' as 'auto' | 'blue' | 'classic',
   activeRenderer: 'auto' as 'auto' | string | null
 }
 
@@ -221,37 +201,17 @@ export type OptionMeta = {
 }
 
 export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta>> = {
-  gpuPreference: {
-    possibleValues: [['default', 'Auto'], ['high-performance', 'Dedicated'], ['low-power', 'Low Power']]
-  },
   ...RENDERER_OPTIONS_META,
-  backgroundRendering: {
-    possibleValues: [
-      ['full', 'NO'],
-      ['5fps', '5 FPS'],
-      ['20fps', '20 FPS'],
-    ]
-  },
   activeRenderer: {
     possibleValues: [
       ['threejs', 'Three.js (stable)'],
     ]
-  },
-  renderDebug: {
-    possibleValues: ['advanced', 'basic', 'none']
   },
   serverResourcePacks: {
     possibleValues: ['prompt', 'always', 'never']
   },
   showMinimap: {
     possibleValues: ['always', 'singleplayer', 'never']
-  },
-  highlightBlockColor: {
-    possibleValues: [
-      ['auto', 'Auto'],
-      ['blue', 'Blue'],
-      ['classic', 'Classic']
-    ]
   },
   wysiwygSignEditor: {
     possibleValues: ['auto', 'always', 'never']

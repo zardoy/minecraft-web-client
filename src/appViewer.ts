@@ -4,7 +4,7 @@ import {
   AppViewer,
   getInitialPlayerState,
   MENU_BACKGROUND_MC_VERSION,
-  menuBackgroundSpeedToMultiplier,
+  menuBackgroundOptionsFromStorage,
   type MenuBackgroundOptions
 } from 'minecraft-renderer/src'
 import { generateGuiAtlas } from 'minecraft-renderer/src/lib/guiRenderer'
@@ -12,17 +12,6 @@ import { BotEvents } from 'mineflayer'
 import { activeModalStack, miscUiState } from './globalState'
 import { options } from './optionsStorage'
 import { watchOptionsAfterWorldViewInit } from './watchOptions'
-
-/** Read menu-background options when starting (qs via `?setting=…` is merged into `options` in optionsStorage). */
-export const getMenuBackgroundOptions = (): MenuBackgroundOptions => ({
-  mode: options.menuBackgroundMode as MenuBackgroundOptions['mode'],
-  useMinecraftTextures: options.menuBackgroundMinecraftTextures,
-  futuristicScene: options.menuBackgroundFuturisticScene as MenuBackgroundOptions['futuristicScene'],
-  futuristicCamera: options.menuBackgroundFuturisticCamera as MenuBackgroundOptions['futuristicCamera'],
-  futuristicBlockGroup: options.menuBackgroundFuturisticBlockGroup as MenuBackgroundOptions['futuristicBlockGroup'],
-  futuristicCameraSpeed: menuBackgroundSpeedToMultiplier(options.menuBackgroundFuturisticCameraSpeed),
-  futuristicBlockSpeed: menuBackgroundSpeedToMultiplier(options.menuBackgroundFuturisticBlockSpeed)
-})
 
 // do not import this. Use global appViewer instead (without window prefix).
 export const appViewer = new AppViewer()
@@ -57,7 +46,7 @@ const initialMenuStart = async () => {
   }
   const demo = new URLSearchParams(window.location.search).get('demo')
   if (!demo) {
-    const menuBackgroundOpts = getMenuBackgroundOptions()
+    const menuBackgroundOpts = menuBackgroundOptionsFromStorage(options)
     await prepareMenuBackgroundAssets(menuBackgroundOpts)
     appViewer.startMenuBackground(menuBackgroundOpts)
     return
@@ -104,23 +93,6 @@ export const modalStackUpdateChecks = () => {
   appViewer.inWorldRenderingConfig.foreground = activeModalStack.length === 0
 }
 subscribe(activeModalStack, modalStackUpdateChecks)
-
-subscribe(options, () => {
-  const futuristic = (globalThis as any).menuBackgroundRenderer?.futuristic as {
-    setScene?: (s: string) => void
-    setCamera?: (c: string) => void
-    setBlockGroup?: (g: string) => Promise<void>
-    setCameraSpeed?: (speed: number) => void
-    setBlockSpeed?: (speed: number) => void
-  } | undefined
-  if (!futuristic) return
-  futuristic.setScene?.(options.menuBackgroundFuturisticScene)
-  futuristic.setCamera?.(options.menuBackgroundFuturisticCamera)
-  void futuristic.setBlockGroup?.(options.menuBackgroundFuturisticBlockGroup)
-  futuristic.setCameraSpeed?.(menuBackgroundSpeedToMultiplier(options.menuBackgroundFuturisticCameraSpeed))
-  futuristic.setBlockSpeed?.(menuBackgroundSpeedToMultiplier(options.menuBackgroundFuturisticBlockSpeed))
-})
-
 
 const connectAppWorldViewToBot = () => {
   const entitiesObjectData = new Map<string, number>()

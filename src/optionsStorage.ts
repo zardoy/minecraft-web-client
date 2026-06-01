@@ -5,6 +5,7 @@ import { appQueryParams, appQueryParamsArray } from './appParams'
 import type { AppConfig } from './appConfig'
 import { appStorage } from './react/appStorageProvider'
 import { miscUiState } from './globalState'
+import { migrateRendererOptions } from 'minecraft-renderer/src/three/menuBackground/defaultOptions'
 import { defaultOptions } from './defaultOptions'
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -26,10 +27,6 @@ export const serverChangedSettings = proxy({
 })
 
 const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
-  if (options.highPerformanceGpu) {
-    options.gpuPreference = 'high-performance'
-    delete options.highPerformanceGpu
-  }
   if (Object.keys(options.touchControlsPositions ?? {}).length === 0) {
     options.touchControlsPositions = defaultOptions.touchControlsPositions
   }
@@ -47,6 +44,8 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
     options.rendererWorldPerformance = 'low-energy'
     delete options.lowMemoryMode
   }
+
+  migrateRendererOptions(options)
 
   return options
 }
