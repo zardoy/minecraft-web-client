@@ -36,7 +36,7 @@ export const watchOptionsAfterViewerInit = () => {
   subscribeRendererOptions(appViewer, options, {
     isSafari,
     isCypress: isCypress(),
-    onRegisterFocusHandlers: ({ onFocus, onBlur }) => {
+    onRegisterFocusHandlers ({ onFocus, onBlur }) {
       window.addEventListener('focus', onFocus)
       window.addEventListener('blur', onBlur)
     },

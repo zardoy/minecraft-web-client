@@ -1,11 +1,11 @@
 import { proxy, subscribe } from 'valtio/vanilla'
 import { subscribeKey } from 'valtio/utils'
 import { omitObj } from '@zardoy/utils'
+import { migrateRendererOptions } from 'minecraft-renderer/src/three/menuBackground/defaultOptions'
 import { appQueryParams, appQueryParamsArray } from './appParams'
 import type { AppConfig } from './appConfig'
 import { appStorage } from './react/appStorageProvider'
 import { miscUiState } from './globalState'
-import { migrateRendererOptions } from 'minecraft-renderer/src/three/menuBackground/defaultOptions'
 import { defaultOptions } from './defaultOptions'
 
 const isDev = process.env.NODE_ENV === 'development'
