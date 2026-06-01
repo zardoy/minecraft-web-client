@@ -67,7 +67,6 @@ import { registerServiceWorker } from './serviceWorker'
 import { appStatusState, quickDevReconnect } from './react/AppStatusProvider'
 
 import { fsState } from './loadSave'
-import { watchFov } from './rendererUtils'
 import { loadInMemorySave } from './react/SingleplayerProvider'
 
 import { possiblyHandleStateVariable } from './googledrive'
@@ -120,7 +119,6 @@ if (isPlayground) {
 void registerServiceWorker().then(() => {
   mainMenuState.serviceWorkerLoaded = true
 })
-watchFov()
 initCollisionShapes()
 initializePacketsReplay()
 onAppLoad()

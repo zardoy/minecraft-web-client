@@ -23,7 +23,6 @@ export const defaultOptions = {
   volume: 50,
   enableMusic: true,
   musicVolume: 25,
-  fov: 75,
   defaultPerspective: 'first_person' as 'first_person' | 'third_person_back' | 'third_person_front',
   guiScale: 3,
   autoRequestCompletions: true,

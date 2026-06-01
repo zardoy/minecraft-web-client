@@ -5,6 +5,62 @@ import { HandItemBlock } from 'minecraft-renderer/src/playerState/types'
 import { gameAdditionalState } from '../globalState'
 import { options } from '../optionsStorage'
 
+const BASE_MOVEMENT_SPEED = 0.1
+const FOV_EFFECT_SCALE = 1
+const ZOOM_FOV = 30
+
+const updateFovMultiplier = () => {
+  if (!playerState.ready || !playerState.reactive) return
+
+  let fovModifier = 1
+
+  if (playerState.reactive.flying) {
+    fovModifier *= 1.05
+  }
+
+  const movementSpeedAttr = (
+    bot.entity?.attributes?.['generic.movement_speed']
+    ?? bot.entity?.attributes?.['minecraft:movement_speed']
+    ?? bot.entity?.attributes?.['movement_speed']
+    ?? bot.entity?.attributes?.['minecraft:movementSpeed']
+  )?.value ?? BASE_MOVEMENT_SPEED
+
+  let currentSpeed = BASE_MOVEMENT_SPEED
+  if (bot.controlState?.sprint && !bot.controlState?.sneak) {
+    currentSpeed *= 1.3
+  }
+  fovModifier *= (currentSpeed / movementSpeedAttr + 1) / 2
+
+  if (Math.abs(BASE_MOVEMENT_SPEED) < Number.EPSILON || !Number.isFinite(fovModifier)) {
+    fovModifier = 1
+  }
+
+  const heldItem = playerState.reactive.heldItemMain
+  if (heldItem?.name === 'bow' && playerState.reactive.itemUsageTicks > 0) {
+    let usageProgress = playerState.reactive.itemUsageTicks / 20
+    if (usageProgress > 1) {
+      usageProgress = 1
+    } else {
+      usageProgress *= usageProgress
+    }
+    fovModifier *= 1 - usageProgress * 0.15
+  }
+
+  fovModifier = 1 + (fovModifier - 1) * FOV_EFFECT_SCALE
+
+  const baseFov = gameAdditionalState.isZooming ? ZOOM_FOV : options.fov
+  playerState.reactive.fovMultiplier = (baseFov / options.fov) * fovModifier
+}
+
+const startFovMultiplierUpdates = () => {
+  if (!beforeRenderFrame.includes(updateFovMultiplier)) {
+    beforeRenderFrame.push(updateFovMultiplier)
+  }
+  customEvents.on('gameLoaded', () => {
+    updateFovMultiplier()
+  })
+}
+
 /**
  * can be used only in main thread. Mainly for more convenient reactive state updates.
  * In renderer/ directory, use PlayerStateControllerRenderer type or worldRenderer.playerState.
@@ -232,3 +288,5 @@ export class PlayerStateControllerMain {
 
 export const playerState = new PlayerStateControllerMain()
 window.playerState = playerState
+
+startFovMultiplierUpdates()
