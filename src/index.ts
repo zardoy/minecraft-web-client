@@ -105,7 +105,6 @@ import { appLoadBackend } from './appViewerLoad'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
 
 window.debug = debug
-window.beforeRenderFrame = []
 
 // ACTUAL CODE
 

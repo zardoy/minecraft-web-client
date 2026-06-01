@@ -266,7 +266,7 @@ const OptionElement = ({ item }: { item: Extract<OptionMeta, { type: 'element' }
 const RenderOption = ({ item }: { item: OptionMeta & { custom?: () => React.ReactNode } }) => {
   const { gameLoaded } = useSnapshot(miscUiState)
   if (item.id) {
-    item.text ??= titleCase(noCase(item.id))
+    item.text ??= optionsMeta[item.id as keyof typeof optionsMeta]?.text ?? titleCase(noCase(item.id))
   }
   if (item.disabledDuringGame && gameLoaded) {
     item.disabledReason = 'Cannot be changed during game'

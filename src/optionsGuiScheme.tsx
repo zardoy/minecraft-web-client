@@ -137,9 +137,7 @@ export const guiOptionsScheme: {
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
       },
-      wasmExperimentalMesher: {
-        text: 'WASM Mesher (Experimental)',
-      },
+      rendererMesher: {},
       starfieldRendering: {},
       renderEntities: {},
       keepChunksDistance: {

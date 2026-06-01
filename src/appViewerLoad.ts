@@ -1,5 +1,6 @@
 import { subscribeKey } from 'valtio/utils'
 import { createGraphicsBackendSingleThread, createGraphicsBackendOffThread } from 'minecraft-renderer/src'
+import { beforeRenderFrame } from './beforeRenderFrame'
 import { options } from './optionsStorage'
 import { appViewer, modalStackUpdateChecks } from './appViewer'
 import { miscUiState } from './globalState'

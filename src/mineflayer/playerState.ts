@@ -2,6 +2,7 @@ import { getInitialPlayerState, getPlayerStateUtils, PlayerStateReactive, Player
 import { subscribe } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
 import { HandItemBlock } from 'minecraft-renderer/src/playerState/types'
+import { beforeRenderFrame } from '../beforeRenderFrame'
 import { gameAdditionalState } from '../globalState'
 import { options } from '../optionsStorage'
 

@@ -1,7 +1,7 @@
 import {
   RENDERER_DEFAULT_OPTIONS,
   RENDERER_OPTIONS_META
-} from 'minecraft-renderer/src/three/menuBackground/defaultOptions'
+} from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 
 export const defaultOptions = {
   renderDistance: 3,
