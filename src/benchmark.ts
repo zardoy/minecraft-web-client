@@ -141,7 +141,9 @@ export const openBenchmark = async (renderDistance = DEFAULT_RENDER_DISTANCE) =>
       return (window.world as WorldRendererCommon).maxWorkersProcessTime
     },
     get chunksFullInfo () {
-      return (window.world as WorldRendererCommon).chunksFullInfo
+      return appViewer.nonReactiveState.world.chunksFullInfo
+        ?? (window.world as WorldRendererCommon | undefined)?.chunksFullInfo
+        ?? '-'
     },
     get averageRenderTimeMs () {
       return (window.world as WorldRendererCommon).renderTimeAvg
