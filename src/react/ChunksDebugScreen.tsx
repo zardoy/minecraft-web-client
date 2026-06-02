@@ -1,18 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useUtilsEffect } from '@zardoy/react-util'
-import { WorldRendererCommon } from 'minecraft-renderer/src/lib/worldrendererCommon'
-import { WorldRendererThree } from 'minecraft-renderer/src/three/worldRendererThree'
 import { Vec3 } from 'vec3'
 import { generateSpiralMatrix } from 'flying-squid/dist/utils'
 import Screen from './Screen'
 import ChunksDebug, { ChunkDebug } from './ChunksDebug'
 import { useIsModalActive } from './utilsApp'
+import { appViewer } from '../appViewer'
+import { useRendererChunksDebugState } from './useRendererChunksDebugState'
 
 const Inner = () => {
   const [playerX, setPlayerX] = useState(Math.floor(appViewer.worldView!.lastPos.x / 16) * 16)
   const [playerZ, setPlayerZ] = useState(Math.floor(appViewer.worldView!.lastPos.z / 16) * 16)
   const [update, setUpdate] = useState(0)
   const { worldView } = appViewer
+  const { loadedSectionsChunks, loadedChunks: rendererLoadedChunks, finishedChunks: rendererFinishedChunks } = useRendererChunksDebugState(update)
 
   useUtilsEffect(({ interval }) => {
     const up = () => {
@@ -76,22 +77,15 @@ const Inner = () => {
 
   const chunksWaitingServer = Object.keys(worldView!.waitingSpiralChunksLoad).map(key => mapChunk(key, 'server-waiting'))
 
-  const world = globalThis.world as WorldRendererThree
-
-  const loadedSectionsChunks = Object.fromEntries(Object.keys(world.sectionObjects).map(sectionPos => {
-    const [x, y, z] = sectionPos.split(',').map(Number)
-    return [`${x},${z}`, true]
-  }))
-
   const chunksWaitingClient = Object.keys(worldView!.loadedChunks).map(key => mapChunk(key, 'client-waiting'))
 
-  const clientProcessingChunks = Object.keys(world.loadedChunks).map(key => mapChunk(key, 'client-processing'))
+  const clientProcessingChunks = Object.keys(rendererLoadedChunks).map(key => mapChunk(key, 'client-processing'))
 
-  const chunksDoneEmpty = Object.keys(world.finishedChunks)
+  const chunksDoneEmpty = Object.keys(rendererFinishedChunks)
     .filter(chunkPos => !loadedSectionsChunks[chunkPos])
     .map(key => mapChunk(key, 'done-empty'))
 
-  const chunksDone = Object.keys(world.finishedChunks).map(key => mapChunk(key, 'done'))
+  const chunksDone = Object.keys(rendererFinishedChunks).map(key => mapChunk(key, 'done'))
 
 
   const chunksWaitingOrder = Object.values(allSpiralChunks).map(([x, z]) => {
