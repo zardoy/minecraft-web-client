@@ -18,7 +18,7 @@ const loadingChunksProgress = () => {
       const chunksTotal = appViewer.nonReactiveState.world.chunksTotalNumber
       if (chunksTotal === 0) return
 
-      const currentChunksLoaded = appViewer.rendererState.world.chunksLoaded.size
+      const currentChunksLoaded = Object.keys(appViewer.rendererState.world.chunksLoaded).length
 
       const deleteProgress = () => {
         setNotificationProgress('loadingChunks', {

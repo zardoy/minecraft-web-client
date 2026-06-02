@@ -779,7 +779,7 @@ export async function connect (connectOptions: ConnectOptions) {
           resolve()
           unsub()
         } else {
-          const perc = Math.round(appViewer.rendererState.world.chunksLoaded.size / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
+          const perc = Math.round(Object.keys(appViewer.rendererState.world.chunksLoaded).length / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
           progress?.reportProgress('chunks', perc / 100)
         }
       })
