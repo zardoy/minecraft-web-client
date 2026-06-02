@@ -121,7 +121,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
 
     subscribe(appViewer.rendererState.world, () => {
       for (const key of this.loadingChunksQueue) {
-        if (appViewer.rendererState.world.chunksLoaded.has(key)) {
+        if (appViewer.rendererState.world.chunksLoaded[key]) {
           this.loadingChunksQueue.delete(key)
           void this.loadChunk(key)
         }
@@ -205,9 +205,9 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
-    if (appViewer.rendererState.world.chunksLoaded.has(key)) {
+    if (appViewer.rendererState.world.chunksLoaded[key]) {
       // console.log('[MinimapProvider] loading chunk for minimap', key)
-      const heightmap = appViewer.rendererState.world.heightmaps.get(key)
+      const heightmap = appViewer.rendererState.world.heightmaps[key]
       if (heightmap) {
         // console.log('[MinimapProvider] did get highest blocks')
       } else {
@@ -338,7 +338,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
     const highestBlocks = await getThreeJsRendererMethods()?.getHighestBlocks(`${chunkWorldX},${chunkWorldZ}`)
-    if (appViewer.rendererState.world.chunksLoaded.has(`${chunkWorldX},${chunkWorldZ}`)) {
+    if (appViewer.rendererState.world.chunksLoaded[`${chunkWorldX},${chunkWorldZ}`]) {
       const heightmap = new Uint8Array(256)
       const colors = Array.from({ length: 256 }).fill('') as string[]
       if (!highestBlocks) return null
