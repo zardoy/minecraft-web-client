@@ -4,7 +4,17 @@ const rightOffset = 0
 const stats = {}
 
 let lastY = 40
-export const addNewStat = (id: string, width = 80, x = rightOffset, y = lastY) => {
+
+/** Host app should style z-index (see prismarine-web-client `styles.css`). */
+export const MC_RENDERER_DEBUG_OVERLAY_CLASS = 'mc-renderer-debug-overlay'
+
+export const addNewStat = (
+  id: string,
+  width = 80,
+  x = rightOffset,
+  y = lastY,
+  opts?: { className?: string },
+) => {
   const pane = document.createElement('div')
   pane.style.position = 'fixed'
   pane.style.top = `${y ?? lastY}px`
@@ -15,7 +25,11 @@ export const addNewStat = (id: string, width = 80, x = rightOffset, y = lastY) =
   pane.style.padding = '2px'
   pane.style.fontFamily = 'monospace'
   pane.style.fontSize = '12px'
-  pane.style.zIndex = '100'
+  if (opts?.className) {
+    pane.className = opts.className
+  } else {
+    pane.style.zIndex = '100'
+  }
   pane.style.pointerEvents = 'none'
   document.body.appendChild(pane)
   stats[id] = pane

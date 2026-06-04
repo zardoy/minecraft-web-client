@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { titleCase } from 'title-case'
 import { noCase } from 'change-case'
 import { isMobile } from 'renderer/viewer/lib/simpleUtils'
-import { options, disabledSettings, getChangedSettings } from '../optionsStorage'
+import { options, disabledSettings, getChangedSettings, resetSelectedOptions } from '../optionsStorage'
 import { hideCurrentModal, showModal } from '../globalState'
 import { defaultOptions, optionsMeta } from '../defaultOptions'
 import Screen from './Screen'
@@ -15,6 +15,40 @@ import { showInputsModal, showOptionsModal } from './SelectOption'
 
 export const showAllSettingsEditor = () => {
   showModal({ reactType: 'all-settings-editor' })
+}
+
+export const showResetSettingsModal = async () => {
+  const changedSettings = getChangedSettings()
+  const changedKeys = Object.keys(changedSettings)
+
+  if (changedKeys.length === 0) {
+    alert('No changed settings found.')
+    return
+  }
+
+  const checkboxInputs = Object.fromEntries(
+    changedKeys.map(key => [key, {
+      type: 'checkbox' as const,
+      label: titleCase(noCase(key)),
+      defaultValue: true,
+    }])
+  )
+
+  const selectedSettings = await showInputsModal(
+    'Select Settings to Reset',
+    checkboxInputs,
+    { cancel: true, showConfirm: true, confirmLabel: 'Reset' }
+  )
+
+  if (!selectedSettings) return
+
+  const selectedKeys = changedKeys.filter(key => selectedSettings[key])
+  if (selectedKeys.length === 0) {
+    alert('No settings selected.')
+    return
+  }
+
+  resetSelectedOptions(selectedKeys)
 }
 
 export default () => {

@@ -8,7 +8,7 @@ import { renderSign } from '../sign-renderer'
 import { DisplayWorldOptions, GraphicsInitOptions } from '../../../src/appViewer'
 import { chunkPos, sectionPos } from '../lib/simpleUtils'
 import { WorldRendererCommon } from '../lib/worldrendererCommon'
-import { addNewStat } from '../lib/ui/newStats'
+import { addNewStat, MC_RENDERER_DEBUG_OVERLAY_CLASS } from '../lib/ui/newStats'
 import { MesherGeometryOutput } from '../lib/mesher/shared'
 import { ItemSpecificContextProperties } from '../lib/basePlayerState'
 import { setBlockPosition } from '../lib/mesher/standaloneRenderer'
@@ -333,19 +333,15 @@ export class WorldRendererThree extends WorldRendererCommon {
   addDebugOverlay () {
     if (this.debugOverlayAdded) return
     this.debugOverlayAdded = true
-    const pane = addNewStat('debug-overlay')
+    const pane = addNewStat('debug-overlay', 80, 0, undefined, { className: MC_RENDERER_DEBUG_OVERLAY_CLASS })
     setInterval(() => {
       pane.setVisibility(this.displayAdvancedStats)
       if (this.displayAdvancedStats) {
-        const formatBigNumber = (num: number) => {
-          return new Intl.NumberFormat('en-US', {}).format(num)
-        }
-        let text = ''
-        text += `C: ${formatBigNumber(this.renderer.info.render.calls)} `
-        text += `TR: ${formatBigNumber(this.renderer.info.render.triangles)} `
-        text += `TE: ${formatBigNumber(this.renderer.info.memory.textures)} `
-        text += `F: ${formatBigNumber(this.tilesRendered)} `
-        text += `B: ${formatBigNumber(this.blocksRendered)}`
+        const formatFull = (num: number) => new Intl.NumberFormat('en-US', {}).format(num)
+        const formatCompact = (num: number) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(num)
+        const text = `TE: ${formatFull(this.renderer.info.memory.textures)} `
+          + `F: ${formatCompact(this.tilesRendered)} `
+          + `B: ${formatCompact(this.blocksRendered)}`
         pane.updateText(text)
         this.backendInfoReport = text
       }

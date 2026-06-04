@@ -14,7 +14,7 @@ import { SoundSystem } from '../three/threeJsSound'
 import { buildCleanupDecorator } from './cleanupDecorator'
 import { HighestBlockInfo, CustomBlockModels, BlockStateModelInfo, getBlockAssetsCacheKey, MesherConfig, MesherMainEvent } from './mesher/shared'
 import { chunkPos } from './simpleUtils'
-import { addNewStat, removeAllStats, updatePanesVisibility, updateStatText } from './ui/newStats'
+import { addNewStat, MC_RENDERER_DEBUG_OVERLAY_CLASS, removeAllStats, updatePanesVisibility, updateStatText } from './ui/newStats'
 import { WorldDataEmitterWorker } from './worldDataEmitter'
 import { getPlayerStateUtils, PlayerStateReactive, PlayerStateRenderer, PlayerStateUtils } from './basePlayerState'
 import { MesherLogReader } from './mesherlogReader'
@@ -221,7 +221,7 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
       updateStatText('loaded-chunks', `${loadedChunks}/${this.chunksLength} chunks (${this.lastChunkDistance}/${this.viewDistance})`)
     })
 
-    addNewStat('downloaded-chunks', 100, 140, 20)
+    addNewStat('downloaded-chunks', 100, 140, 20, { className: MC_RENDERER_DEBUG_OVERLAY_CLASS })
 
     this.connect(this.displayOptions.worldView)
 

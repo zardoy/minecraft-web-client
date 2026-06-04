@@ -143,6 +143,7 @@ div.chat-wrapper.chat-messages-wrapper.display-mobile.chat-opened {
 .input-mobile #chatinput {
   height: 24px;
   font-size: 13px;
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 .display-mobile {

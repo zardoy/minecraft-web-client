@@ -12,6 +12,7 @@ import SingleplayerProvider from './react/SingleplayerProvider'
 import CreateWorldProvider from './react/CreateWorldProvider'
 import AppStatusProvider from './react/AppStatusProvider'
 import SelectOption from './react/SelectOption'
+import AutoFillLoginModal from './react/AutoFillLoginModal'
 import EnterFullscreenButton from './react/EnterFullscreenButton'
 import ChatProvider from './react/ChatProvider'
 import TitleProvider from './react/TitleProvider'
@@ -261,6 +262,7 @@ const AppBase = () => {
             <NotificationProvider />
             <ModsPage />
             <SelectOption />
+            <AutoFillLoginModal />
             <CreditsAboutModal />
             <AllSettingsEditor />
             <NoModalFoundProvider />

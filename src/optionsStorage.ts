@@ -94,6 +94,17 @@ window.options = window.settings = options
 
 export const resetOptions = () => {
   Object.assign(options, defaultOptions)
+  appStorage.changedSettings = {}
+}
+
+export const resetSelectedOptions = (keys: Iterable<string>) => {
+  for (const key of keys) {
+    if (!(key in defaultOptions)) continue
+    if (disabledSettings.value.has(key) || serverChangedSettings.value.has(key)) continue
+    const defaultValue = defaultOptions[key as keyof typeof defaultOptions]
+    options[key as any] = defaultValue
+    delete appStorage.changedSettings[key]
+  }
 }
 
 Object.defineProperty(window, 'debugChangedOptions', {

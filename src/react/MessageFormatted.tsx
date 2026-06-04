@@ -4,9 +4,13 @@ import { noCase } from 'change-case'
 import mojangson from 'mojangson'
 import { openURL } from 'renderer/viewer/lib/simpleUtils'
 import { MessageFormatOptions, MessageFormatPart } from '../chatUtils'
+import { lastConnectOptions } from '../appStatus'
+import { runAuthFlow } from '../core/authModal'
 import { chatInputValueGlobal } from './Chat'
 import './MessageFormatted.css'
 import { showOptionsModal } from './SelectOption'
+import { showAutoFillLoginModal } from './AutoFillLoginModal'
+import { findServerPassword } from './serversStorage'
 
 const hoverItemToText = (hoverEvent: MessageFormatPart['hoverEvent']) => {
   try {
@@ -65,6 +69,32 @@ const clickEventToProps = (clickEvent: MessageFormatPart['clickEvent']) => {
       }
     }
   }
+  const customAction = (clickEvent as { action: string }).action
+  if (customAction === 'open_auto_fill_login' || customAction === 'open_auto_fill_register' || customAction === 'open_change_password' || customAction === 'open_unregister') {
+    return {
+      onClick () {
+        const mode: 'login' | 'register' | 'changepassword' | 'unregister' =
+          customAction === 'open_auto_fill_register' ? 'register' :
+            customAction === 'open_change_password' ? 'changepassword' :
+              customAction === 'open_unregister' ? 'unregister' : 'login'
+        void openAutoFillLogin(mode)
+      }
+    }
+  }
+}
+
+const openAutoFillLogin = async (mode: 'login' | 'register' | 'changepassword' | 'unregister') => {
+  const serverIp = lastConnectOptions.value?.server
+  const username = (globalThis as any).bot?.username as string | undefined
+  if (!serverIp || !username) {
+    console.warn('[openAutoFillLogin] missing serverIp or username', { serverIp, username })
+    return
+  }
+  const prefilledPassword = findServerPassword()
+  const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
+  if (!result?.password) return
+  const { bot } = (globalThis as any)
+  runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
 }
 
 export const MessagePart = ({ part, formatOptions, ...props }: { part: MessageFormatPart, formatOptions?: MessageFormatOptions } & ComponentProps<'span'>) => {

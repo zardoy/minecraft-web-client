@@ -8,15 +8,14 @@ import { versionToNumber } from 'renderer/viewer/common/utils'
 import { getInventoryType } from 'minecraft-inventory/src/registry'
 import type { RecipeGuide, ItemStack as InventoryItemStack } from 'minecraft-inventory/src/types'
 import type { JEIItem } from 'minecraft-inventory/src/components/JEI/JEI'
-import { renderSlot } from 'renderer/viewer/three/renderSlot'
 import { activeModalStack, hideCurrentModal, hideModal, miscUiState, showModal } from './globalState'
 import { options } from './optionsStorage'
 import { displayClientChat } from './botUtils'
 import { getItemDescription } from './itemsDescriptions'
 import { MessageFormatPart } from './chatUtils'
-import { getItemModelName, getItemNameRaw, RenderItem } from './mineflayer/items'
+import { getItemNameRaw, RenderItem } from './mineflayer/items'
 import { clearInventoryCaches } from './react/inventory/Inventory'
-import { buildBlockTexture, extractSpriteDataUrl } from './react/inventory/sharedConnectorSetup'
+import { enrichItemStack } from './react/inventory/sharedConnectorSetup'
 
 let PrismarineItem: typeof Item
 
@@ -24,10 +23,35 @@ export const jeiCustomCategories = proxy({
   value: [] as Array<{ id: string, categoryTitle: string, items: any[] }>
 })
 
+let remotePlayerSkin: string | undefined | Promise<string>
+
 // ----- JEI items cache -----
 let jeiItemsCache: JEIItem[] | null = null
 const clearJeiItemsCache = () => { jeiItemsCache = null }
 subscribe(jeiCustomCategories, clearJeiItemsCache)
+
+const modalCloseCallbacks: Array<() => void> = []
+let prevModalStackDepth = activeModalStack.length
+
+subscribe(activeModalStack, () => {
+  const depth = activeModalStack.length
+  if (depth < prevModalStackDepth && modalCloseCallbacks.length > 0) {
+    const callbacks = modalCloseCallbacks.splice(0)
+    for (const fn of callbacks) {
+      try {
+        fn()
+      } catch (err) {
+        console.error('[onModalClose]', err)
+      }
+    }
+  }
+  prevModalStackDepth = depth
+})
+
+/** Registers one-shot callbacks to run the next time any modal is dismissed (stack shrinks). */
+export const onModalClose = (fn: () => void) => {
+  modalCloseCallbacks.push(fn)
+}
 
 export const onGameLoad = () => {
   PrismarineItem = PItem(bot.version)
@@ -253,34 +277,13 @@ const ingredientToItem = (recipeItem) => (recipeItem === null ? null : new Prism
 
 // ----- New React inventory exports -----
 
-/** Enrich a single item with texture data from the rendering pipeline (same as JEI enrichment) */
-const enrichItemTexture = (item: InventoryItemStack): void => {
-  if (!appViewer?.resourcesManager?.currentResources) return
-  const playerState = appViewer.playerState?.reactive
-  if (!playerState) return
-  try {
-    const modelName = getItemModelName(
-      { name: item.name ?? '', nbt: null },
-      { 'minecraft:display_context': 'gui' },
-      appViewer.resourcesManager,
-      playerState
-    )
-    const slotProps = renderSlot({ modelName, originalItemName: item.name ?? '' }, appViewer.resourcesManager)
-    if (slotProps.blockData) {
-      item.blockTexture = buildBlockTexture(slotProps.blockData as Record<string, { slice: number[] } | undefined>)
-    } else if (slotProps.slice) {
-      item.texture = extractSpriteDataUrl(slotProps.texture, slotProps.slice)
-    }
-  } catch { /* skip items that fail enrichment */ }
-}
-
 /** Helper: convert a minecraft-data item ID to a minimal ItemStack for recipe guides */
 const idToItemStack = (id: number | null | undefined): InventoryItemStack | null => {
   if (!id) return null
   const data = loadedData.items[id]
   if (!data) return null
   const stack: InventoryItemStack = { type: id, count: 1, name: data.name, displayName: data.displayName }
-  enrichItemTexture(stack)
+  enrichItemStack(stack as any)
   return stack
 }
 
@@ -309,7 +312,7 @@ export const getItemRecipes = (itemName: string): RecipeGuide[] => {
     const resultData = resultId ? loadedData.items[resultId as number] : undefined
     if (!resultData) continue
     const resultStack: InventoryItemStack = { type: resultId, count: resultCount, name: resultData.name, displayName: resultData.displayName }
-    enrichItemTexture(resultStack)
+    enrichItemStack(resultStack as any)
 
     if ('inShape' in recipe && recipe.inShape) {
       // Expand shaped recipe into a 9-element 3x3 grid (top-left aligned)
@@ -382,31 +385,8 @@ export const getJeiItems = (): JEIItem[] => {
 
   const allItems = [...customItems, ...vanillaItems]
 
-  // Enrich items with texture data if the rendering pipeline is available
-  if (!appViewer?.resourcesManager?.currentResources) return allItems
-
-  const { resourcesManager } = appViewer
-  const playerState = appViewer.playerState?.reactive
-  if (!playerState) return allItems
-
   for (const item of allItems) {
-    try {
-      const modelName = getItemModelName(
-        { name: item.name, nbt: null },
-        { 'minecraft:display_context': 'gui' },
-        resourcesManager,
-        playerState
-      )
-      const slotProps = renderSlot({ modelName, originalItemName: item.name }, resourcesManager)
-
-      if (slotProps.blockData) {
-        item.blockTexture = buildBlockTexture(slotProps.blockData as Record<string, { slice: number[] } | undefined>)
-      } else if (slotProps.slice) {
-        item.texture = extractSpriteDataUrl(slotProps.texture, slotProps.slice)
-      }
-    } catch {
-      // Skip texture enrichment for items that fail — they'll fall back to CDN sprites
-    }
+    enrichItemStack(item as any)
   }
 
   jeiItemsCache = allItems

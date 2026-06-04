@@ -94,9 +94,13 @@ export const openOptionsMenu = (group: OptionsGroupType) => {
   showModal({ reactType: `options-${group}` })
 }
 
-subscribe(activeModalStack, () => {
+const syncModalStackBody = () => {
   document.body.style.setProperty('--has-modals-z', activeModalStack.length ? '-1' : null)
-})
+  document.body.classList.toggle('has-open-modals', activeModalStack.length > 0)
+}
+
+subscribe(activeModalStack, syncModalStackBody)
+syncModalStackBody()
 
 // ---
 

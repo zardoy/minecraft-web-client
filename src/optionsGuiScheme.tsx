@@ -4,7 +4,8 @@ import { openURL } from 'renderer/viewer/lib/simpleUtils'
 import { noCase } from 'change-case'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { gameAdditionalState, miscUiState, openOptionsMenu, showModal } from './globalState'
-import { AppOptions, getChangedSettings, options, resetOptions } from './optionsStorage'
+import { AppOptions, getChangedSettings, options } from './optionsStorage'
+import { showResetSettingsModal } from './react/AllSettingsEditor'
 import Button from './react/Button'
 import { OptionMeta, OptionSlider } from './react/OptionsItems'
 import Slider from './react/Slider'
@@ -512,7 +513,7 @@ export const guiOptionsScheme: {
         return <Button
           inScreen
           onClick={() => {
-            if (confirm('Are you sure you want to reset all settings?')) resetOptions()
+            void showResetSettingsModal()
           }}
         >Reset settings</Button>
       },

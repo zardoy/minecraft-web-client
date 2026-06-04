@@ -1,4 +1,4 @@
-import { setLoadingScreenStatus } from '../appStatus'
+import { setLoadingScreenStatus, formatLoadingScreenError } from '../appStatus'
 import { appStatusState } from '../react/AppStatusProvider'
 import { hideNotification, showNotification } from '../react/NotificationProvider'
 import { pixelartIcons } from '../react/PixelartIcon'
@@ -158,7 +158,7 @@ export const createFullScreenProgressReporter = (): ProgressReporter => {
 
     error (message: string): void {
       if (appStatusState.isError) return
-      setLoadingScreenStatus(message, true)
+      setLoadingScreenStatus(formatLoadingScreenError('Progress reporter', message), true)
     }
   })
   fullScreenReporters.push(reporter)

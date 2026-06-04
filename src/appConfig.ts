@@ -72,6 +72,11 @@ export type AppConfig = {
 
 let watermarkEl: HTMLDivElement | null = null
 
+function dismissWatermark () {
+  watermarkEl?.remove()
+  watermarkEl = null
+}
+
 function watermarkTextFromConfig (cfg: AppConfig | undefined) {
   const parts: string[] = []
   const w = cfg?.watermark?.trim()
@@ -93,6 +98,8 @@ function setWatermarkFromConfig (cfg: AppConfig | undefined) {
     watermarkEl = document.createElement('div')
     watermarkEl.className = 'app-watermark'
     watermarkEl.dataset.appWatermark = ''
+    watermarkEl.title = 'Click to dismiss'
+    watermarkEl.addEventListener('click', dismissWatermark)
     document.body.appendChild(watermarkEl)
   }
   watermarkEl.textContent = text

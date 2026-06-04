@@ -7,10 +7,12 @@ import { gameAdditionalState, hideCurrentModal, miscUiState } from '../globalSta
 import { options } from '../optionsStorage'
 import { viewerVersionState } from '../viewerConnector'
 import { lastConnectOptions } from '../appStatus'
+import { createLoginPromptDebouncer, detectLoginPrompt, isLoginMonitorActive, monitorLoginAttempt, runAuthFlow } from '../core/authModal'
+import { displayClientChat } from '../botUtils'
 import Chat, { Message } from './Chat'
 import { useIsModalActive } from './utilsApp'
-import { hideNotification, notificationProxy, showNotification } from './NotificationProvider'
-import { getServerIndex, updateLoadedServerData } from './serversStorage'
+import { findServerPassword, getServerIndex, saveServerPassword } from './serversStorage'
+import { showAutoFillLoginModal } from './AutoFillLoginModal'
 import { showOptionsModal } from './SelectOption'
 import { withInjectableUi } from './extendableSystem'
 import { useTypingIndicatorText } from './useTypingIndicatorText'
@@ -41,6 +43,7 @@ const ChatProviderBase = () => {
   const isChatActive = useIsModalActive('chat')
   const lastMessageId = useRef(0)
   const lastPingTime = useRef(0)
+  const loginPromptDebouncer = useRef(createLoginPromptDebouncer())
   const {
     currentTouch: usingTouch,
     disconnectedCleanup
@@ -68,6 +71,68 @@ const ChatProviderBase = () => {
       }
       const parts = formatMessage(jsonMsg)
       const messageText = parts.map(part => part.text).join('')
+
+      // Auto-fill login/register prompt detection (issue #527)
+      const promptKind = detectLoginPrompt(messageText)
+      const serverKey = lastConnectOptions.value?.server
+      // If we already have a saved password and the server is asking for /login,
+      // try a silent retry: the spawn-time auto-login may have raced with the
+      // server (sent /login before the server was ready). If the password is wrong,
+      // the monitor will clear it and the next prompt will show the modal.
+      const savedPassword = findServerPassword()
+      if (promptKind && serverKey && savedPassword && (promptKind === 'login' || promptKind === 'either') && !isLoginMonitorActive()) {
+        if (loginPromptDebouncer.current.shouldTrigger(serverKey)) {
+          try { bot.chat(`/login ${savedPassword}`) } catch {}
+          monitorLoginAttempt({
+            password: savedPassword,
+            mode: 'login',
+            source: 'manual',
+            serverIp: serverKey,
+            username: bot.username,
+            preSaved: true,
+          })
+        }
+      } else if (promptKind && serverKey && (promptKind === 'changepassword' || promptKind === 'unregister') && loginPromptDebouncer.current.shouldTrigger(serverKey)) {
+        if (options.autoOpenAuthModal) {
+          void showAutoFillLoginModal({ mode: promptKind, serverIp: serverKey, username: bot.username, prefilledPassword: findServerPassword() })
+            .then(result => {
+              if (!result?.password) return
+              if (promptKind === 'changepassword' && !result.newPassword) return
+              runAuthFlow(bot, promptKind, result, { serverIp: serverKey, username: bot.username, source: 'modal' })
+            })
+        } else {
+          const makeExtra = (kind: 'changepassword' | 'unregister') => ({
+            text: `Click here to auto-fill ${kind}`,
+            color: 'aqua',
+            underlined: true,
+            clickEvent: { action: kind === 'changepassword' ? 'open_change_password' : 'open_unregister', value: '' },
+            hoverEvent: { action: 'show_text', value: 'Open password-manager-friendly modal' }
+          })
+          const emoji = promptKind === 'changepassword' ? '🗝️ ' : '⚠️ '
+          displayClientChat({ text: emoji, extra: [makeExtra(promptKind)] })
+        }
+      } else if (promptKind && serverKey && !savedPassword && (promptKind === 'login' || promptKind === 'register' || promptKind === 'either') && loginPromptDebouncer.current.shouldTrigger(serverKey)) {
+        if (options.autoOpenAuthModal) {
+          const mode = promptKind === 'either' ? 'login' : promptKind
+          void showAutoFillLoginModal({ mode, serverIp: serverKey, username: bot.username })
+            .then(result => {
+              if (!result?.password) return
+              runAuthFlow(bot, mode, result, { serverIp: serverKey, username: bot.username, source: 'modal' })
+            })
+        } else {
+          const makeExtra = (kind: 'login' | 'register') => ({
+            text: `Click here to auto-fill ${kind}`,
+            color: 'aqua',
+            underlined: true,
+            clickEvent: { action: `open_auto_fill_${kind}`, value: '' },
+            hoverEvent: { action: 'show_text', value: 'Open password-manager-friendly login modal' }
+          })
+          const extra = promptKind === 'either'
+            ? [makeExtra('login'), { text: ' / ' }, makeExtra('register')]
+            : [makeExtra(promptKind)]
+          displayClientChat({ text: '🔐 ', extra })
+        }
+      }
 
       // Handle ping response
       if (messageText === 'Pong!' && lastPingTime.current > 0) {
@@ -118,36 +183,18 @@ const ChatProviderBase = () => {
         }
 
         const builtinHandled = tryHandleBuiltinCommand(message)
-        if (getServerIndex() !== undefined && (message.startsWith('/login') || message.startsWith('/register')) && options.saveLoginPassword !== 'never') {
-          const savePassword = () => {
-            let hadPassword = false
-            updateLoadedServerData((server) => {
-              server.autoLogin ??= {}
-              const password = message.split(' ')[1]
-              hadPassword = !!server.autoLogin[bot.username]
-              server.autoLogin[bot.username] = password
-              return { ...server }
+        if (getServerIndex() !== undefined && (message.startsWith('/login') || message.startsWith('/register'))) {
+          const password = message.split(' ')[1]
+          if (password) {
+            saveServerPassword(password)
+            const mode = message.startsWith('/register') ? 'register' : 'login'
+            monitorLoginAttempt({
+              password,
+              mode,
+              source: 'manual',
+              preSaved: true
             })
-            if (options.saveLoginPassword === 'always') {
-              const message = hadPassword ? 'Password updated in browser for auto-login' : 'Password saved in browser for auto-login'
-              showNotification(message, undefined, false, undefined)
-            } else {
-              hideNotification()
-            }
           }
-          if (options.saveLoginPassword === 'prompt') {
-            showNotification('Click here to save your password in browser for auto-login', undefined, false, undefined, savePassword)
-          } else {
-            savePassword()
-          }
-          notificationProxy.id = 'auto-login'
-          const listener = () => {
-            hideNotification()
-          }
-          bot.on('kicked', listener)
-          setTimeout(() => {
-            bot.removeListener('kicked', listener)
-          }, 2000)
         }
         if (!builtinHandled) {
           if (chatVanillaRestrictions && !miscUiState.flyingSquid) {

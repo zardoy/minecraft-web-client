@@ -1,10 +1,8 @@
 import { versionToNumber } from 'renderer/viewer/common/utils'
 import * as nbt from 'prismarine-nbt'
 
-export const displayClientChat = (text: string) => {
-  const message = {
-    text
-  }
+export const displayClientChat = (textOrJson: string | Record<string, any>) => {
+  const message = typeof textOrJson === 'string' ? { text: textOrJson } : textOrJson
   if (versionToNumber(bot.version) >= versionToNumber('1.19')) {
     bot._client.emit('systemChat', {
       formattedMessage: JSON.stringify(message),

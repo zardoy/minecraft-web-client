@@ -81,33 +81,68 @@ export function buildBlockTexture (blockData: Record<string, { slice: number[] }
   }
 }
 
+// ----- Shared texture resolution (single source of truth for all item surfaces) -----
+
+/**
+ * Resolve `texture` / `blockTexture` for any item by name + optional nbt/components.
+ * Used by buildItemMapper (live slots), enrichItemStack (JEI / recipes).
+ * Returns empty object on failure so callers can spread safely.
+ */
+export function resolveItemTextures (item: {
+  name: string
+  nbt?: any
+  components?: any[]
+}): { texture?: string; blockTexture?: BlockTextureRender } {
+  if (!appViewer?.resourcesManager?.currentResources) return {}
+  try {
+    const modelName = getItemModelName(
+      { name: item.name, nbt: item.nbt ?? null, components: item.components },
+      { 'minecraft:display_context': 'gui' },
+      appViewer.resourcesManager,
+      appViewer.playerState.reactive
+    )
+    const slotProps = renderSlot({ modelName, originalItemName: item.name }, appViewer.resourcesManager)
+    if (slotProps.blockData) {
+      const blockTexture = buildBlockTexture(slotProps.blockData as Record<string, { slice: number[] } | undefined>)
+      if (blockTexture) return { blockTexture }
+    } else if (slotProps.slice) {
+      const texture = extractSpriteDataUrl(slotProps.texture, slotProps.slice)
+      if (texture) return { texture }
+    }
+    return {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Mutate an ItemStack in place with texture/blockTexture.
+ * Convenience wrapper around resolveItemTextures for JEI / recipe callers.
+ */
+export function enrichItemStack (item: ItemStack & { name?: string; nbt?: any; components?: any[] }): void {
+  if (!item.name) return
+  const resolved = resolveItemTextures({ name: item.name, nbt: item.nbt, components: (item as any).components })
+  if (resolved.texture !== undefined) item.texture = resolved.texture
+  if (resolved.blockTexture !== undefined) item.blockTexture = resolved.blockTexture
+}
+
 // ----- Item mapper – enriches raw bot slots with textures and display info -----
 
 export function buildItemMapper (version: string) {
   const PrismarineItem = PItem(version)
 
-  return (raw: { type: number; count: number; metadata?: number; nbt?: unknown },
+  return (raw: { type: number; count: number; metadata?: number; nbt?: unknown; components?: any[] },
     mapped: ItemStack): ItemStack => {
     try {
       const slot = new PrismarineItem(raw.type, raw.count, raw.metadata ?? 0) as Item & RenderItem
       if (raw.nbt) (slot as any).nbt = raw.nbt
+      if (raw.components) (slot as any).components = raw.components
 
-      const modelName = getItemModelName(
-        slot,
-        { 'minecraft:display_context': 'gui' },
-        appViewer.resourcesManager,
-        appViewer.playerState.reactive
-      )
-      const slotProps = renderSlot({ modelName, originalItemName: slot.name }, appViewer.resourcesManager)
-
-      let texture: string | undefined
-      let blockTexture: BlockTextureRender | undefined
-
-      if (slotProps.blockData) {
-        blockTexture = buildBlockTexture(slotProps.blockData as Record<string, { slice: number[] } | undefined>)
-      } else if (slotProps.slice) {
-        texture = extractSpriteDataUrl(slotProps.texture, slotProps.slice)
-      }
+      const { texture, blockTexture } = resolveItemTextures({
+        name: slot.name,
+        nbt: (slot as any).nbt,
+        components: raw.components,
+      })
 
       const nameRaw = getItemNameRaw(slot, appViewer.resourcesManager)
       const displayName = nameRaw
