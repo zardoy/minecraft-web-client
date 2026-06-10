@@ -197,6 +197,8 @@ export type OptionMeta = {
   unit?: string
   text?: string
   tooltip?: string
+  requiresRestart?: boolean
+  requiresChunksReload?: boolean
 }
 
 export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta>> = {
