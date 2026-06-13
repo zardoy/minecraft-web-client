@@ -1,4 +1,4 @@
-import { isMobile } from 'renderer/viewer/lib/simpleUtils'
+import { isMobile } from 'minecraft-renderer/src/lib/simpleUtils'
 
 if (process.env.NODE_ENV === 'development') {
   // mobile devtools

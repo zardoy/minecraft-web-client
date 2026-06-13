@@ -1,4 +1,4 @@
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import * as nbt from 'prismarine-nbt'
 
 export const displayClientChat = (textOrJson: string | Record<string, any>) => {

@@ -1,7 +1,7 @@
 import { createMouse } from 'mineflayer-mouse'
 import { Bot } from 'mineflayer'
 import { Block } from 'prismarine-block'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { isGameActive, showModal } from '../../globalState'
 
 import { isCypress } from '../../standaloneUtils'

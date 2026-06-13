@@ -21,7 +21,8 @@ export const ua = new UAParser(navigator.userAgent)
 
 export const isIos = ua.getOS().name === 'iOS'
 
-// Safari (desktop or iOS) — WebKit memory limits are strict
+// Safari (desktop or iOS) — WebKit memory limits are strict, used to gate
+// memory-heavy features such as the WASM mesher conversion cache.
 export const isSafari = ua.getBrowser().name === 'Safari' || isIos
 
 export const reactKeyForMessage = (message) => {

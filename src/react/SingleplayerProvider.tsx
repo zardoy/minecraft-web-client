@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { useEffect, useRef, useState } from 'react'
-import { loadScript } from 'renderer/viewer/lib/utils'
+import { loadScript } from 'minecraft-renderer/src/lib/utils'
 import { fsState, loadSave, longArrayToNumber, readLevelDat } from '../loadSave'
 import { googleDriveGetFileIdFromPath, mountExportFolder, mountGoogleDriveFolder, removeFileRecursiveAsync } from '../browserfs'
 import { hideCurrentModal, showModal } from '../globalState'

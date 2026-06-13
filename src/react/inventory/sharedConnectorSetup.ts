@@ -2,7 +2,7 @@ import type { ItemStack, BlockTextureRender } from 'minecraft-inventory/src/type
 import { flat } from '@xmcl/text-component'
 import PItem from 'prismarine-item'
 import type { Item } from 'prismarine-item'
-import { renderSlot } from 'renderer/viewer/three/renderSlot'
+import { renderSlot } from 'minecraft-renderer/src/three/renderSlot'
 import { getItemModelName, getItemNameRaw, RenderItem } from '../../mineflayer/items'
 import { inventoryBundledConfig } from './inventoryTexturesConfig'
 

@@ -1,6 +1,6 @@
 import { mapDownloader } from 'mineflayer-item-map-downloader'
 import { setImageConverter } from 'mineflayer-item-map-downloader/lib/util'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 
 setImageConverter((buf: Uint8Array) => {
   const canvas = document.createElement('canvas')

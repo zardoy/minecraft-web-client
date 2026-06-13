@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { versionsMapToMajor, versionToMajor, versionToNumber } from 'renderer/viewer/common/utils'
+import { versionsMapToMajor, versionToMajor, versionToNumber } from 'minecraft-renderer/src/lib/utils'
 
 import { stopAllSounds } from '../basicSounds'
 import { musicSystem } from './musicSystem'

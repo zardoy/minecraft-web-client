@@ -6,9 +6,9 @@ import MinecraftData from 'minecraft-data'
 import { GameMode } from 'mineflayer'
 import { UserError } from '../mineflayer/userError'
 import { packetsReplayState } from '../react/state/packetsReplayState'
-import { getFixedFilesize } from '../react/simpleUtils'
 import { appQueryParams } from '../appParams'
 import { LocalServer } from '../customServer'
+import { getFixedFilesize } from '../react/simpleUtils'
 
 const SUPPORTED_FORMAT_VERSION = 1
 

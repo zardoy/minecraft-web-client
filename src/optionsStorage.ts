@@ -1,6 +1,7 @@
 import { proxy, subscribe } from 'valtio/vanilla'
 import { subscribeKey } from 'valtio/utils'
 import { omitObj } from '@zardoy/utils'
+import { migrateRendererOptions } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 import { appQueryParams, appQueryParamsArray } from './appParams'
 import type { AppConfig } from './appConfig'
 import { appStorage } from './react/appStorageProvider'
@@ -26,10 +27,6 @@ export const serverChangedSettings = proxy({
 })
 
 const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
-  if (options.highPerformanceGpu) {
-    options.gpuPreference = 'high-performance'
-    delete options.highPerformanceGpu
-  }
   if (Object.keys(options.touchControlsPositions ?? {}).length === 0) {
     options.touchControlsPositions = defaultOptions.touchControlsPositions
   }
@@ -43,20 +40,14 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
   if (options.touchControlsType === 'joystick-buttons') {
     options.touchInteractionType = 'buttons'
   }
+  if (options.lowMemoryMode) {
+    options.rendererWorldPerformance = 'low-energy'
+    delete options.lowMemoryMode
+  }
+
+  migrateRendererOptions(options)
 
   return options
-}
-const migrateOptionsLocalStorage = () => {
-  if (Object.keys(appStorage['options'] ?? {}).length) {
-    for (const key of Object.keys(appStorage['options'])) {
-      if (!(key in defaultOptions)) continue // drop unknown options
-      const defaultValue = defaultOptions[key]
-      if (JSON.stringify(defaultValue) !== JSON.stringify(appStorage['options'][key])) {
-        appStorage.changedSettings[key] = appStorage['options'][key]
-      }
-    }
-    delete appStorage['options']
-  }
 }
 
 export type AppOptions = typeof defaultOptions
@@ -82,7 +73,6 @@ export const getChangedSettings = () => {
   )
 }
 
-migrateOptionsLocalStorage()
 export const options: AppOptions = proxy({
   ...defaultOptions,
   ...initialAppConfig.defaultSettings,

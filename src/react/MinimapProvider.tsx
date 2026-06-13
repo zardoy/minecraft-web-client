@@ -2,18 +2,18 @@ import { useEffect } from 'react'
 import { simplify } from 'prismarine-nbt'
 import RegionFile from 'prismarine-provider-anvil/src/region'
 import { Vec3 } from 'vec3'
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import { WorldWarp } from 'flying-squid/dist/lib/modules/warps'
 import { TypedEventEmitter } from 'contro-max/build/typedEventEmitter'
 import { PCChunk } from 'prismarine-chunk'
 import { Chunk } from 'prismarine-world/types/world'
 import { Block } from 'prismarine-block'
-import { INVISIBLE_BLOCKS } from 'renderer/viewer/lib/mesher/worldConstants'
+import { INVISIBLE_BLOCKS } from 'minecraft-renderer/src/mesher-shared/worldConstants'
 import { getRenamedData } from 'flying-squid/dist/blockRenames'
 import { useSnapshot, subscribe } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
-import BlockData from '../../renderer/viewer/lib/moreBlockDataGenerated.json'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
+import BlockData from 'minecraft-renderer/src/lib/moreBlockDataGenerated.json'
 import preflatMap from '../preflatMap.json'
 import { contro } from '../controls'
 import { gameAdditionalState, miscUiState } from '../globalState'
@@ -121,7 +121,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
 
     subscribe(appViewer.rendererState.world, () => {
       for (const key of this.loadingChunksQueue) {
-        if (appViewer.rendererState.world.chunksLoaded.has(key)) {
+        if (appViewer.rendererState.world.chunksLoaded[key]) {
           this.loadingChunksQueue.delete(key)
           void this.loadChunk(key)
         }
@@ -205,9 +205,9 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
-    if (appViewer.rendererState.world.chunksLoaded.has(key)) {
+    if (appViewer.rendererState.world.chunksLoaded[key]) {
       // console.log('[MinimapProvider] loading chunk for minimap', key)
-      const heightmap = appViewer.rendererState.world.heightmaps.get(key)
+      const heightmap = appViewer.rendererState.world.heightmaps[key]
       if (heightmap) {
         // console.log('[MinimapProvider] did get highest blocks')
       } else {
@@ -233,7 +233,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
           colors[index] = this.setColor(block)
         }
       }
-      const chunk = { heightmap, colors }
+      const chunk: ChunkInfo = { heightmap, colors }
       this.applyShadows(chunk)
       this.chunksStore.set(key, chunk)
       this.emit(`chunkReady`, `${chunkX},${chunkZ}`)
@@ -250,7 +250,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     const chunkWorldZ = chunkZ * 16
     const chunkInfo = await this.getChunkSingleplayer(chunkX, chunkZ)
     if (chunkInfo === 'unavailable') return null
-    const heightmap = new Uint8Array(256)
+    const heightmap = new Int16Array(256)
     const colors = Array.from({ length: 256 }).fill('') as string[]
     for (let z = 0; z < 16; z += 1) {
       for (let x = 0; x < 16; x += 1) {
@@ -338,7 +338,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
     const highestBlocks = await getThreeJsRendererMethods()?.getHighestBlocks(`${chunkWorldX},${chunkWorldZ}`)
-    if (appViewer.rendererState.world.chunksLoaded.has(`${chunkWorldX},${chunkWorldZ}`)) {
+    if (appViewer.rendererState.world.chunksLoaded[`${chunkWorldX},${chunkWorldZ}`]) {
       const heightmap = new Uint8Array(256)
       const colors = Array.from({ length: 256 }).fill('') as string[]
       if (!highestBlocks) return null

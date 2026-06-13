@@ -67,7 +67,6 @@ import { registerServiceWorker } from './serviceWorker'
 import { appStatusState, quickDevReconnect } from './react/AppStatusProvider'
 
 import { fsState } from './loadSave'
-import { watchFov } from './rendererUtils'
 import { loadInMemorySave } from './react/SingleplayerProvider'
 
 import { possiblyHandleStateVariable } from './googledrive'
@@ -106,7 +105,6 @@ import { appLoadBackend } from './appViewerLoad'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
 
 window.debug = debug
-window.beforeRenderFrame = []
 
 // ACTUAL CODE
 
@@ -114,13 +112,12 @@ if (!isPlayground) {
   void appLoadBackend()
 }
 if (isPlayground) {
-  void import('renderer/playground/playground')
+  void import('minecraft-renderer/src/playground/playground')
 }
 
 void registerServiceWorker().then(() => {
   mainMenuState.serviceWorkerLoaded = true
 })
-watchFov()
 initCollisionShapes()
 initializePacketsReplay()
 onAppLoad()
@@ -782,7 +779,7 @@ export async function connect (connectOptions: ConnectOptions) {
           resolve()
           unsub()
         } else {
-          const perc = Math.round(appViewer.rendererState.world.chunksLoaded.size / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
+          const perc = Math.round(Object.keys(appViewer.rendererState.world.chunksLoaded).length / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
           progress?.reportProgress('chunks', perc / 100)
         }
       })
@@ -847,9 +844,8 @@ export async function connect (connectOptions: ConnectOptions) {
 
       console.log('bot spawned - starting viewer')
       await appViewer.startWorld(bot.world, renderDistance)
-      appViewer.worldView!.listenToBot(bot)
       if (appViewer.backend) {
-        void appViewer.worldView!.init(bot.entity.position)
+        void appViewer.worldView!.init(bot.entity.position, bot)
       }
 
       initMotionTracking()

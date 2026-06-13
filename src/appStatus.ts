@@ -6,21 +6,19 @@ import { appStatusState, resetAppStatusState } from './react/AppStatusProvider'
 let ourLastStatus: string | undefined = ''
 
 const formatErrorDetail = (err: unknown): string => {
+  const formatStack = (stack: string, fallbackMessage: string) => {
+    const lines = stack.split('\n')
+    const frame = lines[1]?.trim()
+    return frame ? `${lines[0]}\n\n${frame}` : fallbackMessage
+  }
+
   if (err instanceof Error) {
-    if (err.stack) {
-      const lines = err.stack.split('\n')
-      const trace = lines.slice(1, 6).join('\n')
-      return trace ? `${lines[0]}\n${trace}` : err.message
-    }
+    if (err.stack) return formatStack(err.stack, err.message)
     return err.message
   }
   if (typeof err === 'object' && err !== null && 'message' in err && typeof (err as { message: unknown }).message === 'string') {
     const withMessage = err as { message: string, stack?: string }
-    if (withMessage.stack) {
-      const lines = withMessage.stack.split('\n')
-      const trace = lines.slice(1, 6).join('\n')
-      return trace ? `${lines[0]}\n${trace}` : withMessage.message
-    }
+    if (withMessage.stack) return formatStack(withMessage.stack, withMessage.message)
     return withMessage.message
   }
   return String(err)

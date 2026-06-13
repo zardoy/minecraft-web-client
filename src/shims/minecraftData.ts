@@ -1,4 +1,4 @@
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import { restoreMinecraftData } from '../optimizeJson'
 // import minecraftInitialDataJson from '../../generated/minecraft-initial-data.json'
 import { toMajorVersion } from '../utils'

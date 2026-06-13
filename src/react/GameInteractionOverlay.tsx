@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { subscribe, useSnapshot } from 'valtio'
 import { useUtilsEffect } from '@zardoy/react-util'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { isItemActivatableMobile } from 'mineflayer-mouse/dist/activatableItemsMobile'
 import { options } from '../optionsStorage'
 import { activeModalStack, isGameActive, miscUiState } from '../globalState'

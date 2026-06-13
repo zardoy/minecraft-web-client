@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { subscribeKey } from 'valtio/utils'
-import { loadSkinFromUsername } from '../../../renderer/viewer/lib/utils/skins'
+import { loadSkinFromUsername } from 'minecraft-renderer/src/lib/utils/skins'
 import { PlayerModelCanvas } from '../OverlayModelViewer'
 
 /**

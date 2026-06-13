@@ -1,4 +1,4 @@
-import { SmoothSwitcher } from '../renderer/viewer/lib/smoothSwitcher'
+import { SmoothSwitcher } from 'minecraft-renderer/src/lib/smoothSwitcher'
 
 const div = document.createElement('div')
 div.style.width = '100px'

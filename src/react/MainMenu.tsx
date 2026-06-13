@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
-import { openURL } from 'renderer/viewer/lib/simpleUtils'
+import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import { useSnapshot } from 'valtio'
 import { haveDirectoryPicker } from '../utils'
 import { ConnectOptions } from '../connect'
@@ -208,7 +208,19 @@ const MainMenuBase = ({
             onClick={onVersionStatusClick}
             className={styles['product-info']}
           >
-            Prismarine Web Client {versionStatus}
+            <span style={{
+              position: 'absolute',
+              left: '-9999px',
+              width: '1px',
+              height: '1px',
+              overflow: 'hidden',
+              clip: 'rect(1px, 1px, 1px, 1px)',
+              whiteSpace: 'nowrap'
+            }}>
+              Prismarine Web Client
+            </span>
+
+            V2 Presented by Sandexzx {versionStatus}
           </span>
         </div>
         <span className={styles['product-description']}>

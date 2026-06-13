@@ -1,4 +1,4 @@
-import { WorldRendererCommon } from 'renderer/viewer/lib/worldrendererCommon'
+import { WorldRendererCommon } from 'minecraft-renderer/src/lib/worldrendererCommon'
 import { useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { options } from '../optionsStorage'

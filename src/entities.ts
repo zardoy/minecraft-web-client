@@ -1,10 +1,11 @@
 import { Entity } from 'prismarine-entity'
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import tracker from '@nxg-org/mineflayer-tracker'
 import { loader as autoJumpPlugin } from '@nxg-org/mineflayer-auto-jump'
 import { subscribeKey } from 'valtio/utils'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { Team } from 'mineflayer'
+import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { options, watchValue } from './optionsStorage'
 import { gameAdditionalState, miscUiState } from './globalState'
 import { EntityStatus } from './mineflayer/entityStatus'
@@ -204,7 +205,7 @@ customEvents.on('gameLoaded', () => {
 
   bot._client.on('camera', (packet) => {
     if (bot.player.entity.id === packet.cameraId) {
-      if (appViewer.playerState.utils.isSpectatingEntity() && appViewer.playerState.reactive.cameraSpectatingEntity) {
+      if (getPlayerStateUtils(appViewer.playerState.reactive).isSpectatingEntity() && appViewer.playerState.reactive.cameraSpectatingEntity) {
         const entity = bot.entities[appViewer.playerState.reactive.cameraSpectatingEntity]
         appViewer.playerState.reactive.cameraSpectatingEntity = undefined
         if (entity) {
@@ -285,7 +286,7 @@ customEvents.on('gameLoaded', () => {
 
   bot.on('teamMemberAdded', (team: Team, members: string[]) => {
     if (members.includes(bot.username) && appViewer.playerState.reactive.team?.team !== team.team) {
-      appViewer.playerState.reactive.team = team
+      appViewer.playerState.reactive.team = team as any
       // Player was added to a team, need to check if any entities need updating
       updateEntityNameTags(team)
     } else if (doEntitiesNeedUpdating(team)) {

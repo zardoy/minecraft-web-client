@@ -7,7 +7,8 @@ import { ControMax } from 'contro-max/build/controMax'
 import { CommandEventArgument, SchemaCommandInput } from 'contro-max/build/types'
 import { stringStartsWith } from 'contro-max/build/stringUtils'
 import { GameMode } from 'mineflayer'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
+import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { isGameActive, showModal, gameAdditionalState, activeModalStack, hideCurrentModal, miscUiState, hideModal, hideAllModals } from './globalState'
 import { goFullscreen, isInRealGameSession, pointerLock, reloadChunks } from './utils'
 import { options } from './optionsStorage'
@@ -144,7 +145,7 @@ const setSprinting = (state: boolean) => {
 }
 
 const isSpectatingEntity = () => {
-  return appViewer.playerState.utils.isSpectatingEntity()
+  return getPlayerStateUtils(playerState.reactive).isSpectatingEntity()
 }
 
 let lastScreenshotAt = 0
@@ -658,10 +659,11 @@ export const f3Keybinds: Array<{
   {
     key: 'KeyA',
     action () {
-      //@ts-expect-error
-      const loadedChunks = Object.entries(worldView.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
+      const wv = appViewer.worldView
+      if (!wv) return
+      const loadedChunks = Object.entries(wv.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
       for (const [x, z] of loadedChunks) {
-        worldView!.unloadChunk({ x, z })
+        wv.unloadChunk({ x, z })
       }
       // for (const child of viewer.scene.children) {
       //   if (child.name === 'chunk') { // should not happen

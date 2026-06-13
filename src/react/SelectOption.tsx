@@ -13,18 +13,20 @@ import Input, { InputWithLabel } from './Input'
 const state = proxy({
   title: '',
   options: [] as string[],
+  descriptions: [] as string[],
   showCancel: true,
   minecraftJsonMessage: null as null | Record<string, any>,
   behavior: 'resolve-close' as 'resolve-close' | 'close-resolve',
   inputs: {} as Record<string, InputOption>,
-  inputsConfirmButton: ''
+  inputsConfirmButton: '',
+  hoveredOptionIndex: -1
 })
 
 let resolve
 export const showOptionsModal = async <T extends string> (
   title: string,
   options: T[],
-  { cancel = true, minecraftJsonMessage }: { cancel?: boolean, minecraftJsonMessage? } = {}
+  { cancel = true, descriptions = [], minecraftJsonMessage, hoveredOptionIndex = -1 }: Partial<Pick<typeof state, 'descriptions' | 'minecraftJsonMessage' | 'hoveredOptionIndex'>> & { cancel?: boolean } = {}
 ): Promise<T | undefined> => {
   showModal({ reactType: 'general-select' })
   let minecraftJsonMessageParsed
@@ -40,10 +42,12 @@ export const showOptionsModal = async <T extends string> (
     Object.assign(state, {
       title,
       options,
+      descriptions,
       showCancel: cancel,
       minecraftJsonMessage: minecraftJsonMessageParsed,
       inputs: {},
-      inputsConfirmButton: ''
+      inputsConfirmButton: '',
+      hoveredOptionIndex
     })
   })
 }
@@ -95,13 +99,15 @@ export const showInputsModal = async <T extends Record<string, InputOption>>(
       showCancel: cancel,
       minecraftJsonMessage: minecraftJsonMessageParsed,
       options: [],
-      inputsConfirmButton: showConfirm ? confirmLabel : ''
+      descriptions: [],
+      inputsConfirmButton: showConfirm ? confirmLabel : '',
+      hoveredOptionIndex: -1
     })
   })
 }
 
 export default () => {
-  const { title, options, showCancel, minecraftJsonMessage, inputs, inputsConfirmButton } = useSnapshot(state)
+  const { title, options, descriptions, showCancel, minecraftJsonMessage, inputs, inputsConfirmButton, hoveredOptionIndex } = useSnapshot(state)
   const isModalActive = useIsModalActive('general-select')
   const inputValues = useRef({})
 
@@ -121,15 +127,27 @@ export default () => {
     }
   }
 
+  const description = descriptions[hoveredOptionIndex]
   return <Screen title={title} backdrop>
     {minecraftJsonMessage && <div style={{ textAlign: 'center', }}>
       <MessageFormattedString message={minecraftJsonMessage} />
     </div>}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}>
       {options.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        {options.map(option => <Button
-          key={option} onClick={() => {
+        {options.map((option, index) => <Button
+          key={option}
+          onClick={() => {
             resolveClose(option)
+          }}
+          onMouseEnter={() => {
+            state.hoveredOptionIndex = index
+          }}
+          onMouseLeave={() => {
+            state.hoveredOptionIndex = -1
+          }}
+          style={{
+            border: hoveredOptionIndex === index ? '2px solid #4CAF50' : undefined,
+            transition: 'border 0.2s ease'
           }}
         >{option}
         </Button>)}
@@ -194,6 +212,19 @@ export default () => {
         >
           Cancel
         </Button>
+      )}
+      {hoveredOptionIndex >= 0 && description && (
+        <div style={{
+          padding: '8px 12px',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          borderRadius: '4px',
+          fontSize: '8px',
+          color: 'rgb(211, 211, 211)',
+          marginTop: '4px',
+          border: '1px solid rgba(0, 0, 0, 0.1)'
+        }}>
+          {description}
+        </div>
       )}
     </div>
   </Screen>

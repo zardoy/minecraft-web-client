@@ -1,6 +1,6 @@
 import PItem from 'prismarine-item'
 import * as THREE from 'three'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { options, serverChangedSettings } from './optionsStorage'
 import { jeiCustomCategories } from './inventoryWindows'
 import { registerIdeChannels } from './core/ideChannels'

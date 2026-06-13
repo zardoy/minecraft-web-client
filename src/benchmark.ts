@@ -1,5 +1,5 @@
 import { Vec3 } from 'vec3'
-import { WorldRendererCommon } from 'renderer/viewer/lib/worldrendererCommon'
+import { WorldRendererCommon } from 'minecraft-renderer/src/lib/worldrendererCommon'
 import prettyBytes from 'pretty-bytes'
 import { subscribe } from 'valtio'
 import { downloadAndOpenMapFromUrl } from './downloadAndOpenFile'
@@ -141,7 +141,9 @@ export const openBenchmark = async (renderDistance = DEFAULT_RENDER_DISTANCE) =>
       return (window.world as WorldRendererCommon).maxWorkersProcessTime
     },
     get chunksFullInfo () {
-      return (window.world as WorldRendererCommon).chunksFullInfo
+      return appViewer.nonReactiveState.world.chunksFullInfo
+        ?? (window.world as WorldRendererCommon | undefined)?.chunksFullInfo
+        ?? '-'
     },
     get averageRenderTimeMs () {
       return (window.world as WorldRendererCommon).renderTimeAvg

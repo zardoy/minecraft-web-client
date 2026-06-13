@@ -4,6 +4,7 @@ import { miscUiState } from './globalState'
 import { setLoadingScreenStatus } from './appStatus'
 import { setStorageDataOnAppConfigLoad } from './react/appStorageProvider'
 import { customKeymaps, updateBinds } from './controls'
+import { onAppViewerConfigUpdate } from './appViewer'
 
 export type CustomAction = {
   readonly type: string
@@ -133,7 +134,7 @@ export const loadAppConfig = (appConfig: AppConfig) => {
     updateBinds(customKeymaps)
   }
 
-  appViewer?.appConfigUdpate()
+  onAppViewerConfigUpdate()
 
   setStorageDataOnAppConfigLoad(appConfig)
   setWatermarkFromConfig(miscUiState.appConfig)

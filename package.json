@@ -5,10 +5,10 @@
   "scripts": {
     "dev-rsbuild": "rsbuild dev",
     "dev-proxy": "node server.js",
-    "start": "run-p dev-proxy dev-rsbuild watch-mesher",
-    "start2": "run-p dev-rsbuild watch-mesher",
+    "start": "run-p dev-proxy dev-rsbuild",
+    "start2": "run-p dev-rsbuild",
     "start-metrics": "ENABLE_METRICS=true rsbuild dev",
-    "build": "pnpm build-other-workers && rsbuild build",
+    "build": "rsbuild build",
     "build-analyze": "BUNDLE_ANALYZE=true rsbuild build && pnpm build-other-workers",
     "build-single-file": "SINGLE_FILE_BUILD=true rsbuild build",
     "prepare-project": "tsx scripts/genShims.ts && tsx scripts/makeOptimizedMcData.mjs && tsx scripts/genLargeDataAliases.ts",
@@ -20,20 +20,14 @@
     "test:e2e": "start-test http-get://localhost:8080 test:cypress",
     "prod-start": "node server.js --prod",
     "test-mc-server": "tsx cypress/minecraft-server.mjs",
-    "lint": "eslint \"{src,cypress,renderer}/**/*.{ts,js,jsx,tsx}\"",
+    "lint": "eslint \"{src,cypress}/**/*.{ts,js,jsx,tsx}\"",
     "lint-fix": "pnpm lint --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build && node scripts/build.js moveStorybookFiles",
     "start-experiments": "vite --config experiments/vite.config.ts --host",
-    "watch-other-workers": "echo NOT IMPLEMENTED",
-    "build-other-workers": "echo NOT IMPLEMENTED",
-    "build-mesher": "node renderer/buildMesherWorker.mjs",
-    "watch-mesher": "pnpm build-mesher -w",
-    "run-playground": "run-p watch-mesher watch-other-workers watch-playground",
-    "run-all": "run-p start run-playground",
-    "watch-playground": "rsbuild dev --config renderer/rsbuild.config.ts",
     "update-git-deps": "tsx scripts/updateGitDeps.ts",
-    "request-data": "tsx scripts/requestData.ts"
+    "request-data": "tsx scripts/requestData.ts",
+    "check-bundled-duplicates": "node scripts/findBundledDuplicateDeps.mjs"
   },
   "keywords": [
     "prismarine",
@@ -90,6 +84,7 @@
     "minecraft-data": "0.0.0",
     "minecraft-inventory": "^0.1.47",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
+    "minecraft-renderer": "^0.1.70",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
     "mojangson": "^2.0.4",
     "net-browserify": "github:zardoy/prismarinejs-net-browserify",
@@ -163,7 +158,6 @@
     "path-browserify": "^1.0.1",
     "path-exists-cli": "^2.0.0",
     "process": "github:PrismarineJS/node-process",
-    "renderer": "link:renderer",
     "rimraf": "^5.0.1",
     "storybook": "^7.4.6",
     "stream-browserify": "^3.0.0",
@@ -202,6 +196,7 @@
       "buffer": "^6.0.3",
       "vec3": "0.1.10",
       "three": "0.154.0",
+      "@types/three": "0.154.0",
       "diamond-square": "github:zardoy/diamond-square",
       "prismarine-block": "github:zardoy/prismarine-block#next-era",
       "prismarine-world": "github:zardoy/prismarine-world#next-era",
@@ -211,7 +206,8 @@
       "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
       "react": "^18.2.0",
       "prismarine-chunk": "github:zardoy/prismarine-chunk#master",
-      "prismarine-item": "latest"
+      "prismarine-item": "latest",
+      "valtio": "1.13.2"
     },
     "updateConfig": {
       "ignoreDependencies": [

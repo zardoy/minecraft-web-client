@@ -1,9 +1,66 @@
-import { HandItemBlock } from 'renderer/viewer/three/holdingBlock'
-import { getInitialPlayerState, getPlayerStateUtils, PlayerStateReactive, PlayerStateRenderer, PlayerStateUtils } from 'renderer/viewer/lib/basePlayerState'
+import { getInitialPlayerState, getPlayerStateUtils, PlayerStateReactive, PlayerStateRenderer, PlayerStateUtils } from 'minecraft-renderer/src/playerState/playerState'
 import { subscribe } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
+import { HandItemBlock } from 'minecraft-renderer/src/playerState/types'
+import { beforeRenderFrame } from '../beforeRenderFrame'
 import { gameAdditionalState } from '../globalState'
 import { options } from '../optionsStorage'
+
+const BASE_MOVEMENT_SPEED = 0.1
+const FOV_EFFECT_SCALE = 1
+const ZOOM_FOV = 30
+
+const updateFovMultiplier = () => {
+  if (!playerState.ready || !playerState.reactive) return
+
+  let fovModifier = 1
+
+  if (playerState.reactive.flying) {
+    fovModifier *= 1.05
+  }
+
+  const movementSpeedAttr = (
+    bot.entity?.attributes?.['generic.movement_speed']
+    ?? bot.entity?.attributes?.['minecraft:movement_speed']
+    ?? bot.entity?.attributes?.['movement_speed']
+    ?? bot.entity?.attributes?.['minecraft:movementSpeed']
+  )?.value ?? BASE_MOVEMENT_SPEED
+
+  let currentSpeed = BASE_MOVEMENT_SPEED
+  if (bot.controlState?.sprint && !bot.controlState?.sneak) {
+    currentSpeed *= 1.3
+  }
+  fovModifier *= (currentSpeed / movementSpeedAttr + 1) / 2
+
+  if (Math.abs(BASE_MOVEMENT_SPEED) < Number.EPSILON || !Number.isFinite(fovModifier)) {
+    fovModifier = 1
+  }
+
+  const heldItem = playerState.reactive.heldItemMain
+  if (heldItem?.name === 'bow' && playerState.reactive.itemUsageTicks > 0) {
+    let usageProgress = playerState.reactive.itemUsageTicks / 20
+    if (usageProgress > 1) {
+      usageProgress = 1
+    } else {
+      usageProgress *= usageProgress
+    }
+    fovModifier *= 1 - usageProgress * 0.15
+  }
+
+  fovModifier = 1 + (fovModifier - 1) * FOV_EFFECT_SCALE
+
+  const baseFov = gameAdditionalState.isZooming ? ZOOM_FOV : options.fov
+  playerState.reactive.fovMultiplier = (baseFov / options.fov) * fovModifier
+}
+
+const startFovMultiplierUpdates = () => {
+  if (!beforeRenderFrame.includes(updateFovMultiplier)) {
+    beforeRenderFrame.push(updateFovMultiplier)
+  }
+  customEvents.on('gameLoaded', () => {
+    updateFovMultiplier()
+  })
+}
 
 /**
  * can be used only in main thread. Mainly for more convenient reactive state updates.
@@ -42,9 +99,13 @@ export class PlayerStateControllerMain {
 
   private botCreated () {
     console.log('bot created & plugins injected')
-    this.reactive = getInitialPlayerState()
-    this.reactive.perspective = options.defaultPerspective
+
+    this.reactive = appViewer.playerState.reactive
     this.utils = getPlayerStateUtils(this.reactive)
+
+    const fresh = getInitialPlayerState()
+    Object.assign(this.reactive, fresh)
+    this.reactive.perspective = options.defaultPerspective
     this.onBotCreatedOrGameJoined()
 
     const handleDimensionData = (data) => {
@@ -91,6 +152,7 @@ export class PlayerStateControllerMain {
     bot.on('physicsTick', () => {
       if (this.isUsingItem) this.reactive.itemUsageTicks++
       updateSneakingOrFlying()
+      this.updateWalkDistAndBob()
     })
     // todo move from gameAdditionalState to reactive directly
     subscribeKey(gameAdditionalState, 'isSneaking', () => {
@@ -110,7 +172,7 @@ export class PlayerStateControllerMain {
     this.reactive.gameMode = bot.game?.gameMode
 
     customEvents.on('gameLoaded', () => {
-      this.reactive.team = bot.teamMap[bot.username]
+      this.reactive.team = bot.teamMap[bot.username] as any
     })
 
     this.watchReactive()
@@ -148,6 +210,27 @@ export class PlayerStateControllerMain {
     } else {
       this.reactive.movementState = 'NOT_MOVING'
     }
+  }
+
+  private updateWalkDistAndBob () {
+    if (!bot?.entity || this.disableStateUpdates) return
+
+    const { velocity } = bot.entity
+    const horizontalDist = Math.hypot(velocity.x, velocity.z)
+
+    // Save previous values for interpolation
+    this.reactive.prevWalkDist = this.reactive.walkDist
+    this.reactive.prevBob = this.reactive.bob
+
+    // Accumulate walk distance with dampening factor
+    this.reactive.walkDist += horizontalDist * 0.6
+
+    // Smooth bob amplitude — vanilla: onGround && !isDeadOrDying && !isSwimming
+    // isSwimming = sprinting + in water (not just touching water)
+    const isSwimming = bot.controlState.sprint && this.reactive.inWater
+    const isDeadOrDying = (bot.entity.health ?? 20) <= 0
+    const bobTarget = (bot.entity.onGround && !isDeadOrDying && !isSwimming) ? Math.min(0.1, horizontalDist) : 0
+    this.reactive.bob += (bobTarget - this.reactive.bob) * 0.4
   }
 
   // #region Held Item State
@@ -206,3 +289,5 @@ export class PlayerStateControllerMain {
 
 export const playerState = new PlayerStateControllerMain()
 window.playerState = playerState
+
+startFovMultiplierUpdates()

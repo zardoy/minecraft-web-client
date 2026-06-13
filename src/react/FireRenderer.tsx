@@ -2,7 +2,7 @@
 import { useSnapshot } from 'valtio'
 import { useEffect, useState } from 'react'
 import { getLoadedImage } from 'mc-assets/dist/utils'
-import { createCanvas } from 'renderer/viewer/lib/utils'
+import { createCanvas } from 'minecraft-renderer/src/lib/utils'
 
 const TEXTURE_UPDATE_INTERVAL = 100 // 5 times per second
 

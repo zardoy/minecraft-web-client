@@ -10,6 +10,7 @@ declare namespace NodeJS {
     DISABLE_SERVICE_WORKER?: 'true' | 'false'
     CONFIG_JSON_SOURCE?: 'BUNDLED' | 'REMOTE'
     LOCAL_CONFIG_FILE?: string
+    CONFIG_JSON?: string
     BUILD_VERSION?: string
     /** Set at compile time: DD.MM.YY (local date when the config ran). */
     BUILD_DISPLAY_DATE?: string

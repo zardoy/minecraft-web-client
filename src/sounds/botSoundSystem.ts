@@ -1,6 +1,6 @@
 import { Vec3 } from 'vec3'
-import { versionToNumber } from 'renderer/viewer/common/utils'
-import { loadScript } from 'renderer/viewer/lib/utils'
+import { versionToNumber, loadScript } from 'minecraft-renderer/src/lib/utils'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import type { Block } from 'prismarine-block'
 import { subscribeKey } from 'valtio/utils'
 import { miscUiState } from '../globalState'
@@ -220,6 +220,73 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
   }
 
   registerEvents()
+})
+
+// Break particles: registered independently of sound system
+subscribeKey(miscUiState, 'gameLoaded', () => {
+  if (!miscUiState.gameLoaded) return
+
+  function buildFloorMap (x: number, y: number, z: number): number[] {
+    const floorMap: number[] = []
+    for (let dz = -2; dz <= 2; dz++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const columnX = x + dx
+        const columnZ = z + dz
+        let floorY = y - 20 // fallback: deep below
+        for (let scanY = y; scanY >= y - 20; scanY--) {
+          try {
+            const block = bot.world.getBlock(new Vec3(columnX, scanY, columnZ))
+            if (block && block.boundingBox === 'block') {
+              floorY = scanY + 1
+              break
+            }
+          } catch {
+            break
+          }
+        }
+        floorMap.push(floorY)
+      }
+    }
+    return floorMap
+  }
+
+  let diggingBlock: Block | null = null
+  customEvents.on('digStart', () => {
+    diggingBlock = bot.blockAtCursor(5)
+  })
+  bot.on('diggingCompleted', () => {
+    if (diggingBlock) {
+      const pos = diggingBlock.position
+      const floorMap = buildFloorMap(pos.x, pos.y, pos.z)
+      const biomeName = (diggingBlock as any).biome?.name ?? 'plains'
+      getThreeJsRendererMethods()?.spawnBlockBreakParticles(pos.x, pos.y, pos.z, diggingBlock.name, floorMap, biomeName)
+    }
+  })
+  bot._client.on('world_event', ({ effectId, location, data, global: disablePosVolume }) => {
+    if (effectId === 2001 && !disablePosVolume) {
+      const block = loadedData.blocksByStateId[data]
+      if (block) {
+        const x = Math.floor(location.x)
+        const y = Math.floor(location.y)
+        const z = Math.floor(location.z)
+        const floorMap = buildFloorMap(x, y, z)
+        let biomeName = 'plains'
+        try {
+          const worldBlock = bot.world.getBlock(new Vec3(x, y, z))
+          biomeName = (worldBlock as any)?.biome?.name ?? 'plains'
+        } catch {}
+        getThreeJsRendererMethods()?.spawnBlockBreakParticles(x, y, z, block.name, floorMap, biomeName)
+      }
+    }
+  })
+  bot.on('blockBreakProgressStage', (block, stage) => {
+    if (stage === null) return
+    const pos = block.position
+    const face = (block as any).face ?? 1
+    const floorMap = buildFloorMap(pos.x, pos.y, pos.z)
+    const biomeName = (block as any).biome?.name ?? 'plains'
+    getThreeJsRendererMethods()?.spawnBlockCrackParticle(pos.x, pos.y, pos.z, face, block.name, floorMap, biomeName)
+  })
 })
 
 subscribeKey(resourcePackState, 'resourcePackInstalled', async () => {

@@ -1,5 +1,5 @@
 import { useFloating, arrow, FloatingArrow, offset as offsetMiddleware, Placement, autoPlacement } from '@floating-ui/react'
-import { openURL } from 'renderer/viewer/lib/simpleUtils'
+import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import { CSSProperties, useState } from 'react'
 import Button from './Button'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'

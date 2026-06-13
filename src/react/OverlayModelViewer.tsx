@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-import { applySkinToPlayerObject, createPlayerObject, PlayerObjectType } from '../../renderer/viewer/lib/createPlayerObject'
+import { applySkinToPlayerObject, createPlayerObject, PlayerObjectType } from 'minecraft-renderer/src/lib/createPlayerObject'
 import { currentScaling } from '../scaleInterface'
 import { activeModalStack } from '../globalState'
 
