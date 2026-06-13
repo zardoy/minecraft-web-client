@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useUtilsEffect } from '@zardoy/react-util'
 import { Vec3 } from 'vec3'
 import { generateSpiralMatrix } from 'flying-squid/dist/utils'
+import { appViewer } from '../appViewer'
 import Screen from './Screen'
 import ChunksDebug, { ChunkDebug } from './ChunksDebug'
 import { useIsModalActive } from './utilsApp'
-import { appViewer } from '../appViewer'
 import { useRendererChunksDebugState } from './useRendererChunksDebugState'
 
 const Inner = () => {

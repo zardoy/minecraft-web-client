@@ -42,7 +42,7 @@ export const useRendererChunksDebugState = (update: number) => {
         setState(readFromMainThreadWorld(world))
         return
       }
-      const getChunksDebugState = (appViewer.backend?.backendMethods as ThreeJsBackendMethods | undefined)?.getChunksDebugState
+      const getChunksDebugState = (appViewer.backend?.backendMethods)?.getChunksDebugState
       if (!getChunksDebugState) {
         setState(emptyRendererChunksState())
         return
