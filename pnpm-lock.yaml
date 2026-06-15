@@ -9,8 +9,8 @@ overrides:
   '@nxg-org/mineflayer-physics-util': 1.8.19
   buffer: ^6.0.3
   vec3: 0.1.10
-  three: 0.154.0
-  '@types/three': 0.154.0
+  three: 0.184.0
+  '@types/three': 0.184.0
   diamond-square: github:zardoy/diamond-square
   prismarine-block: github:zardoy/prismarine-block#next-era
   prismarine-world: github:zardoy/prismarine-world#next-era
@@ -156,8 +156,8 @@ importers:
         specifier: github:PrismarineJS/node-minecraft-protocol#master
         version: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/ee40987dde124cd2f560bb944cfffb29946fef81(patch_hash=a0fc92234601e93b1e536d8d7cc9bf80a9df670d821e1d12746f261d15954fae)(encoding@0.1.13)
       minecraft-renderer:
-        specifier: ^0.1.70
-        version: 0.1.70(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.105.0)(react@18.3.1)(three@0.154.0)
+        specifier: file:../minecraft-renderer
+        version: file:../minecraft-renderer(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.105.0)(react@18.3.1)(three@0.184.0)
       mineflayer-item-map-downloader:
         specifier: github:zardoy/mineflayer-item-map-downloader
         version: https://codeload.github.com/zardoy/mineflayer-item-map-downloader/tar.gz/a8d210ecdcf78dd082fa149a96e1612cc9747824(patch_hash=a731ebbace2d8790c973ab3a5ba33494a6e9658533a9710dd8ba36f86db061ad)(encoding@0.1.13)
@@ -295,8 +295,8 @@ importers:
         specifier: ^0.17.1
         version: 0.17.3
       '@types/three':
-        specifier: 0.154.0
-        version: 0.154.0
+        specifier: 0.184.0
+        version: 0.184.0
       '@types/ua-parser-js':
         specifier: ^0.7.39
         version: 0.7.39
@@ -382,8 +382,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       three:
-        specifier: 0.154.0
-        version: 0.154.0
+        specifier: 0.184.0
+        version: 0.184.0
       timers-browserify:
         specifier: ^2.0.12
         version: 2.0.12
@@ -997,6 +997,9 @@ packages:
     resolution: {integrity: sha512-BzRUaLk+jhC1uvcix4SXRGhw7k39pldlvwtRT0NGFsuQt1uMV9vOhGMzm3rLorVXQ7vAmqcZk3Hy8oYlXKQoDw==}
     peerDependencies:
       react: ^18.2.0
+
+  '@dimforge/rapier3d-compat@0.12.0':
+    resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
 
   '@discoveryjs/json-ext@0.5.7':
     resolution: {integrity: sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==}
@@ -2865,11 +2868,11 @@ packages:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
 
-  '@tweenjs/tween.js@18.6.4':
-    resolution: {integrity: sha512-lB9lMjuqjtuJrx7/kOkqQBtllspPIN+96OvTCeJ2j5FEzinoAXTdAMFnDAQT1KVPRlnYfBrqxtqP66vDM40xxQ==}
-
   '@tweenjs/tween.js@20.0.3':
     resolution: {integrity: sha512-SYUe1UgY5HM05EB4+0B4arq2IPjvyzKXoklXKxSYrc2IFxGm1cBrqg5XbiB5uwbs0xY5j+rj986NAJMM0KZaUw==}
+
+  '@tweenjs/tween.js@23.1.3':
+    resolution: {integrity: sha512-vJmvvwFxYuGnF2axRtPYocag6Clbb5YS7kLL+SO/TeVFzHqDIWrNKYtcsPMibjDx9O+bu+psAy9NKfWklassUA==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -3093,8 +3096,8 @@ packages:
   '@types/stats.js@0.17.3':
     resolution: {integrity: sha512-pXNfAD3KHOdif9EQXZ9deK82HVNaXP5ZIF5RP2QG6OQFNTaY2YIetfrE9t528vEreGQvEPRDDc8muaoYeK0SxQ==}
 
-  '@types/three@0.154.0':
-    resolution: {integrity: sha512-IioqpGhch6FdLDh4zazRn3rXHj6Vn2nVOziJdXVbJFi9CaI65LtP9qqUtpzbsHK2Ezlox8NtsLNHSw3AQzucjA==}
+  '@types/three@0.184.0':
+    resolution: {integrity: sha512-4mY2tZAu0y0B0567w7013BBXSpsP0+Z48NJvmNo4Y/Pf76yCyz6Jw4P3tUVs10WuYNXXZ+wmHyGWpCek3amJxA==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -4856,6 +4859,9 @@ packages:
   fflate@0.6.10:
     resolution: {integrity: sha512-IQrh3lEPM93wVCEczc9SaAOvkmcoQn/G8Bo1e8ZPlY3X3bnAxWaBdvTdvM1hP62iZp0BXWDy4vTAy4fF0+Dlpg==}
 
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
+
   figures@3.2.0:
     resolution: {integrity: sha512-yaduQFRKLXYOGgEn6AZau90j3ggSOyiqXU0F9JZfeXYhNa+Jk4X+s45A2zg5jns87GAFa34BBm2kXw4XpNcbdg==}
     engines: {node: '>=8'}
@@ -5778,9 +5784,6 @@ packages:
   lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
 
-  lil-gui@0.17.0:
-    resolution: {integrity: sha512-MVBHmgY+uEbmJNApAaPbtvNh1RCAeMnKym82SBjtp5rODTYKWtM+MXHCifLe2H2Ti1HuBGBtK/5SyG4ShQ3pUQ==}
-
   lil-gui@0.21.0:
     resolution: {integrity: sha512-tpvxN7v1GvE/Tv+GRopfOp0W7fVEjF4PltkuX8vOCIfim22rD1ztvfkoEMcv9lzQeuNUSeIrUmUjBwmlW/oUew==}
 
@@ -6037,8 +6040,8 @@ packages:
   merge@1.2.1:
     resolution: {integrity: sha512-VjFo4P5Whtj4vsLzsYBu5ayHhoHJ0UqNm7ibvShmbmoz7tGi0vXaoJbGdB+GmDMLUdg8DpQXEIeVDAe8MaABvQ==}
 
-  meshoptimizer@0.18.1:
-    resolution: {integrity: sha512-ZhoIoL7TNV4s5B6+rx5mC//fw8/POGyNxS/DZyCJeiZ12ScLfVwRE/GfsxwiTkMYYD5DmK2/JXnEVXqL4rF+Sw==}
+  meshoptimizer@1.1.1:
+    resolution: {integrity: sha512-oRFNWJRDA/WTrVj7NWvqa5HqE1t9MYDj2VaWirQCzCCrAd2GHrqR/sQezCxiWATPNlKTcRaPRHPJwIRoPBAp5g==}
 
   methods@1.1.2:
     resolution: {integrity: sha512-iclAHeNqNm68zFtnZ0e+1L2yUIdvzNoauKU4WBA3VvH/vPFieF7qfRlwUZU+DA9P9bPXIS90ulxoUoCH23sV2w==}
@@ -6175,14 +6178,13 @@ packages:
     version: 1.66.2
     engines: {node: '>=22'}
 
-  minecraft-renderer@0.1.70:
-    resolution: {integrity: sha512-4dgNVXfi+ySaSpHkSc4RA/Qw27dA9EH6I/offag5NaYmVhIIZZnJc6mhDx5BN2ifnHCgHB/z4sncBJZtSKJfxA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+  minecraft-renderer@file:../minecraft-renderer:
+    resolution: {directory: ../minecraft-renderer, type: directory}
     peerDependencies:
       contro-max: '*'
       mc-assets: '>=0.2.0'
       minecraft-data: 3.105.0
-      three: 0.154.0
+      three: 0.184.0
     peerDependenciesMeta:
       contro-max:
         optional: true
@@ -7865,10 +7867,10 @@ packages:
   three-stdlib@2.36.1:
     resolution: {integrity: sha512-XyGQrFmNQ5O/IoKm556ftwKsBg11TIb301MB5dWNicziQBEs2g3gtOYIf7pFiLa0zI2gUwhtCjv9fmjnxKZ1Cg==}
     peerDependencies:
-      three: 0.154.0
+      three: 0.184.0
 
-  three@0.154.0:
-    resolution: {integrity: sha512-Uzz8C/5GesJzv8i+Y2prEMYUwodwZySPcNhuJUdsVMH2Yn4Nm8qlbQe6qRN5fOhg55XB0WiLfTPBxVHxpE60ug==}
+  three@0.184.0:
+    resolution: {integrity: sha512-wtTRjG92pM5eUg/KuUnHsqSAlPM296brTOcLgMRqEeylYTh/CdtvKUvCyyCQTzFuStieWxvZb8mVTMvdPyUpxg==}
 
   throttle-debounce@3.0.1:
     resolution: {integrity: sha512-dTEWWNu6JmeVXY0ZYoPuH5cRIwc0MeGbJwah9KUNYSJwommQpCzTySTpEe8Gs1J23aeWEuAobe4Ag7EHVt/LOg==}
@@ -9531,6 +9533,8 @@ snapshots:
       - '@types/react'
       - react-dom
       - supports-color
+
+  '@dimforge/rapier3d-compat@0.12.0': {}
 
   '@discoveryjs/json-ext@0.5.7': {}
 
@@ -11685,9 +11689,9 @@ snapshots:
 
   '@tootallnate/once@2.0.0': {}
 
-  '@tweenjs/tween.js@18.6.4': {}
-
   '@tweenjs/tween.js@20.0.3': {}
+
+  '@tweenjs/tween.js@23.1.3': {}
 
   '@types/babel__core@7.20.5':
     dependencies:
@@ -11912,14 +11916,14 @@ snapshots:
 
   '@types/stats.js@0.17.3': {}
 
-  '@types/three@0.154.0':
+  '@types/three@0.184.0':
     dependencies:
-      '@tweenjs/tween.js': 18.6.4
+      '@dimforge/rapier3d-compat': 0.12.0
+      '@tweenjs/tween.js': 23.1.3
       '@types/stats.js': 0.17.3
       '@types/webxr': 0.5.21
-      fflate: 0.6.10
-      lil-gui: 0.17.0
-      meshoptimizer: 0.18.1
+      fflate: 0.8.3
+      meshoptimizer: 1.1.1
 
   '@types/trusted-types@2.0.7': {}
 
@@ -14305,6 +14309,8 @@ snapshots:
 
   fflate@0.6.10: {}
 
+  fflate@0.8.3: {}
+
   figures@3.2.0:
     dependencies:
       escape-string-regexp: 1.0.5
@@ -15312,8 +15318,6 @@ snapshots:
     dependencies:
       immediate: 3.0.6
 
-  lil-gui@0.17.0: {}
-
   lil-gui@0.21.0: {}
 
   lines-and-columns@1.2.4: {}
@@ -15613,7 +15617,7 @@ snapshots:
   merge@1.2.1:
     optional: true
 
-  meshoptimizer@0.18.1: {}
+  meshoptimizer@1.1.1: {}
 
   methods@1.1.2: {}
 
@@ -15820,7 +15824,7 @@ snapshots:
       - encoding
       - supports-color
 
-  minecraft-renderer@0.1.70(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.105.0)(react@18.3.1)(three@0.154.0):
+  minecraft-renderer@file:../minecraft-renderer(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.105.0)(react@18.3.1)(three@0.184.0):
     dependencies:
       '@tweenjs/tween.js': 20.0.3
       '@types/events': 3.0.3
@@ -15835,8 +15839,8 @@ snapshots:
       skinview3d: 3.4.1
       stats-gl: 1.0.7
       stats.js: 0.17.0
-      three: 0.154.0
-      three-stdlib: 2.36.1(three@0.154.0)
+      three: 0.184.0
+      three-stdlib: 2.36.1(three@0.184.0)
       type-fest: 5.3.0
       typed-emitter: 2.1.0
       valtio: 1.13.2(@types/react@18.3.18)(react@18.3.1)
@@ -17518,15 +17522,15 @@ snapshots:
 
   skinview3d@3.1.0:
     dependencies:
-      '@types/three': 0.154.0
+      '@types/three': 0.184.0
       skinview-utils: 0.7.1
-      three: 0.154.0
+      three: 0.184.0
 
   skinview3d@3.4.1:
     dependencies:
-      '@types/three': 0.154.0
+      '@types/three': 0.184.0
       skinview-utils: 0.7.1
-      three: 0.154.0
+      three: 0.184.0
 
   slash@3.0.0: {}
 
@@ -17920,7 +17924,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  three-stdlib@2.36.1(three@0.154.0):
+  three-stdlib@2.36.1(three@0.184.0):
     dependencies:
       '@types/draco3d': 1.4.10
       '@types/offscreencanvas': 2019.7.3
@@ -17928,9 +17932,9 @@ snapshots:
       draco3d: 1.5.7
       fflate: 0.6.10
       potpack: 1.0.2
-      three: 0.154.0
+      three: 0.184.0
 
-  three@0.154.0: {}
+  three@0.184.0: {}
 
   throttle-debounce@3.0.1: {}
 
