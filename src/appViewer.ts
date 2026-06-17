@@ -12,6 +12,7 @@ import { BotEvents } from 'mineflayer'
 import { activeModalStack, miscUiState } from './globalState'
 import { options } from './optionsStorage'
 import { watchOptionsAfterWorldViewInit } from './watchOptions'
+import { updateLightRemeshBlockKey } from './mineflayer/updateLightRemeshKey'
 
 // do not import this. Use global appViewer instead (without window prefix).
 export const appViewer = new AppViewer()
@@ -182,9 +183,13 @@ const connectAppWorldViewToBot = () => {
 
 
   bot._client.on('update_light', ({ chunkX, chunkZ }) => {
-    const chunkPos = new Vec3(chunkX * 16, 0, chunkZ * 16)
-    if (!appViewer.worldView?.waitingSpiralChunksLoad[`${chunkX},${chunkZ}`] && appViewer.worldView?.loadedChunks[`${chunkX},${chunkZ}`]) {
-      void appViewer.worldView?.loadChunk(chunkPos, true, 'update_light')
+    const key = updateLightRemeshBlockKey(chunkX, chunkZ)
+    const bx = chunkX * 16
+    const bz = chunkZ * 16
+    const waiting = !!appViewer.worldView?.waitingSpiralChunksLoad[key]
+    const loaded = !!appViewer.worldView?.loadedChunks[key]
+    if (!waiting && loaded) {
+      void appViewer.worldView?.loadChunk(new Vec3(bx, 0, bz), true, 'update_light')
     }
   })
 
