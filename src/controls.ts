@@ -775,6 +775,13 @@ export const f3Keybinds: Array<{
     },
     mobileTitle: 'Copy Server Resource Pack',
     enabled: () => !!gameAdditionalState.usingServerResourcePack
+  },
+  {
+    key: 'KeyM',
+    action () {
+      appViewer.backend?.backendMethods?.toggleDebugModulesPanel()
+    },
+    mobileTitle: 'Renderer Debug Panel',
   }
 ]
 
