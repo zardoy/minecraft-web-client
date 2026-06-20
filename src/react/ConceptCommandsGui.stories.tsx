@@ -13,8 +13,8 @@ const defaultIcon = (
 )
 
 const Button2 = ({ title, icon }) => {
-  //@ts-expect-error
   return (
+    //@ts-expect-error
     <Button style={{ '--scale': 4 }}>
       <div style={{ fontSize: '22px', fontWeight: 'bold', display: 'flex', gap: 3, flexDirection: 'column', alignItems: 'center' }}>
         <div>{title}</div>
