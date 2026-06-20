@@ -2,7 +2,6 @@ import { RENDERER_DEFAULT_OPTIONS, RENDERER_OPTIONS_META } from 'minecraft-rende
 
 export const defaultOptions = {
   renderDistance: 3,
-  multiplayerRenderDistance: 3,
   closeConfirmation: true,
   autoFullScreen: false,
   mouseRawInput: true,

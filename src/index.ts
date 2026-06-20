@@ -204,7 +204,7 @@ export async function connect(connectOptions: ConnectOptions) {
     updateServerConnectionHistory(parsedServer.host, connectOptions.botVersion)
   }
 
-  const { renderDistance: renderDistanceSingleplayer, multiplayerRenderDistance } = options
+  const { renderDistance } = options
 
   const parsedServer = parseServerAddress(connectOptions.server)
   const server = { host: parsedServer.host, port: parsedServer.port }
@@ -354,7 +354,6 @@ export async function connect(connectOptions: ConnectOptions) {
     })
   }
 
-  const renderDistance = singleplayer ? renderDistanceSingleplayer : multiplayerRenderDistance
   let updateDataAfterJoin = () => {}
   let localServer
   let localReplaySession: ReturnType<typeof startLocalReplayServer> | undefined

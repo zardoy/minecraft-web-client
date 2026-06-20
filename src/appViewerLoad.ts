@@ -59,7 +59,7 @@ export const appLoadBackend = async () => {
     if (appViewer.currentDisplay === 'world' && bot) {
       appViewer.resetBackend(true)
       await loadBackend()
-      const renderDistance = miscUiState.singleplayer ? options.renderDistance : options.multiplayerRenderDistance
+      const renderDistance = options.renderDistance
       void appViewer.startWithBot(bot, renderDistance)
     }
   })
