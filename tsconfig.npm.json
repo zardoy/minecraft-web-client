@@ -1,12 +1,9 @@
 {
-    "extends": "./tsconfig.json",
-    "compilerOptions": {
-        "outDir": "dist-npm/dist-pre",
-        "noEmit": false,
-        "declaration": true
-    },
-    "include": [
-        "src/react/npmReactComponents.ts",
-        "src/react/globals.d.ts"
-    ]
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-npm/dist-pre",
+    "noEmit": false,
+    "declaration": true
+  },
+  "include": ["src/react/npmReactComponents.ts", "src/react/globals.d.ts"]
 }

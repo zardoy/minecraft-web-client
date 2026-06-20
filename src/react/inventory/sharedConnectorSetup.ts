@@ -11,12 +11,12 @@ import { inventoryBundledConfig } from './inventoryTexturesConfig'
 const spriteCache = new Map<string, string>()
 
 /** Clear sprite extraction cache (call when atlases are updated). */
-export function clearInventoryCaches (): void {
+export function clearInventoryCaches(): void {
   spriteCache.clear()
   inventoryBundledConfig.resetRenderedSlots()
 }
 
-function getAtlas (texture: string): CanvasImageSource | null {
+function getAtlas(texture: string): CanvasImageSource | null {
   if (!appViewer?.resourcesManager) return null
   const r = appViewer.resourcesManager
   if (texture === 'gui') return (r.currentResources?.guiAtlas?.image ?? null) as unknown as CanvasImageSource | null
@@ -26,15 +26,15 @@ function getAtlas (texture: string): CanvasImageSource | null {
 }
 
 /** Get atlas source suitable for the block renderer (accepts string data URLs). */
-function getAtlasForBlockRenderer (texture: string): HTMLImageElement | string | null {
+function getAtlasForBlockRenderer(texture: string): HTMLImageElement | string | null {
   if (!appViewer?.resourcesManager) return null
   const r = appViewer.resourcesManager
-  if (texture === 'blocks') return (r.blocksAtlasParser?.latestImage ?? null)
+  if (texture === 'blocks') return r.blocksAtlasParser?.latestImage ?? null
   return null
 }
 
 /** Extract a single-face sprite from the GUI or items atlas as a data URL. */
-export function extractSpriteDataUrl (texture: string, slice: number[]): string | undefined {
+export function extractSpriteDataUrl(texture: string, slice: number[]): string | undefined {
   const atlas = getAtlas(texture)
   if (!atlas || !slice) return undefined
   const [x, y, w, h] = slice
@@ -56,7 +56,7 @@ export function extractSpriteDataUrl (texture: string, slice: number[]): string 
 }
 
 /** Build an isometric BlockTextureRender from blockData returned by renderSlot. */
-export function buildBlockTexture (blockData: Record<string, { slice: number[] } | undefined>): BlockTextureRender | undefined {
+export function buildBlockTexture(blockData: Record<string, { slice: number[] } | undefined>): BlockTextureRender | undefined {
   const source = getAtlasForBlockRenderer('blocks')
   if (!source) return undefined
 
@@ -77,7 +77,7 @@ export function buildBlockTexture (blockData: Record<string, { slice: number[] }
     source: source as unknown as HTMLImageElement,
     top,
     left,
-    right,
+    right
   }
 }
 
@@ -88,11 +88,7 @@ export function buildBlockTexture (blockData: Record<string, { slice: number[] }
  * Used by buildItemMapper (live slots), enrichItemStack (JEI / recipes).
  * Returns empty object on failure so callers can spread safely.
  */
-export function resolveItemTextures (item: {
-  name: string
-  nbt?: any
-  components?: any[]
-}): { texture?: string; blockTexture?: BlockTextureRender } {
+export function resolveItemTextures(item: { name: string; nbt?: any; components?: any[] }): { texture?: string; blockTexture?: BlockTextureRender } {
   if (!appViewer?.resourcesManager?.currentResources) return {}
   try {
     const modelName = getItemModelName(
@@ -119,7 +115,7 @@ export function resolveItemTextures (item: {
  * Mutate an ItemStack in place with texture/blockTexture.
  * Convenience wrapper around resolveItemTextures for JEI / recipe callers.
  */
-export function enrichItemStack (item: ItemStack & { name?: string; nbt?: any; components?: any[] }): void {
+export function enrichItemStack(item: ItemStack & { name?: string; nbt?: any; components?: any[] }): void {
   if (!item.name) return
   const resolved = resolveItemTextures({ name: item.name, nbt: item.nbt, components: (item as any).components })
   if (resolved.texture !== undefined) item.texture = resolved.texture
@@ -128,11 +124,10 @@ export function enrichItemStack (item: ItemStack & { name?: string; nbt?: any; c
 
 // ----- Item mapper – enriches raw bot slots with textures and display info -----
 
-export function buildItemMapper (version: string) {
+export function buildItemMapper(version: string) {
   const PrismarineItem = PItem(version)
 
-  return (raw: { type: number; count: number; metadata?: number; nbt?: unknown; components?: any[] },
-    mapped: ItemStack): ItemStack => {
+  return (raw: { type: number; count: number; metadata?: number; nbt?: unknown; components?: any[] }, mapped: ItemStack): ItemStack => {
     try {
       const slot = new PrismarineItem(raw.type, raw.count, raw.metadata ?? 0) as Item & RenderItem
       if (raw.nbt) (slot as any).nbt = raw.nbt
@@ -141,12 +136,14 @@ export function buildItemMapper (version: string) {
       const { texture, blockTexture } = resolveItemTextures({
         name: slot.name,
         nbt: (slot as any).nbt,
-        components: raw.components,
+        components: raw.components
       })
 
       const nameRaw = getItemNameRaw(slot, appViewer.resourcesManager)
       const displayName = nameRaw
-        ? flat(nameRaw).map((p: any) => (typeof p === 'string' ? p : p.text)).join('')
+        ? flat(nameRaw)
+            .map((p: any) => (typeof p === 'string' ? p : p.text))
+            .join('')
         : slot.displayName
 
       return {
@@ -155,11 +152,9 @@ export function buildItemMapper (version: string) {
         displayName,
         texture,
         blockTexture,
-        durability: (typeof slot.maxDurability === 'number' && typeof slot.durabilityUsed === 'number')
-          ? slot.maxDurability - slot.durabilityUsed
-          : undefined,
+        durability: typeof slot.maxDurability === 'number' && typeof slot.durabilityUsed === 'number' ? slot.maxDurability - slot.durabilityUsed : undefined,
         maxDurability: (slot.maxDurability ?? undefined) as number | undefined,
-        enchantments: slot.enchants?.map((e: any) => ({ name: e.name, level: e.lvl })),
+        enchantments: slot.enchants?.map((e: any) => ({ name: e.name, level: e.lvl }))
       }
     } catch {
       return mapped
@@ -171,18 +166,18 @@ export function buildItemMapper (version: string) {
 
 export const textureConfig = {
   getGuiTextureUrl: (path: string) => inventoryBundledConfig.getGuiTextureUrl(path),
-  getItemTextureUrl (_item: ItemStack) {
+  getItemTextureUrl(_item: ItemStack) {
     return ''
   },
-  getBlockTextureUrl (_item: ItemStack) {
+  getBlockTextureUrl(_item: ItemStack) {
     return ''
-  },
+  }
 }
 
 // ----- Window title formatter – resolves JSON text components to display strings -----
 
 /** Parse a raw window title (JSON string, NBT object, or plain text) into a readable string. */
-export function formatWindowTitle (rawTitle: any): string {
+export function formatWindowTitle(rawTitle: any): string {
   if (rawTitle === null || rawTitle === undefined) return ''
   if (typeof rawTitle === 'string') {
     // Try to parse JSON text component

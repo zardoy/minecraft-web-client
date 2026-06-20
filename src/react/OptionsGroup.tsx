@@ -12,29 +12,36 @@ export const optionValueToType = (optionValue: any, optionKey: string) => {
   if (typeof optionValue === 'string') return 'element'
 }
 
-const finalItemsScheme: Record<keyof typeof guiOptionsScheme, OptionMeta[]> = Object.fromEntries(Object.entries(guiOptionsScheme).map(([groupName, optionsArr]) => {
-  return [groupName, optionsArr.flatMap((optionsObj) => {
-    return Object.entries(optionsObj).map(([optionKey, metaMerge]) => {
-      const optionValue = options[optionKey]
+const finalItemsScheme: Record<keyof typeof guiOptionsScheme, OptionMeta[]> = Object.fromEntries(
+  Object.entries(guiOptionsScheme).map(([groupName, optionsArr]) => {
+    return [
+      groupName,
+      optionsArr.flatMap(optionsObj => {
+        return Object.entries(optionsObj).map(([optionKey, metaMerge]) => {
+          const optionValue = options[optionKey]
 
-      const type = optionValueToType(optionValue, optionKey)
-      const meta: OptionMeta = {
-        id: optionKey === 'custom' ? undefined : optionKey,
-        type,
-        // todo I don't like the whole idea of custom. Why it is even here?
-        ...optionKey === 'custom' ? {
-          type: 'element',
-          render: metaMerge
-        } : {
-          ...metaMerge,
-        }
-      }
-      return meta
-    })
-  })]
-}))
+          const type = optionValueToType(optionValue, optionKey)
+          const meta: OptionMeta = {
+            id: optionKey === 'custom' ? undefined : optionKey,
+            type,
+            // todo I don't like the whole idea of custom. Why it is even here?
+            ...(optionKey === 'custom'
+              ? {
+                  type: 'element',
+                  render: metaMerge
+                }
+              : {
+                  ...metaMerge
+                })
+          }
+          return meta
+        })
+      })
+    ]
+  })
+)
 
-export default ({ group, backButtonAction }: { group: OptionsGroupType, backButtonAction? }) => {
+export default ({ group, backButtonAction }: { group: OptionsGroupType; backButtonAction? }) => {
   const items = finalItemsScheme[group]
 
   const title = group === 'main' ? 'Settings' : `${titleCase(group)} Settings`

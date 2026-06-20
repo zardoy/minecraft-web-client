@@ -41,23 +41,30 @@ export const usePassesWindowDimensions = (minWidth: number | null = null, minHei
 }
 
 export const useCopyKeybinding = (getCopyText: () => string | undefined) => {
-  useUtilsEffect(({ signal }) => {
-    addEventListener('keydown', (e) => {
-      if (e.code === 'KeyC' && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
-        const { activeElement } = document
-        if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
-          return
-        }
-        if (window.getSelection()?.toString()) {
-          return
-        }
-        e.preventDefault()
-        const copyText = getCopyText()
-        if (!copyText) return
-        void navigator.clipboard.writeText(copyText)
-      }
-    }, { signal })
-  }, [getCopyText])
+  useUtilsEffect(
+    ({ signal }) => {
+      addEventListener(
+        'keydown',
+        e => {
+          if (e.code === 'KeyC' && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+            const { activeElement } = document
+            if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+              return
+            }
+            if (window.getSelection()?.toString()) {
+              return
+            }
+            e.preventDefault()
+            const copyText = getCopyText()
+            if (!copyText) return
+            void navigator.clipboard.writeText(copyText)
+          }
+        },
+        { signal }
+      )
+    },
+    [getCopyText]
+  )
 }
 
 export const useIsHashActive = (hash: `#${string}`) => {

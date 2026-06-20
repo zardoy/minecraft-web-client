@@ -55,7 +55,7 @@ export class SoundMap {
   private activeResourcePackSoundsJson: ResourcePackSoundsJson | undefined
   noVersionIdMapping = false
 
-  constructor (
+  constructor(
     private readonly soundData: SoundMapData,
     private readonly version: string
   ) {
@@ -98,7 +98,7 @@ export class SoundMap {
     }
   }
 
-  async updateActiveResourcePackBasePath (basePath: string | undefined) {
+  async updateActiveResourcePackBasePath(basePath: string | undefined) {
     this.activeResourcePackBasePath = basePath
     if (!basePath) {
       this.activeResourcePackSoundsJson = undefined
@@ -120,7 +120,7 @@ export class SoundMap {
     }
   }
 
-  async updateExistingResourcePackPaths () {
+  async updateExistingResourcePackPaths() {
     if (!this.activeResourcePackBasePath) return
     // todo support sounds.js from resource pack
     const soundsBasePath = path.join(this.activeResourcePackBasePath, 'assets/minecraft/sounds')
@@ -141,7 +141,7 @@ export class SoundMap {
     await scan(soundsBasePath)
   }
 
-  async getSoundUrl (soundKey: string, volume = 1): Promise<{ url: string; volume: number, timeout?: number } | undefined> {
+  async getSoundUrl(soundKey: string, volume = 1): Promise<{ url: string; volume: number; timeout?: number } | undefined> {
     // First check resource pack sounds.json
     if (this.activeResourcePackSoundsJson && soundKey in this.activeResourcePackSoundsJson) {
       const rpSound = this.activeResourcePackSoundsJson[soundKey]
@@ -187,14 +187,16 @@ export class SoundMap {
     // Pick a random sound based on weights
     const totalWeight = sounds.reduce((sum, s) => sum + s.weight, 0)
     let random = Math.random() * totalWeight
-    const sound = sounds.find(s => {
-      random -= s.weight
-      return random <= 0
-    }) ?? sounds[0]
+    const sound =
+      sounds.find(s => {
+        random -= s.weight
+        return random <= 0
+      }) ?? sounds[0]
 
     const versionedSound = this.getVersionedSound(sound.file)
 
-    const url = this.soundData.soundsMeta.baseUrl.replace(/\/$/, '') +
+    const url =
+      this.soundData.soundsMeta.baseUrl.replace(/\/$/, '') +
       (versionedSound ? `/${versionedSound}` : '') +
       '/minecraft/sounds/' +
       sound.file +
@@ -207,7 +209,7 @@ export class SoundMap {
     }
   }
 
-  private getVersionedSound (item: string): string | undefined {
+  private getVersionedSound(item: string): string | undefined {
     const verNumber = versionToNumber(this.version)
     const entries = Object.entries(this.soundData.soundsLegacyMap)
     for (const [itemsVer, items] of entries) {
@@ -218,38 +220,41 @@ export class SoundMap {
     return undefined
   }
 
-  getBlockSound (blockName: string, category: string, fallback: string): string {
+  getBlockSound(blockName: string, category: string, fallback: string): string {
     const mappedName = blockSoundAliases[blockName] ?? blockName
     const key = `block.${mappedName}.${category}`
     return this.soundsPerName[key] ? key : fallback
   }
 
-  getStepSound (blockName: string): string {
+  getStepSound(blockName: string): string {
     return this.getBlockSound(blockName, 'step', 'block.stone.step')
   }
 
-  getBreakSound (blockName: string): string {
+  getBreakSound(blockName: string): string {
     return this.getBlockSound(blockName, 'break', 'block.stone.break')
   }
 
-  quit () {
+  quit() {
     musicSystem.stopMusic()
     stopAllSounds()
   }
 }
 
-export function createSoundMap (version: string): SoundMap | null {
+export function createSoundMap(version: string): SoundMap | null {
   const globalObject = window as {
-    allSoundsMap?: Record<string, Record<string, string>>,
-    allSoundsVersionedMap?: Record<string, string[]>,
-    allSoundsMeta?: { format: string, baseUrl: string }
+    allSoundsMap?: Record<string, Record<string, string>>
+    allSoundsVersionedMap?: Record<string, string[]>
+    allSoundsMeta?: { format: string; baseUrl: string }
   }
   if (!globalObject.allSoundsMap) return null
-  return new SoundMap({
-    allSoundsMap: globalObject.allSoundsMap,
-    soundsLegacyMap: globalObject.allSoundsVersionedMap ?? {},
-    soundsMeta: globalObject.allSoundsMeta!
-  }, version)
+  return new SoundMap(
+    {
+      allSoundsMap: globalObject.allSoundsMap,
+      soundsLegacyMap: globalObject.allSoundsVersionedMap ?? {},
+      soundsMeta: globalObject.allSoundsMeta!
+    },
+    version
+  )
 }
 
 // Block name mappings for sound effects

@@ -64,13 +64,17 @@
   font-size: 0.45rem;
   font-weight: 600;
   margin-bottom: 1px;
-  text-shadow: 1px 1px 0 #222, 0 0 2px #000;
+  text-shadow:
+    1px 1px 0 #222,
+    0 0 2px #000;
 }
 
 .effect-box__time {
   color: #fff;
   font-size: 0.5rem;
-  text-shadow: 1px 1px 0 #222, 0 0 2px #000;
+  text-shadow:
+    1px 1px 0 #222,
+    0 0 2px #000;
 }
 
 .effect-box__level {
@@ -79,6 +83,8 @@
   top: 4px;
   color: #fff;
   font-size: 0.48rem;
-  text-shadow: 1px 1px 0 #222, 0 0 2px #000;
+  text-shadow:
+    1px 1px 0 #222,
+    0 0 2px #000;
   z-index: 2;
 }

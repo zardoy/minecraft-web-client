@@ -10,7 +10,7 @@ export default () => {
       const item = bot.heldItem
       if (!item || !['filled_map', 'map'].includes(item.name)) return
       // setDataUrl(true)
-      const mapNumber = ((item?.nbt?.value as any)?.map?.value) ?? (item['components']?.find(x => x.type === 'map_id')?.data)
+      const mapNumber = (item?.nbt?.value as any)?.map?.value ?? item['components']?.find(x => x.type === 'map_id')?.data
       // if (!mapNumber) return
       setDataUrl(bot.mapDownloader.maps?.[mapNumber] as unknown as string)
     }
@@ -27,19 +27,23 @@ export default () => {
     updateHeldMap()
   }, [])
 
-  return dataUrl && dataUrl !== true ? <div style={{
-    position: 'fixed',
-    bottom: 20,
-    left: 8,
-    pointerEvents: 'none',
-  }}
-  >
-    <img
-      src={dataUrl} style={{
-        width: 92,
-        height: 92,
-        imageRendering: 'pixelated',
+  return dataUrl && dataUrl !== true ? (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 20,
+        left: 8,
+        pointerEvents: 'none'
       }}
-    />
-  </div> : null
+    >
+      <img
+        src={dataUrl}
+        style={{
+          width: 92,
+          height: 92,
+          imageRendering: 'pixelated'
+        }}
+      />
+    </div>
+  ) : null
 }

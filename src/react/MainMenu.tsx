@@ -4,14 +4,7 @@ import { useSnapshot } from 'valtio'
 import { haveDirectoryPicker } from '../utils'
 import { ConnectOptions } from '../connect'
 import { miscUiState } from '../globalState'
-import {
-  isRemoteSplashText,
-  loadRemoteSplashText,
-  getCachedSplashText,
-  cacheSplashText,
-  cacheSourceUrl,
-  clearSplashCache
-} from '../utils/splashText'
+import { isRemoteSplashText, loadRemoteSplashText, getCachedSplashText, cacheSplashText, cacheSourceUrl, clearSplashCache } from '../utils/splashText'
 import styles from './mainMenu.module.css'
 import Button from './Button'
 import ButtonWithTooltip from './ButtonWithTooltip'
@@ -54,7 +47,7 @@ const MainMenuBase = ({
   versionTitle,
   onVersionStatusClick,
   bottomRightLinks,
-  singleplayerAvailable = true,
+  singleplayerAvailable = true
 }: Props) => {
   const { appConfig } = useSnapshot(miscUiState)
 
@@ -63,7 +56,7 @@ const MainMenuBase = ({
 
     const configSplashFromApp = appConfig?.splashText
     const isRemote = configSplashFromApp && isRemoteSplashText(configSplashFromApp)
-    const sourceKey = isRemote ? configSplashFromApp : (configSplashFromApp || '')
+    const sourceKey = isRemote ? configSplashFromApp : configSplashFromApp || ''
     const storedSourceKey = localStorage.getItem('minecraft_splash_url')
 
     if (storedSourceKey !== sourceKey) {
@@ -117,7 +110,7 @@ const MainMenuBase = ({
       const hoursAgo = buildDate ? Math.round((Date.now() - buildDate.getTime()) / (1000 * 60 * 60)) : null
       alert(`BUILD DATE:\n${buildDate?.toLocaleString() || 'Development build'}${hoursAgo ? `\nBuilt ${hoursAgo} hours ago` : ''}`)
     },
-    () => onVersionTextClick?.(),
+    () => onVersionTextClick?.()
   )
 
   const connectToServerLongPress = useLongPress(
@@ -127,7 +120,7 @@ const MainMenuBase = ({
         const origin = window.location.hostname
         const connectOptions: ConnectOptions = {
           server: `${origin}:25565`,
-          username: 'test',
+          username: 'test'
         }
         dispatchEvent(new CustomEvent('connect', { detail: connectOptions }))
       }
@@ -149,10 +142,10 @@ const MainMenuBase = ({
         <ButtonWithTooltip
           initialTooltip={{
             content: 'Connect to Java servers!',
-            placement: 'top',
+            placement: 'top'
           }}
           {...connectToServerLongPress}
-          data-test-id='servers-screen-button'
+          data-test-id="servers-screen-button"
         >
           Connect to server
         </ButtonWithTooltip>
@@ -160,7 +153,7 @@ const MainMenuBase = ({
           <ButtonWithTooltip
             style={{ width: 150 }}
             {...singleplayerLongPress}
-            data-test-id='singleplayer-button'
+            data-test-id="singleplayer-button"
             disabled={!singleplayerAvailable}
             initialTooltip={{
               content: 'Create worlds and play offline',
@@ -180,20 +173,16 @@ const MainMenuBase = ({
           />
 
           <ButtonWithTooltip
-            data-test-id='select-file-folder'
+            data-test-id="select-file-folder"
             icon={pixelartIcons.folder}
             onClick={openFileAction}
             initialTooltip={{
               content: 'Load any Java world save' + (haveDirectoryPicker() ? '' : ' (zip)!'),
-              placement: 'bottom-start',
+              placement: 'bottom-start'
             }}
           />
         </div>
-        <Button
-          onClick={optionsAction}
-        >
-          Options
-        </Button>
+        <Button onClick={optionsAction}>Options</Button>
         <div className={styles['menu-row']}>
           <PauseLinkButtons />
         </div>
@@ -202,24 +191,23 @@ const MainMenuBase = ({
 
       <div className={styles['bottom-info']}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 10, color: 'gray' }} {...versionLongPress}>{versionText}</span>
-          <span
-            title={`${versionTitle} (click to reload)`}
-            onClick={onVersionStatusClick}
-            className={styles['product-info']}
-          >
-            <span style={{
-              position: 'absolute',
-              left: '-9999px',
-              width: '1px',
-              height: '1px',
-              overflow: 'hidden',
-              clip: 'rect(1px, 1px, 1px, 1px)',
-              whiteSpace: 'nowrap'
-            }}>
+          <span style={{ fontSize: 10, color: 'gray' }} {...versionLongPress}>
+            {versionText}
+          </span>
+          <span title={`${versionTitle} (click to reload)`} onClick={onVersionStatusClick} className={styles['product-info']}>
+            <span
+              style={{
+                position: 'absolute',
+                left: '-9999px',
+                width: '1px',
+                height: '1px',
+                overflow: 'hidden',
+                clip: 'rect(1px, 1px, 1px, 1px)',
+                whiteSpace: 'nowrap'
+              }}
+            >
               Prismarine Web Client
             </span>
-
             V2 Presented by Sandexzx {versionStatus}
           </span>
         </div>
@@ -228,24 +216,29 @@ const MainMenuBase = ({
             {linksParsed?.map(([name, link], i, arr) => {
               if (!link.startsWith('http')) link = `https://${link}`
               const finalLink = link
-              return <div style={{
-                color: 'lightgray',
-                fontSize: 8,
-              }}>
-                <a
-                  key={name}
+              return (
+                <div
                   style={{
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
+                    color: 'lightgray',
+                    fontSize: 8
                   }}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    openURL(finalLink, false)
-                  }}
-                >{name}
-                </a>
-                {i < arr.length - 1 && <span style={{ marginLeft: 2 }}>·</span>}
-              </div>
+                >
+                  <a
+                    key={name}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer'
+                    }}
+                    onClick={e => {
+                      e.preventDefault()
+                      openURL(finalLink, false)
+                    }}
+                  >
+                    {name}
+                  </a>
+                  {i < arr.length - 1 && <span style={{ marginLeft: 2 }}>·</span>}
+                </div>
+              )
             })}
           </div>
           <span>{appConfig?.rightSideText}</span>

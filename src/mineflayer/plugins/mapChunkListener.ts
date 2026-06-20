@@ -23,13 +23,13 @@ import { appViewer } from '../../appViewer'
 // `wasm-mesher/src/parser_v17.rs::MAX_BITS_PER_BLOCK_V17`.
 const MAX_BITS_PER_BLOCK_V17 = 15
 
-const readVarInt = (buf: Buffer, offset: number): { value: number, bytesRead: number } | null => {
+const readVarInt = (buf: Buffer, offset: number): { value: number; bytesRead: number } | null => {
   let value = 0
   let shift = 0
   let pos = offset
   while (pos < buf.length) {
     const b = buf.readUInt8(pos++)
-    value |= (b & 0x7F) << shift
+    value |= (b & 0x7f) << shift
     if ((b & 0x80) === 0) return { value, bytesRead: pos - offset }
     shift += 7
     if (shift > 35) return null
@@ -63,13 +63,11 @@ const resolveNumSections = (chunkX: number, chunkZ: number, fallback: number): n
   try {
     const column: any = (bot as any).world?.getColumn?.(chunkX, chunkZ)
     if (column) {
-      const n = column.numSections
-        ?? (column.worldHeight ? column.worldHeight >> 4 : undefined)
+      const n = column.numSections ?? (column.worldHeight ? column.worldHeight >> 4 : undefined)
       if (typeof n === 'number') return n
     }
   } catch {}
-  const worldHeight = (bot as any).game?.height
-    ?? (bot as any).world?.worldHeight
+  const worldHeight = (bot as any).game?.height ?? (bot as any).world?.worldHeight
   return typeof worldHeight === 'number' ? worldHeight >> 4 : fallback
 }
 
@@ -109,7 +107,11 @@ const botInit = () => {
 
       appViewer.backend?.backendMethods?.feedChunkPacket?.({
         kind: 'setRawMapChunk',
-        x, z, rawPacket, protocol, numSections,
+        x,
+        z,
+        rawPacket,
+        protocol,
+        numSections
       })
     } catch (err) {
       console.warn('[mapChunkListener] failed to forward raw map_chunk:', err)
@@ -155,7 +157,7 @@ const botInit = () => {
         maxBitsPerBlock: MAX_BITS_PER_BLOCK_V17,
         chunkData,
         bitMapLoHi,
-        biomes,
+        biomes
       })
     } catch (err) {
       console.warn('[mapChunkListener] failed to forward parsed map_chunk (1.17):', err)
@@ -181,15 +183,13 @@ const botInit = () => {
       // 1.17 always has worldHeight=256 → 16 sections; resolveNumSections
       // would need (chunkX, chunkZ) which we don't decode in JS. The
       // game-level fallback is exactly what we want here.
-      const numSections = ((bot as any).game?.height
-        ?? (bot as any).world?.worldHeight
-        ?? 256) >> 4
+      const numSections = ((bot as any).game?.height ?? (bot as any).world?.worldHeight ?? 256) >> 4
 
       appViewer.backend?.backendMethods?.feedChunkPacket?.({
         kind: 'setUpdateLightV17',
         protocol,
         numSections,
-        rawPacket,
+        rawPacket
       })
     } catch (err) {
       console.warn('[mapChunkListener] failed to forward raw update_light (1.17):', err)
@@ -227,7 +227,7 @@ const botInit = () => {
         chunkData,
         bitMap,
         biomes,
-        protocol,
+        protocol
       })
     } catch (err) {
       console.warn('[mapChunkListener] failed to forward parsed map_chunk (1.16):', err)
@@ -264,7 +264,7 @@ const botInit = () => {
         x,
         z,
         rawPacket,
-        protocol,
+        protocol
       })
     } catch (err) {
       console.warn('[mapChunkListener] failed to forward raw update_light (1.16):', err)

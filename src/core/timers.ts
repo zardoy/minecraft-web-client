@@ -46,9 +46,9 @@ const fixBrowserTimers = () => {
       targetTime,
       isInterval: true,
       interval,
-      cleanup () {
+      cleanup() {
         originalClearInterval(originalInterval)
-      },
+      }
     })
     return id
   }

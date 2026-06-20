@@ -25,7 +25,7 @@ const state = proxy({
   mode: 'login' as Mode,
   serverIp: '',
   username: '',
-  prefilledPassword: '' as string | undefined,
+  prefilledPassword: '' as string | undefined
 })
 
 let resolve: ((value: AutoFillLoginResult | undefined) => void) | undefined
@@ -37,13 +37,13 @@ export const showAutoFillLoginModal = async (params: {
   prefilledPassword?: string
 }): Promise<AutoFillLoginResult | undefined> => {
   showModal({ reactType: 'auto-fill-login' })
-  return new Promise((_resolve) => {
+  return new Promise(_resolve => {
     resolve = _resolve
     Object.assign(state, {
       mode: params.mode,
       serverIp: params.serverIp,
       username: params.username,
-      prefilledPassword: params.prefilledPassword ?? '',
+      prefilledPassword: params.prefilledPassword ?? ''
     })
   })
 }
@@ -57,7 +57,7 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
   padding: '4px 6px',
   width: 200,
-  boxSizing: 'border-box',
+  boxSizing: 'border-box'
 }
 
 const captionStyle: React.CSSProperties = {
@@ -65,7 +65,7 @@ const captionStyle: React.CSSProperties = {
   color: '#A0A0A0',
   marginTop: 2,
   textAlign: 'center',
-  maxWidth: 200,
+  maxWidth: 200
 }
 
 const IDENTIFIER_HINT = 'Used as identifier in your password manager'
@@ -74,20 +74,20 @@ const infoStyle: React.CSSProperties = {
   fontSize: 9,
   color: '#A0A0A0',
   textAlign: 'center',
-  maxWidth: 220,
+  maxWidth: 220
 }
 
 const decorativeCaptionStyle: React.CSSProperties = {
   ...captionStyle,
   color: 'transparent',
-  pointerEvents: 'none',
+  pointerEvents: 'none'
 }
 
 const errorStyle: React.CSSProperties = {
   fontSize: 9,
   color: '#FF5555',
   textAlign: 'center',
-  maxWidth: 220,
+  maxWidth: 220
 }
 
 const overlayIframeStyle: React.CSSProperties = {
@@ -96,7 +96,7 @@ const overlayIframeStyle: React.CSSProperties = {
   left: 0,
   border: 'none',
   background: 'transparent',
-  zIndex: 1,
+  zIndex: 1
 }
 
 const decorativeInputStyle: React.CSSProperties = {
@@ -104,17 +104,14 @@ const decorativeInputStyle: React.CSSProperties = {
   pointerEvents: 'none',
   color: 'transparent',
   background: 'transparent',
-  border: '1px solid transparent',
+  border: '1px solid transparent'
 }
 
 const INPUT_BORDER = '1px solid #A0A0A0'
 const INPUT_INNER_BG = 'rgba(0, 0, 0, 0.5)'
 
 const escapeHtmlAttr = (value: string): string => {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('<', '&lt;')
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;')
 }
 
 const INPUT_FONT_SIZE = 10
@@ -148,18 +145,12 @@ interface IframeFieldSpec {
 
 const IFRAME_SUBMIT_MSG: Record<IframeAuthMode, string> = {
   register: 'auto-fill-register-submit',
-  changepassword: 'auto-fill-changepassword-submit',
+  changepassword: 'auto-fill-changepassword-submit'
 }
 
 const ERROR_SLOT_HEIGHT = 16
 
-const measureIframeFormLayout = (
-  root: HTMLElement,
-  fieldEls: HTMLElement[],
-  captionEl: HTMLElement,
-  buttonEl: HTMLElement,
-  scale = 1,
-): IframeFormLayout => {
+const measureIframeFormLayout = (root: HTMLElement, fieldEls: HTMLElement[], captionEl: HTMLElement, buttonEl: HTMLElement, scale = 1): IframeFormLayout => {
   const rootRect = root.getBoundingClientRect()
   const buttonRect = buttonEl.getBoundingClientRect()
 
@@ -167,7 +158,7 @@ const measureIframeFormLayout = (
     top: (rect.top - rootRect.top) / scale,
     left: (rect.left - rootRect.left) / scale,
     width: rect.width / scale,
-    height: rect.height / scale,
+    height: rect.height / scale
   })
 
   return {
@@ -175,27 +166,23 @@ const measureIframeFormLayout = (
     iframeHeight: (buttonRect.bottom - rootRect.top) / scale + ERROR_SLOT_HEIGHT,
     fields: fieldEls.map(el => rel(el.getBoundingClientRect())),
     caption: rel(captionEl.getBoundingClientRect()),
-    button: rel(buttonRect),
+    button: rel(buttonRect)
   }
 }
 
-const iframeFieldSpecs = (
-  mode: IframeAuthMode,
-  identifier: string,
-  prefilledPassword: string,
-): IframeFieldSpec[] => {
+const iframeFieldSpecs = (mode: IframeAuthMode, identifier: string, prefilledPassword: string): IframeFieldSpec[] => {
   if (mode === 'register') {
     return [
       { name: 'username', type: 'text', autoComplete: 'username', value: identifier },
       { name: 'password', type: 'password', autoComplete: 'new-password', value: prefilledPassword, placeholder: 'Password' },
-      { name: 'password-confirm', type: 'password', autoComplete: 'new-password', placeholder: 'Confirm password' },
+      { name: 'password-confirm', type: 'password', autoComplete: 'new-password', placeholder: 'Confirm password' }
     ]
   }
   return [
     { name: 'username', type: 'text', autoComplete: 'username', value: identifier },
     { name: 'old-password', type: 'password', autoComplete: 'current-password', value: prefilledPassword, placeholder: 'Old password' },
     { name: 'new-password', type: 'password', autoComplete: 'new-password', placeholder: 'New password' },
-    { name: 'confirm-new-password', type: 'password', autoComplete: 'new-password', placeholder: 'Confirm new password' },
+    { name: 'confirm-new-password', type: 'password', autoComplete: 'new-password', placeholder: 'Confirm new password' }
   ]
 }
 
@@ -235,7 +222,7 @@ const mountIframeAuthForm = (
   mode: IframeAuthMode,
   identifier: string,
   prefilledPassword: string,
-  submitLabel: string,
+  submitLabel: string
 ) => {
   iframe.src = 'about:blank'
   iframe.style.width = `${layout.iframeWidth}px`
@@ -246,11 +233,13 @@ const mountIframeAuthForm = (
   }
 
   const specs = iframeFieldSpecs(mode, identifier, prefilledPassword)
-  const inputsHtml = specs.map((spec, i) => {
-    const valueAttr = spec.value === undefined ? '' : `value="${escapeHtmlAttr(spec.value)}"`
-    const placeholderAttr = spec.placeholder ? `placeholder="${escapeHtmlAttr(spec.placeholder)}"` : ''
-    return `<input type="${spec.type}" name="${spec.name}" autocomplete="${spec.autoComplete}" ${valueAttr} ${placeholderAttr} style="${fieldStyle(layout.fields[i])}" />`
-  }).join('\n        ')
+  const inputsHtml = specs
+    .map((spec, i) => {
+      const valueAttr = spec.value === undefined ? '' : `value="${escapeHtmlAttr(spec.value)}"`
+      const placeholderAttr = spec.placeholder ? `placeholder="${escapeHtmlAttr(spec.placeholder)}"` : ''
+      return `<input type="${spec.type}" name="${spec.name}" autocomplete="${spec.autoComplete}" ${valueAttr} ${placeholderAttr} style="${fieldStyle(layout.fields[i])}" />`
+    })
+    .join('\n        ')
 
   const { button: btn, caption } = layout
   const captionStyleInline = `position:absolute;top:${caption.top}px;left:${caption.left}px;width:${caption.width}px;height:${caption.height}px;box-sizing:border-box;margin:0;font-family:minecraft,mojangles,monospace;font-size:7px;color:#A0A0A0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1.2;padding-top:7px;`
@@ -350,7 +339,7 @@ const verticalButtonsStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 5,
-  width: inputStyle.width,
+  width: inputStyle.width
 }
 
 const isIframeAuthMode = (mode: Mode): mode is IframeAuthMode => {
@@ -362,7 +351,7 @@ globalThis.debugAutoFillLogin = () => {
     mode: 'register',
     serverIp: 'localhost',
     username: 'test',
-    prefilledPassword: '',
+    prefilledPassword: ''
   })
 }
 
@@ -400,7 +389,9 @@ export default () => {
     const bot = window.bot as { chat: (message: string) => void } | undefined
     const cmd = buildAuthCommand(mode, result.password, result.newPassword)
     if (!bot || !cmd) return false
-    try { bot.chat(cmd) } catch {}
+    try {
+      bot.chat(cmd)
+    } catch {}
     monitorLoginAttempt({
       password: result.password,
       newPassword: result.newPassword,
@@ -408,7 +399,7 @@ export default () => {
       source: 'modal',
       serverIp,
       username,
-      preSaved: false,
+      preSaved: false
     })
     return true
   }
@@ -432,23 +423,27 @@ export default () => {
     finishSubmit({ ...pending, commandSent: true })
   }
 
-  const mountIframeForm = useCallback((iframeMode: IframeAuthMode) => {
-    const root = overlayRootRef.current
-    const iframe = overlayIframeRef.current
-    const buttonSlot = submitButtonRef.current
-    const captionEl = captionRef.current
-    if (!root || !iframe || !buttonSlot || !captionEl) return
+  const mountIframeForm = useCallback(
+    (iframeMode: IframeAuthMode) => {
+      const root = overlayRootRef.current
+      const iframe = overlayIframeRef.current
+      const buttonSlot = submitButtonRef.current
+      const captionEl = captionRef.current
+      if (!root || !iframe || !buttonSlot || !captionEl) return
 
-    const fieldEls = iframeMode === 'register'
-      ? [usernameRef.current, passwordRef.current, confirmRef.current]
-      : [usernameRef.current, passwordRef.current, newPasswordRef.current, confirmRef.current]
+      const fieldEls =
+        iframeMode === 'register'
+          ? [usernameRef.current, passwordRef.current, confirmRef.current]
+          : [usernameRef.current, passwordRef.current, newPasswordRef.current, confirmRef.current]
 
-    if (fieldEls.some(el => !el)) return
+      if (fieldEls.some(el => !el)) return
 
-    const layout = measureIframeFormLayout(root, fieldEls as HTMLElement[], captionEl, buttonSlot, appScale)
-    const submitLabel = iframeMode === 'register' ? 'Register' : 'Change'
-    mountIframeAuthForm(iframe, layout, iframeMode, identifier, prefilledPassword ?? '', submitLabel)
-  }, [identifier, prefilledPassword, appScale])
+      const layout = measureIframeFormLayout(root, fieldEls as HTMLElement[], captionEl, buttonSlot, appScale)
+      const submitLabel = iframeMode === 'register' ? 'Register' : 'Change'
+      mountIframeAuthForm(iframe, layout, iframeMode, identifier, prefilledPassword ?? '', submitLabel)
+    },
+    [identifier, prefilledPassword, appScale]
+  )
 
   useEffect(() => {
     if (!isModalActive || !USE_IFRAME || !isIframeAuthMode(mode)) return
@@ -499,13 +494,14 @@ export default () => {
 
   if (!isModalActive) return null
 
-  const title = mode === 'login'
-    ? 'Auto-fill server access'
-    : mode === 'register'
-      ? 'Auto-fill server registration'
-      : mode === 'changepassword'
-        ? 'Auto-fill password change'
-        : 'Auto-fill account deletion'
+  const title =
+    mode === 'login'
+      ? 'Auto-fill server access'
+      : mode === 'register'
+        ? 'Auto-fill server registration'
+        : mode === 'changepassword'
+          ? 'Auto-fill password change'
+          : 'Auto-fill account deletion'
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (awaitingBrowserSave && usesSafariSaveStep) {
@@ -599,20 +595,11 @@ export default () => {
   const renderIframeAuthShell = (iframeMode: IframeAuthMode) => (
     <Screen title={title} backdrop>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}>
-        <div
-          ref={overlayRootRef}
-          style={{ position: 'relative', width: inputStyle.width }}
-        >
-          <input
-            ref={usernameRef}
-            type="text"
-            name="username"
-            tabIndex={-1}
-            readOnly
-            defaultValue=""
-            style={decorativeInputStyle}
-          />
-          <div ref={captionRef} style={decorativeCaptionStyle}>{IDENTIFIER_HINT}</div>
+        <div ref={overlayRootRef} style={{ position: 'relative', width: inputStyle.width }}>
+          <input ref={usernameRef} type="text" name="username" tabIndex={-1} readOnly defaultValue="" style={decorativeInputStyle} />
+          <div ref={captionRef} style={decorativeCaptionStyle}>
+            {IDENTIFIER_HINT}
+          </div>
           {iframeMode === 'register' ? (
             <>
               <input
@@ -665,11 +652,7 @@ export default () => {
               />
             </>
           )}
-          <div
-            ref={submitButtonRef}
-            aria-hidden
-            style={{ width: '100%', height: 24, marginTop: 9 }}
-          />
+          <div ref={submitButtonRef} aria-hidden style={{ width: '100%', height: 24, marginTop: 9 }} />
           <iframe
             src="about:blank"
             ref={overlayIframeRef}
@@ -679,47 +662,42 @@ export default () => {
         </div>
 
         <div style={{ ...verticalButtonsStyle, marginTop: ERROR_SLOT_HEIGHT - 4 }}>
-          <Button type="button" onClick={handleCancel}>Cancel</Button>
+          <Button type="button" onClick={handleCancel}>
+            Cancel
+          </Button>
         </div>
       </div>
     </Screen>
   )
 
   if (mode === 'login') {
-    return <Screen title={title} backdrop>
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
-        action={FORM_ACTION}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+    return (
+      <Screen title={title} backdrop>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }} action={FORM_ACTION}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <input ref={usernameRef} type="text" name="username" autoComplete="username" defaultValue={identifier} style={inputStyle} />
+            <div style={captionStyle}>{IDENTIFIER_HINT}</div>
+          </div>
           <input
-            ref={usernameRef}
-            type="text"
-            name="username"
-            autoComplete="username"
-            defaultValue={identifier}
+            ref={passwordRef}
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            autoFocus
+            defaultValue={prefilledPassword}
+            placeholder="Password"
             style={inputStyle}
           />
-          <div style={captionStyle}>{IDENTIFIER_HINT}</div>
-        </div>
-        <input
-          ref={passwordRef}
-          type="password"
-          name="password"
-          autoComplete="current-password"
-          autoFocus
-          defaultValue={prefilledPassword}
-          placeholder="Password"
-          style={inputStyle}
-        />
-        {error && <div style={errorStyle}>{error}</div>}
-        <div style={verticalButtonsStyle}>
-          <Button type="submit">Login</Button>
-          <Button type="button" onClick={handleCancel}>Cancel</Button>
-        </div>
-      </form>
-    </Screen>
+          {error && <div style={errorStyle}>{error}</div>}
+          <div style={verticalButtonsStyle}>
+            <Button type="submit">Login</Button>
+            <Button type="button" onClick={handleCancel}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Screen>
+    )
   }
 
   if ((mode === 'register' || mode === 'changepassword') && USE_IFRAME) {
@@ -730,140 +708,113 @@ export default () => {
     const firstSubmitLabel = mode === 'register' ? 'Register' : 'Change'
     const submitLabel = awaitingBrowserSave ? 'Save to browser' : firstSubmitLabel
     const secondaryLabel = awaitingBrowserSave ? 'Skip save' : 'Cancel'
-    return <Screen title={title} backdrop>
-      <form
-        action={FORM_ACTION}
-        method="post"
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          <input
-            ref={usernameRef}
-            type="text"
-            name="username"
-            autoComplete="username"
-            defaultValue={identifier}
-            style={inputStyle}
-          />
-          <div style={captionStyle}>{IDENTIFIER_HINT}</div>
-        </div>
-        {mode === 'register' ? (
-          <>
-            <input
-              ref={passwordRef}
-              type="password"
-              name="password"
-              autoComplete="new-password"
-              autoFocus={!awaitingBrowserSave}
-              defaultValue={prefilledPassword}
-              placeholder="Password"
-              style={inputStyle}
-            />
-            {!awaitingBrowserSave && (
-              <input
-                ref={confirmRef}
-                type="password"
-                name="password-confirm"
-                autoComplete="new-password"
-                placeholder="Confirm password"
-                style={inputStyle}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            {!awaitingBrowserSave && (
+    return (
+      <Screen title={title} backdrop>
+        <form action={FORM_ACTION} method="post" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <input ref={usernameRef} type="text" name="username" autoComplete="username" defaultValue={identifier} style={inputStyle} />
+            <div style={captionStyle}>{IDENTIFIER_HINT}</div>
+          </div>
+          {mode === 'register' ? (
+            <>
               <input
                 ref={passwordRef}
                 type="password"
-                name="old-password"
-                autoComplete="current-password"
-                autoFocus
-                defaultValue={prefilledPassword}
-                placeholder="Old password"
-                style={inputStyle}
-              />
-            )}
-            <input
-              ref={awaitingBrowserSave ? passwordRef : newPasswordRef}
-              type="password"
-              name={awaitingBrowserSave ? 'password' : 'new-password'}
-              autoComplete="new-password"
-              autoFocus={awaitingBrowserSave}
-              defaultValue={awaitingBrowserSave ? pendingResultRef.current?.newPassword : undefined}
-              placeholder={awaitingBrowserSave ? 'Password' : 'New password'}
-              style={inputStyle}
-            />
-            {!awaitingBrowserSave && (
-              <input
-                ref={confirmRef}
-                type="password"
-                name="confirm-new-password"
+                name="password"
                 autoComplete="new-password"
-                placeholder="Confirm new password"
+                autoFocus={!awaitingBrowserSave}
+                defaultValue={prefilledPassword}
+                placeholder="Password"
                 style={inputStyle}
               />
-            )}
-          </>
-        )}
-        {awaitingBrowserSave && (
-          <div style={infoStyle}>Command sent — save password in browser?</div>
-        )}
+              {!awaitingBrowserSave && (
+                <input ref={confirmRef} type="password" name="password-confirm" autoComplete="new-password" placeholder="Confirm password" style={inputStyle} />
+              )}
+            </>
+          ) : (
+            <>
+              {!awaitingBrowserSave && (
+                <input
+                  ref={passwordRef}
+                  type="password"
+                  name="old-password"
+                  autoComplete="current-password"
+                  autoFocus
+                  defaultValue={prefilledPassword}
+                  placeholder="Old password"
+                  style={inputStyle}
+                />
+              )}
+              <input
+                ref={awaitingBrowserSave ? passwordRef : newPasswordRef}
+                type="password"
+                name={awaitingBrowserSave ? 'password' : 'new-password'}
+                autoComplete="new-password"
+                autoFocus={awaitingBrowserSave}
+                defaultValue={awaitingBrowserSave ? pendingResultRef.current?.newPassword : undefined}
+                placeholder={awaitingBrowserSave ? 'Password' : 'New password'}
+                style={inputStyle}
+              />
+              {!awaitingBrowserSave && (
+                <input
+                  ref={confirmRef}
+                  type="password"
+                  name="confirm-new-password"
+                  autoComplete="new-password"
+                  placeholder="Confirm new password"
+                  style={inputStyle}
+                />
+              )}
+            </>
+          )}
+          {awaitingBrowserSave && <div style={infoStyle}>Command sent — save password in browser?</div>}
+          {error && <div style={errorStyle}>{error}</div>}
+          <div style={verticalButtonsStyle}>
+            <Button type="submit">{submitLabel}</Button>
+            <Button type="button" onClick={awaitingBrowserSave ? handleSkipSave : handleCancel}>
+              {secondaryLabel}
+            </Button>
+          </div>
+        </form>
+      </Screen>
+    )
+  }
+
+  return (
+    <Screen title={title} backdrop>
+      <form action={FORM_ACTION} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <input ref={usernameRef} type="text" name="username" autoComplete="username" defaultValue={identifier} style={inputStyle} />
+          <div style={captionStyle}>{IDENTIFIER_HINT}</div>
+        </div>
+
+        <input
+          ref={passwordRef}
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          autoFocus
+          defaultValue={prefilledPassword}
+          placeholder="Password"
+          style={inputStyle}
+        />
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9, color: '#FF5555', maxWidth: 220, cursor: 'pointer' }}>
+          <input type="checkbox" checked={confirmChecked} onChange={e => setConfirmChecked(e.target.checked)} style={{ cursor: 'pointer' }} /> I understand this
+          will delete my account on this server permanently
+        </label>
+
         {error && <div style={errorStyle}>{error}</div>}
-        <div style={verticalButtonsStyle}>
-          <Button type="submit">{submitLabel}</Button>
-          <Button type="button" onClick={awaitingBrowserSave ? handleSkipSave : handleCancel}>{secondaryLabel}</Button>
+
+        <div style={{ display: 'flex', gap: 5 }}>
+          <Button type="submit" style={{ backgroundColor: '#AA0000' }}>
+            Unregister
+          </Button>
+          <Button type="button" onClick={handleCancel}>
+            Cancel
+          </Button>
         </div>
       </form>
     </Screen>
-  }
-
-  return <Screen title={title} backdrop>
-    <form
-      action={FORM_ACTION}
-      onSubmit={handleSubmit}
-      style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-        <input
-          ref={usernameRef}
-          type="text"
-          name="username"
-          autoComplete="username"
-          defaultValue={identifier}
-          style={inputStyle}
-        />
-        <div style={captionStyle}>{IDENTIFIER_HINT}</div>
-      </div>
-
-      <input
-        ref={passwordRef}
-        type="password"
-        name="password"
-        autoComplete="current-password"
-        autoFocus
-        defaultValue={prefilledPassword}
-        placeholder="Password"
-        style={inputStyle}
-      />
-
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9, color: '#FF5555', maxWidth: 220, cursor: 'pointer' }}>
-        <input
-          type="checkbox"
-          checked={confirmChecked}
-          onChange={(e) => setConfirmChecked(e.target.checked)}
-          style={{ cursor: 'pointer' }}
-        />
-        {' '}I understand this will delete my account on this server permanently
-      </label>
-
-      {error && <div style={errorStyle}>{error}</div>}
-
-      <div style={{ display: 'flex', gap: 5 }}>
-        <Button type="submit" style={{ backgroundColor: '#AA0000' }}>Unregister</Button>
-        <Button type="button" onClick={handleCancel}>Cancel</Button>
-      </div>
-    </form>
-  </Screen>
+  )
 }

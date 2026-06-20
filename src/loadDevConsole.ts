@@ -48,7 +48,7 @@ export const loadDevConsole = async () => {
     if (window.__nextConsole) return window.__nextConsole
     window.__nextConsole = new NextConsole({
       theme: 'dark',
-      target: getDevConsoleMountTarget(),
+      target: getDevConsoleMountTarget()
     })
     window.__nextConsole['panel'].floatButton.el.style.opacity = 0.6
     return window.__nextConsole

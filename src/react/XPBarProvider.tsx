@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { GameMode } from 'mineflayer'
 import XPBar from './XPBar'
 
-
 export default () => {
   const [progress, setProgress] = useState(0)
   const [level, setLevel] = useState(0)

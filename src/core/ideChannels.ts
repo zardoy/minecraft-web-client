@@ -6,7 +6,7 @@ export const ideState = proxy({
   line: 0,
   column: 0,
   language: 'typescript',
-  title: '',
+  title: ''
 })
 globalThis.ideState = ideState
 
@@ -50,7 +50,7 @@ const registerIdeOpenChannel = () => {
 
   bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
 
-  bot._client.on(CHANNEL_NAME as any, (data) => {
+  bot._client.on(CHANNEL_NAME as any, data => {
     const { id, language, contents, line, column, title } = data
 
     ideState.contents = contents
@@ -65,7 +65,6 @@ const registerIdeOpenChannel = () => {
 }
 const IDE_SAVE_CHANNEL_NAME = 'minecraft-web-client:ide-save'
 const registerIdeSaveChannel = () => {
-
   const packetStructure = [
     'container',
     [
@@ -88,7 +87,7 @@ const registerIdeSaveChannel = () => {
       {
         name: 'column',
         type: 'i32'
-      },
+      }
     ]
   ]
   bot._client.registerChannel(IDE_SAVE_CHANNEL_NAME, packetStructure, true)
@@ -101,6 +100,6 @@ export const saveIde = () => {
     language: ideState.language,
     // todo: reflect updated
     line: ideState.line,
-    column: ideState.column,
+    column: ideState.column
   })
 }

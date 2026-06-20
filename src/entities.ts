@@ -10,13 +10,13 @@ import { options, watchValue } from './optionsStorage'
 import { gameAdditionalState, miscUiState } from './globalState'
 import { EntityStatus } from './mineflayer/entityStatus'
 
-
 const updateAutoJump = () => {
   if (!bot?.autoJumper) return
-  const autoJump = options.autoParkour || (options.autoJump === 'auto' ? miscUiState.currentTouch && !miscUiState.usingGamepadInput : options.autoJump === 'always')
+  const autoJump =
+    options.autoParkour || (options.autoJump === 'auto' ? miscUiState.currentTouch && !miscUiState.usingGamepadInput : options.autoJump === 'always')
   bot.autoJumper.setOpts({
     // jumpIntoWater: options.autoParkour,
-    jumpOnAllEdges: options.autoParkour,
+    jumpOnAllEdges: options.autoParkour
     // strictBlockCollision: true,
   })
   if (autoJump === bot.autoJumper.enabled) return
@@ -77,10 +77,7 @@ customEvents.on('gameLoaded', () => {
       const isWalking = Math.abs(speed.x) > WALKING_SPEED || Math.abs(speed.z) > WALKING_SPEED
       const isSprinting = Math.abs(speed.x) > SPRINTING_SPEED || Math.abs(speed.z) > SPRINTING_SPEED
 
-      const newAnimation =
-        isCrouched ? (isWalking ? 'crouchWalking' : 'crouch')
-          : isWalking ? (isSprinting ? 'running' : 'walking')
-            : 'idle'
+      const newAnimation = isCrouched ? (isWalking ? 'crouchWalking' : 'crouch') : isWalking ? (isSprinting ? 'running' : 'walking') : 'idle'
       if (newAnimation !== playerPerAnimation[id]) {
         // Handle bot entity animation specially (for player entity in third person)
         if (e === bot.entity) {
@@ -93,17 +90,17 @@ customEvents.on('gameLoaded', () => {
     }
   })
 
-  bot.on('entitySwingArm', (e) => {
+  bot.on('entitySwingArm', e => {
     getThreeJsRendererMethods()?.playEntityAnimation(e.id, 'oneSwing')
   })
 
-  bot.on('botArmSwingStart', (hand) => {
+  bot.on('botArmSwingStart', hand => {
     if (hand === 'right') {
       getThreeJsRendererMethods()?.playEntityAnimation('player_entity', 'oneSwing')
     }
   })
 
-  bot.inventory.on('updateSlot', (slot) => {
+  bot.inventory.on('updateSlot', slot => {
     if (slot === 5 || slot === 6 || slot === 7 || slot === 8) {
       const item = bot.inventory.slots[slot]!
       bot.entity.equipment[slot - 3] = item
@@ -116,12 +113,12 @@ customEvents.on('gameLoaded', () => {
     appViewer.worldView?.emit('playerEntity', bot.entity)
   })
 
-  bot._client.on('damage_event', (data) => {
+  bot._client.on('damage_event', data => {
     const { entityId, sourceTypeId: damage } = data
     getThreeJsRendererMethods()?.damageEntity(entityId, damage)
   })
 
-  bot._client.on('entity_status', (data) => {
+  bot._client.on('entity_status', data => {
     if (versionToNumber(bot.version) >= versionToNumber('1.19.4')) return
     const { entityId, entityStatus } = data
     if (entityStatus === EntityStatus.HURT) {
@@ -134,7 +131,7 @@ customEvents.on('gameLoaded', () => {
   })
 
   // on fire events
-  bot._client.on('entity_metadata', (data) => {
+  bot._client.on('entity_metadata', data => {
     if (data.entityId !== bot.entity.id) return
     handleEntityMetadata(data)
   })
@@ -162,17 +159,17 @@ customEvents.on('gameLoaded', () => {
     bot.entity.pitch = entity.pitch
   }
 
-  bot.on('entityGone', (entity) => {
+  bot.on('entityGone', entity => {
     bot.tracker.stopTrackingEntity(entity, true)
   })
 
-  bot.on('entityMoved', (e) => {
+  bot.on('entityMoved', e => {
     checkEntityData(e)
     if (appViewer.playerState.reactive.cameraSpectatingEntity === e.id) {
       updateCamera(e)
     }
   })
-  bot._client.on('entity_velocity', (packet) => {
+  bot._client.on('entity_velocity', packet => {
     const e = bot.entities[packet.entityId]
     if (!e) return
     checkEntityData(e)
@@ -187,7 +184,7 @@ customEvents.on('gameLoaded', () => {
   // Track bot entity initially
   trackBotEntity()
 
-  bot.on('entitySpawn', (e) => {
+  bot.on('entitySpawn', e => {
     checkEntityData(e)
     if (appViewer.playerState.reactive.cameraSpectatingEntity === e.id) {
       updateCamera(e)
@@ -203,7 +200,7 @@ customEvents.on('gameLoaded', () => {
     }) // Small delay to ensure bot.entity is properly set
   })
 
-  bot._client.on('camera', (packet) => {
+  bot._client.on('camera', packet => {
     if (bot.player.entity.id === packet.cameraId) {
       if (getPlayerStateUtils(appViewer.playerState.reactive).isSpectatingEntity() && appViewer.playerState.reactive.cameraSpectatingEntity) {
         const entity = bot.entities[appViewer.playerState.reactive.cameraSpectatingEntity]
@@ -227,8 +224,7 @@ customEvents.on('gameLoaded', () => {
   const applySkinTexturesProxy = (url: string | undefined) => {
     const { appConfig } = miscUiState
     if (appConfig?.skinTexturesProxy) {
-      return url?.replace('http://textures.minecraft.net/', appConfig.skinTexturesProxy)
-        .replace('https://textures.minecraft.net/', appConfig.skinTexturesProxy)
+      return url?.replace('http://textures.minecraft.net/', appConfig.skinTexturesProxy).replace('https://textures.minecraft.net/', appConfig.skinTexturesProxy)
     }
     return url
   }
@@ -258,7 +254,7 @@ customEvents.on('gameLoaded', () => {
 
   const teamUpdated = (team: Team) => {
     for (const entity of Object.values(bot.entities)) {
-      if (entity.type === 'player' && entity.username && team.members.includes(entity.username) || entity.uuid && team.members.includes(entity.uuid)) {
+      if ((entity.type === 'player' && entity.username && team.members.includes(entity.username)) || (entity.uuid && team.members.includes(entity.uuid))) {
         bot.emit('entityUpdate', entity)
       }
     }
@@ -271,17 +267,21 @@ customEvents.on('gameLoaded', () => {
   const updateEntityNameTags = (team: Team) => {
     for (const entity of Object.values(bot.entities)) {
       const entityTeam = entity.type === 'player' && entity.username ? bot.teamMap[entity.username] : entity.uuid ? bot.teamMap[entity.uuid] : undefined
-      if ((entityTeam?.nameTagVisibility === 'hideForOwnTeam' && entityTeam.name === team.name)
-        || (entityTeam?.nameTagVisibility === 'hideForOtherTeams' && entityTeam.name !== team.name)) {
+      if (
+        (entityTeam?.nameTagVisibility === 'hideForOwnTeam' && entityTeam.name === team.name) ||
+        (entityTeam?.nameTagVisibility === 'hideForOtherTeams' && entityTeam.name !== team.name)
+      ) {
         bot.emit('entityUpdate', entity)
       }
     }
   }
 
   const doEntitiesNeedUpdating = (team: Team) => {
-    return team.nameTagVisibility === 'never'
-      || (team.nameTagVisibility === 'hideForOtherTeams' && appViewer.playerState.reactive.team?.team !== team.team)
-      || (team.nameTagVisibility === 'hideForOwnTeam' && appViewer.playerState.reactive.team?.team === team.team)
+    return (
+      team.nameTagVisibility === 'never' ||
+      (team.nameTagVisibility === 'hideForOtherTeams' && appViewer.playerState.reactive.team?.team !== team.team) ||
+      (team.nameTagVisibility === 'hideForOwnTeam' && appViewer.playerState.reactive.team?.team === team.team)
+    )
   }
 
   bot.on('teamMemberAdded', (team: Team, members: string[]) => {
@@ -292,7 +292,7 @@ customEvents.on('gameLoaded', () => {
     } else if (doEntitiesNeedUpdating(team)) {
       // Need to update all entities that were added
       for (const entity of Object.values(bot.entities)) {
-        if (entity.type === 'player' && entity.username && members.includes(entity.username) || entity.uuid && members.includes(entity.uuid)) {
+        if ((entity.type === 'player' && entity.username && members.includes(entity.username)) || (entity.uuid && members.includes(entity.uuid))) {
           bot.emit('entityUpdate', entity)
         }
       }
@@ -307,7 +307,7 @@ customEvents.on('gameLoaded', () => {
     } else if (doEntitiesNeedUpdating(team)) {
       // Need to update all entities that were removed
       for (const entity of Object.values(bot.entities)) {
-        if (entity.type === 'player' && entity.username && members.includes(entity.username) || entity.uuid && members.includes(entity.uuid)) {
+        if ((entity.type === 'player' && entity.username && members.includes(entity.username)) || (entity.uuid && members.includes(entity.uuid))) {
           bot.emit('entityUpdate', entity)
         }
       }
@@ -321,7 +321,6 @@ customEvents.on('gameLoaded', () => {
       updateEntityNameTags(team)
     }
   })
-
 })
 
 // Constants
@@ -355,12 +354,11 @@ const updateEntityStates = (entityId: number, onFire: boolean, timeout?: boolean
 }
 
 // Process entity metadata packet
-function handleEntityMetadata (packet: { entityId: number, metadata: Array<{ key: number, type: string, value: number }> }) {
+function handleEntityMetadata(packet: { entityId: number; metadata: Array<{ key: number; type: string; value: number }> }) {
   const { entityId, metadata } = packet
 
   // Find shared flags in metadata
-  const flagsData = metadata.find(meta => meta.key === SHARED_FLAGS_KEY &&
-    meta.type === 'byte')
+  const flagsData = metadata.find(meta => meta.key === SHARED_FLAGS_KEY && meta.type === 'byte')
 
   // Update fire state if flags were found
   if (flagsData) {

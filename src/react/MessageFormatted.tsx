@@ -42,14 +42,14 @@ const clickEventToProps = (clickEvent: MessageFormatPart['clickEvent']) => {
   if (!clickEvent) return
   if (clickEvent.action === 'run_command' || clickEvent.action === 'suggest_command') {
     return {
-      onClick () {
+      onClick() {
         chatInputValueGlobal.value = clickEvent.value
       }
     }
   }
   if (clickEvent.action === 'open_url' || clickEvent.action === 'open_file') {
     return {
-      async onClick () {
+      async onClick() {
         const promptMessageText = `Open "${clickEvent.value}"?`
         const confirm = await showOptionsModal(promptMessageText, ['Open', 'Copy'], {
           cancel: true
@@ -64,19 +64,28 @@ const clickEventToProps = (clickEvent: MessageFormatPart['clickEvent']) => {
   }
   if (clickEvent.action === 'copy_to_clipboard') {
     return {
-      onClick () {
+      onClick() {
         void navigator.clipboard.writeText(clickEvent.value)
       }
     }
   }
   const customAction = (clickEvent as { action: string }).action
-  if (customAction === 'open_auto_fill_login' || customAction === 'open_auto_fill_register' || customAction === 'open_change_password' || customAction === 'open_unregister') {
+  if (
+    customAction === 'open_auto_fill_login' ||
+    customAction === 'open_auto_fill_register' ||
+    customAction === 'open_change_password' ||
+    customAction === 'open_unregister'
+  ) {
     return {
-      onClick () {
+      onClick() {
         const mode: 'login' | 'register' | 'changepassword' | 'unregister' =
-          customAction === 'open_auto_fill_register' ? 'register' :
-            customAction === 'open_change_password' ? 'changepassword' :
-              customAction === 'open_unregister' ? 'unregister' : 'login'
+          customAction === 'open_auto_fill_register'
+            ? 'register'
+            : customAction === 'open_change_password'
+              ? 'changepassword'
+              : customAction === 'open_unregister'
+                ? 'unregister'
+                : 'login'
         void openAutoFillLogin(mode)
       }
     }
@@ -93,61 +102,74 @@ const openAutoFillLogin = async (mode: 'login' | 'register' | 'changepassword' |
   const prefilledPassword = findServerPassword()
   const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
   if (!result?.password) return
-  const { bot } = (globalThis as any)
+  const { bot } = globalThis as any
   runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
 }
 
-export const MessagePart = ({ part, formatOptions, ...props }: { part: MessageFormatPart, formatOptions?: MessageFormatOptions } & ComponentProps<'span'>) => {
-
+export const MessagePart = ({ part, formatOptions, ...props }: { part: MessageFormatPart; formatOptions?: MessageFormatOptions } & ComponentProps<'span'>) => {
   const { color: _color, italic, bold, underlined, strikethrough, text, clickEvent, hoverEvent, obfuscated } = part
   const color = _color ?? 'white'
 
   const clickProps = clickEventToProps(clickEvent)
   const hoverMessageRaw = hoverItemToText(hoverEvent)
-  const hoverItemText = hoverMessageRaw && typeof hoverMessageRaw !== 'string' ? render(hoverMessageRaw).children.map(child => child.component.text).join('') : hoverMessageRaw
+  const hoverItemText =
+    hoverMessageRaw && typeof hoverMessageRaw !== 'string'
+      ? render(hoverMessageRaw)
+          .children.map(child => child.component.text)
+          .join('')
+      : hoverMessageRaw
 
   const applyStyles = [
     clickProps && messageFormatStylesMap.clickEvent,
-    colorF(color.toLowerCase()) + ((formatOptions?.doShadow ?? true) ? `; text-shadow: 1px 1px 0px ${getColorShadow(colorF(color.toLowerCase()).replace('color:', ''))}` : ''),
+    colorF(color.toLowerCase()) +
+      ((formatOptions?.doShadow ?? true) ? `; text-shadow: 1px 1px 0px ${getColorShadow(colorF(color.toLowerCase()).replace('color:', ''))}` : ''),
     italic && messageFormatStylesMap.italic,
     bold && messageFormatStylesMap.bold,
     italic && messageFormatStylesMap.italic,
     underlined && messageFormatStylesMap.underlined,
     strikethrough && messageFormatStylesMap.strikethrough,
     obfuscated && messageFormatStylesMap.obfuscated
-  ].filter(a => a !== false && a !== undefined).filter(Boolean)
+  ]
+    .filter(a => a !== false && a !== undefined)
+    .filter(Boolean)
 
-  return <span title={hoverItemText} style={parseInlineStyle(applyStyles.join(';'))} {...clickProps} {...props}>{text}</span>
-}
-
-export default ({ parts, className, formatOptions }: { parts: readonly MessageFormatPart[], className?: string, formatOptions?: MessageFormatOptions }) => {
   return (
-    <span className={`formatted-message ${className ?? ''}`}>
-      {parts.map((part, i) => <MessagePart key={i} part={part} formatOptions={formatOptions} />)}
+    <span title={hoverItemText} style={parseInlineStyle(applyStyles.join(';'))} {...clickProps} {...props}>
+      {text}
     </span>
   )
 }
 
-const colorF = (color) => {
-  return color.trim().startsWith('#') ? `color:${color}` : messageFormatStylesMap[color] ?? undefined
+export default ({ parts, className, formatOptions }: { parts: readonly MessageFormatPart[]; className?: string; formatOptions?: MessageFormatOptions }) => {
+  return (
+    <span className={`formatted-message ${className ?? ''}`}>
+      {parts.map((part, i) => (
+        <MessagePart key={i} part={part} formatOptions={formatOptions} />
+      ))}
+    </span>
+  )
 }
 
-export function getColorShadow (hex, dim = 0.25) {
+const colorF = color => {
+  return color.trim().startsWith('#') ? `color:${color}` : (messageFormatStylesMap[color] ?? undefined)
+}
+
+export function getColorShadow(hex, dim = 0.25) {
   const color = parseInt(hex.replace('#', ''), 16)
 
-  const r = Math.trunc((color >> 16 & 0xFF) * dim)
-  const g = Math.trunc((color >> 8 & 0xFF) * dim)
-  const b = Math.trunc((color & 0xFF) * dim)
+  const r = Math.trunc(((color >> 16) & 0xff) * dim)
+  const g = Math.trunc(((color >> 8) & 0xff) * dim)
+  const b = Math.trunc((color & 0xff) * dim)
 
-  const f = (c) => ('00' + c.toString(16)).slice(-2)
+  const f = c => ('00' + c.toString(16)).slice(-2)
   return `#${f(r)}${f(g)}${f(b)}`
 }
 
-export function parseInlineStyle (style: string): Record<string, any> {
+export function parseInlineStyle(style: string): Record<string, any> {
   const obj: Record<string, any> = {}
   for (const rule of style.split(';')) {
     const [prop, value] = rule.split(':')
-    const cssInJsProp = prop.trim().replaceAll(/-./g, (x) => x.toUpperCase()[1])
+    const cssInJsProp = prop.trim().replaceAll(/-./g, x => x.toUpperCase()[1])
     obj[cssInJsProp] = value.trim()
   }
   return obj
@@ -175,5 +197,5 @@ export const messageFormatStylesMap = {
   underlined: 'text-decoration:underline',
   italic: 'font-style:italic',
   obfuscated: 'filter:blur(2px)',
-  clickEvent: 'cursor:pointer',
+  clickEvent: 'cursor:pointer'
 }

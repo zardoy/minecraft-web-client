@@ -1,5 +1,5 @@
 import assert from 'assert'
-import JsonOptimizer, { restoreMinecraftData } from '../src/optimizeJson';
+import JsonOptimizer, { restoreMinecraftData } from '../src/optimizeJson'
 import fs from 'fs'
 import minecraftData from 'minecraft-data'
 
@@ -17,7 +17,7 @@ const validateData = (ver, type) => {
     for (const [i, item] of originalKeys.entries()) {
       if (originalKeys.indexOf(item) !== i) {
         console.warn(`${type} ${ver} Incorrect source, duplicated arrKey (${arrKey}) ${item}. Ignoring!`) // todo should span instead
-        const index = originalKeys.indexOf(item);
+        const index = originalKeys.indexOf(item)
         original.splice(index, 1)
         originalKeys.splice(index, 1)
       }
@@ -25,10 +25,13 @@ const validateData = (ver, type) => {
     // if (target.length !== originalKeys.length) {
     //   throw new Error(`wrong arr length: ${target.length} !== ${original.length}`)
     // }
-    checkKeys(originalKeys, target.map(a => JsonOptimizer.getByArrKey(a, arrKey)))
+    checkKeys(
+      originalKeys,
+      target.map(a => JsonOptimizer.getByArrKey(a, arrKey))
+    )
     for (const item of target as any[]) {
       const keys = Object.entries(item).map(a => a[0])
-      const origItem = original.find(a => JsonOptimizer.getByArrKey(a, arrKey) === JsonOptimizer.getByArrKey(item, arrKey));
+      const origItem = original.find(a => JsonOptimizer.getByArrKey(a, arrKey) === JsonOptimizer.getByArrKey(item, arrKey))
       const keysSource = Object.entries(origItem).map(a => a[0])
       checkKeys(keysSource, keys, true, 'prop keys', true)
       checkObj(origItem, item)
@@ -43,7 +46,7 @@ const validateData = (ver, type) => {
   }
 }
 
-const sortObj = (obj) => {
+const sortObj = obj => {
   const sorted = {}
   for (const key of Object.keys(obj).sort()) {
     sorted[key] = obj[key]
@@ -92,8 +95,8 @@ const checkKeys = (source, diffing, isUniq = true, msg = '', redundantIsOk = fal
 }
 
 // const data = minecraftData('1.20.4')
-const oldId = JsonOptimizer.restoreData(json['blocks'], '1.20', undefined).find(x => x.name === 'brown_stained_glass').id;
-const newId = JsonOptimizer.restoreData(json['blocks'], '1.20.4', undefined).find(x => x.name === 'brown_stained_glass').id;
+const oldId = JsonOptimizer.restoreData(json['blocks'], '1.20', undefined).find(x => x.name === 'brown_stained_glass').id
+const newId = JsonOptimizer.restoreData(json['blocks'], '1.20.4', undefined).find(x => x.name === 'brown_stained_glass').id
 assert(oldId !== newId)
 // test all types + all versions
 
@@ -108,7 +111,7 @@ for (const type of Object.keys(json)) {
       validateData(ver, type)
     } catch (err) {
       err.message = `Failed to validate ${type} for ${ver}: ${err.message}`
-      throw err;
+      throw err
     }
     checkedVer++
   }

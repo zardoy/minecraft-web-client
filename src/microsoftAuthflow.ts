@@ -10,7 +10,7 @@ export const getProxyDetails = async (proxyBaseUrl: string) => {
   return result
 }
 
-export default async ({ tokenCaches, proxyBaseUrl, setProgressText = (text) => { }, setCacheResult, connectingServer }) => {
+export default async ({ tokenCaches, proxyBaseUrl, setProgressText = text => {}, setCacheResult, connectingServer }) => {
   let onMsaCodeCallback
   let connectingVersion = ''
   // const authEndpoint = 'http://localhost:3000/'
@@ -29,21 +29,21 @@ export default async ({ tokenCaches, proxyBaseUrl, setProgressText = (text) => {
     throw new Error(`Selected proxy server ${proxyBaseUrl} does not support Microsoft authentication`)
   }
   const authFlow = {
-    async getMinecraftJavaToken () {
+    async getMinecraftJavaToken() {
       setProgressText('Authenticating with Microsoft account')
       if (!window.crypto && !isPageSecure()) throw new Error('Crypto API is available only in secure contexts. Be sure to use https!')
       let result = null
       await fetch(authEndpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           ...tokenCaches,
           // important to set this param and not fake it as auth server might reject the request otherwise
           connectingServer,
           connectingServerVersion: connectingVersion
-        }),
+        })
       })
         .catch(e => {
           throw new Error(`Failed to connect to auth server (network error): ${e.message}`)
@@ -57,7 +57,7 @@ export default async ({ tokenCaches, proxyBaseUrl, setProgressText = (text) => {
           const decoder = new TextDecoder('utf8')
           let buffer = ''
 
-          const processChunk = (chunkStr) => {
+          const processChunk = chunkStr => {
             let json: any
             try {
               json = JSON.parse(chunkStr)
@@ -109,21 +109,21 @@ export default async ({ tokenCaches, proxyBaseUrl, setProgressText = (text) => {
   return {
     authFlow,
     sessionEndpoint,
-    setOnMsaCodeCallback (callback) {
+    setOnMsaCodeCallback(callback) {
       onMsaCodeCallback = callback
     },
-    setConnectingVersion (version) {
+    setConnectingVersion(version) {
       connectingVersion = version
     }
   }
 }
 
-function isPageSecure (url = window.location.href) {
+function isPageSecure(url = window.location.href) {
   return !url.startsWith('http:')
 }
 
 // restore dates from strings
-const restoreData = async (json) => {
+const restoreData = async json => {
   const promises = [] as Array<Promise<void>>
   if (typeof json === 'object' && json) {
     for (const [key, value] of Object.entries(json)) {
@@ -166,13 +166,13 @@ const tryRestorePublicKey = async (value: string, name: string, parent: { [x: st
   const exported = await window.crypto.subtle.exportKey('spki', key)
   const exportedBuffer = new Uint8Array(exported)
   parent[originalName] = {
-    export () {
+    export() {
       return exportedBuffer
     }
   }
 }
 
-function pemToArrayBuffer (pem) {
+function pemToArrayBuffer(pem) {
   // Fetch the part of the PEM string between header and footer
   const pemHeader = '-----BEGIN RSA PUBLIC KEY-----'
   const pemFooter = '-----END RSA PUBLIC KEY-----'

@@ -68,7 +68,7 @@ export default () => {
               }}
             />
           )}
-          {messages.map((m) => (
+          {messages.map(m => (
             <MessageLine key={m.id} message={m} />
           ))}
         </div>
@@ -76,8 +76,8 @@ export default () => {
 
       <div className={`console-wrapper console-input-wrapper ${usingTouch ? 'input-mobile' : ''}`} hidden={!opened}>
         <form
-          className='console-input'
-          onSubmit={(e) => {
+          className="console-input"
+          onSubmit={e => {
             e.preventDefault()
             const code = consoleInput.current.value
             if (code) {
@@ -91,7 +91,7 @@ export default () => {
           <div className="console-input-container">
             <span className="console-input-prefix">&gt;</span>
             <input
-              defaultValue=''
+              defaultValue=""
               ref={consoleInput}
               type="text"
               className="console-input-field"
@@ -102,7 +102,7 @@ export default () => {
               placeholder={replEnabled ? 'Enter JavaScript code (bot variable is available)' : 'REPL is not enabled'}
             />
           </div>
-          <button type='submit' style={{ visibility: 'hidden', position: 'absolute' }} />
+          <button type="submit" style={{ visibility: 'hidden', position: 'absolute' }} />
         </form>
       </div>
     </>

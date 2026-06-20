@@ -66,7 +66,7 @@ window.addEventListener('click', () => {
 })
 
 // Toggle auto-launch with spacebar
-window.addEventListener('keydown', (e) => {
+window.addEventListener('keydown', e => {
   if (e.code === 'Space') {
     isAutoLaunch = !isAutoLaunch
     if (isAutoLaunch) {

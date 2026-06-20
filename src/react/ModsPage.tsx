@@ -1,7 +1,22 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useSnapshot } from 'valtio'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
-import { addRepositoryAction, setEnabledModAction, getAllModsDisplayList, installModByName, selectAndRemoveRepository, uninstallModAction, fetchAllRepositories, modsReactiveUpdater, modsErrors, fetchRepository, getModModifiableFields, saveClientModData, getAllModsModifiableFields, callMethodAction } from '../clientMods'
+import {
+  addRepositoryAction,
+  setEnabledModAction,
+  getAllModsDisplayList,
+  installModByName,
+  selectAndRemoveRepository,
+  uninstallModAction,
+  fetchAllRepositories,
+  modsReactiveUpdater,
+  modsErrors,
+  fetchRepository,
+  getModModifiableFields,
+  saveClientModData,
+  getAllModsModifiableFields,
+  callMethodAction
+} from '../clientMods'
 import { createNotificationProgressReporter, ProgressReporter } from '../core/progressReporter'
 import { hideModal } from '../globalState'
 import { useIsModalActive } from './utilsApp'
@@ -17,28 +32,12 @@ import { appStorage } from './appStorageProvider'
 
 type ModsData = Awaited<ReturnType<typeof getAllModsDisplayList>>
 
-const ModListItem = ({
-  mod,
-  onClick,
-  hasError
-}: {
-  mod: ModsData['repos'][0]['packages'][0],
-  onClick: () => void,
-  hasError: boolean
-}) => (
-  <div
-    className={styles.modRow}
-    onClick={onClick}
-    data-enabled={mod.installed ? '' : mod.activated}
-    data-has-error={hasError}
-  >
+const ModListItem = ({ mod, onClick, hasError }: { mod: ModsData['repos'][0]['packages'][0]; onClick: () => void; hasError: boolean }) => (
+  <div className={styles.modRow} onClick={onClick} data-enabled={mod.installed ? '' : mod.activated} data-has-error={hasError}>
     <div className={styles.modRowTitle}>
       {mod.name}
       {mod.installedVersion && mod.installedVersion !== mod.version && (
-        <PixelartIcon
-          iconName={pixelartIcons['arrow-up-box']}
-          styles={{ fontSize: 14, marginLeft: 3 }}
-        />
+        <PixelartIcon iconName={pixelartIcons['arrow-up-box']} styles={{ fontSize: 14, marginLeft: 3 }} />
       )}
     </div>
     <div className={styles.modRowInfo}>
@@ -52,7 +51,7 @@ const ModListItem = ({
 
 const ModSidebar = ({ mod }: { mod: (ModsData['repos'][0]['packages'][0] & { repo?: string }) | null }) => {
   const errors = useSnapshot(modsErrors)
-  const [editingField, setEditingField] = useState<{ name: string, content: string, language: string } | null>(null)
+  const [editingField, setEditingField] = useState<{ name: string; content: string; language: string } | null>(null)
 
   const handleAction = async (action: () => Promise<void>, errorMessage: string, progress?: ProgressReporter) => {
     try {
@@ -106,9 +105,7 @@ const ModSidebar = ({ mod }: { mod: (ModsData['repos'][0]['packages'][0] & { rep
         <div className={styles.modInfoTitle}>
           {mod.name} {mod.installed?.wasModifiedLocally ? '(modified)' : ''}
         </div>
-        <div className={styles.modInfoText}>
-          {mod.description}
-        </div>
+        <div className={styles.modInfoText}>{mod.description}</div>
         <div className={styles.modInfoText}>
           {mod.author && `Author: ${mod.author}\n`}
           {mod.version && `Version: ${mod.version}\n`}
@@ -130,29 +127,20 @@ const ModSidebar = ({ mod }: { mod: (ModsData['repos'][0]['packages'][0] & { rep
           <>
             {mod.activated ? (
               <Button
-                onClick={async () => handleAction(
-                  async () => setEnabledModAction(mod.name, false),
-                  'Failed to disable mod:'
-                )}
+                onClick={async () => handleAction(async () => setEnabledModAction(mod.name, false), 'Failed to disable mod:')}
                 icon={pixelartIcons['remove-box']}
                 title="Disable"
               />
             ) : (
               <Button
-                onClick={async () => handleAction(
-                  async () => setEnabledModAction(mod.name, true),
-                  'Failed to enable mod:'
-                )}
+                onClick={async () => handleAction(async () => setEnabledModAction(mod.name, true), 'Failed to enable mod:')}
                 icon={pixelartIcons['add-box']}
                 title="Enable"
                 disabled={!mod.canBeActivated}
               />
             )}
             <Button
-              onClick={async () => handleAction(
-                async () => uninstallModAction(mod.name),
-                'Failed to uninstall mod:'
-              )}
+              onClick={async () => handleAction(async () => uninstallModAction(mod.name), 'Failed to uninstall mod:')}
               icon={pixelartIcons.trash}
               title="Delete"
             />
@@ -205,23 +193,32 @@ const ModSidebar = ({ mod }: { mod: (ModsData['repos'][0]['packages'][0] & { rep
         )}
         {modifiableFields.length > 0 && (
           <Button
-            onClick={async (e) => {
+            onClick={async e => {
               const fields = e.shiftKey ? getAllModsModifiableFields() : modifiableFields
-              const result = await showInputsModal('Edit Mod Field', Object.fromEntries(fields.map(field => {
-                return [field.field, {
-                  type: 'button' as const,
-                  label: field.label,
-                  onButtonClick () {
-                    setEditingField({
-                      name: field.field,
-                      content: field.getContent?.() || mod.installed![field.field] || '',
-                      language: field.language
-                    })
-                  }
-                }]
-              })), {
-                showConfirm: false
-              })
+              const result = await showInputsModal(
+                'Edit Mod Field',
+                Object.fromEntries(
+                  fields.map(field => {
+                    return [
+                      field.field,
+                      {
+                        type: 'button' as const,
+                        label: field.label,
+                        onButtonClick() {
+                          setEditingField({
+                            name: field.field,
+                            content: field.getContent?.() || mod.installed![field.field] || '',
+                            language: field.language
+                          })
+                        }
+                      }
+                    ]
+                  })
+                ),
+                {
+                  showConfirm: false
+                }
+              )
             }}
             icon={pixelartIcons['edit']}
             title="Edit Mod"
@@ -234,9 +231,13 @@ const ModSidebar = ({ mod }: { mod: (ModsData['repos'][0]['packages'][0] & { rep
           Actions:
           {Object.entries(mod.actionsMain).map(([key, setting]) => (
             <div
-              key={key} onClick={() => {
+              key={key}
+              onClick={() => {
                 void callMethodAction(mod.name, 'main', key)
-              }}>{key}</div>
+              }}
+            >
+              {key}
+            </div>
           ))}
         </div>
       )}
@@ -244,15 +245,7 @@ const ModSidebar = ({ mod }: { mod: (ModsData['repos'][0]['packages'][0] & { rep
   )
 }
 
-const EditingCodeWindow = ({
-  contents,
-  language,
-  onClose
-}: {
-  contents: string,
-  language: string,
-  onClose: (newContents?: string) => void
-}) => {
+const EditingCodeWindow = ({ contents, language, onClose }: { contents: string; language: string; onClose: (newContents?: string) => void }) => {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -266,27 +259,25 @@ const EditingCodeWindow = ({
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true })
   }, [])
 
-  return <Screen title="Editing code">
-    <div className="">
-      <textarea
-        ref={ref}
-        className={styles.fieldEditorTextarea}
-        defaultValue={contents}
-      />
-      <Button
-        style={{ position: 'absolute', bottom: 10, left: 10, backgroundColor: 'red' }}
-        onClick={() => onClose(undefined)}
-        icon={pixelartIcons.close}
-        title="Cancel"
-      />
-      <Button
-        style={{ position: 'absolute', bottom: 10, right: 10, backgroundColor: '#4CAF50' }}
-        onClick={() => onClose(ref.current?.value)}
-        icon={pixelartIcons.check}
-        title="Save"
-      />
-    </div>
-  </Screen>
+  return (
+    <Screen title="Editing code">
+      <div className="">
+        <textarea ref={ref} className={styles.fieldEditorTextarea} defaultValue={contents} />
+        <Button
+          style={{ position: 'absolute', bottom: 10, left: 10, backgroundColor: 'red' }}
+          onClick={() => onClose(undefined)}
+          icon={pixelartIcons.close}
+          title="Cancel"
+        />
+        <Button
+          style={{ position: 'absolute', bottom: 10, right: 10, backgroundColor: '#4CAF50' }}
+          onClick={() => onClose(ref.current?.value)}
+          icon={pixelartIcons.check}
+          title="Save"
+        />
+      </div>
+    </Screen>
+  )
 }
 
 export default () => {
@@ -303,10 +294,7 @@ export default () => {
 
   const allModsArray = useMemo(() => {
     if (!modsData) return []
-    return [
-      ...modsData.repos.flatMap(repo => repo.packages.map(mod => ({ ...mod, repo: repo.url }))),
-      ...modsData.modsWithoutRepos
-    ]
+    return [...modsData.repos.flatMap(repo => repo.packages.map(mod => ({ ...mod, repo: repo.url }))), ...modsData.modsWithoutRepos]
   }, [modsData])
 
   useEffect(() => {
@@ -336,23 +324,23 @@ export default () => {
   }
 
   const modFilter = (mod: ModsData['repos'][0]['packages'][0]) => {
-    const matchesSearch = mod.name.toLowerCase().includes(search.toLowerCase()) ||
-      mod.description?.toLowerCase().includes(search.toLowerCase())
+    const matchesSearch = mod.name.toLowerCase().includes(search.toLowerCase()) || mod.description?.toLowerCase().includes(search.toLowerCase())
     const matchesInstalledFilter = !showOnlyInstalled || mod.installed
     const matchesEnabledFilter = !showOnlyEnabled || mod.activated
     return matchesSearch && matchesInstalledFilter && matchesEnabledFilter
   }
 
-  const filteredMods = modsData ? {
-    repos: modsData.repos.map(repo => ({
-      ...repo,
-      packages: repo.packages.filter(modFilter)
-    })),
-    modsWithoutRepos: modsData.modsWithoutRepos.filter(modFilter)
-  } : null
+  const filteredMods = modsData
+    ? {
+        repos: modsData.repos.map(repo => ({
+          ...repo,
+          packages: repo.packages.filter(modFilter)
+        })),
+        modsWithoutRepos: modsData.modsWithoutRepos.filter(modFilter)
+      }
+    : null
 
-  const filteredModsCount = filteredMods ?
-    filteredMods.repos.reduce((acc, repo) => acc + repo.packages.length, 0) + filteredMods.modsWithoutRepos.length : 0
+  const filteredModsCount = filteredMods ? filteredMods.repos.reduce((acc, repo) => acc + repo.packages.length, 0) + filteredMods.modsWithoutRepos.length : 0
 
   const totalRepos = modsData?.repos.length ?? 0
 
@@ -368,89 +356,109 @@ export default () => {
 
   const selectedMod = selectedModIndex === null ? null : allModsArray[selectedModIndex]
 
-  return <Screen backdrop="dirt" title="Client Mods (Preview)" titleMarginTop={0} contentStyle={{ paddingTop: 15, height: '100%', width: '100%' }}>
-    <Button
-      icon={pixelartIcons['close']}
-      onClick={() => {
-        hideModal()
-      }}
-      style={{
-        color: '#ff5d5d',
-        position: 'fixed',
-        top: 10,
-        left: 20
-      }}
-    />
-    <div className={styles.root}>
-      <div className={styles.header}>
-        <Button
-          style={{}}
-          icon={pixelartIcons['sliders']}
-          onClick={() => {
-            if (showOnlyEnabled) {
-              setShowOnlyEnabled(false)
-            } else if (showOnlyInstalled) {
-              setShowOnlyInstalled(false)
-              setShowOnlyEnabled(true)
-            } else {
-              setShowOnlyInstalled(true)
-            }
-          }}
-          title={showOnlyEnabled ? 'Show all mods' : showOnlyInstalled ? 'Show enabled mods' : 'Show installed mods'}
-        />
-        <Button
-          onClick={async () => {
-            // const refreshButton = `Refresh repositories (last update)`
-            const refreshButton = `Refresh repositories`
-            const choice = await showOptionsModal(`Manage repositories (${modsData?.repos.length ?? '-'} repos)`, ['Add repository', 'Remove repository', refreshButton])
-            switch (choice) {
-              case 'Add repository': {
-                await addRepositoryAction()
-                break
+  return (
+    <Screen backdrop="dirt" title="Client Mods (Preview)" titleMarginTop={0} contentStyle={{ paddingTop: 15, height: '100%', width: '100%' }}>
+      <Button
+        icon={pixelartIcons['close']}
+        onClick={() => {
+          hideModal()
+        }}
+        style={{
+          color: '#ff5d5d',
+          position: 'fixed',
+          top: 10,
+          left: 20
+        }}
+      />
+      <div className={styles.root}>
+        <div className={styles.header}>
+          <Button
+            style={{}}
+            icon={pixelartIcons['sliders']}
+            onClick={() => {
+              if (showOnlyEnabled) {
+                setShowOnlyEnabled(false)
+              } else if (showOnlyInstalled) {
+                setShowOnlyInstalled(false)
+                setShowOnlyEnabled(true)
+              } else {
+                setShowOnlyInstalled(true)
               }
-              case 'Remove repository': {
-                await selectAndRemoveRepository()
-                break
+            }}
+            title={showOnlyEnabled ? 'Show all mods' : showOnlyInstalled ? 'Show enabled mods' : 'Show installed mods'}
+          />
+          <Button
+            onClick={async () => {
+              // const refreshButton = `Refresh repositories (last update)`
+              const refreshButton = `Refresh repositories`
+              const choice = await showOptionsModal(`Manage repositories (${modsData?.repos.length ?? '-'} repos)`, [
+                'Add repository',
+                'Remove repository',
+                refreshButton
+              ])
+              switch (choice) {
+                case 'Add repository': {
+                  await addRepositoryAction()
+                  break
+                }
+                case 'Remove repository': {
+                  await selectAndRemoveRepository()
+                  break
+                }
+                case refreshButton: {
+                  await fetchAllRepositories()
+                  break
+                }
+                case undefined:
+                  break
               }
-              case refreshButton: {
-                await fetchAllRepositories()
-                break
-              }
-              case undefined:
-                break
-            }
-          }}
-          icon={pixelartIcons['list-box']}
-          title="Manage repositories"
-        />
-        <Input
-          className={styles.searchBar}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search mods in added repositories..."
-          autoFocus
-        />
-      </div>
-      <div className={styles.statsRow}>
-        {getStatsText()}
-      </div>
-      <div className={`${styles.content} ${useHorizontalLayout ? '' : styles.verticalContent}`}>
-        <div className={styles.modList}>
-          {filteredMods ? (
-            <>
-              {filteredMods.repos.map(repo => (
-                <div key={repo.url}>
-                  <div
-                    className={styles.repoHeader}
-                    onClick={() => toggleRepo(repo.url)}
-                  >
-                    <span>{expandedRepos[repo.url] ? '▼' : '▶'}</span>
-                    <span>{repo.name || repo.url}</span>
-                    <span>({repo.packages.length})</span>
+            }}
+            icon={pixelartIcons['list-box']}
+            title="Manage repositories"
+          />
+          <Input
+            className={styles.searchBar}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search mods in added repositories..."
+            autoFocus
+          />
+        </div>
+        <div className={styles.statsRow}>{getStatsText()}</div>
+        <div className={`${styles.content} ${useHorizontalLayout ? '' : styles.verticalContent}`}>
+          <div className={styles.modList}>
+            {filteredMods ? (
+              <>
+                {filteredMods.repos.map(repo => (
+                  <div key={repo.url}>
+                    <div className={styles.repoHeader} onClick={() => toggleRepo(repo.url)}>
+                      <span>{expandedRepos[repo.url] ? '▼' : '▶'}</span>
+                      <span>{repo.name || repo.url}</span>
+                      <span>({repo.packages.length})</span>
+                    </div>
+                    {expandedRepos[repo.url] && (
+                      <div className={styles.repoContent}>
+                        {repo.packages.map(mod => (
+                          <ModListItem
+                            key={mod.name}
+                            mod={mod}
+                            onClick={() => setSelectedModIndex(allModsArray.findIndex(m => m.name === mod.name))}
+                            hasError={errors[mod.name]?.length > 0}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {expandedRepos[repo.url] && (
+                ))}
+                {filteredMods.modsWithoutRepos.length > 0 && (
+                  <div>
+                    <div className={styles.repoHeader}>
+                      <span>▼</span>
+                      <span>Other Mods</span>
+                      <span>({filteredMods.modsWithoutRepos.length})</span>
+                    </div>
                     <div className={styles.repoContent}>
-                      {repo.packages.map((mod) => (
+                      {filteredMods.modsWithoutRepos.map(mod => (
                         <ModListItem
                           key={mod.name}
                           mod={mod}
@@ -459,37 +467,18 @@ export default () => {
                         />
                       ))}
                     </div>
-                  )}
-                </div>
-              ))}
-              {filteredMods.modsWithoutRepos.length > 0 && (
-                <div>
-                  <div className={styles.repoHeader}>
-                    <span>▼</span>
-                    <span>Other Mods</span>
-                    <span>({filteredMods.modsWithoutRepos.length})</span>
                   </div>
-                  <div className={styles.repoContent}>
-                    {filteredMods.modsWithoutRepos.map(mod => (
-                      <ModListItem
-                        key={mod.name}
-                        mod={mod}
-                        onClick={() => setSelectedModIndex(allModsArray.findIndex(m => m.name === mod.name))}
-                        hasError={errors[mod.name]?.length > 0}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className={styles.modRowInfo}>Loading mods...</div>
-          )}
-        </div>
-        <div className={styles.sidebar}>
-          <ModSidebar mod={selectedMod} />
+                )}
+              </>
+            ) : (
+              <div className={styles.modRowInfo}>Loading mods...</div>
+            )}
+          </div>
+          <div className={styles.sidebar}>
+            <ModSidebar mod={selectedMod} />
+          </div>
         </div>
       </div>
-    </div>
-  </Screen>
+    </Screen>
+  )
 }

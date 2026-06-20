@@ -1,4 +1,4 @@
-import {WebSocketServer} from 'ws'
+import { WebSocketServer } from 'ws'
 
 export function startWsServer(port: number = 8081, tryOtherPort: boolean = true): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -18,10 +18,10 @@ export function startWsServer(port: number = 8081, tryOtherPort: boolean = true)
           }
         })
 
-      wss.on('connection', (ws) => {
+      wss.on('connection', ws => {
         console.log('Client connected')
 
-        ws.on('message', (message) => {
+        ws.on('message', message => {
           try {
             // Simply relay the message to all connected clients except sender
             wss.clients.forEach(client => {

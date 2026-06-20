@@ -8,7 +8,7 @@ import { ResourcesManagerCommon } from 'minecraft-renderer/src/resourcesManager'
 import { MessageFormatPart } from '../chatUtils'
 
 type RenderSlotComponent = {
-  type: string,
+  type: string
   data: any
   // example
   // {
@@ -17,11 +17,11 @@ type RenderSlotComponent = {
   // }
 }
 export type RenderItem = Pick<import('prismarine-item').Item, 'name' | 'displayName' | 'durabilityUsed' | 'maxDurability' | 'enchants' | 'nbt'> & {
-  components?: RenderSlotComponent[],
+  components?: RenderSlotComponent[]
   // componentMap?: Map<string, RenderSlotComponent>
 }
 export type GeneralInputItem = Pick<import('prismarine-item').Item, 'name' | 'nbt'> & {
-  components?: RenderSlotComponent[],
+  components?: RenderSlotComponent[]
   displayName?: string
   modelResolved?: boolean
 }
@@ -63,10 +63,12 @@ export const getItemMetadata = (item: GeneralInputItem, resourcesManager: Resour
         let customModelData: number | undefined
         if (typeof customModelDataComponent.data === 'number') {
           customModelData = customModelDataComponent.data
-        } else if (typeof customModelDataComponent.data === 'object'
-          && 'floats' in customModelDataComponent.data
-          && Array.isArray(customModelDataComponent.data.floats)
-          && customModelDataComponent.data.floats.length > 0) {
+        } else if (
+          typeof customModelDataComponent.data === 'object' &&
+          'floats' in customModelDataComponent.data &&
+          Array.isArray(customModelDataComponent.data.floats) &&
+          customModelDataComponent.data.floats.length > 0
+        ) {
           customModelData = customModelDataComponent.data.floats[0]
         }
         if (customModelData && customModelDataDefinitions[customModelData]) {
@@ -98,7 +100,6 @@ export const getItemMetadata = (item: GeneralInputItem, resourcesManager: Resour
   }
 }
 
-
 export const getItemNameRaw = (item: Pick<import('prismarine-item').Item, 'nbt'> | null, resourcesManager: ResourcesManagerCommon) => {
   if (!item) return ''
   const { customText } = getItemMetadata(item as GeneralInputItem, resourcesManager)
@@ -120,7 +121,12 @@ export const getItemNameRaw = (item: Pick<import('prismarine-item').Item, 'nbt'>
   }
 }
 
-export const getItemModelName = (item: GeneralInputItem, specificProps: ItemSpecificContextProperties, resourcesManager: ResourcesManagerCommon, playerState: PlayerStateRenderer) => {
+export const getItemModelName = (
+  item: GeneralInputItem,
+  specificProps: ItemSpecificContextProperties,
+  resourcesManager: ResourcesManagerCommon,
+  playerState: PlayerStateRenderer
+) => {
   let itemModelName = item.name
   const { customModel } = getItemMetadata(item, resourcesManager)
   if (customModel) {

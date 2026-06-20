@@ -1,7 +1,7 @@
 //@ts-check
 import { build } from 'esbuild'
 import { existsSync } from 'node:fs'
-import Module from "node:module"
+import Module from 'node:module'
 import { dirname } from 'node:path'
 import supportedVersions from '../src/supportedVersions.mjs'
 import { gzipSizeFromFileSync } from 'gzip-size'
@@ -37,7 +37,7 @@ for (const [version, dataSet] of Object.entries(dataPaths.pc)) {
   versions[version] = dataSet
 }
 
-const versionToNumber = (ver) => {
+const versionToNumber = ver => {
   const [x, y = '0', z = '0'] = ver.split('.')
   return +`${x.padStart(2, '0')}${y.padStart(2, '0')}${z.padStart(2, '0')}`
 }
@@ -62,7 +62,10 @@ if (minVersion || maxVersion) {
   versions = filteredVersions
 
   console.log(`Version clipping applied: ${minVersion || 'none'} to ${maxVersion || 'none'}`)
-  console.log(`Processing ${Object.keys(versions).length} versions:`, Object.keys(versions).sort((a, b) => versionToNumber(a) - versionToNumber(b)))
+  console.log(
+    `Processing ${Object.keys(versions).length} versions:`,
+    Object.keys(versions).sort((a, b) => versionToNumber(a) - versionToNumber(b))
+  )
 }
 
 console.log('Bundling version range:', Object.keys(versions)[0], 'to', Object.keys(versions).at(-1))
@@ -72,29 +75,35 @@ console.log('Bundling version range:', Object.keys(versions)[0], 'to', Object.ke
 const compressedOutput = true
 const dataTypeBundling2 = {
   blocks: {
-    arrKey: 'name',
+    arrKey: 'name'
   },
   items: {
-    arrKey: 'name',
+    arrKey: 'name'
   },
   recipes: {
     processData: processRecipes
   }
 }
 const dataTypeBundling = {
-  language: process.env.SKIP_MC_DATA_LANGUAGE === 'true' ? {
-    raw: {}
-  } : {
-    ignoreRemoved: true,
-    ignoreChanges: true
-  },
+  language:
+    process.env.SKIP_MC_DATA_LANGUAGE === 'true'
+      ? {
+          raw: {}
+        }
+      : {
+          ignoreRemoved: true,
+          ignoreChanges: true
+        },
   blocks: {
     arrKey: 'name',
     processData(current, prev, _, version) {
       for (const block of current) {
         const prevBlock = prev?.find(x => x.name === block.name)
         if (block.transparent) {
-          const forceOpaque = block.name.includes('shulker_box') || block.name.match(/^double_.+_slab\d?$/) || ['melon_block', 'lit_pumpkin', 'lit_redstone_ore', 'lit_furnace'].includes(block.name)
+          const forceOpaque =
+            block.name.includes('shulker_box') ||
+            block.name.match(/^double_.+_slab\d?$/) ||
+            ['melon_block', 'lit_pumpkin', 'lit_redstone_ore', 'lit_furnace'].includes(block.name)
 
           if (forceOpaque || (prevBlock && !prevBlock.transparent)) {
             block.transparent = false
@@ -166,17 +175,20 @@ const dataTypeBundling = {
   blockLoot: {
     arrKey: 'block'
   },
-  recipes: process.env.SKIP_MC_DATA_RECIPES === 'true' ? {
-    raw: {}
-  } : {
-    raw: true
-    // processData: processRecipes
-  },
+  recipes:
+    process.env.SKIP_MC_DATA_RECIPES === 'true'
+      ? {
+          raw: {}
+        }
+      : {
+          raw: true
+          // processData: processRecipes
+        },
   blockCollisionShapes: {},
   loginPacket: {},
   protocol: {
     raw: true
-  },
+  }
   // sounds: {
   //   arrKey: 'name'
   // }
@@ -187,10 +199,10 @@ function processRecipes(current, prev, getData, version) {
   if (current._proccessed) return
   const items = getData('items')
   const blocks = getData('blocks')
-  const itemsIdsMap = Object.fromEntries(items.map((b) => [b.id, b.name]))
-  const blocksIdsMap = Object.fromEntries(blocks.map((b) => [b.id, b.name]))
+  const itemsIdsMap = Object.fromEntries(items.map(b => [b.id, b.name]))
+  const blocksIdsMap = Object.fromEntries(blocks.map(b => [b.id, b.name]))
   for (const key of Object.keys(current)) {
-    const mapId = (id) => {
+    const mapId = id => {
       if (typeof id !== 'string' && typeof id !== 'number') throw new Error('Incorrect type')
       const mapped = itemsIdsMap[id] ?? blocksIdsMap[id]
       if (!mapped) {
@@ -198,7 +210,7 @@ function processRecipes(current, prev, getData, version) {
       }
       return mapped
     }
-    const processRecipe = (obj) => {
+    const processRecipe = obj => {
       // if (!obj) return
       // if (Array.isArray(obj)) {
       //   obj.forEach((id, i) => {
@@ -212,7 +224,7 @@ function processRecipes(current, prev, getData, version) {
       // } else {
       //   throw new Error('unknown type')
       // }
-      const parseRecipeItem = (item) => {
+      const parseRecipeItem = item => {
         if (typeof item === 'number') return mapId(item)
         if (Array.isArray(item)) return [mapId(item), ...item.slice(1)]
         if (!item) {
@@ -224,7 +236,7 @@ function processRecipes(current, prev, getData, version) {
         }
         throw new Error('unhandled')
       }
-      const maybeProccessShape = (shape) => {
+      const maybeProccessShape = shape => {
         if (!shape) return
         for (const shapeRow of shape) {
           for (const [i, item] of shapeRow.entries()) {
@@ -261,7 +273,7 @@ function processRecipes(current, prev, getData, version) {
 }
 
 const notBundling = [...dataTypes.keys()].filter(x => !Object.keys(dataTypeBundling).includes(x))
-console.log("Not bundling minecraft-data data:", notBundling)
+console.log('Not bundling minecraft-data data:', notBundling)
 
 let previousData = {}
 // /** @type {Record<string, JsonOptimizer>} */
@@ -277,7 +289,7 @@ for (const [i, [version, dataSet]] of versionsArr.reverse().entries()) {
     const ignoreCollisionShapes = dataType === 'blockCollisionShapes' && versionToNumber(version) >= versionToNumber('1.13')
 
     let injectCode = ''
-    const getRealData = (type) => {
+    const getRealData = type => {
       const loc = `minecraft-data/data/${dataSet[type]}/`
       const dataPathAbsolute = require.resolve(`minecraft-data/${loc}${type}`)
       // const data = fs.readFileSync(dataPathAbsolute, 'utf8')
@@ -324,12 +336,14 @@ for (const [i, [version, dataSet]] of versionsArr.reverse().entries()) {
     previousData[dataType] = dataRaw
   }
 }
-const sources = Object.fromEntries(Object.entries(diffSources).map(x => {
-  const data = x[1].export()
-  // const data = {}
-  sizePerDataType[x[0]] += Buffer.byteLength(JSON.stringify(data), 'utf8')
-  return [x[0], data]
-}))
+const sources = Object.fromEntries(
+  Object.entries(diffSources).map(x => {
+    const data = x[1].export()
+    // const data = {}
+    sizePerDataType[x[0]] += Buffer.byteLength(JSON.stringify(data), 'utf8')
+    return [x[0], data]
+  })
+)
 Object.assign(sources, rawDataVersions)
 sources.versionKey = require('minecraft-data/package.json').version
 
@@ -337,12 +351,16 @@ const totalSize = Object.values(sizePerDataType).reduce((acc, val) => acc + val,
 console.log('total size (mb)', totalSize / 1024 / 1024)
 console.log(
   'size per data type (mb, %)',
-  Object.fromEntries(Object.entries(sizePerDataType).map(([dataType, size]) => {
-    return [dataType, [size / 1024 / 1024, Math.round(size / totalSize * 100)]]
-  }).sort((a, b) => {
-    //@ts-ignore
-    return b[1][1] - a[1][1]
-  }))
+  Object.fromEntries(
+    Object.entries(sizePerDataType)
+      .map(([dataType, size]) => {
+        return [dataType, [size / 1024 / 1024, Math.round((size / totalSize) * 100)]]
+      })
+      .sort((a, b) => {
+        //@ts-ignore
+        return b[1][1] - a[1][1]
+      })
+  )
 )
 
 function compressToBase64(input) {
@@ -375,7 +393,7 @@ console.log('defaultVersion', defaultVersion, !!data)
 const initialMcData = {
   [defaultVersion]: {
     version: data.version,
-    protocol: data.protocol,
+    protocol: data.protocol
   }
 }
 

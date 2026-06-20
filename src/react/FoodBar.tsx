@@ -3,24 +3,16 @@ import SharedHudVars from './SharedHudVars'
 import './FoodBar.css'
 import { barEffectAdded, barEffectEnded } from './BarsCommon'
 
-
 export type FoodBarProps = {
-  gameMode?: string,
-  food: number,
-  effectToAdd?: number | null,
-  effectToRemove?: number | null,
-  resetEffects?: () => void,
+  gameMode?: string
+  food: number
+  effectToAdd?: number | null
+  effectToRemove?: number | null
+  resetEffects?: () => void
   style?: React.CSSProperties
 }
 
-export default ({
-  gameMode,
-  food,
-  effectToAdd,
-  effectToRemove,
-  resetEffects,
-  style
-}: FoodBarProps) => {
+export default ({ gameMode, food, effectToAdd, effectToRemove, resetEffects, style }: FoodBarProps) => {
   const foodRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -63,15 +55,13 @@ export default ({
     resetEffects?.()
   }, [effectToAdd, effectToRemove])
 
-  return <SharedHudVars>
-    <div ref={foodRef} className='foodbar' style={style}>
-      {
-        Array.from({ length: 10 }, () => 0)
-          .map((num, index) => <div
-            key={`food-${index}`}
-            className='food'
-          />)
-      }
-    </div>
-  </SharedHudVars>
+  return (
+    <SharedHudVars>
+      <div ref={foodRef} className="foodbar" style={style}>
+        {Array.from({ length: 10 }, () => 0).map((num, index) => (
+          <div key={`food-${index}`} className="food" />
+        ))}
+      </div>
+    </SharedHudVars>
+  )
 }

@@ -1,134 +1,134 @@
 .root {
-    --top-offset: 30px;
+  --top-offset: 30px;
 }
 
 .game-title {
-    position: fixed;
-    top: var(--top-offset);
-    width: 100%;
-    display: flex;
-    justify-content: center;
+  position: fixed;
+  top: var(--top-offset);
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .game-title .minec {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-image: var(--title-gui);
-    background-size: 256px;
-    width: 155px;
-    height: 44px;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-image: var(--title-gui);
+  background-size: 256px;
+  width: 155px;
+  height: 44px;
 }
 .game-title .minecraft {
-    display: block;
-    position: relative;
-    background-image: var(--title-gui);
-    background-size: 256px;
-    width: 256px;
-    height: 44px;
+  display: block;
+  position: relative;
+  background-image: var(--title-gui);
+  background-size: 256px;
+  width: 256px;
+  height: 44px;
 }
 
 .game-title .raft {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 155px;
-    background-image: var(--title-gui);
-    background-size: 256px;
-    width: 155px;
-    height: 44px;
-    background-position-y: -45px;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 155px;
+  background-image: var(--title-gui);
+  background-size: 256px;
+  width: 155px;
+  height: 44px;
+  background-position-y: -45px;
 }
 
 .game-title .edition {
-    display: block;
-    position: absolute;
-    top: 37px;
-    left: calc((512px / 2 - 176px / 2) / 2);
-    background-image: url('../../assets/edition.png');
-    background-size: 128px;
-    background-repeat: no-repeat;
-    width: 100%;
-    height: 14px;
+  display: block;
+  position: absolute;
+  top: 37px;
+  left: calc((512px / 2 - 176px / 2) / 2);
+  background-image: url('../../assets/edition.png');
+  background-size: 128px;
+  background-repeat: no-repeat;
+  width: 100%;
+  height: 14px;
 }
 
 .splash {
-    position: absolute;
-    top: 32px;
-    left: 227px;
-    color: #ff0;
-    transform: translate(-50%, -50%) rotateZ(-20deg) scale(1);
-    width: max-content;
-    text-shadow: 1px 1px #220;
-    font-size: 10px;
-    animation: splashAnim 400ms infinite alternate linear;
+  position: absolute;
+  top: 32px;
+  left: 227px;
+  color: #ff0;
+  transform: translate(-50%, -50%) rotateZ(-20deg) scale(1);
+  width: max-content;
+  text-shadow: 1px 1px #220;
+  font-size: 10px;
+  animation: splashAnim 400ms infinite alternate linear;
 }
 
 @keyframes splashAnim {
-    to {
-        transform: translate(-50%, -50%) rotateZ(-20deg) scale(1.07);
-    }
+  to {
+    transform: translate(-50%, -50%) rotateZ(-20deg) scale(1.07);
+  }
 }
 
 .menu {
-    display: flex;
-    flex-direction: column;
-    gap: 4px 0;
-    position: fixed;
-    top: calc(25% + var(--top-offset) + 18px);
-    left: 50%;
-    width: 200px;
-    transform: translate(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px 0;
+  position: fixed;
+  top: calc(25% + var(--top-offset) + 18px);
+  left: 50%;
+  width: 200px;
+  transform: translate(-50%);
 }
 
 .menu-row {
-    display: flex;
-    flex-direction: row;
-    gap: 0 4px;
-    width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 0 4px;
+  width: 100%;
 }
 
 .bottom-info {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-end;
-    position: absolute;
-    bottom: -1px;
-    left: 1px;
-    width: calc(100% - 2px);
-    color: white;
-    text-shadow: 1px 1px #222;
-    font-size: 10px;
-    padding-left: calc(env(safe-area-inset-left) / 2);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: absolute;
+  bottom: -1px;
+  left: 1px;
+  width: calc(100% - 2px);
+  color: white;
+  text-shadow: 1px 1px #222;
+  font-size: 10px;
+  padding-left: calc(env(safe-area-inset-left) / 2);
 }
 
 .product-info {
 }
 
 .product-description {
-    display: flex;
-    flex-direction: column;
-    gap: 3;
-    align-items: flex-end;
-    padding-right: calc(env(safe-area-inset-right) / 2);
+  display: flex;
+  flex-direction: column;
+  gap: 3;
+  align-items: flex-end;
+  padding-right: calc(env(safe-area-inset-right) / 2);
 }
 
 .product-link {
-    display: flex;
-    gap: 2;
-    justify-content: flex-end;
+  display: flex;
+  gap: 2;
+  justify-content: flex-end;
 }
 
 @media only screen and (max-height: 420px) {
-    .root {
-        --top-offset: 10px
-    }
+  .root {
+    --top-offset: 10px;
+  }
 }
 
 .maps-provider {
-    position: fixed;
-    top: 5px;
-    left: 5px;
+  position: fixed;
+  top: 5px;
+  left: 5px;
 }

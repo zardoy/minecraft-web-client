@@ -24,7 +24,7 @@ export interface ServerConnectionHistory {
   version?: string
 }
 
-export function updateServerConnectionHistory (ip: string, version?: string) {
+export function updateServerConnectionHistory(ip: string, version?: string) {
   try {
     const history = [...(appStorage.serversHistory ?? [])]
     const existingServer = history.find(s => s.ip === ip)
@@ -92,7 +92,7 @@ export const clearServerPassword = (): void => {
   if (index === undefined) return
   const username = bot?.username
   if (!username) return
-  updateLoadedServerData((server) => {
+  updateLoadedServerData(server => {
     if (server.autoLogin) {
       delete server.autoLogin[username]
     }
@@ -106,19 +106,16 @@ export const updateAuthenticatedAccountData = (callback: (data: AuthenticatedAcc
   appStorage.authenticatedAccounts = newAccounts
 }
 
-export function getServerConnectionHistory (): ServerConnectionHistory[] {
+export function getServerConnectionHistory(): ServerConnectionHistory[] {
   return appStorage.serversHistory ?? []
 }
 
-export const saveServerPassword = (
-  password: string,
-  opts?: { silent?: boolean }
-): void => {
+export const saveServerPassword = (password: string, opts?: { silent?: boolean }): void => {
   if (!opts?.silent && options.saveLoginPassword === 'never') return
 
   const doSave = () => {
     let hadPassword = false
-    updateLoadedServerData((server) => {
+    updateLoadedServerData(server => {
       server.autoLogin ??= {}
       hadPassword = !!server.autoLogin[bot.username]
       server.autoLogin[bot.username] = password

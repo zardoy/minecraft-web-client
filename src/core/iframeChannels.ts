@@ -4,7 +4,7 @@ export const iframeState = proxy({
   id: '',
   url: '',
   title: '',
-  metadata: null as Record<string, any> | null,
+  metadata: null as Record<string, any> | null
 })
 globalThis.iframeState = iframeState
 
@@ -39,7 +39,7 @@ const registerIframeOpenChannel = () => {
 
   bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
 
-  bot._client.on(CHANNEL_NAME as any, (data) => {
+  bot._client.on(CHANNEL_NAME as any, data => {
     const { id, url, title, metadataJson } = data
 
     let metadata: Record<string, any> | null = null

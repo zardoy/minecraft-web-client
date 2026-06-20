@@ -27,13 +27,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "pnpm"
+          cache: 'pnpm'
       - name: Move Cypress to dependencies
         run: |
           jq '.dependencies.cypress = .optionalDependencies.cypress | del(.optionalDependencies.cypress)' package.json > package.json.tmp
           mv package.json.tmp package.json
       - run: pnpm install --no-frozen-lockfile
-
       - run: pnpm build
       - run: nohup pnpm prod-start &
 

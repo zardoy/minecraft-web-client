@@ -32,8 +32,8 @@ for (const [depsKey, deps] of Object.entries(allDepsObj)) {
 
     const lastCommitJson = await fetch(`https://api.github.com/repos/${repo}/commits${possiblyBranch}?per_page=1`, {
       headers: {
-        Authorization: githubToken ? `token ${githubToken}` : undefined,
-      },
+        Authorization: githubToken ? `token ${githubToken}` : undefined
+      }
     }).then(res => res.json())
 
     const lastCommitActual = lastCommitJson ?? lastCommitJson[0]
@@ -44,9 +44,10 @@ for (const [depsKey, deps] of Object.entries(allDepsObj)) {
       outdatedDeps.push({ depName, repo, sha, lastCommitActualSha })
     }
   }
-
 }
 
 if (outdatedDeps.length) {
-  throw new Error(`Outdated dependencies found: \n${outdatedDeps.map(({ depName, repo, sha, lastCommitActualSha }) => `${depName} github.com/${repo} : ${sha} -> ${lastCommitActualSha}`).join('\n')}`)
+  throw new Error(
+    `Outdated dependencies found: \n${outdatedDeps.map(({ depName, repo, sha, lastCommitActualSha }) => `${depName} github.com/${repo} : ${sha} -> ${lastCommitActualSha}`).join('\n')}`
+  )
 }

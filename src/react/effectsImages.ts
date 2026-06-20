@@ -33,7 +33,7 @@ import water_breathing from 'mc-assets/dist/other-textures/latest/mob_effect/wat
 import darkness from 'mc-assets/dist/other-textures/latest/mob_effect/darkness.png'
 
 interface Images {
-  [key: string]: string;
+  [key: string]: string
 }
 
 // Export an object containing image URLs

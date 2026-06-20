@@ -8,7 +8,7 @@
   --hardcore: 0;
   --kind: 0;
   --lightened: 0;
-  --offset: calc(-1 * (52px + (9px * (4 * var(--kind) + var(--lightened) * 2)) ));
+  --offset: calc(-1 * (52px + (9px * (4 * var(--kind) + var(--lightened) * 2))));
   --bg-x: calc(-1 * (16px + 9px * var(--lightened)));
   --bg-y: calc(-1 * var(--hardcore) * 45px);
   image-rendering: pixelated;
@@ -39,16 +39,22 @@
   height: calc(9px - var(--hardcore) * 0.2px);
   background-image: var(--gui-icons);
   background-size: 256px, 256px;
-  background-position: var(--bg-x) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    var(--bg-x) var(--bg-y),
+    var(--bg-x) var(--bg-y);
   margin-left: -1px;
 }
 
 .heart.full {
-  background-position: var(--offset) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    var(--offset) var(--bg-y),
+    var(--bg-x) var(--bg-y);
 }
 
 .heart.half {
-  background-position: calc(var(--offset) - 9px) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    calc(var(--offset) - 9px) var(--bg-y),
+    var(--bg-x) var(--bg-y);
 }
 
 .health.low .heart {
@@ -74,5 +80,7 @@
 }
 
 @keyframes damagedAnim {
-  to { --lightened: 1; }
+  to {
+    --lightened: 1;
+  }
 }

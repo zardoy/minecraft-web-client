@@ -11,7 +11,6 @@ webFeatures()
 packetsPatcher()
 mapChunkListener()
 
-
 customEvents.on('mineflayerBotCreated', () => {
   if (lastConnectOptions.value!.server) {
     bot.loadPlugin(ping)

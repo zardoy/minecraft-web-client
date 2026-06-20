@@ -41,7 +41,7 @@ export default () => {
 
 const registerChannel = (channelName: string, packetStructure: any[], handler: (data: any) => void, waitForWorld = true) => {
   bot._client.registerChannel(channelName, packetStructure, true)
-  bot._client.on(channelName as any, async (data) => {
+  bot._client.on(channelName as any, async data => {
     if (waitForWorld) {
       await appViewer.worldReady
       handler(data)
@@ -55,12 +55,7 @@ const registerChannel = (channelName: string, packetStructure: any[], handler: (
 
 const registerConnectMetadataChannel = () => {
   const CHANNEL_NAME = 'minecraft-web-client:connect-metadata'
-  const packetStructure = [
-    'container',
-    [
-      { name: 'metadata', type: ['pstring', { countType: 'i16' }] }
-    ]
-  ]
+  const packetStructure = ['container', [{ name: 'metadata', type: ['pstring', { countType: 'i16' }] }]]
 
   bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
 
@@ -69,12 +64,12 @@ const registerConnectMetadataChannel = () => {
     metadata: JSON.stringify({
       version: process.env.RELEASE_TAG,
       build: process.env.BUILD_VERSION,
-      ...window.serverMetadataConnect,
+      ...window.serverMetadataConnect
     })
   })
 
   // Listen for server metadata
-  bot._client.on(CHANNEL_NAME as any, (data) => {
+  bot._client.on(CHANNEL_NAME as any, data => {
     try {
       const metadata = JSON.parse(data.metadata)
       window.serverMetadata = metadata
@@ -93,14 +88,19 @@ const registerBlockInteractionsCustomizationChannel = () => {
       {
         name: 'newConfiguration',
         type: ['pstring', { countType: 'i16' }]
-      },
+      }
     ]
   ]
 
-  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
-    const config = JSON.parse(data.newConfiguration)
-    bot.mouse.setConfigFromPacket(config)
-  }, true)
+  registerChannel(
+    CHANNEL_NAME,
+    packetStructure,
+    data => {
+      const config = JSON.parse(data.newConfiguration)
+      bot.mouse.setConfigFromPacket(config)
+    },
+    true
+  )
 }
 
 const registerFireworksChannels = () => {
@@ -126,7 +126,7 @@ const registerFireworksChannels = () => {
     ]
   ]
 
-  registerChannel('minecraft-web-client:firework-explode', packetStructure, (data) => {
+  registerChannel('minecraft-web-client:firework-explode', packetStructure, data => {
     // Parse options if provided
     let options: any = {}
     if (data.optionsJson && data.optionsJson.trim() !== '') {
@@ -183,7 +183,7 @@ const registerWaypointChannels = () => {
     ]
   ]
 
-  registerChannel('minecraft-web-client:waypoint-add', packetStructure, (data) => {
+  registerChannel('minecraft-web-client:waypoint-add', packetStructure, data => {
     // Parse metadata if provided
     let metadata: any = {}
     if (data.metadataJson && data.metadataJson.trim() !== '') {
@@ -203,17 +203,21 @@ const registerWaypointChannels = () => {
     })
   })
 
-  registerChannel('minecraft-web-client:waypoint-delete', [
-    'container',
+  registerChannel(
+    'minecraft-web-client:waypoint-delete',
     [
-      {
-        name: 'id',
-        type: ['pstring', { countType: 'i16' }]
-      }
-    ]
-  ], (data) => {
-    getThreeJsRendererMethods()?.removeWaypoint(data.id)
-  })
+      'container',
+      [
+        {
+          name: 'id',
+          type: ['pstring', { countType: 'i16' }]
+        }
+      ]
+    ],
+    data => {
+      getThreeJsRendererMethods()?.removeWaypoint(data.id)
+    }
+  )
 }
 
 const registerBlockModelsChannel = () => {
@@ -245,16 +249,21 @@ const registerBlockModelsChannel = () => {
     ]
   ]
 
-  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
-    const { worldName, x, y, z, model } = data
+  registerChannel(
+    CHANNEL_NAME,
+    packetStructure,
+    data => {
+      const { worldName, x, y, z, model } = data
 
-    const chunkX = Math.floor(x / 16) * 16
-    const chunkZ = Math.floor(z / 16) * 16
-    const chunkKey = `${chunkX},${chunkZ}`
-    const blockPosKey = `${x},${y},${z}`
+      const chunkX = Math.floor(x / 16) * 16
+      const chunkZ = Math.floor(z / 16) * 16
+      const chunkKey = `${chunkX},${chunkZ}`
+      const blockPosKey = `${x},${y},${z}`
 
-    getThreeJsRendererMethods()?.updateCustomBlock(chunkKey, blockPosKey, model)
-  }, true)
+      getThreeJsRendererMethods()?.updateCustomBlock(chunkKey, blockPosKey, model)
+    },
+    true
+  )
 }
 
 const registerSectionAnimationChannels = () => {
@@ -290,33 +299,38 @@ const registerSectionAnimationChannels = () => {
    * Remove a section animation
    * @param id - Identifier of the animation to remove
    */
-  const removePacketStructure = [
-    'container',
-    [
-      { name: 'id', type: ['pstring', { countType: 'i16' }] }
-    ]
-  ]
+  const removePacketStructure = ['container', [{ name: 'id', type: ['pstring', { countType: 'i16' }] }]]
 
-  registerChannel(ADD_CHANNEL, addPacketStructure, (data) => {
-    const { id, offset, speedX, speedY, speedZ, limitX, limitY, limitZ } = data
-    getThreeJsRendererMethods()?.addSectionAnimation(id, {
-      time: performance.now(),
-      speedX,
-      speedY,
-      speedZ,
-      currentOffsetX: offset,
-      currentOffsetY: offset,
-      currentOffsetZ: offset,
-      limitX: limitX === 0 ? undefined : limitX,
-      limitY: limitY === 0 ? undefined : limitY,
-      limitZ: limitZ === 0 ? undefined : limitZ
-    })
-  }, true)
+  registerChannel(
+    ADD_CHANNEL,
+    addPacketStructure,
+    data => {
+      const { id, offset, speedX, speedY, speedZ, limitX, limitY, limitZ } = data
+      getThreeJsRendererMethods()?.addSectionAnimation(id, {
+        time: performance.now(),
+        speedX,
+        speedY,
+        speedZ,
+        currentOffsetX: offset,
+        currentOffsetY: offset,
+        currentOffsetZ: offset,
+        limitX: limitX === 0 ? undefined : limitX,
+        limitY: limitY === 0 ? undefined : limitY,
+        limitZ: limitZ === 0 ? undefined : limitZ
+      })
+    },
+    true
+  )
 
-  registerChannel(REMOVE_CHANNEL, removePacketStructure, (data) => {
-    const { id } = data
-    getThreeJsRendererMethods()?.removeSectionAnimation(id)
-  }, true)
+  registerChannel(
+    REMOVE_CHANNEL,
+    removePacketStructure,
+    data => {
+      const { id } = data
+      getThreeJsRendererMethods()?.removeSectionAnimation(id)
+    },
+    true
+  )
 
   console.debug('Registered section animation channels')
 }
@@ -331,7 +345,7 @@ window.testSectionAnimation = (speedY = 1) => {
     speedZ: 0,
     currentOffsetX: 0,
     currentOffsetY: 0,
-    currentOffsetZ: 0,
+    currentOffsetZ: 0
     // limitX: 10,
     // limitY: 10,
   })
@@ -354,13 +368,13 @@ const registeredJeiChannel = () => {
       {
         name: 'items',
         type: ['pstring', { countType: 'i16' }]
-      },
+      }
     ]
   ]
 
   bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
 
-  bot._client.on(CHANNEL_NAME as any, (data) => {
+  bot._client.on(CHANNEL_NAME as any, data => {
     const { id, categoryTitle, items } = data
     if (items === '') {
       // remove category
@@ -381,7 +395,7 @@ const registeredJeiChannel = () => {
         // const item = new PrismarineItem(itemId.id, x.itemCount || x.item_count || x.count || 1, x.itemDamage || x.item_damage || x.damage || 0, x.itemNbt || x.item_nbt || x.nbt || null)
         return PrismarineItem.fromNotch({
           ...x,
-          itemId: itemId.id,
+          itemId: itemId.id
         })
       })
     })
@@ -412,7 +426,7 @@ const registerMediaChannels = () => {
       { name: '_cropXStart', type: 'f32' }, // 0
       { name: '_cropYStart', type: 'f32' }, // 0
       { name: '_cropXEnd', type: 'f32' }, // 0
-      { name: '_cropYEnd', type: 'f32' }, // 0
+      { name: '_cropYEnd', type: 'f32' } // 0
     ]
   ]
 
@@ -424,12 +438,7 @@ const registerMediaChannels = () => {
   const SPEED_CHANNEL = 'minecraft-web-client:media-speed'
   const DESTROY_CHANNEL = 'minecraft-web-client:media-destroy'
 
-  const noDataPacketStructure = [
-    'container',
-    [
-      { name: 'id', type: ['pstring', { countType: 'i16' }] }
-    ]
-  ]
+  const noDataPacketStructure = ['container', [{ name: 'id', type: ['pstring', { countType: 'i16' }] }]]
 
   const setNumberPacketStructure = [
     'container',
@@ -440,33 +449,63 @@ const registerMediaChannels = () => {
   ]
 
   // Register channels
-  registerChannel(PLAY_CHANNEL, noDataPacketStructure, (data) => {
-    const { id } = data
-    getThreeJsRendererMethods()?.setVideoPlaying(id, true)
-  }, true)
-  registerChannel(PAUSE_CHANNEL, noDataPacketStructure, (data) => {
-    const { id } = data
-    getThreeJsRendererMethods()?.setVideoPlaying(id, false)
-  }, true)
-  registerChannel(SEEK_CHANNEL, setNumberPacketStructure, (data) => {
-    const { id, seconds } = data
-    getThreeJsRendererMethods()?.setVideoSeeking(id, seconds)
-  }, true)
-  registerChannel(VOLUME_CHANNEL, setNumberPacketStructure, (data) => {
-    const { id, volume } = data
-    getThreeJsRendererMethods()?.setVideoVolume(id, volume)
-  }, true)
-  registerChannel(SPEED_CHANNEL, setNumberPacketStructure, (data) => {
-    const { id, speed } = data
-    getThreeJsRendererMethods()?.setVideoSpeed(id, speed)
-  }, true)
-  registerChannel(DESTROY_CHANNEL, noDataPacketStructure, (data) => {
-    const { id } = data
-    getThreeJsRendererMethods()?.destroyMedia(id)
-  }, true)
+  registerChannel(
+    PLAY_CHANNEL,
+    noDataPacketStructure,
+    data => {
+      const { id } = data
+      getThreeJsRendererMethods()?.setVideoPlaying(id, true)
+    },
+    true
+  )
+  registerChannel(
+    PAUSE_CHANNEL,
+    noDataPacketStructure,
+    data => {
+      const { id } = data
+      getThreeJsRendererMethods()?.setVideoPlaying(id, false)
+    },
+    true
+  )
+  registerChannel(
+    SEEK_CHANNEL,
+    setNumberPacketStructure,
+    data => {
+      const { id, seconds } = data
+      getThreeJsRendererMethods()?.setVideoSeeking(id, seconds)
+    },
+    true
+  )
+  registerChannel(
+    VOLUME_CHANNEL,
+    setNumberPacketStructure,
+    data => {
+      const { id, volume } = data
+      getThreeJsRendererMethods()?.setVideoVolume(id, volume)
+    },
+    true
+  )
+  registerChannel(
+    SPEED_CHANNEL,
+    setNumberPacketStructure,
+    data => {
+      const { id, speed } = data
+      getThreeJsRendererMethods()?.setVideoSpeed(id, speed)
+    },
+    true
+  )
+  registerChannel(
+    DESTROY_CHANNEL,
+    noDataPacketStructure,
+    data => {
+      const { id } = data
+      getThreeJsRendererMethods()?.destroyMedia(id)
+    },
+    true
+  )
 
   // Handle media add
-  registerChannel(ADD_CHANNEL, addPacketStructure, (data) => {
+  registerChannel(ADD_CHANNEL, addPacketStructure, data => {
     const { id, x, y, z, width, height, rotation, source, loop, volume, background, opacity } = data
 
     // Add new video
@@ -571,7 +610,7 @@ const addTestVideo = (rotation = 0 as 0 | 1 | 2 | 3, scale = 1, isImage = false)
     //   endV: 1
     // },
     opacity: 1,
-    allowOrigins: true,
+    allowOrigins: true
   })
 }
 window.addTestVideo = addTestVideo
@@ -584,48 +623,53 @@ const registerServerSettingsChannel = () => {
       {
         name: 'settingsJson',
         type: ['pstring', { countType: 'i16' }]
-      },
+      }
     ]
   ]
 
-  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
-    try {
-      const settings = JSON.parse(data.settingsJson)
+  registerChannel(
+    CHANNEL_NAME,
+    packetStructure,
+    data => {
+      try {
+        const settings = JSON.parse(data.settingsJson)
 
-      if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
-        console.warn('Invalid settings format: expected an object')
-        return
-      }
-
-      let appliedCount = 0
-      let skippedCount = 0
-
-      for (const [key, value] of Object.entries(settings)) {
-        // Only apply settings that are in the safe list
-        if (!(key in serverSafeSettings)) {
-          console.warn(`Skipping unsafe setting: ${key}`)
-          skippedCount++
-          continue
+        if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
+          console.warn('Invalid settings format: expected an object')
+          return
         }
 
-        // Validate that the setting exists in options
-        if (!(key in options)) {
-          console.warn(`Setting does not exist: ${key}`)
-          skippedCount++
-          continue
+        let appliedCount = 0
+        let skippedCount = 0
+
+        for (const [key, value] of Object.entries(settings)) {
+          // Only apply settings that are in the safe list
+          if (!(key in serverSafeSettings)) {
+            console.warn(`Skipping unsafe setting: ${key}`)
+            skippedCount++
+            continue
+          }
+
+          // Validate that the setting exists in options
+          if (!(key in options)) {
+            console.warn(`Setting does not exist: ${key}`)
+            skippedCount++
+            continue
+          }
+
+          // todo remove it later, let user take control back and make clear to user
+          serverChangedSettings.value.add(key)
+          options[key] = value
+          appliedCount++
         }
 
-        // todo remove it later, let user take control back and make clear to user
-        serverChangedSettings.value.add(key)
-        options[key] = value
-        appliedCount++
+        console.debug(`Applied ${appliedCount} server settings${skippedCount > 0 ? `, skipped ${skippedCount} unsafe/invalid settings` : ''}`)
+      } catch (error) {
+        console.error('Failed to parse or apply server settings:', error)
       }
-
-      console.debug(`Applied ${appliedCount} server settings${skippedCount > 0 ? `, skipped ${skippedCount} unsafe/invalid settings` : ''}`)
-    } catch (error) {
-      console.error('Failed to parse or apply server settings:', error)
-    }
-  }, false) // Don't wait for world, settings can be applied before world loads
+    },
+    false
+  ) // Don't wait for world, settings can be applied before world loads
 }
 
 const registerTypingIndicatorChannel = () => {
@@ -644,7 +688,7 @@ const registerTypingIndicatorChannel = () => {
     ]
   ]
 
-  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
+  registerChannel(CHANNEL_NAME, packetStructure, data => {
     const { username, isTyping } = data
 
     if (isTyping) {
@@ -663,7 +707,7 @@ const registerTypingIndicatorChannel = () => {
   })
 }
 
-function getCurrentTopDomain (): string {
+function getCurrentTopDomain(): string {
   const { hostname } = location
   // Split hostname into parts
   const parts = hostname.split('.')
@@ -671,10 +715,7 @@ function getCurrentTopDomain (): string {
   // Handle special cases like co.uk, com.br, etc.
   if (parts.length > 2) {
     // Check for common country codes with additional segments
-    if (parts.at(-2) === 'co' ||
-      parts.at(-2) === 'com' ||
-      parts.at(-2) === 'org' ||
-      parts.at(-2) === 'gov') {
+    if (parts.at(-2) === 'co' || parts.at(-2) === 'com' || parts.at(-2) === 'org' || parts.at(-2) === 'gov') {
       // Return last 3 parts (e.g., example.co.uk)
       return parts.slice(-3).join('.')
     }

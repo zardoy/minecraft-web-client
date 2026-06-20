@@ -157,9 +157,12 @@
   }
 }
 
-.controlPrev, .controlNext,
-.controlPrev::before, .controlNext::before,
-.controlPrev::after, .controlNext::after {
+.controlPrev,
+.controlNext,
+.controlPrev::before,
+.controlNext::before,
+.controlPrev::after,
+.controlNext::after {
   border: none !important;
   background-color: transparent !important;
   text-shadow: none !important;
@@ -293,29 +296,29 @@
 }
 
 .pageAnimation {
-  animation: pageAnimation .15s forwards;
+  animation: pageAnimation 0.15s forwards;
 }
 
 .titleAnimation {
   display: flex;
-  animation: titleAnimation .3s forwards;
+  animation: titleAnimation 0.3s forwards;
 }
 
 .titleContentAnimation {
   display: flex;
-  animation: titleContentAnimation .3s forwards;
+  animation: titleContentAnimation 0.3s forwards;
 }
 
 .insideAnimation {
-  animation: insideAnimation .3s forwards;
+  animation: insideAnimation 0.3s forwards;
 }
 
 .pageTextAnimation {
-  animation: pageTextAnimation .15s forwards;
+  animation: pageTextAnimation 0.15s forwards;
 }
 
 .pageSecondTextAnimation {
-  animation: pageSecondTextAnimation .3s forwards;
+  animation: pageSecondTextAnimation 0.3s forwards;
 }
 
 .hidden {
@@ -329,7 +332,7 @@
     transform: translateX(-50%) rotateY(0);
   }
   50% {
-    transform: translateX(0%)
+    transform: translateX(0%);
   }
   100% {
     transform: translateX(-50%) rotateY(-90deg);
@@ -342,7 +345,7 @@
     transform: translateX(-50%) rotateY(0);
   }
   50% {
-    transform: translateX(10%)
+    transform: translateX(10%);
   }
   100% {
     transform: translateX(-50%) rotateY(-90deg);
@@ -420,36 +423,37 @@
 
 .titleAnimationReverse {
   display: flex;
-  animation: titleAnimationReverse .3s forwards;
+  animation: titleAnimationReverse 0.3s forwards;
 }
 
 .titleContentAnimationReverse {
   display: flex;
-  animation: titleContentAnimationReverse .3s forwards;
+  animation: titleContentAnimationReverse 0.3s forwards;
 }
 
 .insideAnimationReverse {
-  animation: insideAnimationReverse .3s forwards;
+  animation: insideAnimationReverse 0.3s forwards;
 }
 
 .pageAnimationReverse {
-  animation: pageAnimationReverse .15s forwards;
+  animation: pageAnimationReverse 0.15s forwards;
 }
 
 .pageTextAnimationReverse {
-  animation: pageTextAnimationReverse .15s forwards;
+  animation: pageTextAnimationReverse 0.15s forwards;
 }
 
 .pageSecondTextAnimationReverse {
-  animation: pageSecondTextAnimationReverse .3s forwards;
+  animation: pageSecondTextAnimationReverse 0.3s forwards;
 }
 
 .pageButtonAnimationReverse {
-  animation: pageButtonAnimationReverse .3s forwards
+  animation: pageButtonAnimationReverse 0.3s forwards;
 }
 
 @media screen and (min-width: 972px) and (max-width: 1024px) {
-  .textArea, .text {
+  .textArea,
+  .text {
     font-size: 10px;
   }
 }
@@ -495,7 +499,8 @@
     padding: 6%;
   }
 
-  .textArea, .text {
+  .textArea,
+  .text {
     font-size: 10px;
   }
   /* Animations width < 768px */
@@ -583,7 +588,8 @@
 }
 
 @media screen and (max-height: 768px) {
-  .textArea, .text {
+  .textArea,
+  .text {
     font-size: 5px;
   }
   .outSide {

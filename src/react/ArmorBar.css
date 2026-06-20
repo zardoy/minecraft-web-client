@@ -16,15 +16,20 @@
   height: calc(9px);
   background-image: var(--gui-icons);
   background-size: 256px, 256px;
-  background-position: var(--bg-x) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    var(--bg-x) var(--bg-y),
+    var(--bg-x) var(--bg-y);
   margin-left: -1px;
 }
 
-
 .armor.full {
-  background-position: calc(var(--offset) - 9px) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    calc(var(--offset) - 9px) var(--bg-y),
+    var(--bg-x) var(--bg-y);
 }
 
 .armor.half {
-  background-position: var(--offset) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    var(--offset) var(--bg-y),
+    var(--bg-x) var(--bg-y);
 }

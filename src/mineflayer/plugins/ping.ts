@@ -8,7 +8,7 @@ export default () => {
       //@ts-expect-error
       bot._client.socket._ws.send(`ping:${curI}`)
       const date = Date.now()
-      const onPong = (received) => {
+      const onPong = received => {
         if (received !== curI.toString()) return
         bot._client.socket.off('pong' as any, onPong)
         resolve(Date.now() - date)
@@ -20,7 +20,7 @@ export default () => {
   let pingId = 0
   bot.pingServer = async () => {
     if (versionToNumber(bot.version) < versionToNumber('1.20.2')) return bot.player?.ping ?? -1
-    return new Promise<number>((resolve) => {
+    return new Promise<number>(resolve => {
       const curId = pingId++
       bot._client.write('ping_request', { id: BigInt(curId) })
       const date = Date.now()

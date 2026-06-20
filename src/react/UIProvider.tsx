@@ -6,13 +6,8 @@ export const ScaleContext = createContext<number>(1)
 export const useScale = () => useContext(ScaleContext)
 
 export const UIProvider = ({ children, scale = 1 }) => {
-  return (
-    <ScaleContext.Provider value={scale}>
-      {children}
-    </ScaleContext.Provider>
-  )
+  return <ScaleContext.Provider value={scale}>{children}</ScaleContext.Provider>
 }
-
 
 export const usePassesScaledDimensions = (minWidth: number | null = null, minHeight: number | null = null) => {
   const scale = useScale()

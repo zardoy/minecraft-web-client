@@ -9,11 +9,11 @@ const divs = [0, 6, 10, 12, 20]
 
 export type BossBarType = BossBarTypeRaw & {
   // todo why not use public properties?
-  title: string | Record<string, any> | null,
-  _title: string | Record<string, any> | null,
-  _color: string,
-  _dividers: number,
-  _health: number,
+  title: string | Record<string, any> | null
+  _title: string | Record<string, any> | null
+  _color: string
+  _dividers: number
+  _health: number
   lastUpdated: number
 }
 
@@ -48,7 +48,9 @@ const BossBarOverlayBase = ({ bar }: { bar: BossBarType }) => {
 
   return (
     <div className="bossbar-container">
-      <div className="bossbar-title"><MessageFormattedString message={title} /></div>
+      <div className="bossbar-title">
+        <MessageFormattedString message={title} />
+      </div>
       <div className="bossbar" style={bossBarStyles}>
         <div className="fill" style={fillStyles} />
         <div className="fill" style={div1Styles} />

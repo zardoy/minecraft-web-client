@@ -37,7 +37,7 @@ export const createLoginPromptDebouncer = (intervalMs = 30_000): LoginPromptDebo
   const lastTrigger = new Map<string, number>()
 
   return {
-    shouldTrigger (serverKey: string): boolean {
+    shouldTrigger(serverKey: string): boolean {
       const now = Date.now()
       const prev = lastTrigger.get(serverKey)
       if (prev !== undefined && now - prev < intervalMs) {
@@ -46,12 +46,12 @@ export const createLoginPromptDebouncer = (intervalMs = 30_000): LoginPromptDebo
       lastTrigger.set(serverKey, now)
       return true
     },
-    reset (serverKey?: string): void {
+    reset(serverKey?: string): void {
       if (serverKey === undefined) {
         lastTrigger.clear()
       } else {
         lastTrigger.delete(serverKey)
       }
-    },
+    }
   }
 }

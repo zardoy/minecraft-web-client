@@ -9,14 +9,16 @@ import { miscUiState } from './globalState'
 import { defaultOptions } from './defaultOptions'
 
 const isDev = process.env.NODE_ENV === 'development'
-const initialAppConfig = process.env?.INLINED_APP_CONFIG as AppConfig ?? {}
+const initialAppConfig = (process.env?.INLINED_APP_CONFIG as AppConfig) ?? {}
 
 // const qsOptionsRaw = new URLSearchParams(location.search).getAll('setting')
 const qsOptionsRaw = appQueryParamsArray.setting ?? []
-export const qsOptions = Object.fromEntries(qsOptionsRaw.map(o => {
-  const [key, value] = o.split(':')
-  return [key, JSON.parse(value)]
-}))
+export const qsOptions = Object.fromEntries(
+  qsOptionsRaw.map(o => {
+    const [key, value] = o.split(':')
+    return [key, JSON.parse(value)]
+  })
+)
 
 // Track which settings are disabled (controlled by QS or forced by config)
 export const disabledSettings = proxy({
@@ -68,9 +70,7 @@ const isDeepEqual = (a: any, b: any): boolean => {
 }
 
 export const getChangedSettings = () => {
-  return Object.fromEntries(
-    Object.entries(appStorage.changedSettings).filter(([key, value]) => !isDeepEqual(defaultOptions[key], value))
-  )
+  return Object.fromEntries(Object.entries(appStorage.changedSettings).filter(([key, value]) => !isDeepEqual(defaultOptions[key], value)))
 }
 
 export const options: AppOptions = proxy({
@@ -98,12 +98,12 @@ export const resetSelectedOptions = (keys: Iterable<string>) => {
 }
 
 Object.defineProperty(window, 'debugChangedOptions', {
-  get () {
+  get() {
     return getChangedSettings()
-  },
+  }
 })
 
-subscribe(options, (ops) => {
+subscribe(options, ops => {
   if (appQueryParams.freezeSettings === 'true') return
   for (const op of ops) {
     const [type, path, value] = op
@@ -121,12 +121,15 @@ type WatchValue = <T extends Record<string, any>>(proxy: T, callback: (p: T, isC
 
 export const watchValue: WatchValue = (proxy, callback) => {
   const watchedProps = new Set<string>()
-  callback(new Proxy(proxy, {
-    get (target, p, receiver) {
-      watchedProps.add(p.toString())
-      return Reflect.get(target, p, receiver)
-    },
-  }), false)
+  callback(
+    new Proxy(proxy, {
+      get(target, p, receiver) {
+        watchedProps.add(p.toString())
+        return Reflect.get(target, p, receiver)
+      }
+    }),
+    false
+  )
   const unsubscribes = [] as Array<() => void>
   for (const prop of watchedProps) {
     unsubscribes.push(
@@ -154,7 +157,7 @@ watchValue(options, o => {
   document.body.style.setProperty('--touch-movement-buttons-opacity', (o.touchButtonsOpacity / 100).toString())
 })
 watchValue(options, o => {
-  document.body.style.setProperty('--touch-movement-buttons-position', (o.touchButtonsPosition * 2) + 'px')
+  document.body.style.setProperty('--touch-movement-buttons-position', o.touchButtonsPosition * 2 + 'px')
 })
 
 export const useOptionValue = (setting, valueCallback) => {

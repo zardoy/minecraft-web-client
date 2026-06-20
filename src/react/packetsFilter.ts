@@ -1,18 +1,18 @@
 import { PacketData } from './ReplayPanel'
 
-function wildcardToRegExp (pattern: string): RegExp {
+function wildcardToRegExp(pattern: string): RegExp {
   const escaped = pattern.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(`^${escaped.replaceAll('\\*', '.*')}$`)
 }
 
-function patternToRegExp (pattern: string): RegExp {
+function patternToRegExp(pattern: string): RegExp {
   if (pattern.startsWith('$')) {
     return new RegExp(`^${pattern.slice(1)}$`)
   }
   return wildcardToRegExp(`*${pattern}*`)
 }
 
-export function parseFilterString (filter: string): { include: RegExp[]; exclude: RegExp[] } {
+export function parseFilterString(filter: string): { include: RegExp[]; exclude: RegExp[] } {
   const parts = filter.split(/,\s*/)
   const include: RegExp[] = []
   const exclude: RegExp[] = []
@@ -29,7 +29,7 @@ export function parseFilterString (filter: string): { include: RegExp[]; exclude
   return { include, exclude }
 }
 
-export function filterPackets (packets: PacketData[], filter: string): { filtered: PacketData[]; hiddenCount: number } {
+export function filterPackets(packets: PacketData[], filter: string): { filtered: PacketData[]; hiddenCount: number } {
   if (!filter.trim()) {
     return { filtered: packets, hiddenCount: 0 }
   }

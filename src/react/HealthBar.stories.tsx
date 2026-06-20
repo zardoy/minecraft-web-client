@@ -16,6 +16,6 @@ export const Primary: Story = {
     damaged: false,
     healthValue: 10,
     effectToAdd: 19,
-    effectToRemove: 20,
+    effectToRemove: 20
   }
 }

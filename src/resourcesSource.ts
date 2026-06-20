@@ -7,19 +7,19 @@ export const appReplacableResources: Array<{
   // GUI
   {
     path: '../node_modules/mc-assets/dist/other-textures/latest/gui/title/minecraft.png',
-    cssVar: '--title-gui',
+    cssVar: '--title-gui'
   },
   {
     path: '../node_modules/mc-assets/dist/other-textures/1.19/gui/icons.png',
     cssVar: '--gui-icons',
-    cssVarRepeat: 2,
+    cssVarRepeat: 2
   },
   {
     path: '../node_modules/mc-assets/dist/other-textures/latest/gui/widgets.png',
-    cssVar: '--widgets-gui-atlas',
+    cssVar: '--widgets-gui-atlas'
   },
   {
     path: '../node_modules/mc-assets/dist/other-textures/latest/gui/bars.png',
-    cssVar: '--bars-gui-atlas',
-  },
+    cssVar: '--bars-gui-atlas'
+  }
 ]

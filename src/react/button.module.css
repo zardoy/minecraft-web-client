@@ -34,7 +34,7 @@
 
 .button:disabled {
   --txrV: 46px;
-  color: #A0A0A0;
+  color: #a0a0a0;
   text-shadow: 1px 1px #111;
 }
 
@@ -61,7 +61,6 @@
   left: 0;
   width: calc(50% + 1px);
 }
-
 
 .icon {
   position: absolute;

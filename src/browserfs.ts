@@ -29,119 +29,135 @@ const fallbackMountablePoints = {
   '/resourcepack': { fs: 'InMemory' }, // temporary storage for downloaded server resource pack
   '/temp': { fs: 'InMemory' }
 }
-browserfs.configure({
-  fs: 'MountableFileSystem',
-  options: defaultMountablePoints,
-}, async (e) => {
-  if (e) {
-    browserfs.configure({
-      fs: 'MountableFileSystem',
-      options: fallbackMountablePoints,
-    }, async (e2) => {
-      if (e2) {
-        showNotification('Unknown FS error, cannot continue', e2.message, true)
-        throw e2
-      }
-      showNotification('Failed to access device storage', `Check you have free space. ${e.message}`, true)
-      miscUiState.fsReady = true
-      miscUiState.singleplayerAvailable = false
-    })
-    return
+browserfs.configure(
+  {
+    fs: 'MountableFileSystem',
+    options: defaultMountablePoints
+  },
+  async e => {
+    if (e) {
+      browserfs.configure(
+        {
+          fs: 'MountableFileSystem',
+          options: fallbackMountablePoints
+        },
+        async e2 => {
+          if (e2) {
+            showNotification('Unknown FS error, cannot continue', e2.message, true)
+            throw e2
+          }
+          showNotification('Failed to access device storage', `Check you have free space. ${e.message}`, true)
+          miscUiState.fsReady = true
+          miscUiState.singleplayerAvailable = false
+        }
+      )
+      return
+    }
+    await updateTexturePackInstalledState()
+    miscUiState.fsReady = true
+    miscUiState.singleplayerAvailable = true
   }
-  await updateTexturePackInstalledState()
-  miscUiState.fsReady = true
-  miscUiState.singleplayerAvailable = true
-})
+)
 
 export const forceCachedDataPaths = {}
 export const forceRedirectPaths = {}
 
 window.fs = fs
 //@ts-expect-error
-fs.promises = new Proxy(Object.fromEntries(['readFile', 'writeFile', 'stat', 'mkdir', 'rmdir', 'unlink', 'rename', /* 'copyFile',  */'readdir'].map(key => [key, promisify(fs[key])])), {
-  get (target, p: string, receiver) {
-    if (!target[p]) throw new Error(`Not implemented fs.promises.${p}`)
-    return (...args) => {
-      // browser fs bug: if path doesn't start with / dirname will return . which would cause infinite loop, so we need to normalize paths
-      if (typeof args[0] === 'string' && !args[0].startsWith('/')) args[0] = '/' + args[0]
-      const toRemap = Object.entries(forceRedirectPaths).find(([from]) => args[0].startsWith(from))
-      if (toRemap) {
-        args[0] = args[0].replace(toRemap[0], toRemap[1])
-      }
-      // Write methods
-      // todo issue one-time warning (in chat I guess)
-      const readonly = fsState.isReadonly && !(args[0].startsWith('/data') && !fsState.inMemorySave) // allow copying worlds from external providers such as zip
-      if (readonly) {
-        if (oneOf(p, 'readFile', 'writeFile') && forceCachedDataPaths[args[0]]) {
-          if (p === 'readFile') {
-            return Promise.resolve(forceCachedDataPaths[args[0]])
-          } else if (p === 'writeFile') {
-            forceCachedDataPaths[args[0]] = args[1]
-            console.debug('Skipped writing to readonly fs', args[0])
-            return Promise.resolve()
+fs.promises = new Proxy(
+  Object.fromEntries(
+    ['readFile', 'writeFile', 'stat', 'mkdir', 'rmdir', 'unlink', 'rename', /* 'copyFile',  */ 'readdir'].map(key => [key, promisify(fs[key])])
+  ),
+  {
+    get(target, p: string, receiver) {
+      if (!target[p]) throw new Error(`Not implemented fs.promises.${p}`)
+      return (...args) => {
+        // browser fs bug: if path doesn't start with / dirname will return . which would cause infinite loop, so we need to normalize paths
+        if (typeof args[0] === 'string' && !args[0].startsWith('/')) args[0] = '/' + args[0]
+        const toRemap = Object.entries(forceRedirectPaths).find(([from]) => args[0].startsWith(from))
+        if (toRemap) {
+          args[0] = args[0].replace(toRemap[0], toRemap[1])
+        }
+        // Write methods
+        // todo issue one-time warning (in chat I guess)
+        const readonly = fsState.isReadonly && !(args[0].startsWith('/data') && !fsState.inMemorySave) // allow copying worlds from external providers such as zip
+        if (readonly) {
+          if (oneOf(p, 'readFile', 'writeFile') && forceCachedDataPaths[args[0]]) {
+            if (p === 'readFile') {
+              return Promise.resolve(forceCachedDataPaths[args[0]])
+            } else if (p === 'writeFile') {
+              forceCachedDataPaths[args[0]] = args[1]
+              console.debug('Skipped writing to readonly fs', args[0])
+              return Promise.resolve()
+            }
           }
+          if (oneOf(p, 'writeFile', 'mkdir', 'rename')) return
         }
-        if (oneOf(p, 'writeFile', 'mkdir', 'rename')) return
-      }
-      if (p === 'open' && fsState.isReadonly) {
-        args[1] = 'r' // read-only, zipfs throw otherwise
-      }
-      if (p === 'readFile') {
-        fsState.openReadOperations++
-      } else if (p === 'writeFile') {
-        fsState.openWriteOperations++
-      }
-      return target[p](...args).finally(() => {
+        if (p === 'open' && fsState.isReadonly) {
+          args[1] = 'r' // read-only, zipfs throw otherwise
+        }
         if (p === 'readFile') {
-          fsState.openReadOperations--
+          fsState.openReadOperations++
         } else if (p === 'writeFile') {
-          fsState.openWriteOperations--
+          fsState.openWriteOperations++
         }
-      })
+        return target[p](...args).finally(() => {
+          if (p === 'readFile') {
+            fsState.openReadOperations--
+          } else if (p === 'writeFile') {
+            fsState.openWriteOperations--
+          }
+        })
+      }
     }
   }
-})
+)
 //@ts-expect-error
 fs.promises.open = async (...args) => {
   //@ts-expect-error
   const fd = await promisify(fs.open)(...args)
   return {
-    ...Object.fromEntries(['read', 'write', 'close'].map(x => [x, async (...args) => {
-      return new Promise(resolve => {
-        // todo it results in world corruption on interactions eg block placements
-        if (x === 'write' && fsState.isReadonly) {
-          resolve({ buffer: Buffer.from([]), bytesRead: 0 })
-          return
-        }
+    ...Object.fromEntries(
+      ['read', 'write', 'close'].map(x => [
+        x,
+        async (...args) => {
+          return new Promise(resolve => {
+            // todo it results in world corruption on interactions eg block placements
+            if (x === 'write' && fsState.isReadonly) {
+              resolve({ buffer: Buffer.from([]), bytesRead: 0 })
+              return
+            }
 
-        if (x === 'read') {
-          fsState.openReadOperations++
-        } else if (x === 'write' || x === 'close') {
-          fsState.openWriteOperations++
+            if (x === 'read') {
+              fsState.openReadOperations++
+            } else if (x === 'write' || x === 'close') {
+              fsState.openWriteOperations++
+            }
+            fs[x](fd, ...args, (err, bytesRead, buffer) => {
+              if (x === 'read') {
+                fsState.openReadOperations--
+              } else if (x === 'write' || x === 'close') {
+                // todo that's not correct
+                fsState.openWriteOperations--
+              }
+              if (err) throw err
+              // todo if readonly probably there is no need to open at all (return some mocked version - check reload)?
+              if (x === 'write' && !fsState.isReadonly) {
+                // flush data, though alternatively we can rely on close in unload
+                fs.fsync(fd, () => {})
+              }
+              resolve({ buffer, bytesRead })
+            })
+          })
         }
-        fs[x](fd, ...args, (err, bytesRead, buffer) => {
-          if (x === 'read') {
-            fsState.openReadOperations--
-          } else if (x === 'write' || x === 'close') {
-            // todo that's not correct
-            fsState.openWriteOperations--
-          }
-          if (err) throw err
-          // todo if readonly probably there is no need to open at all (return some mocked version - check reload)?
-          if (x === 'write' && !fsState.isReadonly) {
-            // flush data, though alternatively we can rely on close in unload
-            fs.fsync(fd, () => { })
-          }
-          resolve({ buffer, bytesRead })
-        })
-      })
-    }])),
+      ])
+    ),
     // for debugging
     fd,
     filename: args[0],
-    async close () {
+    async close() {
       return new Promise<void>(resolve => {
-        fs.close(fd, (err) => {
+        fs.close(fd, err => {
           if (err) {
             throw err
           } else {
@@ -154,7 +170,7 @@ fs.promises.open = async (...args) => {
 }
 
 // for testing purposes, todo move it to core patch
-const removeFileRecursiveSync = (path) => {
+const removeFileRecursiveSync = path => {
   for (const file of fs.readdirSync(path)) {
     const curPath = join(path, file)
     if (fs.lstatSync(curPath).isDirectory()) {
@@ -178,8 +194,7 @@ export const mkdirRecursive = async (path: string) => {
     try {
       // eslint-disable-next-line no-await-in-loop
       await fs.promises.mkdir(current)
-    } catch (err) {
-    }
+    } catch (err) {}
   }
 }
 
@@ -206,7 +221,7 @@ export const mountExportFolder = async () => {
   let handle: FileSystemDirectoryHandle
   try {
     handle = await showDirectoryPicker({
-      id: 'world-export',
+      id: 'world-export'
     })
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return
@@ -214,21 +229,24 @@ export const mountExportFolder = async () => {
   }
   if (!handle) return false
   await new Promise<void>(resolve => {
-    browserfs.configure({
-      fs: 'MountableFileSystem',
-      options: {
-        ...defaultMountablePoints,
-        '/export': {
-          fs: 'FileSystemAccess',
-          options: {
-            handle
+    browserfs.configure(
+      {
+        fs: 'MountableFileSystem',
+        options: {
+          ...defaultMountablePoints,
+          '/export': {
+            fs: 'FileSystemAccess',
+            options: {
+              handle
+            }
           }
         }
       },
-    }, (e) => {
-      if (e) throw e
-      resolve()
-    })
+      e => {
+        if (e) throw e
+        resolve()
+      }
+    )
   })
   return true
 }
@@ -245,16 +263,19 @@ export const mountGoogleDriveFolder = async (readonly: boolean, rootId: string) 
   googleDriveFileSystem.rootDirId = rootId
   googleDriveFileSystem.isReadonly = readonly
   await new Promise<void>(resolve => {
-    browserfs.configure({
-      fs: 'MountableFileSystem',
-      options: {
-        ...defaultMountablePoints,
-        '/google': googleDriveFileSystem
+    browserfs.configure(
+      {
+        fs: 'MountableFileSystem',
+        options: {
+          ...defaultMountablePoints,
+          '/google': googleDriveFileSystem
+        }
       },
-    }, (e) => {
-      if (e) throw e
-      resolve()
-    })
+      e => {
+        if (e) throw e
+        resolve()
+      }
+    )
   })
   fsState.isReadonly = readonly
   fsState.syncFs = false
@@ -263,23 +284,25 @@ export const mountGoogleDriveFolder = async (readonly: boolean, rootId: string) 
   return true
 }
 
-export async function removeFileRecursiveAsync (path, removeDirectoryItself = true) {
+export async function removeFileRecursiveAsync(path, removeDirectoryItself = true) {
   const errors = [] as Array<[string, Error]>
   try {
     const files = await fs.promises.readdir(path)
 
     // Use Promise.all to parallelize file/directory removal
-    await Promise.all(files.map(async (file) => {
-      const curPath = join(path, file)
-      const stats = await fs.promises.stat(curPath)
-      if (stats.isDirectory()) {
-        // Recurse
-        await removeFileRecursiveAsync(curPath)
-      } else {
-        // Delete file
-        await fs.promises.unlink(curPath)
-      }
-    }))
+    await Promise.all(
+      files.map(async file => {
+        const curPath = join(path, file)
+        const stats = await fs.promises.stat(curPath)
+        if (stats.isDirectory()) {
+          // Recurse
+          await removeFileRecursiveAsync(curPath)
+        } else {
+          // Delete file
+          await fs.promises.unlink(curPath)
+        }
+      })
+    )
 
     // After removing all files/directories, remove the current directory
     if (removeDirectoryItself) {
@@ -297,7 +320,6 @@ export async function removeFileRecursiveAsync (path, removeDirectoryItself = tr
   }
 }
 
-
 const SUPPORT_WRITE = true
 
 export const openWorldDirectory = async (dragndropHandle?: FileSystemDirectoryHandle) => {
@@ -307,7 +329,7 @@ export const openWorldDirectory = async (dragndropHandle?: FileSystemDirectoryHa
   } else {
     try {
       _directoryHandle = await window.showDirectoryPicker({
-        id: 'select-world', // important: this is used to remember user choice (start directory)
+        id: 'select-world' // important: this is used to remember user choice (start directory)
       })
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
@@ -322,21 +344,24 @@ export const openWorldDirectory = async (dragndropHandle?: FileSystemDirectoryHa
   const doContinue = writeAccess || !SUPPORT_WRITE || options.disableLoadPrompts || confirm('Continue in readonly mode?')
   if (!doContinue) return
   await new Promise<void>(resolve => {
-    browserfs.configure({
-      fs: 'MountableFileSystem',
-      options: {
-        ...defaultMountablePoints,
-        '/world': {
-          fs: 'FileSystemAccess',
-          options: {
-            handle: directoryHandle
+    browserfs.configure(
+      {
+        fs: 'MountableFileSystem',
+        options: {
+          ...defaultMountablePoints,
+          '/world': {
+            fs: 'FileSystemAccess',
+            options: {
+              handle: directoryHandle
+            }
           }
         }
       },
-    }, (e) => {
-      if (e) throw e
-      resolve()
-    })
+      e => {
+        if (e) throw e
+        resolve()
+      }
+    )
   })
 
   fsState.isReadonly = !writeAccess
@@ -369,16 +394,19 @@ const tryToDetectResourcePack = async () => {
   // loaded = null
 }
 
-export const possiblyCleanHandle = (callback = () => { }) => {
+export const possiblyCleanHandle = (callback = () => {}) => {
   if (!fsState.saveLoaded) {
     // todo clean handle
-    browserfs.configure({
-      fs: 'MountableFileSystem',
-      options: defaultMountablePoints,
-    }, (e) => {
-      callback()
-      if (e) throw e
-    })
+    browserfs.configure(
+      {
+        fs: 'MountableFileSystem',
+        options: defaultMountablePoints
+      },
+      e => {
+        callback()
+        if (e) throw e
+      }
+    )
   }
 }
 
@@ -396,13 +424,15 @@ export const collectFilesToCopy = async (basePath: string, safe = false): Promis
     const resolvedPath = join(basePath, relPath)
     const files = relPath === '.' && !safe ? await fs.promises.readdir(resolvedPath) : await readdirSafe(resolvedPath)
     if (!files) return null
-    await Promise.all(files.map(async file => {
-      const res = await countFiles(join(relPath, file))
-      if (res === null) {
-        // is file
-        result.push(join(relPath, file))
-      }
-    }))
+    await Promise.all(
+      files.map(async file => {
+        const res = await countFiles(join(relPath, file))
+        if (res === null) {
+          // is file
+          result.push(join(relPath, file))
+        }
+      })
+    )
   }
   await countFiles('.')
   return result
@@ -416,7 +446,7 @@ export const copyFilesAsyncWithProgress = async (pathSrc: string, pathDest: stri
     return
   }
   if (!stat.isDirectory()) {
-    await fs.promises.writeFile(pathDest, await fs.promises.readFile(pathSrc) as any)
+    await fs.promises.writeFile(pathDest, (await fs.promises.readFile(pathSrc)) as any)
     console.debug('copied single file', pathSrc, pathDest)
     return
   }
@@ -426,22 +456,24 @@ export const copyFilesAsyncWithProgress = async (pathSrc: string, pathDest: stri
     let filesCount = 0
     const countFiles = async (path: string) => {
       const files = await fs.promises.readdir(path)
-      await Promise.all(files.map(async (file) => {
-        const curPath = join(path, file)
-        const stats = await fs.promises.stat(curPath)
-        if (stats.isDirectory()) {
-          // Recurse
-          await countFiles(curPath)
-        } else {
-          filesCount++
-        }
-      }))
+      await Promise.all(
+        files.map(async file => {
+          const curPath = join(path, file)
+          const stats = await fs.promises.stat(curPath)
+          if (stats.isDirectory()) {
+            // Recurse
+            await countFiles(curPath)
+          } else {
+            filesCount++
+          }
+        })
+      )
     }
     console.debug('Counting files', pathSrc)
     await countFiles(pathSrc)
     console.debug('counted', filesCount)
     let copied = 0
-    await copyFilesAsync(pathSrc, pathDest, (name) => {
+    await copyFilesAsync(pathSrc, pathDest, name => {
       copied++
       setLoadingScreenStatus(`Copying files${addMsg} (${copied}/${filesCount}): ${name}`)
     })
@@ -475,34 +507,36 @@ export const copyFilesAsync = async (pathSrc: string, pathDest: string, fileCopi
   // query: can't use fs.copy! use fs.promises.writeFile and readFile
   const files = await fs.promises.readdir(pathSrc)
 
-  if (!await existsViaStats(pathDest)) {
+  if (!(await existsViaStats(pathDest))) {
     await fs.promises.mkdir(pathDest, { recursive: true })
   }
 
   // Use Promise.all to parallelize file/directory copying
-  await Promise.all(files.map(async (file) => {
-    const curPathSrc = join(pathSrc, file)
-    const curPathDest = join(pathDest, file)
-    const stats = await fs.promises.stat(curPathSrc)
-    if (stats.isDirectory()) {
-      // Recurse
-      await fs.promises.mkdir(curPathDest)
-      await copyFilesAsync(curPathSrc, curPathDest, fileCopied)
-    } else {
-      // Copy file
-      try {
-        await fs.promises.writeFile(curPathDest, await fs.promises.readFile(curPathSrc) as any)
-        console.debug('copied file', curPathSrc, curPathDest)
-      } catch (err) {
-        console.error('Error copying file', curPathSrc, curPathDest, err)
-        throw err
+  await Promise.all(
+    files.map(async file => {
+      const curPathSrc = join(pathSrc, file)
+      const curPathDest = join(pathDest, file)
+      const stats = await fs.promises.stat(curPathSrc)
+      if (stats.isDirectory()) {
+        // Recurse
+        await fs.promises.mkdir(curPathDest)
+        await copyFilesAsync(curPathSrc, curPathDest, fileCopied)
+      } else {
+        // Copy file
+        try {
+          await fs.promises.writeFile(curPathDest, (await fs.promises.readFile(curPathSrc)) as any)
+          console.debug('copied file', curPathSrc, curPathDest)
+        } catch (err) {
+          console.error('Error copying file', curPathSrc, curPathDest, err)
+          throw err
+        }
+        fileCopied?.(curPathDest)
       }
-      fileCopied?.(curPathDest)
-    }
-  }))
+    })
+  )
 }
 
-export const openWorldFromHttpDir = async (fileDescriptorUrls: string[]/*  | undefined */, baseUrlParam) => {
+export const openWorldFromHttpDir = async (fileDescriptorUrls: string[] /*  | undefined */, baseUrlParam) => {
   // todo try go guess mode
   let index
   let baseUrl
@@ -533,22 +567,25 @@ export const openWorldFromHttpDir = async (fileDescriptorUrls: string[]/*  | und
   }
   if (!index) throw new Error(`The provided mapDir file is not valid descriptor file! ${fileDescriptorUrls.join(', ')}`)
   await new Promise<void>(async resolve => {
-    browserfs.configure({
-      fs: 'MountableFileSystem',
-      options: {
-        ...defaultMountablePoints,
-        '/world': {
-          fs: 'HTTPRequest',
-          options: {
-            index,
-            baseUrl
+    browserfs.configure(
+      {
+        fs: 'MountableFileSystem',
+        options: {
+          ...defaultMountablePoints,
+          '/world': {
+            fs: 'HTTPRequest',
+            options: {
+              index,
+              baseUrl
+            }
           }
         }
       },
-    }, (e) => {
-      if (e) throw e
-      resolve()
-    })
+      e => {
+        if (e) throw e
+        resolve()
+      }
+    )
   })
 
   fsState.saveLoaded = false
@@ -563,23 +600,26 @@ export const openWorldFromHttpDir = async (fileDescriptorUrls: string[]/*  | und
 // todo rename method
 const openWorldZipInner = async (file: File | ArrayBuffer, name = file['name'], connectOptions?: Partial<ConnectOptions>) => {
   await new Promise<void>(async resolve => {
-    browserfs.configure({
-      // todo
-      fs: 'MountableFileSystem',
-      options: {
-        ...defaultMountablePoints,
-        '/world': {
-          fs: 'ZipFS',
-          options: {
-            zipData: Buffer.from(file instanceof File ? (await file.arrayBuffer()) : file),
-            name
+    browserfs.configure(
+      {
+        // todo
+        fs: 'MountableFileSystem',
+        options: {
+          ...defaultMountablePoints,
+          '/world': {
+            fs: 'ZipFS',
+            options: {
+              zipData: Buffer.from(file instanceof File ? await file.arrayBuffer() : file),
+              name
+            }
           }
         }
       },
-    }, (e) => {
-      if (e) throw e
-      resolve()
-    })
+      e => {
+        if (e) throw e
+        resolve()
+      }
+    )
   })
 
   fsState.saveLoaded = false
@@ -648,7 +688,7 @@ export const openFilePicker = (specificCase?: 'resourcepack') => {
           const doContinue = confirm(`Are you sure ${file.name.slice(-20)} is .zip file? ONLY .zip files are supported. Continue?`)
           if (!doContinue) return
         }
-        void installResourcepackPack(file, createFullScreenProgressReporter()).catch((err) => {
+        void installResourcepackPack(file, createFullScreenProgressReporter()).catch(err => {
           setLoadingScreenStatus(err.message, true)
         })
       } else {

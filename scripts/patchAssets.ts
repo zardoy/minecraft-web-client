@@ -22,19 +22,15 @@ interface AtlasFile {
   }
 }
 
-async function patchTextureAtlas(
-  atlasType: 'blocks' | 'items',
-  atlasData: AtlasFile,
-  customTexturesDir: string,
-  distDir: string
-) {
+async function patchTextureAtlas(atlasType: 'blocks' | 'items', atlasData: AtlasFile, customTexturesDir: string, distDir: string) {
   // Check if custom textures directory exists and has files
   if (!fs.existsSync(customTexturesDir) || fs.readdirSync(customTexturesDir).length === 0) {
     return
   }
 
   // Find the latest atlas file
-  const atlasFiles = fs.readdirSync(distDir)
+  const atlasFiles = fs
+    .readdirSync(distDir)
     .filter(file => file.startsWith(`${atlasType}AtlasLatest`) && file.endsWith('.png'))
     .sort()
 
@@ -54,8 +50,7 @@ async function patchTextureAtlas(
   }
 
   // Process each custom texture
-  const customTextureFiles = fs.readdirSync(customTexturesDir)
-    .filter(file => file.endsWith('.png'))
+  const customTextureFiles = fs.readdirSync(customTexturesDir).filter(file => file.endsWith('.png'))
 
   if (customTextureFiles.length === 0) return
 

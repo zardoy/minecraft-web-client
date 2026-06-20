@@ -14,16 +14,13 @@ import { showOptionsModal } from './SelectOption'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 import { showAllSettingsEditor } from './AllSettingsEditor'
 import { withInjectableUi } from './extendableSystem'
-import {
-  canPromptSettingReload,
-  settingNeedsReloadPrompt,
-} from './SettingReloadModal'
+import { canPromptSettingReload, settingNeedsReloadPrompt } from './SettingReloadModal'
 import { applySettingReloadResult, promptAndApplyReloadSetting } from './settingReloadApply'
 
 type GeneralItem<T extends string | number | boolean> = {
   id?: string
-  text?: string,
-  disabledReason?: string,
+  text?: string
+  disabledReason?: string
   disabledDuringGame?: boolean
   tooltip?: string
   // description?: string
@@ -33,19 +30,24 @@ type GeneralItem<T extends string | number | boolean> = {
   disableIf?: [option: keyof typeof options, value: any]
 }
 
-export type OptionMeta<T = any> = GeneralItem<T & string> & ({
-  type: 'toggle',
-} | {
-  type: 'slider'
-  min?: number,
-  max?: number,
-  valueText?: (value: number) => string,
-  unit?: string,
-  delayApply?: boolean,
-} | {
-  type: 'element'
-  render: () => React.ReactNode,
-})
+export type OptionMeta<T = any> = GeneralItem<T & string> &
+  (
+    | {
+        type: 'toggle'
+      }
+    | {
+        type: 'slider'
+        min?: number
+        max?: number
+        valueText?: (value: number) => string
+        unit?: string
+        delayApply?: boolean
+      }
+    | {
+        type: 'element'
+        render: () => React.ReactNode
+      }
+  )
 
 // todo not reactive
 const isLocked = (item: GeneralItem<any>) => {
@@ -67,20 +69,21 @@ const useCommonComponentsProps = (item: OptionMeta) => {
 }
 
 const isSettingChanged = (settingId: string) => {
-  return settingId in appStorage.changedSettings &&
-    JSON.stringify(appStorage.changedSettings[settingId]) !== JSON.stringify(defaultOptions[settingId])
+  return settingId in appStorage.changedSettings && JSON.stringify(appStorage.changedSettings[settingId]) !== JSON.stringify(defaultOptions[settingId])
 }
 
 const ChangedIndicator = () => (
-  <div style={{
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 3,
-    height: 3,
-    backgroundColor: 'rgb(77 160 255)',
-    pointerEvents: 'none',
-  }} />
+  <div
+    style={{
+      position: 'absolute',
+      top: 2,
+      right: 2,
+      width: 3,
+      height: 3,
+      backgroundColor: 'rgb(77 160 255)',
+      pointerEvents: 'none'
+    }}
+  />
 )
 
 // Helper functions for option value extraction
@@ -100,26 +103,19 @@ const getOptionLabel = (arrItem: string | [string, string]) => {
   }
 }
 
-const getNextOptionValue = (
-  itemId: keyof typeof options,
-  optionValue: unknown,
-  possibleValues: OptionPossibleValues | undefined,
-  event: React.MouseEvent
-) => {
+const getNextOptionValue = (itemId: keyof typeof options, optionValue: unknown, possibleValues: OptionPossibleValues | undefined, event: React.MouseEvent) => {
   if (possibleValues && possibleValues.length >= 4) {
     return null
   }
   if (possibleValues && possibleValues.length > 1) {
-    const currentIndex = possibleValues.findIndex((value) => {
+    const currentIndex = possibleValues.findIndex(value => {
       const val = getOptionValue(value)
       return String(val) === String(optionValue)
     })
     if (currentIndex === -1) {
       return getOptionValue(possibleValues[0])
     }
-    const nextIndex = event.shiftKey
-      ? (currentIndex - 1 + possibleValues.length) % possibleValues.length
-      : (currentIndex + 1) % possibleValues.length
+    const nextIndex = event.shiftKey ? (currentIndex - 1 + possibleValues.length) % possibleValues.length : (currentIndex + 1) % possibleValues.length
     return getOptionValue(possibleValues[nextIndex])
   }
   if (possibleValues && possibleValues.length === 1) {
@@ -128,11 +124,7 @@ const getNextOptionValue = (
   return !options[itemId]
 }
 
-export const OptionButton = ({ item, onClick, valueText }: {
-  item: Extract<OptionMeta, { type: 'toggle' }>,
-  onClick?: () => void,
-  valueText?: string,
-}) => {
+export const OptionButton = ({ item, onClick, valueText }: { item: Extract<OptionMeta, { type: 'toggle' }>; onClick?: () => void; valueText?: string }) => {
   const { disabledBecauseOfSetting } = useCommonComponentsProps(item)
   useSnapshot(appStorage)
 
@@ -149,81 +141,82 @@ export const OptionButton = ({ item, onClick, valueText }: {
         // true: <span style={{ color: 'lime' }}>ON</span>,
         // false: <span style={{ color: 'red' }}>OFF</span>,
         true: 'ON',
-        false: 'OFF',
+        false: 'OFF'
       }
     }
-    return Object.fromEntries(possibleValues.map((value) => {
-      if (typeof value === 'string') {
-        return [value, titleCase(noCase(value))]
-      } else {
-        return [value[0], value[1]]
-      }
-    }))
+    return Object.fromEntries(
+      possibleValues.map(value => {
+        if (typeof value === 'string') {
+          return [value, titleCase(noCase(value))]
+        } else {
+          return [value[0], value[1]]
+        }
+      })
+    )
   }, [possibleValues])
 
   let { disabledReason } = item
   if (disabledBecauseOfSetting) disabledReason = `Disabled because ${item.disableIf![0]} is ${item.disableIf![1]}`
 
-  return <Button
-    data-setting={item.id}
-    label={`${translate(item.text)}: ${translate(valueText ?? valuesTitlesMap[optionValue])}`}
-    onClick={async (event) => {
-      if (disabledReason) {
-        await showOptionsModal(`${translate('The option is not available')}: ${disabledReason}`, [])
-        return
-      }
-      if (item.enableWarning && !options[item.id!]) {
-        const result = await showOptionsModal(item.enableWarning, ['Enable'])
-        if (!result) return
-      }
+  return (
+    <Button
+      data-setting={item.id}
+      label={`${translate(item.text)}: ${translate(valueText ?? valuesTitlesMap[optionValue])}`}
+      onClick={async event => {
+        if (disabledReason) {
+          await showOptionsModal(`${translate('The option is not available')}: ${disabledReason}`, [])
+          return
+        }
+        if (item.enableWarning && !options[item.id!]) {
+          const result = await showOptionsModal(item.enableWarning, ['Enable'])
+          if (!result) return
+        }
 
-      const needsReloadPrompt = settingNeedsReloadPrompt(item.requiresRestart, item.requiresChunksReload)
-      if (item.id && needsReloadPrompt && canPromptSettingReload()) {
-        const reloadResult = await promptAndApplyReloadSetting({
-          settingLabel: translate(item.text || item.id),
-          currentValue: optionValue,
-          possibleValues,
-          requiresRestart: item.requiresRestart,
-          requiresChunksReload: item.requiresChunksReload,
-          tooltip: item.tooltip,
-        })
-        if (!reloadResult) return
-        options[item.id] = reloadResult.value as never
-        applySettingReloadResult(reloadResult)
+        const needsReloadPrompt = settingNeedsReloadPrompt(item.requiresRestart, item.requiresChunksReload)
+        if (item.id && needsReloadPrompt && canPromptSettingReload()) {
+          const reloadResult = await promptAndApplyReloadSetting({
+            settingLabel: translate(item.text || item.id),
+            currentValue: optionValue,
+            possibleValues,
+            requiresRestart: item.requiresRestart,
+            requiresChunksReload: item.requiresChunksReload,
+            tooltip: item.tooltip
+          })
+          if (!reloadResult) return
+          options[item.id] = reloadResult.value as never
+          applySettingReloadResult(reloadResult)
+          onClick?.()
+          return
+        }
+
         onClick?.()
-        return
-      }
-
-      onClick?.()
-      if (item.id) {
-        // Use showOptionsModal only if there are 4 or more options
-        if (possibleValues && possibleValues.length >= 4) {
-          const optionLabels = possibleValues.map(getOptionLabel)
-          const result = await showOptionsModal(
-            `${translate(item.text || item.id)}: ${translate('Select value')}`,
-            optionLabels
-          )
-          if (result) {
-            const selectedIndex = optionLabels.indexOf(result)
-            if (selectedIndex !== -1) {
-              options[item.id] = getOptionValue(possibleValues[selectedIndex])
+        if (item.id) {
+          // Use showOptionsModal only if there are 4 or more options
+          if (possibleValues && possibleValues.length >= 4) {
+            const optionLabels = possibleValues.map(getOptionLabel)
+            const result = await showOptionsModal(`${translate(item.text || item.id)}: ${translate('Select value')}`, optionLabels)
+            if (result) {
+              const selectedIndex = optionLabels.indexOf(result)
+              if (selectedIndex !== -1) {
+                options[item.id] = getOptionValue(possibleValues[selectedIndex])
+              }
+            }
+          } else {
+            const nextValue = getNextOptionValue(item.id as keyof typeof options, optionValue, possibleValues, event)
+            if (nextValue !== null) {
+              options[item.id] = nextValue as never
             }
           }
-        } else {
-          const nextValue = getNextOptionValue(item.id as keyof typeof options, optionValue, possibleValues, event)
-          if (nextValue !== null) {
-            options[item.id] = nextValue as never
-          }
         }
-      }
-    }}
-    title={disabledReason ? `${disabledReason} | ${item.tooltip}` : item.tooltip}
-    disabled={disabledBecauseOfSetting || !!item.disabledReason || isLocked(item)}
-    inScreen
-    style={isChanged ? { position: 'relative', width: 150 } : { width: 150 }}
-  >
-    {isChanged && <ChangedIndicator />}
-  </Button>
+      }}
+      title={disabledReason ? `${disabledReason} | ${item.tooltip}` : item.tooltip}
+      disabled={disabledBecauseOfSetting || !!item.disabledReason || isLocked(item)}
+      inScreen
+      style={isChanged ? { position: 'relative', width: 150 } : { width: 150 }}
+    >
+      {isChanged && <ChangedIndicator />}
+    </Button>
+  )
 }
 
 export const OptionSlider = ({
@@ -252,13 +245,15 @@ export const OptionSlider = ({
         label={item.text!}
         value={valueOverride ?? options[item.id!]}
         data-setting={item.id}
-        disabledReason={isLocked(item) ? 'qs' : disabledBecauseOfSetting ? `Disabled because ${item.disableIf![0]} is ${item.disableIf![1]}` : item.disabledReason}
+        disabledReason={
+          isLocked(item) ? 'qs' : disabledBecauseOfSetting ? `Disabled because ${item.disableIf![0]} is ${item.disableIf![1]}` : item.disabledReason
+        }
         min={item.min}
         max={item.max}
         unit={item.unit}
         valueDisplay={valueDisplay}
         updateOnDragEnd={item.delayApply}
-        updateValue={(value) => {
+        updateValue={value => {
           options[item.id!] = value
           onChange?.(value)
         }}
@@ -310,24 +305,23 @@ interface Props {
 }
 
 const OptionsItemsBase = ({ items, title, backButtonAction }: Props) => {
+  return (
+    <Screen title={title}>
+      <div className="screen-items">
+        <div style={{ position: 'fixed', marginLeft: '-30px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Button icon={pixelartIcons['close']} onClick={hideAllModals} style={{ color: '#ff5d5d' }} />
+          <Button icon={pixelartIcons['chevron-left']} onClick={backButtonAction} style={{ color: 'yellow' }} />
+          <Button icon={pixelartIcons['search']} onClick={showAllSettingsEditor} style={{ color: '#4caf50' }} title="Search all settings" />
+        </div>
 
-  return <Screen
-    title={title}
-  >
-    <div className='screen-items'>
-      <div style={{ position: 'fixed', marginLeft: '-30px', display: 'flex', flexDirection: 'column', gap: 1, }}>
-        <Button icon={pixelartIcons['close']} onClick={hideAllModals} style={{ color: '#ff5d5d', }} />
-        <Button icon={pixelartIcons['chevron-left']} onClick={backButtonAction} style={{ color: 'yellow', }} />
-        <Button icon={pixelartIcons['search']} onClick={showAllSettingsEditor} style={{ color: '#4caf50', }} title="Search all settings" />
+        {items.map((element, i) => {
+          // make sure its unique!
+          return <RenderOption key={element.id ?? `${title}-${i}`} item={element} />
+        })}
       </div>
-
-      {items.map((element, i) => {
-        // make sure its unique!
-        return <RenderOption key={element.id ?? `${title}-${i}`} item={element} />
-      })}
-    </div>
-    {backButtonAction && <Button onClick={() => backButtonAction()}>Back</Button>}
-  </Screen>
+      {backButtonAction && <Button onClick={() => backButtonAction()}>Back</Button>}
+    </Screen>
+  )
 }
 
 export default withInjectableUi(OptionsItemsBase, 'optionsItems')

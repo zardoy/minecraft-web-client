@@ -6,18 +6,18 @@ import SharedHudVars from './SharedHudVars'
 import { withInjectableUi } from './extendableSystem'
 
 interface Props extends React.ComponentProps<'div'> {
-  label: string;
-  value: number;
-  unit?: string;
-  width?: number;
-  valueDisplay?: string | number;
-  min?: number;
-  max?: number;
-  disabledReason?: string;
-  throttle?: number | false; // milliseconds, default 100, false to disable
+  label: string
+  value: number
+  unit?: string
+  width?: number
+  valueDisplay?: string | number
+  min?: number
+  max?: number
+  disabledReason?: string
+  throttle?: number | false // milliseconds, default 100, false to disable
 
-  updateValue?: (value: number) => void;
-  updateOnDragEnd?: boolean;
+  updateValue?: (value: number) => void
+  updateOnDragEnd?: boolean
 }
 
 const ARROW_HEIGHT = 7
@@ -62,29 +62,32 @@ const SliderBase: React.FC<Props> = ({
     setRatio(getRatio())
   }, [value, min, max])
 
-  const throttledUpdateValue = useCallback((newValue: number, dragEnd: boolean) => {
-    if (updateOnDragEnd !== dragEnd) return
-    if (!updateValue) return
+  const throttledUpdateValue = useCallback(
+    (newValue: number, dragEnd: boolean) => {
+      if (updateOnDragEnd !== dragEnd) return
+      if (!updateValue) return
 
-    lastValueRef.current = newValue
+      lastValueRef.current = newValue
 
-    if (!throttle) {
-      // No throttling
-      updateValue(newValue)
-      return
-    }
+      if (!throttle) {
+        // No throttling
+        updateValue(newValue)
+        return
+      }
 
-    // Clear existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
+      // Clear existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
 
-    // Set new timeout
-    timeoutRef.current = setTimeout(() => {
-      updateValue(lastValueRef.current)
-      timeoutRef.current = null
-    }, throttle)
-  }, [updateValue, updateOnDragEnd, throttle])
+      // Set new timeout
+      timeoutRef.current = setTimeout(() => {
+        updateValue(lastValueRef.current)
+        timeoutRef.current = null
+      }, throttle)
+    },
+    [updateValue, updateOnDragEnd, throttle]
+  )
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -116,7 +119,7 @@ const SliderBase: React.FC<Props> = ({
       }
     }
 
-    const handleGamepadInputChange = (e: CustomEvent<{ direction: number, value: number, isStickMovement: boolean }>) => {
+    const handleGamepadInputChange = (e: CustomEvent<{ direction: number; value: number; isStickMovement: boolean }>) => {
       if (disabledReason) return
 
       const now = Date.now()
@@ -125,7 +128,7 @@ const SliderBase: React.FC<Props> = ({
       lastChangeTime.current = now
 
       const step = 1
-      const newValue = value + (e.detail.direction * step)
+      const newValue = value + e.detail.direction * step
 
       // Apply min/max constraints
       const constrainedValue = Math.max(min, Math.min(max, newValue))
@@ -157,15 +160,15 @@ const SliderBase: React.FC<Props> = ({
       arrow({
         element: arrowRef
       }),
-      offsetMiddleware(ARROW_HEIGHT + GAP),
+      offsetMiddleware(ARROW_HEIGHT + GAP)
     ],
-    placement: 'top',
+    placement: 'top'
   })
 
   return (
     <SharedHudVars>
       <div
-        ref={(node) => {
+        ref={node => {
           containerRef.current = node!
           refs.setReference(node)
         }}
@@ -180,7 +183,7 @@ const SliderBase: React.FC<Props> = ({
           max={max}
           value={value}
           disabled={!!disabledReason}
-          onChange={(e) => {
+          onChange={e => {
             const newValue = Number(e.target.value)
             setValue(newValue)
             fireValueUpdate(false, newValue)
@@ -198,9 +201,7 @@ const SliderBase: React.FC<Props> = ({
         />
         <div className={styles.disabled} title={disabledReason} />
         <div className={`${styles['slider-thumb']} slider-thumb`} style={{ left: `calc((100% * ${ratio}) - (8px * ${ratio}))` }} />
-        <label className={styles.label}>
-          {labelText}
-        </label>
+        <label className={styles.label}>{labelText}</label>
       </div>
       {showGamepadTooltip && (
         <div

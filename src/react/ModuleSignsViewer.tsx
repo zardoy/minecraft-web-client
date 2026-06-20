@@ -24,25 +24,35 @@ export default () => {
   //   })
   // }) : []
 
-  return <FullScreenWidget name={name} title='Loaded Signs'>
-    <div>
-      {signs.length} signs currently in the scene:
-    </div>
-    <div
-      style={{ cursor: 'pointer', }} onClick={() => {
-        // toggle all
-        if (selected.length === allSignsPos.length) {
-          setSelected([])
-          return
-        }
-        setSelected([...allSignsPos])
-      }}>Select All</div>
-    {selected.length && <div
-      style={{ cursor: 'pointer', }} onClick={() => {
-        void navigator.clipboard.writeText(selected.join('\n'))
-      }}>Copy Selected Signs</div>}
-    {signs}
-  </FullScreenWidget>
+  return (
+    <FullScreenWidget name={name} title="Loaded Signs">
+      <div>{signs.length} signs currently in the scene:</div>
+      <div
+        style={{ cursor: 'pointer' }}
+        onClick={() => {
+          // toggle all
+          if (selected.length === allSignsPos.length) {
+            setSelected([])
+            return
+          }
+          setSelected([...allSignsPos])
+        }}
+      >
+        Select All
+      </div>
+      {selected.length && (
+        <div
+          style={{ cursor: 'pointer' }}
+          onClick={() => {
+            void navigator.clipboard.writeText(selected.join('\n'))
+          }}
+        >
+          Copy Selected Signs
+        </div>
+      )}
+      {signs}
+    </FullScreenWidget>
+  )
 }
 
 const AddElem = ({ elem }) => {
@@ -56,10 +66,14 @@ const AddElem = ({ elem }) => {
     }
   }, [])
 
-  return <div
-    ref={ref} style={{
-      height: '35px',
-    }} />
+  return (
+    <div
+      ref={ref}
+      style={{
+        height: '35px'
+      }}
+    />
+  )
 }
 
 // for (const key of Object.keys(viewer.world.sectionObjects)) {

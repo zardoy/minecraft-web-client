@@ -24,7 +24,7 @@ import { ChunkInfo, DrawerAdapter, MapUpdates, MinimapDrawer } from './MinimapDr
 import { useIsModalActive } from './utilsApp'
 
 const findHeightMap = (obj: PCChunk): number[] | undefined => {
-  function search (obj: any): any | undefined {
+  function search(obj: any): any | undefined {
     for (const key in obj) {
       if (['heightmap', 'heightmaps'].includes(key.toLowerCase())) {
         return obj[key]
@@ -47,7 +47,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
   loadChunk: (key: string) => Promise<void> = this.loadChunkMinimap
   mapDrawer = new MinimapDrawer(this.loadChunk.bind(this), this.warps, this.loadingChunksQueue, this.chunksStore)
   currChunk: PCChunk | undefined
-  currChunkPos: { x: number, z: number } = { x: 0, z: 0 }
+  currChunkPos: { x: number; z: number } = { x: 0, z: 0 }
   isOldVersion: boolean
   blockData: Map<string | string[], string>
   heightMap: Record<string, number> = {}
@@ -58,7 +58,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
   isBuiltinHeightmapAvailable = false
   unsubscribers: Array<() => void> = []
 
-  constructor (pos?: Vec3) {
+  constructor(pos?: Vec3) {
     super()
     this.playerPosition = pos ?? new Vec3(0, 0, 0)
 
@@ -76,27 +76,30 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
         const region = new RegionFile(path)
         void region.initialize()
         this.regions.set(regionKey, region)
-        const readX = chunkX % 32 < 0 ? 32 + chunkX % 32 : chunkX % 32
-        const readZ = chunkZ % 32 < 0 ? 32 + chunkZ % 32 : chunkZ % 32
+        const readX = chunkX % 32 < 0 ? 32 + (chunkX % 32) : chunkX % 32
+        const readZ = chunkZ % 32 < 0 ? 32 + (chunkZ % 32) : chunkZ % 32
         console.log('heightmap check begun', readX, readZ)
-        void this.regions.get(regionKey)?.read(readX, readZ)?.then((rawChunk) => {
-          let heightmap: number[] | undefined
-          try {
-            const chunk = simplify(rawChunk as any)
-            heightmap = findHeightMap(chunk)
-          } catch (err) {
-            console.warn('error getting heightmap', err)
-          }
-          if (heightmap) {
-            this.isBuiltinHeightmapAvailable = true
-            this.loadChunkFullmap = this.loadChunkFromRegion
-            console.log('using heightmap')
-          } else {
-            this.isBuiltinHeightmapAvailable = false
-            this.loadChunkFullmap = this.loadChunkNoRegion
-            console.log('dont use heightmap')
-          }
-        })
+        void this.regions
+          .get(regionKey)
+          ?.read(readX, readZ)
+          ?.then(rawChunk => {
+            let heightmap: number[] | undefined
+            try {
+              const chunk = simplify(rawChunk as any)
+              heightmap = findHeightMap(chunk)
+            } catch (err) {
+              console.warn('error getting heightmap', err)
+            }
+            if (heightmap) {
+              this.isBuiltinHeightmapAvailable = true
+              this.loadChunkFullmap = this.loadChunkFromRegion
+              console.log('using heightmap')
+            } else {
+              this.isBuiltinHeightmapAvailable = false
+              this.loadChunkFullmap = this.loadChunkNoRegion
+              console.log('dont use heightmap')
+            }
+          })
       } else {
         this.isBuiltinHeightmapAvailable = false
         this.loadChunkFullmap = this.loadChunkNoRegion
@@ -129,17 +132,17 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     })
   }
 
-  destroy () {
+  destroy() {
     for (const unsubscriber of this.unsubscribers) {
       unsubscriber()
     }
   }
 
-  get full () {
+  get full() {
     return this._full
   }
 
-  set full (full: boolean) {
+  set full(full: boolean) {
     if (!full) {
       console.log('this is minimap')
       this.loadChunk = this.loadChunkMinimap
@@ -148,14 +151,14 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     this._full = full
   }
 
-  overwriteWarps (newWarps: WorldWarp[]) {
+  overwriteWarps(newWarps: WorldWarp[]) {
     this.warps.splice(0, this.warps.length)
     for (const warp of newWarps) {
       this.warps.push({ ...warp })
     }
   }
 
-  setWarp (warp: WorldWarp, remove?: boolean): void {
+  setWarp(warp: WorldWarp, remove?: boolean): void {
     this.world = bot.game.dimension
     const index = this.warps.findIndex(w => w.name === warp.name)
     if (!remove && index === -1) {
@@ -176,14 +179,14 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     this.emit('updateWarps')
   }
 
-  getHighestBlockY (x: number, z: number, chunk?: Chunk) {
+  getHighestBlockY(x: number, z: number, chunk?: Chunk) {
     const chunkX = Math.floor(x / 16) * 16
     const chunkZ = Math.floor(z / 16) * 16
     if (this.chunksHeightmaps[`${chunkX},${chunkZ}`]) {
       return this.chunksHeightmaps[`${chunkX},${chunkZ}`][x - chunkX + (z - chunkZ) * 16] - 1
     }
     const source = chunk ?? bot.world
-    const { height, minY } = (bot.game as any)
+    const { height, minY } = bot.game as any
     for (let i = height; i > 0; i -= 1) {
       const block = source.getBlock(new Vec3(x & 15, minY + i, z & 15))
       if (block && !INVISIBLE_BLOCKS.has(block.name)) {
@@ -193,7 +196,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return minY
   }
 
-  async getChunkSingleplayer (chunkX: number, chunkZ: number) {
+  async getChunkSingleplayer(chunkX: number, chunkZ: number) {
     // absolute coords
     const region = (localServer!.overworld.storageProvider as any).getRegion(chunkX * 16, chunkZ * 16)
     if (!region) return 'unavailable'
@@ -201,7 +204,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return chunk
   }
 
-  async loadChunkMinimap (key: string) {
+  async loadChunkMinimap(key: string) {
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
@@ -223,7 +226,9 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
           const blockX = chunkWorldX + x
           const blockZ = chunkWorldZ + z
           const index = z * 16 + x
-          blockPos.x = blockX; blockPos.z = blockZ; blockPos.y = heightmap[index]
+          blockPos.x = blockX
+          blockPos.z = blockZ
+          blockPos.y = heightmap[index]
           const block = bot.world.getBlock(blockPos)
           // blocks which are not set are shown as half transparent
           if (!block) {
@@ -244,7 +249,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     }
   }
 
-  async loadChunkNoRegion (key: string) {
+  async loadChunkNoRegion(key: string) {
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
@@ -277,11 +282,11 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return chunk
   }
 
-  async loadChunkFromRegion (key: string): Promise<ChunkInfo | null | undefined> {
+  async loadChunkFromRegion(key: string): Promise<ChunkInfo | null | undefined> {
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
-    const heightmap = await this.getChunkHeightMapFromRegion(chunkX, chunkZ) as unknown as Uint8Array
+    const heightmap = (await this.getChunkHeightMapFromRegion(chunkX, chunkZ)) as unknown as Uint8Array
     if (!heightmap) return null
     const chunkInfo = await this.getChunkSingleplayer(chunkX, chunkZ)
     if (chunkInfo === 'unavailable') return null
@@ -312,7 +317,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return chunk
   }
 
-  async getChunkHeightMapFromRegion (chunkX: number, chunkZ: number, cb?: (hm: number[]) => void) {
+  async getChunkHeightMapFromRegion(chunkX: number, chunkZ: number, cb?: (hm: number[]) => void) {
     const regionX = Math.floor(chunkX / 32)
     const regionZ = Math.floor(chunkZ / 32)
     const regionKey = `${regionX},${regionZ}`
@@ -333,7 +338,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     // this.chunksHeightmaps[`${chunkX},${chunkZ}`] = heightmap
   }
 
-  async loadChunkFromViewer (key: string) {
+  async loadChunkFromViewer(key: string) {
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
@@ -368,7 +373,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     }
   }
 
-  applyShadows (chunk: ChunkInfo) {
+  applyShadows(chunk: ChunkInfo) {
     for (let j = 0; j < 16; j += 1) {
       for (let i = 0; i < 16; i += 1) {
         const index = j * 16 + i
@@ -425,7 +430,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     }
   }
 
-  makeDarker (color: string) {
+  makeDarker(color: string) {
     let rgbArray = color.match(/\d+/g)?.map(Number) ?? []
     if (rgbArray.length !== 3) return color
     rgbArray = rgbArray.map(element => {
@@ -436,7 +441,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return `rgb(${rgbArray.join(',')})`
   }
 
-  makeLighter (color: string) {
+  makeLighter(color: string) {
     let rgbArray = color.match(/\d+/g)?.map(Number) ?? []
     if (rgbArray.length !== 3) return color
     rgbArray = rgbArray.map(element => {
@@ -447,10 +452,10 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return `rgb(${rgbArray.join(',')})`
   }
 
-  clearChunksStore (x: number, z: number) {
+  clearChunksStore(x: number, z: number) {
     for (const key of Object.keys(this.chunksStore)) {
       const [chunkX, chunkZ] = key.split(',').map(Number)
-      if (Math.hypot((chunkX - x), (chunkZ - z)) > 300) {
+      if (Math.hypot(chunkX - x, chunkZ - z) > 300) {
         delete this.chunksStore[key]
         delete this.chunksHeightmaps[key]
         for (let i = 0; i < 16; i += 1) {
@@ -462,11 +467,10 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     }
   }
 
-  setColor (block: Block) {
+  setColor(block: Block) {
     let color: string
     if (this.isOldVersion) {
-      color = BlockData.colors[preflatMap.blocks[`${block.type}:${block.metadata}`]?.replaceAll(/\[.*?]/g, '')]
-        ?? 'rgb(0, 0, 255)'
+      color = BlockData.colors[preflatMap.blocks[`${block.type}:${block.metadata}`]?.replaceAll(/\[.*?]/g, '')] ?? 'rgb(0, 0, 255)'
     } else {
       color = this.blockData.get(block.name) ?? 'rgb(0, 255, 0)'
     }
@@ -488,7 +492,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return color
   }
 
-  quickTp (x: number, z: number) {
+  quickTp(x: number, z: number) {
     const y = this.getHighestBlockY(x, z)
     bot.chat(`/tp ${x} ${y + 20} ${z}`)
     const timeout = setTimeout(() => {
@@ -498,7 +502,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     }, 500)
   }
 
-  async drawChunkOnCanvas (key: string, canvas: HTMLCanvasElement) {
+  async drawChunkOnCanvas(key: string, canvas: HTMLCanvasElement) {
     const chunk = await this.loadChunkFullmap(key)
     const [worldX, worldZ] = key.split(',').map(x => Number(x) * 16)
     const center = new Vec3(worldX + 8, 0, worldZ + 8)
@@ -513,15 +517,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
   }
 }
 
-const Inner = (
-  { adapter, displayMode, toggleFullMap }:
-  {
-    adapter: DrawerAdapterImpl
-    displayMode?: DisplayMode,
-    toggleFullMap?: () => void
-  }
-) => {
-
+const Inner = ({ adapter, displayMode, toggleFullMap }: { adapter: DrawerAdapterImpl; displayMode?: DisplayMode; toggleFullMap?: () => void }) => {
   const updateWarps = (newWarps: WorldWarp[] | Error) => {
     if (newWarps instanceof Error) {
       console.error('An error occurred:', newWarps.message)
@@ -548,21 +544,22 @@ const Inner = (
     }
   }, [])
 
-  return <div>
-    <Minimap
-      adapter={adapter}
-      showMinimap={options.showMinimap}
-      showFullmap='always'
-      singleplayer={miscUiState.singleplayer}
-      fullMap={displayMode === 'fullmapOnly'}
-      toggleFullMap={toggleFullMap}
-      displayMode={displayMode}
-    />
-  </div>
+  return (
+    <div>
+      <Minimap
+        adapter={adapter}
+        showMinimap={options.showMinimap}
+        showFullmap="always"
+        singleplayer={miscUiState.singleplayer}
+        fullMap={displayMode === 'fullmapOnly'}
+        toggleFullMap={toggleFullMap}
+        displayMode={displayMode}
+      />
+    </div>
+  )
 }
 
-export default ({ adapter, displayMode }: { adapter: DrawerAdapterImpl, displayMode?: DisplayMode }) => {
-
+export default ({ adapter, displayMode }: { adapter: DrawerAdapterImpl; displayMode?: DisplayMode }) => {
   const { showMinimap } = useSnapshot(options)
   const fullMapOpened = useIsModalActive('full-map')
 
@@ -570,11 +567,7 @@ export default ({ adapter, displayMode }: { adapter: DrawerAdapterImpl, displayM
     void contro.emit('trigger', { command: 'ui.toggleMap' })
   }
 
-  if (
-    displayMode === 'minimapOnly'
-      ? showMinimap === 'never' || (showMinimap === 'singleplayer' && !miscUiState.singleplayer)
-      : !fullMapOpened
-  ) {
+  if (displayMode === 'minimapOnly' ? showMinimap === 'never' || (showMinimap === 'singleplayer' && !miscUiState.singleplayer) : !fullMapOpened) {
     return null
   }
 

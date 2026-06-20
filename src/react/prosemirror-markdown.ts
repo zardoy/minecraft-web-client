@@ -8,7 +8,7 @@ import { toggleMark } from 'prosemirror-commands'
 export class ProseMirrorView {
   view
 
-  constructor (target, content) {
+  constructor(target, content) {
     console.log('schema.marks', schema.marks)
     //@ts-expect-error
     schema.marks.textColor = {
@@ -22,13 +22,13 @@ export class ProseMirrorView {
           }
         ],
         toDOM: mark => ['span', { style: `color: ${mark.attrs.color}` }, 0]
-      },
+      }
     }
 
     const fullMenu = buildMenuItems(schema).fullMenu as Array<Array<import('prosemirror-menu').MenuItem>>
     fullMenu[0] = fullMenu[0].filter(item => item.spec.title !== 'Add or remove link' && item.spec.title !== 'Toggle code font')
-    fullMenu.splice(3, 1); // remove the insert list, quote & checkbox menu
-    (fullMenu[1][0] as any).options.label = 'Color' // check-build error: fullMenu[1][0].options.label = 'Color'
+    fullMenu.splice(3, 1) // remove the insert list, quote & checkbox menu
+    ;(fullMenu[1][0] as any).options.label = 'Color' // check-build error: fullMenu[1][0].options.label = 'Color'
     // fullMenu[1][0].content[0].spec.label = 'Red'
     // fullMenu[1][0].content[0].spec.run = (state, dispatch, view) => {
     // console.log('state', state)
@@ -47,31 +47,31 @@ export class ProseMirrorView {
         doc: defaultMarkdownParser.parse(content) ?? undefined,
         plugins: exampleSetup({
           schema,
-          menuContent: fullMenu,
-        }),
+          menuContent: fullMenu
+        })
       }),
-      attributes (state) {
+      attributes(state) {
         return {
           autocorrect: 'off',
           autocapitalize: 'off',
           spellcheck: 'false',
-          autofocus: 'true',
+          autofocus: 'true'
         }
-      },
+      }
     })
   }
 
-  get content () {
+  get content() {
     const content = defaultMarkdownSerializer.serialize(this.view.state.doc)
     console.log('content', content)
     return content
   }
 
-  focus () {
+  focus() {
     this.view.focus()
   }
 
-  destroy () {
+  destroy() {
     this.view.destroy()
   }
 }

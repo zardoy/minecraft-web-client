@@ -1,72 +1,72 @@
 .root {
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    /* take all available space */
-    flex: 1;
-    margin: 5px;
-    overflow: auto;
-    /* todo think of better workaround */
-    scrollbar-width: var(--thin-if-firefox);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  /* take all available space */
+  flex: 1;
+  margin: 5px;
+  overflow: auto;
+  /* todo think of better workaround */
+  scrollbar-width: var(--thin-if-firefox);
 }
 .content_loading {
-    padding-top: 20px;
+  padding-top: 20px;
 }
 
 .world_root {
-    height: 40px;
-    width: 308px;
-    border: 1px solid transparent;
-    display: flex;
-    outline: none;
+  height: 40px;
+  width: 308px;
+  border: 1px solid transparent;
+  display: flex;
+  outline: none;
 }
 .world_title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .world_title_right {
-    color: #999;
-    font-size: 9px;
-    display: flex;
-    align-items: end;
-    gap: 1px;
+  color: #999;
+  font-size: 9px;
+  display: flex;
+  align-items: end;
+  gap: 1px;
 }
 .world_info {
-    margin-left: 3px;
-    display: flex;
-    flex-direction: column;
-    font-size: 11px;
-    white-space: nowrap;
-    width: 100%;
+  margin-left: 3px;
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  white-space: nowrap;
+  width: 100%;
 }
 .world_info_formatted {
-    font-size: 10px;
-    white-space: pre;
+  font-size: 10px;
+  white-space: pre;
 }
 .world_info_description_line {
-    color: #999;
-    white-space: nowrap;
+  color: #999;
+  white-space: nowrap;
 }
 .world_image {
-    height: 100%;
-    aspect-ratio: 1;
+  height: 100%;
+  aspect-ratio: 1;
 }
 .world_image.image_missing {
-    filter: grayscale(1);
+  filter: grayscale(1);
 }
 .world_root.world_focused {
-    border-color: white;
+  border-color: white;
 }
 
 .title {
-    margin-top: 10px;
+  margin-top: 10px;
 }

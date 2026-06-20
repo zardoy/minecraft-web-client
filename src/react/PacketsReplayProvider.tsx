@@ -5,15 +5,19 @@ import { miscUiState } from '../globalState'
 import { onChangeButtonState, packetsReplayState } from './state/packetsReplayState'
 import ReplayPanel from './ReplayPanel'
 
-export default function PacketsReplayProvider () {
+export default function PacketsReplayProvider() {
   const state = useSnapshot(packetsReplayState)
   const { gameLoaded } = useSnapshot(miscUiState)
 
   const autocomplete = useMemo(() => {
     if (!loadedData) return
     return {
-      client: Object.keys(loadedData.protocol.play.toClient.types).filter(a => a.startsWith('packet_')).map(a => a.slice('packet_'.length)),
-      server: Object.keys(loadedData.protocol.play.toServer.types).filter(a => a.startsWith('packet_')).map(a => a.slice('packet_'.length))
+      client: Object.keys(loadedData.protocol.play.toClient.types)
+        .filter(a => a.startsWith('packet_'))
+        .map(a => a.slice('packet_'.length)),
+      server: Object.keys(loadedData.protocol.play.toServer.types)
+        .filter(a => a.startsWith('packet_'))
+        .map(a => a.slice('packet_'.length))
     }
   }, [gameLoaded])
 
@@ -34,20 +38,20 @@ export default function PacketsReplayProvider () {
       clientPacketsAutocomplete={autocomplete?.client ?? []}
       serverPacketsAutocomplete={autocomplete?.server ?? []}
       customButtons={state.customButtons}
-      onPlayPause={(isPlaying) => {
+      onPlayPause={isPlaying => {
         packetsReplayState.isPlaying = isPlaying
       }}
       onRestart={() => {
         window.location.reload()
       }}
-      onSpeedChange={(speed) => {
+      onSpeedChange={speed => {
         packetsReplayState.speed = speed
         updateQsParam('replaySpeed', speed === 1 ? undefined : speed.toString())
       }}
-      onFilterChange={(filter) => {
+      onFilterChange={filter => {
         updateQsParam('replayFilter', filter)
       }}
-      onCustomButtonToggle={(button) => {
+      onCustomButtonToggle={button => {
         onChangeButtonState(button as keyof typeof packetsReplayState.customButtons, !state.customButtons[button].state)
       }}
     />

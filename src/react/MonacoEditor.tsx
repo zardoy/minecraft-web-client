@@ -37,37 +37,37 @@ export default () => {
 
   if (!isModalActive) return null
 
-  return <div className="monaco-editor-container">
-    <div className="monaco-editor-close">
-      <PixelartIcon
-        iconName={pixelartIcons.close}
-        width={26}
-        onClick={() => {
-          hideModal()
-        }}
-      />
+  return (
+    <div className="monaco-editor-container">
+      <div className="monaco-editor-close">
+        <PixelartIcon
+          iconName={pixelartIcons.close}
+          width={26}
+          onClick={() => {
+            hideModal()
+          }}
+        />
+      </div>
+      <div className="monaco-editor-title">{title}</div>
+      <div className="monaco-editor-wrapper">
+        <Editor
+          height="100%"
+          width="100%"
+          language={language}
+          theme="vs-dark"
+          line={line}
+          onChange={value => {
+            ideState.contents = value ?? ''
+          }}
+          value={contents}
+          options={{
+            fontFamily: bodyFont,
+            minimap: {
+              enabled: true
+            }
+          }}
+        />
+      </div>
     </div>
-    <div className="monaco-editor-title">
-      {title}
-    </div>
-    <div className="monaco-editor-wrapper">
-      <Editor
-        height="100%"
-        width="100%"
-        language={language}
-        theme='vs-dark'
-        line={line}
-        onChange={(value) => {
-          ideState.contents = value ?? ''
-        }}
-        value={contents}
-        options={{
-          fontFamily: bodyFont,
-          minimap: {
-            enabled: true,
-          },
-        }}
-      />
-    </div>
-  </div>
+  )
 }

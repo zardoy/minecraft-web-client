@@ -1,9 +1,7 @@
-
-
 .wrapper {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    gap: 0 10px;
-    height: 20px;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 0 10px;
+  height: 20px;
 }

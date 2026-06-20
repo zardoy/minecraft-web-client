@@ -1,4 +1,4 @@
-const getEffectClass = (effect) => {
+const getEffectClass = effect => {
   switch (effect.id) {
     case 19:
       return 'poisoned'

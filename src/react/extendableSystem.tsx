@@ -30,28 +30,18 @@ const injectUiPlaces = [
   'screenDirtBg',
   'appStatus',
   'appStatusProvider',
-  'diveTransition',
+  'diveTransition'
 ] as const
 
 export type InjectUiPlace = (typeof injectUiPlaces)[number]
 
-const wrapWithErrorBoundary = (
-  Component: React.FC<any>,
-  props: any,
-  index: number,
-  place: InjectUiPlace
-): React.ReactElement => {
+const wrapWithErrorBoundary = (Component: React.FC<any>, props: any, index: number, place: InjectUiPlace): React.ReactElement => {
   return (
     <ErrorBoundary
       key={index}
-      renderError={(error) => {
+      renderError={error => {
         const componentName = Component.name || Component.displayName || 'Unknown'
-        showNotification(
-          `Registered component ${place} crashed: ${componentName}`,
-          `Use console for more. ${error.message}`,
-          true,
-          undefined
-        )
+        showNotification(`Registered component ${place} crashed: ${componentName}`, `Use console for more. ${error.message}`, true, undefined)
         return null
       }}
     >
@@ -60,10 +50,7 @@ const wrapWithErrorBoundary = (
   )
 }
 
-export const withInjectableUi = <P extends object>(
-  Component: React.ComponentType<P>,
-  place: InjectUiPlace
-) => {
+export const withInjectableUi = <P extends object>(Component: React.ComponentType<P>, place: InjectUiPlace) => {
   const placeUppercaseFirst = place.charAt(0).toUpperCase() + place.slice(1)
   window.builtinOriginalComponents ??= {}
   window.builtinOriginalComponents[placeUppercaseFirst] = Component

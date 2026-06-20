@@ -3,7 +3,7 @@ import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import collisionShapesInit from '../generated/latestBlockCollisionsShapes.json'
 
 // defining globally to be used in loaded data, not sure of better workaround
-window.globalGetCollisionShapes = (version) => {
+window.globalGetCollisionShapes = version => {
   // todo use the same in resourcepack
   const versionFrom = collisionShapesInit.version
   const renamedBlocks = getRenamedData('blocks', Object.keys(collisionShapesInit.blocks), versionFrom, version)

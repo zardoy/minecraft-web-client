@@ -2,7 +2,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--safe-area-inset-bottom) + 55px); 
+  bottom: calc(var(--safe-area-inset-bottom) + 55px);
   margin: 0 auto;
   width: fit-content;
   display: flex;

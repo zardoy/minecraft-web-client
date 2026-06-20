@@ -11,7 +11,7 @@ import supportedVersions from '../src/supportedVersions.mjs'
 
 const __dirname = path.dirname(fileURLToPath(new URL(import.meta.url)))
 
-export const versionToNumber = (ver) => {
+export const versionToNumber = ver => {
   const [x, y = '0', z = '0'] = ver.split('.')
   return +`${x.padStart(2, '0')}${y.padStart(2, '0')}${z.padStart(2, '0')}`
 }
@@ -21,7 +21,7 @@ const targetedVersions = [...supportedVersions].sort((a, b) => versionToNumber(b
 /** @type {{name, size, hash}[]} */
 let prevSounds = null
 
-const burgerDataUrl = (version) => `https://raw.githubusercontent.com/Pokechu22/Burger/gh-pages/${version}.json`
+const burgerDataUrl = version => `https://raw.githubusercontent.com/Pokechu22/Burger/gh-pages/${version}.json`
 const burgerDataPath = './generated/burger.json'
 const EXISTING_CACHE_PATH = './generated/existing-sounds-cache.json'
 
@@ -41,10 +41,12 @@ const downloadAllSoundsAndCreateMap = async () => {
     const versionData = versions.find(x => x.id === version)
     if (!versionData) throw new Error('no version data for ' + version)
     console.log('Getting assets for version', version)
-    const { assetIndex } = await fetch(versionData.url).then((r) => r.json())
+    const { assetIndex } = await fetch(versionData.url).then(r => r.json())
     /** @type {{objects: {[a: string]: { size, hash }}}} */
-    const index = await fetch(assetIndex.url).then((r) => r.json())
-    const soundAssets = Object.entries(index.objects).filter(([name]) => /* name.endsWith('.ogg') || */ name.startsWith('minecraft/sounds/')).map(([name, { size, hash }]) => ({ name, size, hash }))
+    const index = await fetch(assetIndex.url).then(r => r.json())
+    const soundAssets = Object.entries(index.objects)
+      .filter(([name]) => /* name.endsWith('.ogg') || */ name.startsWith('minecraft/sounds/'))
+      .map(([name, { size, hash }]) => ({ name, size, hash }))
     soundAssets.sort((a, b) => a.name.localeCompare(b.name))
     if (prevSounds) {
       const prevSoundNames = new Set(prevSounds.map(x => x.name))
@@ -54,7 +56,10 @@ const downloadAllSoundsAndCreateMap = async () => {
       // console.log('+', addedSounds.map(x => x.name))
       // console.log('-', removedSounds.map(x => x.name))
       const changedSize = soundAssets.filter(x => prevSoundNames.has(x.name) && prevSounds.find(y => y.name === x.name).size !== x.size)
-      console.log('changed size', changedSize.map(x => ({ name: x.name, prev: prevSounds.find(y => y.name === x.name).size, curr: x.size })))
+      console.log(
+        'changed size',
+        changedSize.map(x => ({ name: x.name, prev: prevSounds.find(y => y.name === x.name).size, curr: x.size }))
+      )
       if (addedSounds.length || changedSize.length) {
         soundsPathVersionsRemap[version] = [...addedSounds, ...changedSize].map(x => x.name.replace('minecraft/sounds/', '').replace('.ogg', ''))
       }
@@ -74,8 +79,14 @@ const downloadAllSoundsAndCreateMap = async () => {
   }
   async function downloadSound({ name, hash, size }, namePath, log) {
     const cached =
-      !!namePath.replace('.ogg', '.mp3').split('/').reduce((acc, cur) => acc?.[cur], existingSoundsCache.sounds) ||
-      !!namePath.replace('.ogg', '.ogg').split('/').reduce((acc, cur) => acc?.[cur], existingSoundsCache.sounds)
+      !!namePath
+        .replace('.ogg', '.mp3')
+        .split('/')
+        .reduce((acc, cur) => acc?.[cur], existingSoundsCache.sounds) ||
+      !!namePath
+        .replace('.ogg', '.ogg')
+        .split('/')
+        .reduce((acc, cur) => acc?.[cur], existingSoundsCache.sounds)
     const savePath = path.resolve(`generated/sounds/${namePath}`)
     if (cached || fs.existsSync(savePath)) {
       // console.log('skipped', name)
@@ -83,7 +94,7 @@ const downloadAllSoundsAndCreateMap = async () => {
       return
     }
     log()
-    const r = await fetch(DEFAULT_RESOURCE_ROOT_URL + '/' + hash.slice(0, 2) + '/' + hash, /* {headers: {range: `bytes=0-${size-1}`}} */)
+    const r = await fetch(DEFAULT_RESOURCE_ROOT_URL + '/' + hash.slice(0, 2) + '/' + hash /* {headers: {range: `bytes=0-${size-1}`}} */)
     // save file
     const file = await r.blob()
     fs.mkdirSync(path.dirname(savePath), { recursive: true })
@@ -108,9 +119,13 @@ const downloadAllSoundsAndCreateMap = async () => {
     }
     console.log(version, 'have to download', assets.length, 'sounds')
     for (let i = 0; i < assets.length; i += 5) {
-      await Promise.all(assets.slice(i, i + 5).map((asset, j) => downloadSound(asset, `${addPath}${asset.name}`, () => {
-        console.log('downloading', addPath, asset.name, i + j, '/', assets.length)
-      })))
+      await Promise.all(
+        assets.slice(i, i + 5).map((asset, j) =>
+          downloadSound(asset, `${addPath}${asset.name}`, () => {
+            console.log('downloading', addPath, asset.name, i + j, '/', assets.length)
+          })
+        )
+      )
     }
   }
 
@@ -125,7 +140,14 @@ const lightpackOverrideSounds = {
 }
 
 // this is not done yet, will be used to select only sounds for bundle (most important ones)
-const isSoundWhitelisted = (name) => name.startsWith('random/') || name.startsWith('note/') || name.endsWith('/say1') || name.endsWith('/death') || (name.startsWith('mob/') && name.endsWith('/step1')) || name.endsWith('/swoop1') || /* name.endsWith('/break1') || */ name.endsWith('dig/stone1')
+const isSoundWhitelisted = name =>
+  name.startsWith('random/') ||
+  name.startsWith('note/') ||
+  name.endsWith('/say1') ||
+  name.endsWith('/death') ||
+  (name.startsWith('mob/') && name.endsWith('/step1')) ||
+  name.endsWith('/swoop1') ||
+  /* name.endsWith('/break1') || */ name.endsWith('dig/stone1')
 
 // const ffmpeg = 'C:/Users/Vitaly/Documents/LosslessCut-win-x64/resources/ffmpeg.exe' // can be ffmpeg-static
 const ffmpegExec = 'ffmpeg'
@@ -144,12 +166,14 @@ const scanFilesDeep = async (root, onOggFile) => {
 
 const convertSounds = async () => {
   const toConvert = []
-  await scanFilesDeep('generated/sounds', (oggPath) => {
+  await scanFilesDeep('generated/sounds', oggPath => {
     toConvert.push(oggPath)
   })
 
-  const convertSound = async (i) => {
-    const proc = promisify(exec)(`${ffmpegExec} -i "${toConvert[i]}" -y -codec:a libmp3lame ${maintainBitrate ? '-qscale:a 2' : ''} "${toConvert[i].replace('.ogg', '.mp3')}"`)
+  const convertSound = async i => {
+    const proc = promisify(exec)(
+      `${ffmpegExec} -i "${toConvert[i]}" -y -codec:a libmp3lame ${maintainBitrate ? '-qscale:a 2' : ''} "${toConvert[i].replace('.ogg', '.mp3')}"`
+    )
     // pipe stdout to the console
     //@ts-ignore
     proc.child.stdout.pipe(process.stdout)
@@ -163,14 +187,14 @@ const convertSounds = async () => {
   }
 }
 
-const getSoundsMap = (burgerData) => {
+const getSoundsMap = burgerData => {
   /** @type {Record<string, {id, name, sounds?: {name, weight?,volume?}[], subtitle?: string }>} */
   return burgerData[0].sounds
   // const map = JSON.parse(fs.readFileSync(burgerDataPath, 'utf8'))[0].sounds
 }
 
 const writeSoundsMap = async () => {
-  const burgerData = await fetch(burgerDataUrl(targetedVersions[0])).then((r) => r.json())
+  const burgerData = await fetch(burgerDataUrl(targetedVersions[0])).then(r => r.json())
   fs.writeFileSync(burgerDataPath, JSON.stringify(burgerData[0].sounds), 'utf8')
 
   const allSoundsMapOutput = {}
@@ -183,22 +207,28 @@ const writeSoundsMap = async () => {
   for (const targetedVersion of [...localTargetedVersions].reverse()) {
     console.log('Processing version', targetedVersion)
 
-    const burgerData = await fetch(burgerDataUrl(targetedVersion)).then((r) => r.json()).catch((err) => {
-      // console.error('error fetching burger data', targetedVersion, err)
-      return null
-    })
+    const burgerData = await fetch(burgerDataUrl(targetedVersion))
+      .then(r => r.json())
+      .catch(err => {
+        // console.error('error fetching burger data', targetedVersion, err)
+        return null
+      })
     /** @type {{sounds: string[]}} */
-    const mappingJson = await fetch(`https://raw.githubusercontent.com/ViaVersion/Mappings/7a45c1f9dbc1f1fdadacfecdb205ba84e55766fc/mappings/mapping-${targetedVersion}.json`).then(async (r) => {
-      return r.json()
-      // lastMappingsJson = r.status === 404 ? lastMappingsJson : (await r.json())
-      // if (r.status === 404) {
-      //   console.warn('using prev mappings json for ' + targetedVersion)
-      // }
-      // return lastMappingsJson
-    }).catch((err) => {
-      // console.error('error fetching mapping json', targetedVersion, err)
-      return null
-    })
+    const mappingJson = await fetch(
+      `https://raw.githubusercontent.com/ViaVersion/Mappings/7a45c1f9dbc1f1fdadacfecdb205ba84e55766fc/mappings/mapping-${targetedVersion}.json`
+    )
+      .then(async r => {
+        return r.json()
+        // lastMappingsJson = r.status === 404 ? lastMappingsJson : (await r.json())
+        // if (r.status === 404) {
+        //   console.warn('using prev mappings json for ' + targetedVersion)
+        // }
+        // return lastMappingsJson
+      })
+      .catch(err => {
+        // console.error('error fetching mapping json', targetedVersion, err)
+        return null
+      })
     // if (!mappingJson) throw new Error('no initial mapping json for ' + targetedVersion)
     if (burgerData && !mappingJson) {
       console.warn('has burger but no mapping json for ' + targetedVersion)
@@ -232,7 +262,7 @@ const writeSoundsMap = async () => {
       //   continue
       // }
       let outputUseSoundLine = []
-      const minWeight = sounds.reduce((acc, cur) => cur.weight ? Math.min(acc, cur.weight) : acc, sounds[0].weight ?? 1)
+      const minWeight = sounds.reduce((acc, cur) => (cur.weight ? Math.min(acc, cur.weight) : acc), sounds[0].weight ?? 1)
       if (isNaN(minWeight)) debugger
       for (const sound of sounds) {
         if (sound.weight && isNaN(sound.weight)) debugger
@@ -293,9 +323,9 @@ const makeSoundsBundle = async () => {
       contents: `window.allSoundsMap = ${JSON.stringify(allSoundsMap)}\nwindow.allSoundsVersionedMap = ${JSON.stringify(allSoundsVersionedMap)}\nwindow.allSoundsMeta = ${JSON.stringify(allSoundsMeta)}`,
       resolveDir: __dirname,
       sourcefile: `sounds.js`,
-      loader: 'js',
+      loader: 'js'
     },
-    metafile: true,
+    metafile: true
   })
   // copy also to generated/sounds.js
   fs.copyFileSync('./dist/sounds.js', './generated/sounds.js')
@@ -307,7 +337,7 @@ if (action) {
     download: downloadAllSoundsAndCreateMap,
     convert: convertSounds,
     write: writeSoundsMap,
-    bundle: makeSoundsBundle,
+    bundle: makeSoundsBundle
   }[action]
 
   if (execFn) {

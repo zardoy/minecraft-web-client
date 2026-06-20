@@ -14,7 +14,7 @@ globalThis.gamepadUiCursorState = gamepadUiCursorState
 
 export const moveGamepadCursorByPx = (value: number, isX: boolean) => {
   value *= gamepadUiCursorState.multiply * 3
-  const valueToPercentage = value / (isX ? window.innerWidth : window.innerHeight) * 100
+  const valueToPercentage = (value / (isX ? window.innerWidth : window.innerHeight)) * 100
   gamepadUiCursorState[isX ? 'x' : 'y'] += valueToPercentage
 }
 
@@ -35,7 +35,9 @@ export default () => {
 
   if (!doDisplay) return null
 
-  return <SharedHudVars>
-    <div className={styles.crosshair} style={{ left: `${x}%`, top: `${y}%` }} />
-  </SharedHudVars>
+  return (
+    <SharedHudVars>
+      <div className={styles.crosshair} style={{ left: `${x}%`, top: `${y}%` }} />
+    </SharedHudVars>
+  )
 }

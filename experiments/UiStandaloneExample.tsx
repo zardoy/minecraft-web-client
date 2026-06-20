@@ -1,18 +1,6 @@
 import React, { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import {
-  Button,
-  Slider,
-  ArmorBar,
-  BreathBar,
-  Chat,
-  HealthBar,
-  PlayerListOverlay,
-  Scoreboard,
-  MessageFormattedString,
-  XPBar,
-  FoodBar
-} from '../dist-npm'
+import { Button, Slider, ArmorBar, BreathBar, Chat, HealthBar, PlayerListOverlay, Scoreboard, MessageFormattedString, XPBar, FoodBar } from '../dist-npm'
 
 const ExampleDemo = () => {
   const [sliderValue, setSliderValue] = useState(0)
@@ -25,7 +13,7 @@ const ExampleDemo = () => {
       <Chat
         messages={[
           { id: 0, parts: [{ text: 'A formmated message in the chat', color: 'blue' }] },
-          { id: 1, parts: [{ text: 'An other message in the chat', color: 'red' }] },
+          { id: 1, parts: [{ text: 'An other message in the chat', color: 'red' }] }
         ]}
         usingTouch={false}
         opened
@@ -39,7 +27,7 @@ const ExampleDemo = () => {
       <FoodBar food={10} />
       <PlayerListOverlay
         style={{
-          position: 'static',
+          position: 'static'
         }}
         clientId="" // needed for current player highlight
         serverIP="Server IP"
@@ -49,8 +37,8 @@ const ExampleDemo = () => {
           [
             { username: 'Player 1', ping: 10, uuid: undefined },
             { username: 'Player 2', ping: 20, uuid: undefined },
-            { username: 'Player 3', ping: 30, uuid: undefined },
-          ],
+            { username: 'Player 3', ping: 30, uuid: undefined }
+          ]
         ]}
       />
       "§bRed" displays as <MessageFormattedString message="§bRed" />
@@ -60,7 +48,7 @@ const ExampleDemo = () => {
         items={[
           { name: 'Player 1', value: 10 },
           { name: 'Player 2', value: 20 },
-          { name: 'Player 3', value: 30 },
+          { name: 'Player 3', value: 30 }
         ]}
       />
       <XPBar gamemode="survival" level={10} progress={0.5} />

@@ -14,7 +14,7 @@ export default () => {
     zIndex: 10_000,
     background: 'rgba(0, 0, 255, 0.5)',
     border: '2px solid red',
-    whiteSpace: 'pre',
+    whiteSpace: 'pre'
   }
   let text = ''
   if (mode === 0) {
@@ -50,14 +50,19 @@ export default () => {
     text = 'top 0 bottom 0 fixed 100dvh'
   }
 
-  return <div
-    style={styles}
-    onClick={() => {
-      setMode((mode + 1) % MODES_COUNT)
-    }}
-  >
-    {mode}: {text}{'\n'}
-    inner: {window.innerWidth}x{window.innerHeight}{'\n'}
-    outer: {window.outerWidth}x{window.outerHeight}{'\n'}
-  </div>
+  return (
+    <div
+      style={styles}
+      onClick={() => {
+        setMode((mode + 1) % MODES_COUNT)
+      }}
+    >
+      {mode}: {text}
+      {'\n'}
+      inner: {window.innerWidth}x{window.innerHeight}
+      {'\n'}
+      outer: {window.outerWidth}x{window.outerHeight}
+      {'\n'}
+    </div>
+  )
 }

@@ -2,14 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import { useSnapshot } from 'valtio'
-import {
-  TextureProvider,
-  ScaleProvider,
-  InventoryProvider,
-  InventoryWindow,
-  createMineflayerConnector,
-  type MineflayerBot,
-} from 'minecraft-inventory/src'
+import { TextureProvider, ScaleProvider, InventoryProvider, InventoryWindow, createMineflayerConnector, type MineflayerBot } from 'minecraft-inventory/src'
 import { activeModalStack, miscUiState } from '../globalState'
 import { useAppScale } from '../scaleInterface'
 import { getItemNameRaw } from '../mineflayer/items'
@@ -29,12 +22,12 @@ const ItemName = ({ itemKey }: { itemKey: string }) => {
 
   const defaultStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: `calc(env(safe-area-inset-bottom) + ${bot ? bot.game.gameMode === 'creative' ? '40px' : '50px' : '50px'})`,
+    bottom: `calc(env(safe-area-inset-bottom) + ${bot ? (bot.game.gameMode === 'creative' ? '40px' : '50px') : '50px'})`,
     left: 0,
     right: 0,
     fontSize: 10,
     textAlign: 'center',
-    pointerEvents: 'none',
+    pointerEvents: 'none'
   }
 
   useEffect(() => {
@@ -69,7 +62,7 @@ const ItemName = ({ itemKey }: { itemKey: string }) => {
             exit={{ opacity: 0 }}
             transition={{ duration }}
             style={defaultStyle}
-            className='item-display-name'
+            className="item-display-name"
           >
             <MessageFormattedString message={itemName} />
           </motion.div>
@@ -92,12 +85,12 @@ const HotbarInner = () => {
   const connector = useMemo(() => {
     return createMineflayerConnector(bot as MineflayerBot, {
       itemMapper: buildItemMapper(bot.version),
-      hotbarOnly: true,
+      hotbarOnly: true
     })
   }, [textureVersion])
 
   useEffect(() => {
-    return connector.subscribe((event) => {
+    return connector.subscribe(event => {
       if (event.type === 'windowOpen') {
         openPlayerInventory()
       }
@@ -119,26 +112,34 @@ const HotbarInner = () => {
     heldItemChanged() // initial call
     bot.on('heldItemChanged' as any, heldItemChanged)
 
-    document.addEventListener('wheel', (e) => {
-      if (!isInRealGameSession()) return
-      e.preventDefault()
-      const newSlot = ((bot.quickBarSlot + Math.sign(e.deltaY)) % 9 + 9) % 9
-      if (newSlot !== bot.quickBarSlot) bot.setQuickBarSlot(newSlot)
-    }, {
-      passive: false,
-      signal: controller.signal,
-    })
+    document.addEventListener(
+      'wheel',
+      e => {
+        if (!isInRealGameSession()) return
+        e.preventDefault()
+        const newSlot = (((bot.quickBarSlot + Math.sign(e.deltaY)) % 9) + 9) % 9
+        if (newSlot !== bot.quickBarSlot) bot.setQuickBarSlot(newSlot)
+      },
+      {
+        passive: false,
+        signal: controller.signal
+      }
+    )
 
-    document.addEventListener('keydown', (e) => {
-      if (!isInRealGameSession()) return
-      const numPressed = +((/Digit(\d)/.exec(e.code))?.[1] ?? -1)
-      if (numPressed < 1 || numPressed > 9) return
-      const newSlot = numPressed - 1
-      if (newSlot !== bot.quickBarSlot) bot.setQuickBarSlot(newSlot)
-    }, {
-      passive: false,
-      signal: controller.signal,
-    })
+    document.addEventListener(
+      'keydown',
+      e => {
+        if (!isInRealGameSession()) return
+        const numPressed = +(/Digit(\d)/.exec(e.code)?.[1] ?? -1)
+        if (numPressed < 1 || numPressed > 9) return
+        const newSlot = numPressed - 1
+        if (newSlot !== bot.quickBarSlot) bot.setQuickBarSlot(newSlot)
+      },
+      {
+        passive: false,
+        signal: controller.signal
+      }
+    )
 
     const refresh = () => {
       clearInventoryCaches()
@@ -155,47 +156,50 @@ const HotbarInner = () => {
     }
   }, [])
 
-  return <SharedHudVars>
-    <ItemName itemKey={itemKey} />
-    <Portal>
-      <div
-        className='hotbar-fullscreen-container'
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          zIndex: hasModals ? 1 : 8,
-          display: 'flex',
-          justifyContent: 'center',
-          pointerEvents: 'none',
-        }}>
+  return (
+    <SharedHudVars>
+      <ItemName itemKey={itemKey} />
+      <Portal>
         <div
-          className='hotbar'
+          className="hotbar-fullscreen-container"
           style={{
-            position: 'absolute',
-            pointerEvents: isMobile ? 'auto' : 'none',
-            bottom: 'var(--hud-bottom-raw)',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: hasModals ? 1 : 8,
+            display: 'flex',
+            justifyContent: 'center',
+            pointerEvents: 'none'
           }}
         >
-          <TextureProvider config={textureConfig}>
-            <ScaleProvider scale={appScale}>
-              <InventoryProvider connector={connector}>
-                <InventoryWindow
-                  type="hotbar"
-                  properties={{
-                    showOffhand: supportsOffhand ? 1 : 0,
-                    container: isMobile ? 1 : 0,
-                  }}
-                />
-              </InventoryProvider>
-            </ScaleProvider>
-          </TextureProvider>
+          <div
+            className="hotbar"
+            style={{
+              position: 'absolute',
+              pointerEvents: isMobile ? 'auto' : 'none',
+              bottom: 'var(--hud-bottom-raw)'
+            }}
+          >
+            <TextureProvider config={textureConfig}>
+              <ScaleProvider scale={appScale}>
+                <InventoryProvider connector={connector}>
+                  <InventoryWindow
+                    type="hotbar"
+                    properties={{
+                      showOffhand: supportsOffhand ? 1 : 0,
+                      container: isMobile ? 1 : 0
+                    }}
+                  />
+                </InventoryProvider>
+              </ScaleProvider>
+            </TextureProvider>
+          </div>
         </div>
-      </div>
-    </Portal>
-  </SharedHudVars>
+      </Portal>
+    </SharedHudVars>
+  )
 }
 
 export default () => {
@@ -203,7 +207,9 @@ export default () => {
   useEffect(() => {
     const onGame = () => setGameMode(bot.game.gameMode)
     bot.on('game', onGame)
-    return () => { bot.off('game', onGame) }
+    return () => {
+      bot.off('game', onGame)
+    }
   }, [])
   return gameMode === 'spectator' ? null : <HotbarInner />
 }

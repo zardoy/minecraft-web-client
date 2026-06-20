@@ -31,7 +31,7 @@ window.addEventListener('drop', async e => {
   const { items } = e.dataTransfer
   const item = items[0]
   if (item.getAsFileSystemHandle) {
-    const filehandle = await item.getAsFileSystemHandle() as FileSystemFileHandle | FileSystemDirectoryHandle
+    const filehandle = (await item.getAsFileSystemHandle()) as FileSystemFileHandle | FileSystemDirectoryHandle
     if (filehandle.kind === 'file') {
       const file = await filehandle.getFile()
 
@@ -48,7 +48,7 @@ window.addEventListener('drop', async e => {
   }
 })
 
-async function handleDroppedFile (file: File) {
+async function handleDroppedFile(file: File) {
   // Check for image files first when game is active
   if (isGameActive(false) && VALID_IMAGE_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext))) {
     try {
@@ -120,7 +120,7 @@ async function handleDroppedFile (file: File) {
         }
       }
       Object.defineProperty(chunks, 'simplified', {
-        get () {
+        get() {
           const mapped = {}
           for (const [i, _] of Array.from({ length: 32 }).entries()) {
             for (const [k, _] of Array.from({ length: 32 }).entries()) {
@@ -131,7 +131,7 @@ async function handleDroppedFile (file: File) {
             }
           }
           return mapped
-        },
+        }
       })
       console.log('Done!', chunks)
     } finally {
@@ -141,8 +141,8 @@ async function handleDroppedFile (file: File) {
   }
 
   const buffer = await file.arrayBuffer()
-  const parsed = await parseNbt(Buffer.from(buffer)).catch((err) => {
-    alert('Couldn\'t parse nbt, ensure you are opening .dat or file (or .zip/folder with a world)')
+  const parsed = await parseNbt(Buffer.from(buffer)).catch(err => {
+    alert("Couldn't parse nbt, ensure you are opening .dat or file (or .zip/folder with a world)")
     throw err
   })
   showNotification(`${file.name} data available in browser console`)

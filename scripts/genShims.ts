@@ -6,7 +6,8 @@ fs.mkdirSync('./generated', { recursive: true })
 // app resources
 
 let headerImports = ''
-let resourcesContent = 'export const appReplacableResources: { [key in Keys]: { content: any, resourcePackPath: string, cssVar?: string, cssVarRepeat?: number } } = {\n'
+let resourcesContent =
+  'export const appReplacableResources: { [key in Keys]: { content: any, resourcePackPath: string, cssVar?: string, cssVarRepeat?: number } } = {\n'
 let resourcesContentOriginal = 'export const resourcesContentOriginal = {\n'
 const keys = [] as string[]
 
@@ -22,7 +23,11 @@ for (const resource of appReplacableResources) {
   resourcesContent += `
   '${name}': {
     content: ${name},
-    resourcePackPath: 'minecraft/textures/${path.slice(path.indexOf('other-textures/') + 'other-textures/'.length).split('/').slice(1).join('/')}',
+    resourcePackPath: 'minecraft/textures/${path
+      .slice(path.indexOf('other-textures/') + 'other-textures/'.length)
+      .split('/')
+      .slice(1)
+      .join('/')}',
     ...${JSON.stringify(rest)}
   },
 `

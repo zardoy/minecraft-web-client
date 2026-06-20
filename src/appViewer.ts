@@ -97,7 +97,7 @@ subscribe(activeModalStack, modalStackUpdateChecks)
 
 const connectAppWorldViewToBot = () => {
   const entitiesObjectData = new Map<string, number>()
-  bot._client.prependListener('spawn_entity', (data) => {
+  bot._client.prependListener('spawn_entity', data => {
     if (data.objectData && data.entityId !== undefined) {
       entitiesObjectData.set(data.entityId, data.objectData)
     }
@@ -117,30 +117,30 @@ const connectAppWorldViewToBot = () => {
       ...e,
       pos: e.position,
       username: e.username,
-      team: bot.teamMap[e.username] || bot.teamMap[e.uuid],
+      team: bot.teamMap[e.username] || bot.teamMap[e.uuid]
     })
   }
 
   const eventListeners = {
-    entitySpawn (e: any) {
+    entitySpawn(e: any) {
       if (e.name === 'item_frame' || e.name === 'glow_item_frame') {
         e.position.translate(0.5, 0.5, 0.5)
       }
       emitEntity(e)
     },
-    entityUpdate (e: any) {
+    entityUpdate(e: any) {
       emitEntity(e)
     },
-    entityEquip (e: any) {
+    entityEquip(e: any) {
       emitEntity(e)
     },
-    entityMoved (e: any) {
+    entityMoved(e: any) {
       emitEntity(e, 'entityMoved')
     },
-    entityGone (e: any) {
+    entityGone(e: any) {
       appViewer.worldView?.emit('entity', { id: e.id, delete: true })
     },
-    chunkColumnLoad (pos: Vec3) {
+    chunkColumnLoad(pos: Vec3) {
       const now = performance.now()
       if (appViewer.worldView?.lastChunkReceiveTime) {
         appViewer.worldView.chunkReceiveTimes.push(now - appViewer.worldView.lastChunkReceiveTime)
@@ -157,30 +157,29 @@ const connectAppWorldViewToBot = () => {
       }
       appViewer.worldView?.chunkProgress()
     },
-    chunkColumnUnload (pos: Vec3) {
+    chunkColumnUnload(pos: Vec3) {
       appViewer.worldView?.unloadChunk(pos)
     },
-    blockUpdate (oldBlock: any, newBlock: any) {
-      const stateId = newBlock.stateId ?? ((newBlock.type << 4) | newBlock.metadata)
+    blockUpdate(oldBlock: any, newBlock: any) {
+      const stateId = newBlock.stateId ?? (newBlock.type << 4) | newBlock.metadata
       appViewer.worldView?.emit('blockUpdate', { pos: oldBlock.position, stateId })
     },
-    time () {
+    time() {
       appViewer.worldView?.emit('time', bot.time.timeOfDay)
     },
-    end () {
+    end() {
       appViewer.worldView?.emit('end')
     },
-    login () {
+    login() {
       void appViewer.worldView?.updatePosition(bot.entity.position, true)
       appViewer.worldView?.emit('playerEntity', bot.entity)
     },
-    respawn () {
+    respawn() {
       void appViewer.worldView?.updatePosition(bot.entity.position, true)
       appViewer.worldView?.emit('playerEntity', bot.entity)
       appViewer.worldView?.emit('onWorldSwitch')
-    },
+    }
   } satisfies Partial<BotEvents>
-
 
   bot._client.on('update_light', ({ chunkX, chunkZ }) => {
     const key = updateLightRemeshBlockKey(chunkX, chunkZ)

@@ -6,7 +6,7 @@ import { useUiMotion } from './uiMotion'
 import PixelartIcon from './PixelartIcon'
 
 export const mineflayerPluginHudState = proxy({
-  ui: [] as Array<UIDefinition & { id: string }>,
+  ui: [] as Array<UIDefinition & { id: string }>
 })
 
 type TextPart = { type: 'text'; content: string } | { type: 'icon'; iconName: string }
@@ -77,7 +77,11 @@ const TextElement = ({ text, x, y, motion = true, formatted = true, css = '', on
         {parts.map((part, index) => (
           <Fragment key={index}>
             {part.type === 'text' ? (
-              formatted ? <MessageFormattedString message={part.content} /> : part.content
+              formatted ? (
+                <MessageFormattedString message={part.content} />
+              ) : (
+                part.content
+              )
             ) : (
               <PixelartIcon iconName={part.iconName} width={12} styles={{ display: 'inline-block' }} />
             )}
@@ -108,7 +112,7 @@ export default () => {
   const { ui } = useSnapshot(mineflayerPluginHudState)
 
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} className='mineflayer-plugin-hud'>
+    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} className="mineflayer-plugin-hud">
       {ui.map((element, index) => {
         if (element.type === 'lil') return null // Handled elsewhere
         if (element.type === 'text') return <TextElement key={index} {...element} />

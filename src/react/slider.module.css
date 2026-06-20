@@ -1,115 +1,115 @@
 .slider-container {
-    --txrV: -46px;
-    position: relative;
-    width: 150px;
-    height: 20px;
-    font-family: minecraft, mojangles, monospace;
-    font-size: 10px;
-    color: white;
-    text-shadow: 1px 1px #220;
-    z-index: 1;
+  --txrV: -46px;
+  position: relative;
+  width: 150px;
+  height: 20px;
+  font-family: minecraft, mojangles, monospace;
+  font-size: 10px;
+  color: white;
+  text-shadow: 1px 1px #220;
+  z-index: 1;
 }
 
 .slider-thumb {
-    --txrV: -66px;
-    pointer-events: none;
-    width: 8px;
-    height: 20px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 3;
+  --txrV: -66px;
+  pointer-events: none;
+  width: 8px;
+  height: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
 }
 
-.slider-container:hover .slider:not(:disabled)~.slider-thumb {
-    --txrV: -86px;
+.slider-container:hover .slider:not(:disabled) ~ .slider-thumb {
+  --txrV: -86px;
 }
 
 .slider-container::after,
 .slider-thumb::after {
-    content: '';
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 50%;
-    height: 20px;
-    background: var(--widgets-gui-atlas);
-    background-size: 256px;
-    background-position-y: var(--txrV);
-    z-index: -1;
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 20px;
+  background: var(--widgets-gui-atlas);
+  background-size: 256px;
+  background-position-y: var(--txrV);
+  z-index: -1;
 }
 
 .slider-container::before,
 .slider-thumb::before {
-    content: '';
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 50%;
-    height: 20px;
-    background: var(--widgets-gui-atlas);
-    background-size: 256px;
-    background-position-x: calc(-200px + 100%);
-    background-position-y: var(--txrV);
-    z-index: -1;
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 20px;
+  background: var(--widgets-gui-atlas);
+  background-size: 256px;
+  background-position-x: calc(-200px + 100%);
+  background-position-y: var(--txrV);
+  z-index: -1;
 }
 
 .slider {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    -webkit-appearance: none;
-    appearance: none;
-    background: none;
-    width: 100%;
-    height: 20px;
-    margin: 0;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  width: 100%;
+  height: 20px;
+  margin: 0;
 }
 
 .slider:disabled {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 
-.slider~.disabled {
-    display: none;
+.slider ~ .disabled {
+  display: none;
 }
 
 /* .disabled after .slider selector */
-.slider:disabled~.disabled {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-    background: rgba(0, 0, 0, .5);
+.slider:disabled ~ .disabled {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    position: relative;
-    appearance: none;
-    width: 8px;
-    height: 20px;
-    background: transparent;
+  -webkit-appearance: none;
+  position: relative;
+  appearance: none;
+  width: 8px;
+  height: 20px;
+  background: transparent;
 }
 
 .slider::-moz-range-thumb {
-    width: 8px;
-    height: 20px;
-    background: transparent;
+  width: 8px;
+  height: 20px;
+  background: transparent;
 }
 
 .label {
-    pointer-events: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 6;
-    width: max-content;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  width: max-content;
 }

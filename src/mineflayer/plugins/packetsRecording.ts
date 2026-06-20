@@ -22,7 +22,7 @@ export const localRelayServerPlugin = (bot: Bot) => {
   bot.loadPlugin(
     viewerConnector({
       tcpEnabled: false,
-      websocketEnabled: false,
+      websocketEnabled: false
     })
   )
 
@@ -45,7 +45,7 @@ export const localRelayServerPlugin = (bot: Bot) => {
 
   let logger: PacketsLogger | undefined
   bot.startPacketsRecording = () => {
-    bot.webViewer._unstable.startRecording((l) => {
+    bot.webViewer._unstable.startRecording(l => {
       logger = l
     })
   }
@@ -70,7 +70,7 @@ export const localRelayServerPlugin = (bot: Bot) => {
         isFromClient: true,
         isUpcoming: false,
         position: position++,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       })
       packetsReplayState.progress.current++
     }
@@ -85,7 +85,7 @@ export const localRelayServerPlugin = (bot: Bot) => {
         isFromClient: false,
         isUpcoming: false,
         position: position++,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       })
       packetsReplayState.progress.total++
     }
@@ -99,7 +99,7 @@ export const localRelayServerPlugin = (bot: Bot) => {
       isUpcoming: false,
       position: position++,
       timestamp: Date.now(),
-      isCustomChannel: true,
+      isCustomChannel: true
     })
     oldWriteChannel(channel, params)
   }

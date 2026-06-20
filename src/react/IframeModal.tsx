@@ -59,7 +59,6 @@ export default () => {
     }
   }, [id, url])
 
-
   const handleConsent = () => {
     if (!domain) return
     addConsent(serverIp ?? '', domain)
@@ -68,44 +67,38 @@ export default () => {
 
   if (!isModalActive) return null
 
-  return <div className="iframe-modal-container">
-    <div className="iframe-modal-close">
-      <PixelartIcon
-        iconName={pixelartIcons.close}
-        width={26}
-        onClick={() => {
-          hideModal()
-        }}
-      />
-    </div>
-    {title && (
-      <div className="iframe-modal-title">
-        {title}
-      </div>
-    )}
-    <div className="iframe-modal-wrapper">
-      {showConsentScreen ? (
-        <div className="iframe-consent-screen">
-          <div className="iframe-consent-content" style={{ transform: `scale(${scale})` }}>
-            <div className="iframe-consent-message">
-              Allow <strong>{serverIp}</strong> to open for you <strong>{domain}</strong>?
-            </div>
-            <Button
-              label="Open Page"
-              onClick={handleConsent}
-              className="iframe-consent-button"
-            />
-          </div>
-        </div>
-      ) : (
-        <iframe
-          src={url}
-          className="iframe-modal-iframe"
-          allow="*"
-          allowFullScreen
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads allow-modals allow-orientation-lock allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
+  return (
+    <div className="iframe-modal-container">
+      <div className="iframe-modal-close">
+        <PixelartIcon
+          iconName={pixelartIcons.close}
+          width={26}
+          onClick={() => {
+            hideModal()
+          }}
         />
-      )}
+      </div>
+      {title && <div className="iframe-modal-title">{title}</div>}
+      <div className="iframe-modal-wrapper">
+        {showConsentScreen ? (
+          <div className="iframe-consent-screen">
+            <div className="iframe-consent-content" style={{ transform: `scale(${scale})` }}>
+              <div className="iframe-consent-message">
+                Allow <strong>{serverIp}</strong> to open for you <strong>{domain}</strong>?
+              </div>
+              <Button label="Open Page" onClick={handleConsent} className="iframe-consent-button" />
+            </div>
+          </div>
+        ) : (
+          <iframe
+            src={url}
+            className="iframe-modal-iframe"
+            allow="*"
+            allowFullScreen
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads allow-modals allow-orientation-lock allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
+          />
+        )}
+      </div>
     </div>
-  </div>
+  )
 }

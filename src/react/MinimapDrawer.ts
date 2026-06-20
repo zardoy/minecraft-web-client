@@ -12,7 +12,7 @@ export type MapUpdates = {
 export interface DrawerAdapter extends TypedEventEmitter<MapUpdates> {
   getHighestBlockY: (x: number, z: number, chunk?: Chunk) => number
   clearChunksStore: (x: number, z: number) => void
-  chunksStore: Map<string, undefined | null | 'requested' | ChunkInfo >
+  chunksStore: Map<string, undefined | null | 'requested' | ChunkInfo>
   playerPosition: Vec3
   warps: WorldWarp[]
   loadingChunksQueue: Set<string>
@@ -27,8 +27,8 @@ export interface DrawerAdapter extends TypedEventEmitter<MapUpdates> {
 }
 
 export type ChunkInfo = {
-  heightmap: Int16Array | Uint8Array,
-  colors: string[],
+  heightmap: Int16Array | Uint8Array
+  colors: string[]
 }
 
 export class MinimapDrawer {
@@ -45,11 +45,11 @@ export class MinimapDrawer {
   yaw: number
   _full = false
 
-  constructor (
+  constructor(
     public loadChunk: undefined | ((key: string) => Promise<void>),
     public warps: WorldWarp[],
     public loadingChunksQueue: undefined | Set<string>,
-    public chunksStore: Map<string, undefined | null | 'requested' | ChunkInfo >
+    public chunksStore: Map<string, undefined | null | 'requested' | ChunkInfo>
   ) {
     this.loadChunk = loadChunk
     this.warps = warps
@@ -57,7 +57,7 @@ export class MinimapDrawer {
     this.chunksStore = chunksStore
   }
 
-  setMapPixel () {
+  setMapPixel() {
     if (this.full) {
       this.radius = Math.floor(Math.min(this.canvas.width, this.canvas.height) / 2)
       this._mapSize = 16
@@ -65,23 +65,23 @@ export class MinimapDrawer {
       this.radius = Math.floor(Math.min(this.canvas.width, this.canvas.height) / 2.2)
       this._mapSize = this.radius * 2
     }
-    this.mapPixel = Math.floor(this.radius * 2 / this.mapSize)
+    this.mapPixel = Math.floor((this.radius * 2) / this.mapSize)
   }
 
-  get full () {
+  get full() {
     return this._full
   }
 
-  set full (full: boolean) {
+  set full(full: boolean) {
     this._full = full
     this.setMapPixel()
   }
 
-  get canvas () {
+  get canvas() {
     return this._canvas
   }
 
-  set canvas (canvas: HTMLCanvasElement) {
+  set canvas(canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d', { willReadFrequently: true })!
     this.ctx.imageSmoothingEnabled = false
     this.canvasWidthCenterX = canvas.width / 2
@@ -90,17 +90,17 @@ export class MinimapDrawer {
     this.setMapPixel()
   }
 
-  get mapSize () {
+  get mapSize() {
     return this._mapSize
   }
 
-  set mapSize (mapSize: number) {
+  set mapSize(mapSize: number) {
     this._mapSize = mapSize
-    this.mapPixel = Math.floor(this.radius * 2 / this.mapSize)
+    this.mapPixel = Math.floor((this.radius * 2) / this.mapSize)
     this.draw(this.lastBotPos)
   }
 
-  draw (botPos: Vec3,) {
+  draw(botPos: Vec3) {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
     this.lastBotPos = botPos
@@ -115,7 +115,7 @@ export class MinimapDrawer {
     if (!this.full) this.drawPartsOfWorld()
   }
 
-  updateChunksInView (viewX?: number, viewZ?: number) {
+  updateChunksInView(viewX?: number, viewZ?: number) {
     const worldCenterX = viewX ?? this.lastBotPos.x
     const worldCenterZ = viewZ ?? this.lastBotPos.z
 
@@ -133,7 +133,7 @@ export class MinimapDrawer {
     }
   }
 
-  drawChunk (key: string, chunkInfo?: ChunkInfo | null) {
+  drawChunk(key: string, chunkInfo?: ChunkInfo | null) {
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
@@ -158,67 +158,49 @@ export class MinimapDrawer {
     }
   }
 
-  drawPixel (pixelX: number, pixelY: number, color: string) {
+  drawPixel(pixelX: number, pixelY: number, color: string) {
     if (!this.full && Math.hypot(pixelX - this.canvasWidthCenterX, pixelY - this.canvasWidthCenterY) > this.radius) {
       this.ctx.clearRect(pixelX, pixelY, this.mapPixel, this.mapPixel)
       return
     }
     this.ctx.fillStyle = color
-    this.ctx.fillRect(
-      pixelX,
-      pixelY,
-      this.mapPixel,
-      this.mapPixel
-    )
+    this.ctx.fillRect(pixelX, pixelY, this.mapPixel, this.mapPixel)
   }
 
-  clearChunksStore () {
+  clearChunksStore() {
     for (const key of this.chunksStore.keys()) {
       const [x, z] = key.split(',').map(x => Number(x) * 16)
-      if (Math.hypot((this.lastBotPos.x - x), (this.lastBotPos.z - z)) > this.radius * 5) {
+      if (Math.hypot(this.lastBotPos.x - x, this.lastBotPos.z - z) > this.radius * 5) {
         this.chunksStore.delete(key)
       }
     }
   }
 
-  setWarpPosOnClick (mousePos: Vec3) {
+  setWarpPosOnClick(mousePos: Vec3) {
     this.lastWarpPos = new Vec3(mousePos.x, mousePos.y, mousePos.z)
   }
 
-  drawWarps (centerPos?: Vec3) {
+  drawWarps(centerPos?: Vec3) {
     for (const warp of this.warps) {
       if (!this.full) {
-        const distance = Math.hypot(
-          centerPos?.x ?? this.lastBotPos.x - warp.x,
-          centerPos?.z ?? this.lastBotPos.z - warp.z
-        )
+        const distance = Math.hypot(centerPos?.x ?? this.lastBotPos.x - warp.x, centerPos?.z ?? this.lastBotPos.z - warp.z)
         if (distance > this.mapSize) continue
       }
       const offset = this.full ? 0 : this.radius * 0.1
-      const z = Math.floor(
-        (this.mapSize / 2 - (centerPos?.z ?? this.lastBotPos.z) + warp.z) * this.mapPixel
-      ) + offset
-      const x = Math.floor(
-        (this.mapSize / 2 - (centerPos?.x ?? this.lastBotPos.x) + warp.x) * this.mapPixel
-      ) + offset
+      const z = Math.floor((this.mapSize / 2 - (centerPos?.z ?? this.lastBotPos.z) + warp.z) * this.mapPixel) + offset
+      const x = Math.floor((this.mapSize / 2 - (centerPos?.x ?? this.lastBotPos.x) + warp.x) * this.mapPixel) + offset
       const dz = z - this.canvasWidthCenterX
       const dx = x - this.canvasWidthCenterY
       const circleDist = Math.hypot(dx, dz)
 
       const angle = Math.atan2(dz, dx)
-      const circleZ = circleDist > this.mapSize / 2 && !this.full ?
-        this.canvasWidthCenterX + this.mapSize / 2 * Math.sin(angle)
-        : z
-      const circleX = circleDist > this.mapSize / 2 && !this.full ?
-        this.canvasWidthCenterY + this.mapSize / 2 * Math.cos(angle)
-        : x
+      const circleZ = circleDist > this.mapSize / 2 && !this.full ? this.canvasWidthCenterX + (this.mapSize / 2) * Math.sin(angle) : z
+      const circleX = circleDist > this.mapSize / 2 && !this.full ? this.canvasWidthCenterY + (this.mapSize / 2) * Math.cos(angle) : x
       this.ctx.beginPath()
       this.ctx.arc(
         circleX,
         circleZ,
-        circleDist > this.mapSize / 2 && !this.full
-          ? this.mapPixel * 1.5
-          : this.full ? this.mapPixel : this.mapPixel * 2,
+        circleDist > this.mapSize / 2 && !this.full ? this.mapPixel * 1.5 : this.full ? this.mapPixel : this.mapPixel * 2,
         0,
         Math.PI * 2,
         false
@@ -226,13 +208,13 @@ export class MinimapDrawer {
       this.ctx.strokeStyle = 'black'
       this.ctx.lineWidth = this.mapPixel
       this.ctx.stroke()
-      this.ctx.fillStyle = warp.disabled ? 'rgba(255, 255, 255, 0.4)' : warp.color ?? '#d3d3d3'
+      this.ctx.fillStyle = warp.disabled ? 'rgba(255, 255, 255, 0.4)' : (warp.color ?? '#d3d3d3')
       this.ctx.fill()
       this.ctx.closePath()
     }
   }
 
-  drawPartsOfWorld () {
+  drawPartsOfWorld() {
     this.ctx.fillStyle = 'white'
     this.ctx.shadowOffsetX = 1
     this.ctx.shadowOffsetY = 1
@@ -243,62 +225,30 @@ export class MinimapDrawer {
     this.ctx.strokeStyle = 'black'
     this.ctx.lineWidth = 1
 
-    const angle = - Math.PI / 2
+    const angle = -Math.PI / 2
     const angleS = angle + Math.PI
-    const angleW = angle + Math.PI * 3 / 2
+    const angleW = angle + (Math.PI * 3) / 2
     const angleE = angle + Math.PI / 2
 
-    this.ctx.strokeText(
-      'N',
-      this.canvasWidthCenterX + this.radius * Math.cos(angle),
-      this.canvasWidthCenterY + this.radius * Math.sin(angle)
-    )
-    this.ctx.strokeText(
-      'S',
-      this.canvasWidthCenterX + this.radius * Math.cos(angleS),
-      this.canvasWidthCenterY + this.radius * Math.sin(angleS)
-    )
-    this.ctx.strokeText(
-      'W',
-      this.canvasWidthCenterX + this.radius * Math.cos(angleW),
-      this.canvasWidthCenterY + this.radius * Math.sin(angleW)
-    )
-    this.ctx.strokeText(
-      'E',
-      this.canvasWidthCenterX + this.radius * Math.cos(angleE),
-      this.canvasWidthCenterY + this.radius * Math.sin(angleE)
-    )
-    this.ctx.fillText(
-      'N',
-      this.canvasWidthCenterX + this.radius * Math.cos(angle),
-      this.canvasWidthCenterY + this.radius * Math.sin(angle)
-    )
-    this.ctx.fillText(
-      'S',
-      this.canvasWidthCenterX + this.radius * Math.cos(angleS),
-      this.canvasWidthCenterY + this.radius * Math.sin(angleS)
-    )
-    this.ctx.fillText(
-      'W',
-      this.canvasWidthCenterX + this.radius * Math.cos(angleW),
-      this.canvasWidthCenterY + this.radius * Math.sin(angleW)
-    )
-    this.ctx.fillText(
-      'E',
-      this.canvasWidthCenterX + this.radius * Math.cos(angleE),
-      this.canvasWidthCenterY + this.radius * Math.sin(angleE)
-    )
+    this.ctx.strokeText('N', this.canvasWidthCenterX + this.radius * Math.cos(angle), this.canvasWidthCenterY + this.radius * Math.sin(angle))
+    this.ctx.strokeText('S', this.canvasWidthCenterX + this.radius * Math.cos(angleS), this.canvasWidthCenterY + this.radius * Math.sin(angleS))
+    this.ctx.strokeText('W', this.canvasWidthCenterX + this.radius * Math.cos(angleW), this.canvasWidthCenterY + this.radius * Math.sin(angleW))
+    this.ctx.strokeText('E', this.canvasWidthCenterX + this.radius * Math.cos(angleE), this.canvasWidthCenterY + this.radius * Math.sin(angleE))
+    this.ctx.fillText('N', this.canvasWidthCenterX + this.radius * Math.cos(angle), this.canvasWidthCenterY + this.radius * Math.sin(angle))
+    this.ctx.fillText('S', this.canvasWidthCenterX + this.radius * Math.cos(angleS), this.canvasWidthCenterY + this.radius * Math.sin(angleS))
+    this.ctx.fillText('W', this.canvasWidthCenterX + this.radius * Math.cos(angleW), this.canvasWidthCenterY + this.radius * Math.sin(angleW))
+    this.ctx.fillText('E', this.canvasWidthCenterX + this.radius * Math.cos(angleE), this.canvasWidthCenterY + this.radius * Math.sin(angleE))
 
     this.ctx.shadowOffsetX = 0
     this.ctx.shadowOffsetY = 0
   }
 
-  drawPlayerPos (canvasWorldCenterX?: number, canvasWorldCenterZ?: number, disableTurn?: boolean) {
+  drawPlayerPos(canvasWorldCenterX?: number, canvasWorldCenterZ?: number, disableTurn?: boolean) {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0)
 
     const x = (this.lastBotPos.x - (canvasWorldCenterX ?? this.lastBotPos.x)) * this.mapPixel - (this.full ? 30 : 0)
     const z = (this.lastBotPos.z - (canvasWorldCenterZ ?? this.lastBotPos.z)) * this.mapPixel - (this.full ? 30 : 0)
-    const center = this.mapSize / 2 * this.mapPixel + (this.full ? 0 : this.radius * 0.1)
+    const center = (this.mapSize / 2) * this.mapPixel + (this.full ? 0 : this.radius * 0.1)
     this.ctx.translate(center + x, center + z)
     if (!disableTurn) this.ctx.rotate(-this.yaw)
 
@@ -323,7 +273,7 @@ export class MinimapDrawer {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0)
   }
 
-  rotateMap (angle: number) {
+  rotateMap(angle: number) {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0)
     this.ctx.translate(this.canvasWidthCenterX, this.canvasWidthCenterY)
     this.ctx.rotate(angle)

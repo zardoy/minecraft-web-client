@@ -1,16 +1,18 @@
 import fs from 'fs'
 
 export type ResourcePackItemDefinition = {
-  model: {
-    type: 'minecraft:model'
-    model: string
-    tints?: Array<{
-      type: 'minecraft:constant'
-      value: number // eg 12596533
-    }>
-  } | {
-    type: 'minecraft:empty'
-  }
+  model:
+    | {
+        type: 'minecraft:model'
+        model: string
+        tints?: Array<{
+          type: 'minecraft:constant'
+          value: number // eg 12596533
+        }>
+      }
+    | {
+        type: 'minecraft:empty'
+      }
 }
 
 export type ItemDefinitions = Record<string, ResourcePackItemDefinition>

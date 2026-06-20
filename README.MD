@@ -10,7 +10,7 @@ You can try this out at [mcraft.fun](https://mcraft.fun/), [mcon.vercel.app](htt
 >
 > FASTEST way to preview local worlds.
 
-Don't confuse this with [Eaglercraft](https://eagsrc.webmc.xyz) which is a REAL vanilla Minecraft Java Edition port to the web (but with its own limitations). Eaglercraft is a fully playable solution, meanwhile this project is aimed at *device-compatibility* and better performance so it feels portable, flexible and lightweight. It's also a good example on how to build true HTML games for the web at scale entirely with the JS ecosystem. Have fun!
+Don't confuse this with [Eaglercraft](https://eagsrc.webmc.xyz) which is a REAL vanilla Minecraft Java Edition port to the web (but with its own limitations). Eaglercraft is a fully playable solution, meanwhile this project is aimed at _device-compatibility_ and better performance so it feels portable, flexible and lightweight. It's also a good example on how to build true HTML games for the web at scale entirely with the JS ecosystem. Have fun!
 
 > **UI Design Philosophy**: For now, this project follows classic Minecraft UI guidelines. But if you want to see my **unleashed vision** of the most beautiful UI with stunning animations and futuristic design - check out **[arwes.mcraft.fun](https://arwes.mcraft.fun)**!
 >
@@ -24,7 +24,7 @@ For building the project yourself / contributing, see [Development, Debugging & 
 
 - Official Mineflayer [plugin integration](https://github.com/zardoy/mcraft-fun-mineflayer-plugin)! View / Control your bot remotely.
 - Open any zip world file or even folder in read-write mode!
-- Connect to Java servers running in both offline (cracked) and online mode* (it's possible because of proxy servers, see below)
+- Connect to Java servers running in both offline (cracked) and online mode\* (it's possible because of proxy servers, see below)
 - Integrated JS server clone capable of opening Java world saves in any way (folders, zip, web chunks streaming, etc)
 - Singleplayer mode with simple world generations!
 - Works offline
@@ -54,9 +54,9 @@ This project is tested with BrowserStack. Special thanks to [BrowserStack](https
 
 However, it's known that these browsers have issues:
 
-**Opera Mini**: Disable *mouse gestures* in browser settings to avoid opening a new tab on right-click-and-hold.
+**Opera Mini**: Disable _mouse gestures_ in browser settings to avoid opening a new tab on right-click-and-hold.
 
-**Vivaldi**: Disable Controls -> *Raw Input* in game settings if experiencing issues
+**Vivaldi**: Disable Controls -> _Raw Input_ in game settings if experiencing issues
 
 ### Versions Support
 
@@ -97,11 +97,11 @@ Again, the proxy server is not a part of the client, it is a separate service th
 
 #### Self-hosting
 
-| What you want | What to run |
-|---------------|-------------|
-| **Full stack** (your own full game copy + bundled proxy) | This repo: local dev with `pnpm i` and `pnpm prod-start` (see [CONTRIBUTING.md](./CONTRIBUTING.md)), or **Docker** with the [main Dockerfile](./Dockerfile) below. |
+| What you want                                                                          | What to run                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Full stack** (your own full game copy + bundled proxy)                               | This repo: local dev with `pnpm i` and `pnpm prod-start` (see [CONTRIBUTING.md](./CONTRIBUTING.md)), or **Docker** with the [main Dockerfile](./Dockerfile) below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Proxy only** (keep using a public game client e.g. [mcraft.fun](https://mcraft.fun)) | Run **[mwc-proxy](https://github.com/zardoy/mwc-proxy)** somewhere that can reach your Minecraft server (often same host/VPC); follow that README for the rest. **Where to host:** your own PC or home network often behaves better than a cloud relay—some servers flag datacenter IPs like “VPN” traffic; for casual play, any reachable host is fine. **URL in the client:** paste your relay’s URL into the **proxy** field; you still have to make it reachable (reverse proxy **with SSL**, **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)**, temporary URL services like cloudflared are not recommended). **Note:** the Minecraft server sees **your relay’s public IP** on the TCP leg (the proxy → server connection). You do **not** need this web-client repo for proxy-only. |
-| **One-liner deploy on a VPS** | [Minecraft Everywhere](https://github.com/zardoy/minecraft-everywhere) provides a **one-liner** script that can deploy these variants (your own full game copy, proxy, or combined setups)—pick what you need from that repo’s instructions. |
+| **One-liner deploy on a VPS**                                                          | [Minecraft Everywhere](https://github.com/zardoy/minecraft-everywhere) provides a **one-liner** script that can deploy these variants (your own full game copy, proxy, or combined setups)—pick what you need from that repo’s instructions.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 Public deployments (e.g. GitHub Pages) ship without your private TCP endpoint; for your own server you still point the client at **your** proxy (e.g. mwc-proxy or a stack you deployed with the script above).
 
@@ -145,7 +145,7 @@ There is world renderer playground ([link](https://mcon.vercel.app/playground/))
 However, there are many things that can be done in online production version (like debugging actual source code). Also you can access some global variables in the console and there are a few useful examples:
 
 - If you type `debugToggle` and press Enter in the console — it will enable all debug messages! Warning: this will start packet spam.
-Instead, I recommend setting `options.debugLogNotFrequentPackets`. You can also use `debugTopPackets` (with `JSON.stringify`) to see what packets were received/sent by name
+  Instead, I recommend setting `options.debugLogNotFrequentPackets`. You can also use `debugTopPackets` (with `JSON.stringify`) to see what packets were received/sent by name
 
 - `bot` - Mineflayer bot instance. See Mineflayer documentation for more.
 - `world` - Three.js world instance, basically does all the rendering (part of renderer backend).
@@ -171,7 +171,7 @@ You can also drag and drop any .dat or .mca (region files) into the browser wind
 <!-- - `F3 + N` - Restart local server (basically resets the world!) -->
 - `F3 + G` - Toggle chunk sections (geometries) border visibility + entities outline (aka Three.js geometry helpers)
 
-world chunks have a *yellow* border, hostile mobs have a *red* outline, passive mobs have a *green* outline, players have a *blue* outline.
+world chunks have a _yellow_ border, hostile mobs have a _red_ outline, passive mobs have a _green_ outline, players have a _blue_ outline.
 
 ### Query Parameters
 
@@ -209,16 +209,16 @@ Singleplayer specific:
 
 ```json
 {
-    "baseUrl": "<url>",
-    "index": {
-        "level.dat": null,
-        "region": {
-            "r.-1.-1.mca": null,
-            "r.-1.0.mca": null,
-            "r.0.-1.mca": null,
-            "r.0.0.mca": null,
-        }
+  "baseUrl": "<url>",
+  "index": {
+    "level.dat": null,
+    "region": {
+      "r.-1.-1.mca": null,
+      "r.-1.0.mca": null,
+      "r.0.-1.mca": null,
+      "r.0.0.mca": null
     }
+  }
 }
 ```
 

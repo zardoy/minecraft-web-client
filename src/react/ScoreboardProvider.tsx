@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react'
 import Scoreboard from './Scoreboard'
 import type { ScoreboardItems } from './Scoreboard'
 
-
-export default function ScoreboardProvider () {
+export default function ScoreboardProvider() {
   const [title, setTitle] = useState('Scoreboard')
   const [items, setItems] = useState<ScoreboardItems>([])
   const [open, setOpen] = useState(false)
 
-  useMemo(() => { // useMemo instead of useEffect to register them asap and not after the initial dom render
+  useMemo(() => {
+    // useMemo instead of useEffect to register them asap and not after the initial dom render
     const updateSidebarScoreboard = () => {
       addStatPerSec('scoreboard')
       if (bot.scoreboard.sidebar) {
@@ -32,11 +32,5 @@ export default function ScoreboardProvider () {
     })
   }, [])
 
-  return (
-    <Scoreboard
-      title={title}
-      items={items}
-      open={open}
-    />
-  )
+  return <Scoreboard title={title} items={items} open={open} />
 }

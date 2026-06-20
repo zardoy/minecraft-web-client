@@ -5,9 +5,14 @@ import { formatMessage, MessageFormatOptions } from '../chatUtils'
 import MessageFormatted from './MessageFormatted'
 
 /** like MessageFormatted, but receives raw string or json instead, uses window.loadedData */
-export default ({ message, fallbackColor, className, formatOptions }: {
-  message: string | Record<string, any> | null,
-  fallbackColor?: string,
+export default ({
+  message,
+  fallbackColor,
+  className,
+  formatOptions
+}: {
+  message: string | Record<string, any> | null
+  fallbackColor?: string
   className?: string
   formatOptions?: MessageFormatOptions
 }) => {
@@ -18,7 +23,7 @@ export default ({ message, fallbackColor, className, formatOptions }: {
       return texts.map(text => {
         return {
           ...text,
-          color: text.color ?? fallbackColor,
+          color: text.color ?? fallbackColor
         }
       })
     } catch (err) {
@@ -27,10 +32,14 @@ export default ({ message, fallbackColor, className, formatOptions }: {
     }
   }, [message])
 
-  return messageJson ? <ErrorBoundary renderError={(error) => {
-    console.error(error)
-    return <div>[text component crashed]</div>
-  }}>
-    <MessageFormatted parts={messageJson} className={className} formatOptions={formatOptions} />
-  </ErrorBoundary> : null
+  return messageJson ? (
+    <ErrorBoundary
+      renderError={error => {
+        console.error(error)
+        return <div>[text component crashed]</div>
+      }}
+    >
+      <MessageFormatted parts={messageJson} className={className} formatOptions={formatOptions} />
+    </ErrorBoundary>
+  ) : null
 }

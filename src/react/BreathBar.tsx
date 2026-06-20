@@ -3,12 +3,10 @@ import SharedHudVars from './SharedHudVars'
 import './BreathBar.css'
 
 export type BreathBarProps = {
-  oxygen: number,
+  oxygen: number
 }
 
-export default ({
-  oxygen,
-}: BreathBarProps) => {
+export default ({ oxygen }: BreathBarProps) => {
   const breathRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -38,15 +36,13 @@ export default ({
     }
   }, [oxygen])
 
-  return <SharedHudVars>
-    <div ref={breathRef} className='breathbar'>
-      {
-        Array.from({ length: 10 }, () => 0)
-          .map((num, index) => <div
-            key={`breath-${index}`}
-            className='breath'
-          />)
-      }
-    </div>
-  </SharedHudVars>
+  return (
+    <SharedHudVars>
+      <div ref={breathRef} className="breathbar">
+        {Array.from({ length: 10 }, () => 0).map((num, index) => (
+          <div key={`breath-${index}`} className="breath" />
+        ))}
+      </div>
+    </SharedHudVars>
+  )
 }

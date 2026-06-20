@@ -23,7 +23,7 @@ export const isGoogleDriveAvailable = () => {
 
 export const useGoogleLogIn = () => {
   const login = useGoogleLogin({
-    onSuccess (tokenResponse) {
+    onSuccess(tokenResponse) {
       localStorage.hasEverLoggedIn = true
       googleProviderState.accessToken = tokenResponse.access_token
       googleProviderState.expiresIn = ref(new Date(Date.now() + tokenResponse.expires_in * 1000))
@@ -32,16 +32,17 @@ export const useGoogleLogIn = () => {
     // prompt: hasEverLoggedIn ? 'none' : 'consent',
     scope: SCOPES,
     flow: 'implicit',
-    onError (error) {
+    onError(error) {
       const accessDenied = error.error === 'access_denied' || error.error === 'invalid_scope' || (error as any).error_subtype === 'access_denied'
       if (accessDenied) {
         googleProviderState.hasEverLoggedIn = false
       }
     }
   })
-  return () => login({
-    prompt: googleProviderState.hasEverLoggedIn ? 'none' : 'consent'
-  })
+  return () =>
+    login({
+      prompt: googleProviderState.hasEverLoggedIn ? 'none' : 'consent'
+    })
 }
 
 export const possiblyHandleStateVariable = async () => {
@@ -58,7 +59,7 @@ export const possiblyHandleStateVariable = async () => {
   const tokenClient = window.google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
-    async callback (response) {
+    async callback(response) {
       if (response.error) {
         setLoadingScreenStatus('Error: ' + response.error, true)
         googleProviderState.hasEverLoggedIn = false
@@ -73,7 +74,7 @@ export const possiblyHandleStateVariable = async () => {
   const choice = await showOptionsModal('Select an action...', ['Login'])
   if (choice === 'Login') {
     tokenClient.requestAccessToken({
-      prompt: googleProviderState.hasEverLoggedIn ? '' : 'consent',
+      prompt: googleProviderState.hasEverLoggedIn ? '' : 'consent'
     })
   } else {
     window.close()
@@ -82,7 +83,7 @@ export const possiblyHandleStateVariable = async () => {
 
 export const googleProviderState = proxy({
   accessToken: (localStorage.saveAccessToken ? localStorage.accessToken : null) as string | null,
-  hasEverLoggedIn: !!(localStorage.hasEverLoggedIn),
+  hasEverLoggedIn: !!localStorage.hasEverLoggedIn,
   isReady: false,
   expiresIn: localStorage.saveAccessToken ? ref(new Date(Date.now() + 1000 * 60 * 60)) : null,
   readonlyMode: localStorage.googleReadonlyMode ? localStorage.googleReadonlyMode === 'true' : true,

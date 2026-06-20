@@ -5,11 +5,11 @@
 .container {
   position: relative;
   background-color: #eee0c3;
-  border: 5px solid #7A5C3E;
+  border: 5px solid #7a5c3e;
   padding: 15px;
   width: 80%;
   margin: 0 auto;
-  color: #3F2A14;
+  color: #3f2a14;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
   max-height: 70vh;
   overflow-y: auto;
@@ -48,7 +48,7 @@
 }
 
 .link {
-  color: #0000AA;
+  color: #0000aa;
   text-decoration: none;
 }
 
@@ -76,9 +76,9 @@
 }
 
 .closeButton:focus-visible {
-  outline: 1px dashed #7A5C3E;
+  outline: 1px dashed #7a5c3e;
 }
 
 .closeIcon {
-  color: #3F2A14;
-} 
+  color: #3f2a14;
+}

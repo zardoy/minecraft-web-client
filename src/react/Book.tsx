@@ -54,11 +54,11 @@ const Book: React.FC<BookProps> = ({ textPages, editable, onSign, onEdit, onClos
   }, [signClickedOnce])
 
   const handlePageChange = (direction: number) => {
-    setCurrentPage((prevPage) => Math.min(Math.max(prevPage + direction, 0), Math.ceil(pages.length / (isSinglePage ? 1 : 2)) - 1))
+    setCurrentPage(prevPage => Math.min(Math.max(prevPage + direction, 0), Math.ceil(pages.length / (isSinglePage ? 1 : 2)) - 1))
   }
 
   const updatePage = (index, text) => {
-    setPages((prevPages) => {
+    setPages(prevPages => {
       const updatedPages = [...prevPages]
       updatedPages[index] = text
       return updatedPages
@@ -76,7 +76,7 @@ const Book: React.FC<BookProps> = ({ textPages, editable, onSign, onEdit, onClos
       if (nextPageIndex < pages.length) {
         setCurrentPage(Math.floor(nextPageIndex / (isSinglePage ? 1 : 2)))
       } else {
-        setPages((prevPages) => [...prevPages, ''])
+        setPages(prevPages => [...prevPages, ''])
         setCurrentPage(Math.floor(nextPageIndex / (isSinglePage ? 1 : 2)))
       }
       textAreaRefs.current[nextPageIndex]?.focus()
@@ -112,7 +112,7 @@ const Book: React.FC<BookProps> = ({ textPages, editable, onSign, onEdit, onClos
       if (nextPageIndex < pages.length) {
         handlePasteRemainingText(remainingText, nextPageIndex)
       } else {
-        setPages((prevPages) => [...prevPages, remainingText])
+        setPages(prevPages => [...prevPages, remainingText])
         setCurrentPage(Math.floor(nextPageIndex / (isSinglePage ? 1 : 2)))
         focusOnTextArea(nextPageIndex)
       }
@@ -180,23 +180,23 @@ const Book: React.FC<BookProps> = ({ textPages, editable, onSign, onEdit, onClos
     }
   }
 
-  const renderPage = (index) => (
+  const renderPage = index => (
     <div className={styles.page} key={index}>
       {editable ? (
         <textarea
-          onContextMenu={(e) => {
+          onContextMenu={e => {
             e.stopPropagation() // allow to open system context menu on text area for better UX
           }}
           ref={setRef(index)}
           value={pages[index]}
-          onChange={(e) => handleTextChange(e, index)}
-          onPaste={(e) => handlePaste(e, index)}
+          onChange={e => handleTextChange(e, index)}
+          onPaste={e => handlePaste(e, index)}
           className={getAnimationClass(animatePageIcon, styles.textArea)}
           maxLength={500}
         />
       ) : (
         <div className={getAnimationClass(animatePageIcon, '')}>
-          <MessageFormattedString message={pages[index]} fallbackColor='black' className={styles.messageFormattedString} />
+          <MessageFormattedString message={pages[index]} fallbackColor="black" className={styles.messageFormattedString} />
         </div>
       )}
     </div>
@@ -207,61 +207,31 @@ const Book: React.FC<BookProps> = ({ textPages, editable, onSign, onEdit, onClos
       <div className={styles.bookContainer}>
         <img
           src={insideImage}
-          className={`${styles.insideIcon} ${
-            animateInsideIcon === 1
-              ? styles.insideAnimation
-              : animateTitleIcon === 2
-                ? styles.insideAnimationReverse
-                : ''
-          }`}
+          className={`${styles.insideIcon} ${animateInsideIcon === 1 ? styles.insideAnimation : animateTitleIcon === 2 ? styles.insideAnimationReverse : ''}`}
           alt="inside Icon"
         />
         <img
           src={insideHalfIcon}
-          className={`${styles.insideHalfIcon} ${
-            animatePageIcon === 1
-              ? styles.pageAnimation
-              : animatePageIcon === 2
-                ? styles.pageAnimationReverse
-                : ''
-          }`}
+          className={`${styles.insideHalfIcon} ${animatePageIcon === 1 ? styles.pageAnimation : animatePageIcon === 2 ? styles.pageAnimationReverse : ''}`}
           alt="inside Page Icon"
         />
         <img
           src={titleIcon}
-          className={`${styles.titleIcon} ${
-            animateTitleIcon === 1
-              ? styles.titleAnimation
-              : animateTitleIcon === 2
-                ? styles.titleAnimationReverse
-                : ''
-          }`}
+          className={`${styles.titleIcon} ${animateTitleIcon === 1 ? styles.titleAnimation : animateTitleIcon === 2 ? styles.titleAnimationReverse : ''}`}
           alt="Title Icon"
         />
         <div className={`${styles.inside}`}>
           {renderPage(currentPage * (isSinglePage ? 1 : 2))}
-          {!isSinglePage && (currentPage * 2 + 1) < pages.length && renderPage(currentPage * 2 + 1)}
+          {!isSinglePage && currentPage * 2 + 1 < pages.length && renderPage(currentPage * 2 + 1)}
           <Button
-            className={`${styles.controlPrev} ${
-              animateInsideIcon === 1
-                ? styles.hidden
-                : animateInsideIcon === 2
-                  ? styles.pageButtonAnimationReverse
-                  : ''
-            }`}
+            className={`${styles.controlPrev} ${animateInsideIcon === 1 ? styles.hidden : animateInsideIcon === 2 ? styles.pageButtonAnimationReverse : ''}`}
             onClick={() => handlePageChange(-1)}
             disabled={currentPage === 0}
           >
             {' '}
           </Button>
           <Button
-            className={`${styles.controlNext} ${
-              animateInsideIcon === 1
-                ? styles.hidden
-                : animateInsideIcon === 2
-                  ? styles.pageButtonAnimationReverse
-                  : ''
-            }`}
+            className={`${styles.controlNext} ${animateInsideIcon === 1 ? styles.hidden : animateInsideIcon === 2 ? styles.pageButtonAnimationReverse : ''}`}
             onClick={() => handlePageChange(1)}
             disabled={(currentPage + 1) * (isSinglePage ? 1 : 2) >= pages.length}
           >
@@ -270,34 +240,28 @@ const Book: React.FC<BookProps> = ({ textPages, editable, onSign, onEdit, onClos
         </div>
         <div
           className={`${styles.outSide} ${
-            animateTitleIcon === 1
-              ? styles.titleContentAnimation
-              : animateTitleIcon === 2
-                ? styles.titleContentAnimationReverse
-                : ''
+            animateTitleIcon === 1 ? styles.titleContentAnimation : animateTitleIcon === 2 ? styles.titleContentAnimationReverse : ''
           }`}
         >
           {editable ? (
-            <div className={`${styles.titleContent}`} >
+            <div className={`${styles.titleContent}`}>
               <MessageFormattedString message="Enter Book Title: " />
-              <form onSubmit={(e) => {
-                e.preventDefault()
-                handleSign()
-              }}
+              <form
+                onSubmit={e => {
+                  e.preventDefault()
+                  handleSign()
+                }}
               >
-                <input
-                  ref={inputRef}
-                  className=""
-                />
+                <input ref={inputRef} className="" />
                 {/* for some reason this is needed to make Enter work on android chrome */}
-                <button type='submit' style={{ visibility: 'hidden', height: 0, width: 0 }} />
+                <button type="submit" style={{ visibility: 'hidden', height: 0, width: 0 }} />
               </form>
               <MessageFormattedString message={`by ${author}`} />
               <br />
               <MessageFormattedString message="Note! When you sign the book, it will no longer be editable." />
             </div>
           ) : (
-            <div className={`${styles.titleContent}`} >
+            <div className={`${styles.titleContent}`}>
               <MessageFormattedString message="Book Name Here" />
               <br />
               <MessageFormattedString message="by: Author" />
@@ -306,11 +270,7 @@ const Book: React.FC<BookProps> = ({ textPages, editable, onSign, onEdit, onClos
         </div>
       </div>
       <div className={styles.actions}>
-        {editable && (
-          <Button onClick={handleSign}>
-            {signClickedOnce ? 'Sign and Save' : 'Sign'}
-          </Button>
-        )}
+        {editable && <Button onClick={handleSign}>{signClickedOnce ? 'Sign and Save' : 'Sign'}</Button>}
 
         {editable && !signClickedOnce && <Button onClick={handleSign}>Sign</Button>}
         {editable && !signClickedOnce && <Button onClick={handleEdit}>Edit</Button>}

@@ -6,23 +6,26 @@ const polyfill = require('esbuild-plugin-polyfill-node')
 
 module.exports = (on, config) => {
   initPlugin(on, config)
-  on('file:preprocessor', cypressEsbuildPreprocessor({
-    esbuildOptions: {
-      sourcemap: true,
-      plugins: [
-        polyfill.polyfillNode({
-          polyfills: {
-            crypto: true,
-          },
-        })
-      ],
-    },
-  }))
+  on(
+    'file:preprocessor',
+    cypressEsbuildPreprocessor({
+      esbuildOptions: {
+        sourcemap: true,
+        plugins: [
+          polyfill.polyfillNode({
+            polyfills: {
+              crypto: true
+            }
+          })
+        ]
+      }
+    })
+  )
   on('task', {
     log(message) {
       console.log(message)
       return null
-    },
+    }
   })
   // on('task', {
   //   async startServer([version, port]) {

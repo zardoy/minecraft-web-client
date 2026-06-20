@@ -21,7 +21,7 @@ const stateColors: Record<ChunkDebug['state'], string> = {
   'client-waiting': 'yellow',
   'client-processing': 'yellow',
   'done-empty': 'darkgreen',
-  'done': 'limegreen',
+  done: 'limegreen'
 }
 
 export default ({
@@ -29,11 +29,11 @@ export default ({
   playerChunk,
   maxDistance,
   tileSize = 16,
-  fontSize = 5,
+  fontSize = 5
 }: {
   chunks: ChunkDebug[]
-  playerChunk: { x: number, z: number }
-  maxDistance: number,
+  playerChunk: { x: number; z: number }
+  maxDistance: number
   tileSize?: number
   fontSize?: number
 }) => {
@@ -64,14 +64,16 @@ export default ({
 
   return (
     <div style={{ display: 'flex', gap: '10px' }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-        gridTemplateRows: `repeat(${gridSize}, 1fr)`,
-        gap: 1,
-        // width: `${tileSize * gridSize}px`,
-        // height: `${tileSize * gridSize}px`,
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+          gridTemplateRows: `repeat(${gridSize}, 1fr)`,
+          gap: 1
+          // width: `${tileSize * gridSize}px`,
+          // height: `${tileSize * gridSize}px`,
+        }}
+      >
         {Array.from({ length: gridSize * gridSize }).map((_, i) => {
           const relX = -maxDistance + (i % gridSize)
           const relZ = -maxDistance + Math.floor(i / gridSize)
@@ -102,11 +104,13 @@ export default ({
                 height: `${tileSize}px`,
                 padding: 1,
                 // pre-wrap
-                whiteSpace: 'pre',
+                whiteSpace: 'pre'
               }}
             >
-              {relX}, {relZ}{'\n'}
-              {chunk?.lines[0]}{'\n'}
+              {relX}, {relZ}
+              {'\n'}
+              {chunk?.lines[0]}
+              {'\n'}
               <span style={{ fontSize: `${fontSize * 0.8}px` }}>{chunk?.lines[1]}</span>
             </div>
           )
@@ -114,13 +118,13 @@ export default ({
       </div>
 
       {showSidebar && selectedChunk && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }} className='text-select'>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }} className="text-select">
           {selectedChunk.displayLines.map((line, i) => (
             <div key={i} style={{ fontSize: '10px', wordBreak: 'break-word' }}>
               {line}
             </div>
           ))}
-          <div style={{ marginTop: '10px', fontSize: '10px', whiteSpace: 'pre', maxWidth: 100, }}>
+          <div style={{ marginTop: '10px', fontSize: '10px', whiteSpace: 'pre', maxWidth: 100 }}>
             <div>Sidebar Info:</div>
             {selectedChunk.sidebarLines.map((line, i) => (
               <div key={i}>{line}</div>

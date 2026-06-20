@@ -5,28 +5,21 @@ import './Title.css'
 import { withInjectableUi } from './extendableSystem'
 
 export type AnimationTimes = {
-  fadeIn: number,
-  stay: number,
+  fadeIn: number
+  stay: number
   fadeOut: number
 }
 
 type TitleProps = {
-  title: string | Record<string, any>,
-  subtitle: string | Record<string, any>,
-  actionBar: string | Record<string, any>,
-  transitionTimes: AnimationTimes,
-  openTitle: boolean,
+  title: string | Record<string, any>
+  subtitle: string | Record<string, any>
+  actionBar: string | Record<string, any>
+  transitionTimes: AnimationTimes
+  openTitle: boolean
   openActionBar: boolean
 }
 
-const TitleBase = ({
-  title,
-  subtitle,
-  actionBar,
-  transitionTimes,
-  openTitle = false,
-  openActionBar = false
-}: TitleProps) => {
+const TitleBase = ({ title, subtitle, actionBar, transitionTimes, openTitle = false, openActionBar = false }: TitleProps) => {
   const [mounted, setMounted] = useState(false)
 
   const defaultFadeIn = 0.5
@@ -39,7 +32,7 @@ const TitleBase = ({
   }, [openTitle, openActionBar])
 
   return (
-    <div className='title-container'>
+    <div className="title-container">
       <AnimatePresence>
         {openTitle && (
           <motion.div
@@ -51,10 +44,10 @@ const TitleBase = ({
               exit: { duration: transitionTimes?.fadeOut ? transitionTimes.fadeOut / 1000 : defaultFadeOut }
             }}
           >
-            <h1 className='message-title'>
+            <h1 className="message-title">
               <MessageFormattedString message={title} />
             </h1>
-            <h4 className='message-subtitle'>
+            <h4 className="message-subtitle">
               <MessageFormattedString message={subtitle} />
             </h4>
           </motion.div>
@@ -71,7 +64,7 @@ const TitleBase = ({
               exit: { duration: transitionTimes?.fadeOut ? transitionTimes.fadeOut / 1000 : defaultFadeOut }
             }}
           >
-            <div className='message-action-bar'>
+            <div className="message-action-bar">
               <MessageFormattedString message={actionBar} />
             </div>
           </motion.div>

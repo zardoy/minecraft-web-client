@@ -1,6 +1,6 @@
 //@ts-check
 export * from 'crypto-browserify'
-export function createPublicKey() { }
+export function createPublicKey() {}
 
 // CUSTOM SIGN ASYNC IMPLEMENTATION FOR BROWSERS
 
@@ -13,7 +13,7 @@ export async function sign(signatureAlgorithm, data, privateKeyPem) {
     privateKeyBuffer,
     {
       name: 'RSASSA-PKCS1-v1_5',
-      hash: { name: 'SHA-256' },
+      hash: { name: 'SHA-256' }
     },
     true,
     ['sign']
@@ -21,7 +21,7 @@ export async function sign(signatureAlgorithm, data, privateKeyPem) {
   const signature = await crypto.subtle.sign(
     {
       name: 'RSASSA-PKCS1-v1_5',
-      hash: { name: 'SHA-256' }, // SHA-256 hash function
+      hash: { name: 'SHA-256' } // SHA-256 hash function
     },
     privateKey,
     data

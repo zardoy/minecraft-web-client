@@ -1,12 +1,11 @@
 type StringKeys<T extends object> = Extract<keyof T, string>
 
-
 interface ObjectConstructor {
-  keys<T extends object> (obj: T): Array<StringKeys<T>>
-  entries<T extends object> (obj: T): Array<[StringKeys<T>, T[keyof T]]>
+  keys<T extends object>(obj: T): Array<StringKeys<T>>
+  entries<T extends object>(obj: T): Array<[StringKeys<T>, T[keyof T]]>
   // todo review https://stackoverflow.com/questions/57390305/trying-to-get-fromentries-type-right
-  fromEntries<T extends Array<[string, any]>> (obj: T): Record<T[number][0], T[number][1]>
-  assign<T extends Record<string, any>, K extends Record<string, any>> (target: T, source: K): asserts target is T & K
+  fromEntries<T extends Array<[string, any]>>(obj: T): Record<T[number][0], T[number][1]>
+  assign<T extends Record<string, any>, K extends Record<string, any>>(target: T, source: K): asserts target is T & K
 }
 
 declare module '*.module.css' {
@@ -39,7 +38,7 @@ declare module '*.mp3' {
 }
 
 interface PromiseConstructor {
-  withResolvers<T> (): {
+  withResolvers<T>(): {
     resolve: (value: T) => void
     reject: (reason: any) => void
     promise: Promise<T>
@@ -47,7 +46,7 @@ interface PromiseConstructor {
 }
 
 declare namespace JSX {
-  interface IntrinsicElements { }
+  interface IntrinsicElements {}
 }
 
 // keyboard api
@@ -60,7 +59,7 @@ interface Navigator {
 declare type KeyboardLayoutMap = readonly Map<string, string>
 
 declare interface Keyboard extends EventTarget {
-  getLayoutMap (): Promise<KeyboardLayoutMap>
-  lock (keyCode?: KeyCode): Promise<undefined>
-  unlock (): void
+  getLayoutMap(): Promise<KeyboardLayoutMap>
+  lock(keyCode?: KeyCode): Promise<undefined>
+  unlock(): void
 }

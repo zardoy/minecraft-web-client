@@ -6,13 +6,16 @@ import { setLoadingScreenStatus } from './appStatus'
 import { miscUiState } from './globalState'
 
 class CustomDuplex extends Duplex {
-  constructor (options, public writeAction) {
+  constructor(
+    options,
+    public writeAction
+  ) {
     super(options)
   }
 
-  _read () { }
+  _read() {}
 
-  _write (chunk, encoding, callback) {
+  _write(chunk, encoding, callback) {
     this.writeAction(chunk)
     callback()
   }
@@ -30,7 +33,7 @@ export const getJoinLink = () => {
   }
   url.searchParams.set('connectPeer', peerInstance.id)
   url.searchParams.set('peerVersion', localServer!.options.version)
-  const host = (overridePeerJsServer ?? miscUiState.appConfig?.peerJsServer) ?? undefined
+  const host = overridePeerJsServer ?? miscUiState.appConfig?.peerJsServer ?? undefined
   if (host) {
     // TODO! use miscUiState.appConfig.peerJsServer
     url.searchParams.set('server', host)
@@ -63,9 +66,9 @@ export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy
     ...params
   })
   peerInstance = peer
-  peer.on('connection', (connection) => {
+  peer.on('connection', connection => {
     console.log('connection')
-    const serverDuplex = new CustomDuplex({}, async (data) => connection.send(data))
+    const serverDuplex = new CustomDuplex({}, async data => connection.send(data))
     const client = new Client(true, localServer.options.version, undefined)
     client.setSocket(serverDuplex)
     localServer._server.emit('connection', client)
@@ -87,7 +90,7 @@ export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy
       serverDuplex.end()
       client.end()
     }
-    connection.on('iceStateChanged', (state) => {
+    connection.on('iceStateChanged', state => {
       console.log('iceStateChanged', state)
       if (state === 'disconnected') {
         disconnected()
@@ -99,7 +102,7 @@ export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy
   const fallbackServer = miscUiState.appConfig?.peerJsServerFallback
   const hasFallback = fallbackServer && peer.options.host !== fallbackServer
   let hadErrorReported = false
-  peer.on('error', (error) => {
+  peer.on('error', error => {
     console.error('peerJS error', error)
     if (error.type === 'server-error' && hasFallback) {
       return
@@ -135,7 +138,7 @@ export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy
     }, 6000)
 
     // fallback
-    peer.on('error', async (error) => {
+    peer.on('error', async error => {
       if (!peer.open) {
         if (hasFallback) {
           destroy()
@@ -163,8 +166,8 @@ const parseUrl = (url: string) => {
     host: urlObj.hostname,
     path: urlObj.pathname,
     protocol: urlObj.protocol.slice(0, -1),
-    ...urlObj.port ? { port: +urlObj.port } : {},
-    ...key ? { key } : {},
+    ...(urlObj.port ? { port: +urlObj.port } : {}),
+    ...(key ? { key } : {})
   }
 }
 
@@ -189,23 +192,27 @@ export const connectToPeer = async (peerId: string, options: ConnectPeerOptions 
     debug: 3,
     ...params
   })
-  await resolveTimeout(new Promise(resolve => {
-    peer.once('open', resolve)
-  }))
+  await resolveTimeout(
+    new Promise(resolve => {
+      peer.once('open', resolve)
+    })
+  )
   setLoadingScreenStatus('Connecting to the peer')
   const connection = peer.connect(peerId, {
-    serialization: 'raw',
+    serialization: 'raw'
   })
-  await resolveTimeout(new Promise<void>((resolve, reject) => {
-    connection.once('error', (error) => {
-      console.log(error.type, error.name)
-      console.log(error)
-      reject(error.message)
+  await resolveTimeout(
+    new Promise<void>((resolve, reject) => {
+      connection.once('error', error => {
+        console.log(error.type, error.name)
+        console.log(error)
+        reject(error.message)
+      })
+      connection.once('open', resolve)
     })
-    connection.once('open', resolve)
-  }))
+  )
 
-  const clientDuplex = new CustomDuplex({}, (data) => {
+  const clientDuplex = new CustomDuplex({}, data => {
     // todo debug until play state
     // console.debug('sending', data.toString())
     void connection.send(data)
@@ -221,7 +228,7 @@ export const connectToPeer = async (peerId: string, options: ConnectPeerOptions 
     // bot.end()
     bot.emit('end', 'Disconnected.')
   })
-  connection.on('error', (error) => {
+  connection.on('error', error => {
     console.error(error)
     clientDuplex.end()
   })

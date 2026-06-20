@@ -12,7 +12,7 @@ interface Props {
 }
 
 const ScreenDirtBgBase = () => {
-  return <div className='dirt-bg' />
+  return <div className="dirt-bg" />
 }
 export const ScreenDirtBg = withInjectableUi(ScreenDirtBgBase, 'screenDirtBg')
 

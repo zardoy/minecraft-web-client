@@ -53,7 +53,9 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
 
   const smallWidth = !usePassesScaledDimensions(400)
   const initialAccount = initialData?.authenticatedAccountOverride
-  const [accountIndex, setAccountIndex] = React.useState(initialAccount === true ? -2 : initialAccount ? (accounts?.includes(initialAccount) ? accounts.indexOf(initialAccount) : -2) : -1)
+  const [accountIndex, setAccountIndex] = React.useState(
+    initialAccount === true ? -2 : initialAccount ? (accounts?.includes(initialAccount) ? accounts.indexOf(initialAccount) : -2) : -1
+  )
 
   const freshAccount = accountIndex === -2
   const noAccountSelected = accountIndex === -1
@@ -67,7 +69,7 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
     versionOverride: versionOverride || undefined,
     proxyOverride: proxyOverride || undefined,
     usernameOverride: usernameOverride || undefined,
-    authenticatedAccountOverride,
+    authenticatedAccountOverride
   }
 
   const [fetchedServerInfoIp, setFetchedServerInfoIp] = React.useState<string | undefined>(undefined)
@@ -122,130 +124,161 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
   // pick random example
   const example = serverExamples[Math.floor(Math.random() * serverExamples.length)]
 
-  return <Screen title={qsParamIp ? 'Connect to Server' : title} backdrop>
-    <form
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%'
-      }}
-      onSubmit={(e) => {
-        e.preventDefault()
-        onConfirm(commonUseOptions)
-      }}
-    >
-      <div style={{
-        display: smallWidth ? 'flex' : 'grid',
-        gap: 3,
-        ...(smallWidth ? {
-          flexDirection: 'column',
-        } : {
-          gridTemplateColumns: '1fr 1fr'
-        })
-      }}
-      >
-        <InputWithLabel
-          required
-          label="Server IP"
-          autoFocus={!lockConnect}
-          value={serverIp}
-          disabled={lockConnect && parsedQsIp.host !== null}
-          onChange={({ target: { value } }) => {
-            setServerIp(value)
-            setServerOnline(false)
-          }}
-          validateInput={serverOnline === null || fetchedServerInfoIp !== serverIp ? undefined : validateServerIp}
-          placeholder={example}
-        />
-        {!lockConnect && <>
-          <div style={{ display: 'flex' }}>
-            <InputWithLabel label="Server Name" value={serverName} onChange={({ target: { value } }) => setServerName(value)} placeholder='Defaults to IP' />
-          </div>
-        </>}
-        {isSmallHeight ? <div style={{ gridColumn: 'span 2', marginTop: 10, }} /> : <div style={{ gridColumn: smallWidth ? '' : 'span 2' }}>Overrides:</div>}
-        <div style={{
+  return (
+    <Screen title={qsParamIp ? 'Connect to Server' : title} backdrop>
+      <form
+        style={{
           display: 'flex',
           flexDirection: 'column',
-        }}>
-          <label style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>Version Override</label>
-          <SelectGameVersion
-            selected={{ value: versionOverride, label: versionOverride }}
-            versions={versions?.map(v => { return { value: v, label: v } }) ?? []}
-            onChange={(value) => {
-              setVersionOverride(value)
-            }}
-            placeholder="Optional, but recommended to specify"
-            disabled={lockConnect}
-          />
-        </div>
-
-        <InputWithLabel
-          label="Proxy Override"
-          value={proxyOverride}
-          disabled={lockConnect && (qsParamProxy !== null || !!placeholders?.proxyOverride) || serverIp.startsWith('ws://') || serverIp.startsWith('wss://')}
-          onChange={({ target: { value } }) => setProxyOverride(value)}
-          placeholder={serverIp.startsWith('ws://') || serverIp.startsWith('wss://') ? 'Not needed for websocket servers' : placeholders?.proxyOverride}
-        />
-        <InputWithLabel
-          label="Username Override"
-          value={usernameOverride}
-          disabled={!noAccountSelected || (lockConnect && qsParamUsername !== null)}
-          onChange={({ target: { value } }) => setUsernameOverride(value)}
-          placeholder={placeholders?.usernameOverride}
-          validateInput={!serverOnline || fetchedServerInfoIp !== serverIp ? undefined : validateUsername}
-        />
-        <label style={{
-          display: 'flex',
-          flexDirection: 'column',
+          height: '100%'
         }}
+        onSubmit={e => {
+          e.preventDefault()
+          onConfirm(commonUseOptions)
+        }}
+      >
+        <div
+          style={{
+            display: smallWidth ? 'flex' : 'grid',
+            gap: 3,
+            ...(smallWidth
+              ? {
+                  flexDirection: 'column'
+                }
+              : {
+                  gridTemplateColumns: '1fr 1fr'
+                })
+          }}
         >
-          <span style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>Account Override</span>
-          <select
-            onChange={({ target: { value } }) => setAccountIndex(Number(value))}
-            style={{
-              background: 'gray',
-              color: 'white',
-              height: 20,
-              fontSize: 13,
+          <InputWithLabel
+            required
+            label="Server IP"
+            autoFocus={!lockConnect}
+            value={serverIp}
+            disabled={lockConnect && parsedQsIp.host !== null}
+            onChange={({ target: { value } }) => {
+              setServerIp(value)
+              setServerOnline(false)
             }}
-            defaultValue={initialAccount === true ? -2 : initialAccount === undefined ? -1 : (fallbackIfNotFound((accounts ?? []).indexOf(initialAccount)) ?? -2)}
-            disabled={lockConnect && qsParamUsername !== null}
+            validateInput={serverOnline === null || fetchedServerInfoIp !== serverIp ? undefined : validateServerIp}
+            placeholder={example}
+          />
+          {!lockConnect && (
+            <>
+              <div style={{ display: 'flex' }}>
+                <InputWithLabel
+                  label="Server Name"
+                  value={serverName}
+                  onChange={({ target: { value } }) => setServerName(value)}
+                  placeholder="Defaults to IP"
+                />
+              </div>
+            </>
+          )}
+          {isSmallHeight ? <div style={{ gridColumn: 'span 2', marginTop: 10 }} /> : <div style={{ gridColumn: smallWidth ? '' : 'span 2' }}>Overrides:</div>}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column'
+            }}
           >
-            <option value={-1}>Offline Account (Username)</option>
-            {accounts?.map((account, i) => <option key={i} value={i}>{account} (Logged In)</option>)}
-            <option value={-2}>Any other MS account</option>
-          </select>
-        </label>
+            <label style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>Version Override</label>
+            <SelectGameVersion
+              selected={{ value: versionOverride, label: versionOverride }}
+              versions={
+                versions?.map(v => {
+                  return { value: v, label: v }
+                }) ?? []
+              }
+              onChange={value => {
+                setVersionOverride(value)
+              }}
+              placeholder="Optional, but recommended to specify"
+              disabled={lockConnect}
+            />
+          </div>
 
-        {!lockConnect && <>
-          <ButtonWrapper onClick={() => {
-            onBack()
-          }}>
-            Cancel
-          </ButtonWrapper>
-          <ButtonWrapper type='submit'>
-            {displayConnectButton ? translate('Save') : <strong>{translate('Save')}</strong>}
-          </ButtonWrapper>
-        </>}
-        {displayConnectButton && (
-          <div style={{
-            gridColumn: smallWidth ? '' : 'span 2',
-            display: 'flex',
-            justifyContent: 'center'
-          }}>
-            <ButtonWrapper
-              data-test-id='connect-qs'
-              onClick={() => {
-                onQsConnect?.(commonUseOptions)
+          <InputWithLabel
+            label="Proxy Override"
+            value={proxyOverride}
+            disabled={
+              (lockConnect && (qsParamProxy !== null || !!placeholders?.proxyOverride)) || serverIp.startsWith('ws://') || serverIp.startsWith('wss://')
+            }
+            onChange={({ target: { value } }) => setProxyOverride(value)}
+            placeholder={serverIp.startsWith('ws://') || serverIp.startsWith('wss://') ? 'Not needed for websocket servers' : placeholders?.proxyOverride}
+          />
+          <InputWithLabel
+            label="Username Override"
+            value={usernameOverride}
+            disabled={!noAccountSelected || (lockConnect && qsParamUsername !== null)}
+            onChange={({ target: { value } }) => setUsernameOverride(value)}
+            placeholder={placeholders?.usernameOverride}
+            validateInput={!serverOnline || fetchedServerInfoIp !== serverIp ? undefined : validateUsername}
+          />
+          <label
+            style={{
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <span style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>Account Override</span>
+            <select
+              onChange={({ target: { value } }) => setAccountIndex(Number(value))}
+              style={{
+                background: 'gray',
+                color: 'white',
+                height: 20,
+                fontSize: 13
+              }}
+              defaultValue={
+                initialAccount === true ? -2 : initialAccount === undefined ? -1 : (fallbackIfNotFound((accounts ?? []).indexOf(initialAccount)) ?? -2)
+              }
+              disabled={lockConnect && qsParamUsername !== null}
+            >
+              <option value={-1}>Offline Account (Username)</option>
+              {accounts?.map((account, i) => (
+                <option key={i} value={i}>
+                  {account} (Logged In)
+                </option>
+              ))}
+              <option value={-2}>Any other MS account</option>
+            </select>
+          </label>
+
+          {!lockConnect && (
+            <>
+              <ButtonWrapper
+                onClick={() => {
+                  onBack()
+                }}
+              >
+                Cancel
+              </ButtonWrapper>
+              <ButtonWrapper type="submit">{displayConnectButton ? translate('Save') : <strong>{translate('Save')}</strong>}</ButtonWrapper>
+            </>
+          )}
+          {displayConnectButton && (
+            <div
+              style={{
+                gridColumn: smallWidth ? '' : 'span 2',
+                display: 'flex',
+                justifyContent: 'center'
               }}
             >
-              <strong>{translate('Connect')}</strong>
-            </ButtonWrapper>
-          </div>
-        )}
-      </div>
-    </form>
-  </Screen>
+              <ButtonWrapper
+                data-test-id="connect-qs"
+                onClick={() => {
+                  onQsConnect?.(commonUseOptions)
+                }}
+              >
+                <strong>{translate('Connect')}</strong>
+              </ButtonWrapper>
+            </div>
+          )}
+        </div>
+      </form>
+    </Screen>
+  )
 }
 
 const ButtonWrapper = ({ ...props }: React.ComponentProps<typeof Button>) => {

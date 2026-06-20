@@ -1,10 +1,10 @@
 .debugResponseTimeIndicator {
-    z-index: 100;
-    position: fixed;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
-    background-color: white;
+  z-index: 100;
+  position: fixed;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background-color: white;
 }

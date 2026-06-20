@@ -10,19 +10,20 @@ import { useUsingTouch } from './utilsApp'
 useInterfaceState.setState({
   isFlying: false,
   uiCustomization: {
-    touchButtonSize: 40,
+    touchButtonSize: 40
   },
-  updateCoord ([coord, state]) {
+  updateCoord([coord, state]) {
     const coordToAction = [
       ['z', -1, 'KeyW'],
       ['z', 1, 'KeyS'],
       ['x', -1, 'KeyA'],
       ['x', 1, 'KeyD'],
       ['y', 1, 'Space'], // todo jump
-      ['y', -1, 'ShiftLeft'], // todo jump
+      ['y', -1, 'ShiftLeft'] // todo jump
     ]
     // todo refactor
-    const actionAndState = state === 0 ? coordToAction.filter(([axis]) => axis === coord) : coordToAction.find(([axis, value]) => axis === coord && value === state)
+    const actionAndState =
+      state === 0 ? coordToAction.filter(([axis]) => axis === coord) : coordToAction.find(([axis, value]) => axis === coord && value === state)
     if (!bot) return
     if (state === 0) {
       // @ts-expect-error
@@ -36,11 +37,11 @@ useInterfaceState.setState({
   }
 })
 
-watchValue(options, (o) => {
+watchValue(options, o => {
   useInterfaceState.setState({
     uiCustomization: {
-      touchButtonSize: o.touchButtonsSize,
-    },
+      touchButtonSize: o.touchButtonsSize
+    }
   })
 })
 
@@ -66,9 +67,9 @@ export default () => {
         pointer-events: none;
         touch-action: none;
         & > div {
-            pointer-events: auto;
+          pointer-events: auto;
         }
-    `}
+      `}
     >
       <LeftTouchArea />
       <div />

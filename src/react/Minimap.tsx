@@ -3,21 +3,25 @@ import { miscUiState } from '../globalState'
 import { DrawerAdapter } from './MinimapDrawer'
 import Fullmap from './Fullmap'
 
-
 export type DisplayMode = 'fullmapOnly' | 'minimapOnly'
 
-export default (
-  { adapter, showMinimap, showFullmap, singleplayer, fullMap, toggleFullMap, displayMode }:
-  {
-    adapter: DrawerAdapter,
-    showMinimap: string,
-    showFullmap: string,
-    singleplayer: boolean,
-    fullMap?: boolean,
-    toggleFullMap?: () => void
-    displayMode?: DisplayMode
-  }
-) => {
+export default ({
+  adapter,
+  showMinimap,
+  showFullmap,
+  singleplayer,
+  fullMap,
+  toggleFullMap,
+  displayMode
+}: {
+  adapter: DrawerAdapter
+  showMinimap: string
+  showFullmap: string
+  singleplayer: boolean
+  fullMap?: boolean
+  toggleFullMap?: () => void
+  displayMode?: DisplayMode
+}) => {
   const full = useRef(false)
   const canvasTick = useRef(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -52,7 +56,7 @@ export default (
     canvasTick.current += 1
   }
 
-  const updateWarps = () => { }
+  const updateWarps = () => {}
 
   const rotateMap = () => {
     if (!adapter.mapDrawer) return
@@ -77,43 +81,42 @@ export default (
     }
   }, [adapter])
 
-  return fullMap && displayMode !== 'minimapOnly' && (showFullmap === 'singleplayer' && singleplayer || showFullmap === 'always')
-    ? <Fullmap
-      toggleFullMap={toggleFullMap}
-      adapter={adapter}
-    />
-    : displayMode !== 'fullmapOnly' && (showMinimap === 'singleplayer' && singleplayer || showMinimap === 'always')
-      ? <div
-        className='minimap'
+  return fullMap && displayMode !== 'minimapOnly' && ((showFullmap === 'singleplayer' && singleplayer) || showFullmap === 'always') ? (
+    <Fullmap toggleFullMap={toggleFullMap} adapter={adapter} />
+  ) : displayMode !== 'fullmapOnly' && ((showMinimap === 'singleplayer' && singleplayer) || showMinimap === 'always') ? (
+    <div
+      className="minimap"
+      style={{
+        position: 'absolute',
+        right: '0px',
+        top: '0px',
+        padding: '5px 5px 0px 0px',
+        textAlign: 'center',
+        zIndex: 7
+      }}
+      onClick={() => {
+        toggleFullMap?.()
+      }}
+    >
+      <canvas
         style={{
-          position: 'absolute',
-          right: '0px',
-          top: '0px',
-          padding: '5px 5px 0px 0px',
-          textAlign: 'center',
-          zIndex: 7,
+          transition: '0.5s',
+          transitionTimingFunction: 'ease-out',
+          borderRadius: '1000px'
         }}
-        onClick={() => {
-          toggleFullMap?.()
+        width={80}
+        height={80}
+        ref={canvasRef}
+      />
+      <div
+        style={{
+          fontSize: '0.5em',
+          textShadow:
+            '0.1em 0 black, 0 0.1em black, -0.1em 0 black, 0 -0.1em black, -0.1em -0.1em black, -0.1em 0.1em black, 0.1em -0.1em black, 0.1em 0.1em black'
         }}
       >
-        <canvas
-          style={{
-            transition: '0.5s',
-            transitionTimingFunction: 'ease-out',
-            borderRadius: '1000px'
-          }}
-          width={80}
-          height={80}
-          ref={canvasRef}
-        />
-        <div
-          style={{
-            fontSize: '0.5em',
-            textShadow: '0.1em 0 black, 0 0.1em black, -0.1em 0 black, 0 -0.1em black, -0.1em -0.1em black, -0.1em 0.1em black, 0.1em -0.1em black, 0.1em 0.1em black'
-          }}
-        >
-          {Math.round(position.x)} {Math.round(position.y)} {Math.round(position.z)}
-        </div>
-      </div> : null
+        {Math.round(position.x)} {Math.round(position.y)} {Math.round(position.z)}
+      </div>
+    </div>
+  ) : null
 }

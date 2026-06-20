@@ -59,7 +59,7 @@ export default () => {
       // {"type":"compound","name":"","value":{"title":{"type":"string","value":"yes"},"author":{"type":"string","value":"bot"},"pages":{"type":"list","value":{"type":"string","value":["{\"text\":\"1\"}","{\"text\":\"4\"}","{\"text\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"]}
       const parsedData = nbt.simplify(book.nbt as any)
       if (!parsedData.pages) return
-      const pages = parsedData.pages.map((page) => {
+      const pages = parsedData.pages.map(page => {
         if (book.name !== 'written_book') return page
         const parsedPage = mojangson.simplify(mojangson.parse(page))
         return parsedPage.text ?? page
@@ -69,11 +69,11 @@ export default () => {
         pages,
         title: parsedData.title ?? '',
         author: parsedData.author ?? '',
-        isEditable: book.name === 'writable_book',
+        isEditable: book.name === 'writable_book'
       })
       showModal({ reactType: 'book' })
     }
-    customEvents.on('activateItem', (item) => {
+    customEvents.on('activateItem', item => {
       if (item.name === 'writable_book') {
         if (item.nbt?.value.pages) {
           openBookWithNbt()
@@ -82,7 +82,7 @@ export default () => {
             pages: [],
             title: '',
             author: '',
-            isEditable: true,
+            isEditable: true
           })
           showModal({ reactType: 'book' })
         }
@@ -97,14 +97,16 @@ export default () => {
   }, [modalActive])
 
   if (!openedBook) return null
-  return <Book
-    textPages={openedBook.pages}
-    editable={openedBook.isEditable}
-    onSign={(pages, title) => signEditBook(pages, title)}
-    onEdit={(pages) => signEditBook(pages, undefined)}
-    onClose={() => {
-      hideCurrentModal()
-    }}
-    author={bot.username}
-  />
+  return (
+    <Book
+      textPages={openedBook.pages}
+      editable={openedBook.isEditable}
+      onSign={(pages, title) => signEditBook(pages, title)}
+      onEdit={pages => signEditBook(pages, undefined)}
+      onClose={() => {
+        hideCurrentModal()
+      }}
+      author={bot.username}
+    />
+  )
 }

@@ -10,7 +10,7 @@ const MAX_ROWS_PER_COL = 10
 type Players = typeof bot.players
 
 export const tabListState = proxy({
-  isOpen: false,
+  isOpen: false
 })
 
 export default () => {
@@ -22,7 +22,7 @@ export default () => {
   const [counter, setCounter] = useState(0)
 
   useEffect(() => {
-    function requestUpdate () {
+    function requestUpdate() {
       setPlayers(bot?.players ?? {})
     }
 
@@ -79,11 +79,13 @@ export default () => {
 
   if (!isOpen) return null
 
-  return <PlayerListOverlay
-    playersLists={lists}
-    clientId={clientId}
-    tablistHeader={bot.tablist.header}
-    tablistFooter={bot.tablist.footer}
-    serverIP={serverIp ?? ''}
-  />
+  return (
+    <PlayerListOverlay
+      playersLists={lists}
+      clientId={clientId}
+      tablistHeader={bot.tablist.header}
+      tablistFooter={bot.tablist.footer}
+      serverIP={serverIp ?? ''}
+    />
+  )
 }

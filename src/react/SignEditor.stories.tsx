@@ -5,12 +5,15 @@ import SignEditor from './SignEditor'
 
 const meta: Meta<typeof SignEditor> = {
   component: SignEditor,
-  render (args) {
-    return <SignEditor
-      {...args} handleClick={(result) => {
-        console.log('handleClick', result)
-      }}
-    />
+  render(args) {
+    return (
+      <SignEditor
+        {...args}
+        handleClick={result => {
+          console.log('handleClick', result)
+        }}
+      />
+    )
   }
 }
 
@@ -19,10 +22,10 @@ type Story = StoryObj<typeof SignEditor>
 
 export const Primary: Story = {
   args: {
-    handleInput () {},
+    handleInput() {},
     ProseMirrorView
   },
   parameters: {
     noScaling: true
-  },
+  }
 }

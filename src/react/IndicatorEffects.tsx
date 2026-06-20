@@ -2,9 +2,7 @@ import { useMemo, useEffect, useRef, useState } from 'react'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 import './IndicatorEffects.css'
 
-
-
-function formatTime (seconds: number): string {
+function formatTime(seconds: number): string {
   if (seconds < 0) return ''
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = Math.floor(seconds % 60)
@@ -14,12 +12,12 @@ function formatTime (seconds: number): string {
 }
 
 export type EffectType = {
-  id: number,
-  image: string,
-  level: number,
-  initialTime: number,
-  duration: number,
-  name: string,
+  id: number
+  image: string
+  level: number
+  initialTime: number
+  duration: number
+  name: string
 }
 
 const EffectBox = ({ image, level, name, initialTime, duration }: Pick<EffectType, 'image' | 'level' | 'initialTime' | 'name' | 'duration'>) => {
@@ -47,14 +45,15 @@ const EffectBox = ({ image, level, name, initialTime, duration }: Pick<EffectTyp
   const levelText = level > 0 && level < 256 ? ` ${toRomanNumeral(level + 1)}` : ''
 
   return (
-    <div className='effect-box'>
-      <div className='effect-box__progress-bg' style={{ width: `${progress * 100}%` }} />
-      <img className='effect-box__image' src={image} alt='' />
-      <div className='effect-box__content'>
-        <div className='effect-box__title'>{name}{levelText}</div>
-        {formattedTime && (
-          <div className='effect-box__time'>{formattedTime}</div>
-        )}
+    <div className="effect-box">
+      <div className="effect-box__progress-bg" style={{ width: `${progress * 100}%` }} />
+      <img className="effect-box__image" src={image} alt="" />
+      <div className="effect-box__content">
+        <div className="effect-box__title">
+          {name}
+          {levelText}
+        </div>
+        {formattedTime && <div className="effect-box__time">{formattedTime}</div>}
       </div>
     </div>
   )
@@ -67,7 +66,7 @@ export const defaultIndicatorsState = {
   writingFiles: false, // saving
   appHasErrors: false,
   connectionIssues: 0,
-  preventSleep: false,
+  preventSleep: false
 }
 
 const indicatorIcons: Record<keyof typeof defaultIndicatorsState, string> = {
@@ -77,7 +76,7 @@ const indicatorIcons: Record<keyof typeof defaultIndicatorsState, string> = {
   appHasErrors: 'alert',
   readonlyFiles: 'file-off',
   connectionIssues: pixelartIcons['cellular-signal-off'],
-  preventSleep: pixelartIcons.moon,
+  preventSleep: pixelartIcons.moon
 }
 
 const colorOverrides = {
@@ -94,7 +93,7 @@ export default ({
   displayIndicators,
   displayEffects
 }: {
-  indicators: typeof defaultIndicatorsState,
+  indicators: typeof defaultIndicatorsState
   effects: readonly EffectType[]
   displayIndicators: boolean
   displayEffects: boolean
@@ -108,32 +107,34 @@ export default ({
       key
     }
   })
-  return <div className='indicators-container-outer'>
-    <div className='indicators-container'>
-      {
-        displayIndicators && indicatorsMapped.map((indicator) => <div
-          key={indicator.icon}
-          style={{
-            opacity: indicator.state ? 1 : 0,
-            transition: 'opacity color 0.1s',
-            color: colorOverrides[indicator.key]?.[indicator.state]
-          }}
-        >
-          <PixelartIcon iconName={indicator.icon} />
-        </div>)
-      }
+  return (
+    <div className="indicators-container-outer">
+      <div className="indicators-container">
+        {displayIndicators &&
+          indicatorsMapped.map(indicator => (
+            <div
+              key={indicator.icon}
+              style={{
+                opacity: indicator.state ? 1 : 0,
+                transition: 'opacity color 0.1s',
+                color: colorOverrides[indicator.key]?.[indicator.state]
+              }}
+            >
+              <PixelartIcon iconName={indicator.icon} />
+            </div>
+          ))}
+      </div>
+      {displayEffects && <EffectsInner effects={effects} />}
     </div>
-    {displayEffects && <EffectsInner effects={effects} />}
-  </div>
+  )
 }
 
 const EffectsInner = ({ effects }: { effects: readonly EffectType[] }) => {
-  return <div className='effects-container'>
-    {effects.map((effect) => (
-      <EffectBox
-        key={`effectBox-${effect.id}`}
-        {...effect}
-      />
-    ))}
-  </div>
+  return (
+    <div className="effects-container">
+      {effects.map(effect => (
+        <EffectBox key={`effectBox-${effect.id}`} {...effect} />
+      ))}
+    </div>
+  )
 }

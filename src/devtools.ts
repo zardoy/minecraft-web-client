@@ -6,14 +6,18 @@ import { enable, disable, enabled } from 'debug'
 import { Vec3 } from 'vec3'
 
 customEvents.on('mineflayerBotCreated', () => {
-  window.debugServerPacketNames = Object.fromEntries(Object.keys(loadedData.protocol.play.toClient.types).map(name => {
-    name = name.replace('packet_', '')
-    return [name, name]
-  }))
-  window.debugClientPacketNames = Object.fromEntries(Object.keys(loadedData.protocol.play.toServer.types).map(name => {
-    name = name.replace('packet_', '')
-    return [name, name]
-  }))
+  window.debugServerPacketNames = Object.fromEntries(
+    Object.keys(loadedData.protocol.play.toClient.types).map(name => {
+      name = name.replace('packet_', '')
+      return [name, name]
+    })
+  )
+  window.debugClientPacketNames = Object.fromEntries(
+    Object.keys(loadedData.protocol.play.toServer.types).map(name => {
+      name = name.replace('packet_', '')
+      return [name, name]
+    })
+  )
 })
 
 window.Vec3 = Vec3
@@ -28,13 +32,14 @@ window.entityCursor = () => {
 }
 
 // wanderer
-window.inspectPlayer = () => require('fs').promises.readFile('/world/playerdata/9e487d23-2ffc-365a-b1f8-f38203f59233.dat').then(window.nbt.parse).then(console.log)
+window.inspectPlayer = () =>
+  require('fs').promises.readFile('/world/playerdata/9e487d23-2ffc-365a-b1f8-f38203f59233.dat').then(window.nbt.parse).then(console.log)
 
 Object.defineProperty(window, 'debugSceneChunks', {
-  get () {
+  get() {
     if (!(window.world instanceof WorldRendererThree)) return undefined
-    return (window.world)?.getLoadedChunksRelative?.(bot.entity.position, true)
-  },
+    return window.world?.getLoadedChunksRelative?.(bot.entity.position, true)
+  }
 })
 
 window.chunkKey = (xRel = 0, zRel = 0) => {
@@ -47,10 +52,10 @@ window.sectionKey = (xRel = 0, yRel = 0, zRel = 0) => {
   return `${(Math.floor(pos.x / 16) + xRel) * 16},${(Math.floor(pos.y / 16) + yRel) * 16},${(Math.floor(pos.z / 16) + zRel) * 16}`
 }
 
-window.keys = (obj) => Object.keys(obj)
-window.values = (obj) => Object.values(obj)
+window.keys = obj => Object.keys(obj)
+window.values = obj => Object.values(obj)
 
-window.len = (obj) => Object.keys(obj).length
+window.len = obj => Object.keys(obj).length
 
 customEvents.on('gameLoaded', () => {
   bot._client.on('packet', (data, { name }) => {
@@ -75,17 +80,16 @@ window.inspectPacket = (packetName, isFromClient = false, fullOrListener: boolea
     fullOrListener = isFromClient
     isFromClient = false
   }
-  const listener = typeof fullOrListener === 'function'
-    ? (name, ...args) => fullOrListener(...args, name)
-    : (name, ...args) => {
-      const displayName = name === packetName ? name : `${name} (${packetName})`
-      console.log('packet', displayName, fullOrListener ? args : args[0])
-    }
+  const listener =
+    typeof fullOrListener === 'function'
+      ? (name, ...args) => fullOrListener(...args, name)
+      : (name, ...args) => {
+          const displayName = name === packetName ? name : `${name} (${packetName})`
+          console.log('packet', displayName, fullOrListener ? args : args[0])
+        }
 
   // Pre-compile regex if using wildcards
-  const pattern = typeof packetName === 'string' && packetName.includes('*')
-    ? new RegExp('^' + packetName.replaceAll('*', '.*') + '$')
-    : null
+  const pattern = typeof packetName === 'string' && packetName.includes('*') ? new RegExp('^' + packetName.replaceAll('*', '.*') + '$') : null
 
   const packetNameListener = (name, data) => {
     if (pattern) {
@@ -121,11 +125,11 @@ window.inspectPacket = (packetName, isFromClient = false, fullOrListener: boolea
 
   const returnobj = {}
   Object.defineProperty(returnobj, 'detach', {
-    get () {
+    get() {
       detach()
       customEvents.removeListener('mineflayerBotCreated', attach)
       return true
-    },
+    }
   })
   return returnobj
 }
@@ -143,7 +147,7 @@ window.downloadFile = async (path: string) => {
 }
 
 Object.defineProperty(window, 'debugToggle', {
-  get () {
+  get() {
     localStorage.debug = localStorage.debug === '*' ? '' : '*'
     if (enabled('*')) {
       disable()
@@ -153,7 +157,7 @@ Object.defineProperty(window, 'debugToggle', {
       return 'enabled debug'
     }
   },
-  set (v) {
+  set(v) {
     enable(v)
     localStorage.debug = v
     console.log('Enabled debug for', v)
@@ -174,7 +178,6 @@ window.clearStorage = (...keysToKeep: string[]) => {
   return `Cleared ${localStorage.length - keysToKeep.length} items from localStorage. Kept: ${keysToKeep.join(', ')}`
 }
 
-
 // PERF DEBUG
 
 // for advanced debugging, use with watch expression
@@ -182,37 +185,41 @@ window.clearStorage = (...keysToKeep: string[]) => {
 window.statsPerSecAvg = {}
 let currentStatsPerSec = {} as Record<string, number[]>
 const waitingStatsPerSec = {}
-window.markStart = (label) => {
+window.markStart = label => {
   waitingStatsPerSec[label] ??= []
   waitingStatsPerSec[label][0] = performance.now()
 }
-window.markEnd = (label) => {
+window.markEnd = label => {
   if (!waitingStatsPerSec[label]?.[0]) return
   currentStatsPerSec[label] ??= []
   currentStatsPerSec[label].push(performance.now() - waitingStatsPerSec[label][0])
   delete waitingStatsPerSec[label]
 }
 const updateStatsPerSecAvg = () => {
-  window.statsPerSecAvg = Object.fromEntries(Object.entries(currentStatsPerSec).map(([key, value]) => {
-    return [key, {
-      avg: value.reduce((a, b) => a + b, 0) / value.length,
-      count: value.length
-    }]
-  }))
+  window.statsPerSecAvg = Object.fromEntries(
+    Object.entries(currentStatsPerSec).map(([key, value]) => {
+      return [
+        key,
+        {
+          avg: value.reduce((a, b) => a + b, 0) / value.length,
+          count: value.length
+        }
+      ]
+    })
+  )
   currentStatsPerSec = {}
 }
-
 
 window.statsPerSec = {}
 let statsPerSecCurrent = {}
 let lastReset = performance.now()
-window.addStatPerSec = (name) => {
+window.addStatPerSec = name => {
   statsPerSecCurrent[name] ??= 0
   statsPerSecCurrent[name]++
 }
 window.statsPerSecCurrent = statsPerSecCurrent
 setInterval(() => {
-  window.statsPerSec = { duration: Math.floor(performance.now() - lastReset), ...statsPerSecCurrent, }
+  window.statsPerSec = { duration: Math.floor(performance.now() - lastReset), ...statsPerSecCurrent }
   statsPerSecCurrent = {}
   window.statsPerSecCurrent = statsPerSecCurrent
   updateStatsPerSecAvg()
@@ -240,7 +247,7 @@ let metricsInterval: NodeJS.Timeout | null = null
 // Start collecting metrics immediately
 const startTime = performance.now()
 
-function collectAndSendMetrics () {
+function collectAndSendMetrics() {
   if (!ws || ws.readyState !== WebSocket.OPEN) return
 
   const metrics = {
@@ -252,7 +259,7 @@ function collectAndSendMetrics () {
   ws.send(JSON.stringify(metrics))
 }
 
-function getWebSocketUrl () {
+function getWebSocketUrl() {
   const wsPort = process.env.WS_PORT
   if (!wsPort) return null
 
@@ -261,7 +268,7 @@ function getWebSocketUrl () {
   return `${protocol}//${hostname}:${wsPort}`
 }
 
-function connectWebSocket () {
+function connectWebSocket() {
   if (ws) return
 
   const wsUrl = getWebSocketUrl()
@@ -304,7 +311,7 @@ function connectWebSocket () {
     wsReconnectTimeout = setTimeout(connectWebSocket, 3000)
   }
 
-  ws.onerror = (error) => {
+  ws.onerror = error => {
     console.error('WebSocket error:', error)
   }
 }

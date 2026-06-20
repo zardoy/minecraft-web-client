@@ -11,12 +11,11 @@ const meta: Meta<typeof BossBarOverlay> = {
 export default meta
 type Story = StoryObj<typeof BossBarOverlay>
 
-
 export const Primary: Story = {
   args: {
     bar: {
       entityUUID: 'uuid',
-      title: { text: 'Boss', translate: 'test' } as ChatMessage & { text: string, translate: string },
+      title: { text: 'Boss', translate: 'test' } as ChatMessage & { text: string; translate: string },
       health: 100,
       dividers: 2,
       color: 'red',

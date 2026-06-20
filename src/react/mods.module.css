@@ -1,5 +1,5 @@
 .root {
-  min-height: 0; 
+  min-height: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -153,24 +153,24 @@
 }
 
 /* Mod state styles */
-.modRow[data-enabled="false"] {
+.modRow[data-enabled='false'] {
   opacity: 0.5;
 }
 
-.modRow[data-enabled="true"] {
+.modRow[data-enabled='true'] {
   color: lime;
 }
 
-.modRow[data-enabled="true"] .modRowTitle {
+.modRow[data-enabled='true'] .modRowTitle {
   color: lime;
 }
 
 /* Error state styles */
-.modRow[data-has-error="true"] {
+.modRow[data-has-error='true'] {
   background: rgba(255, 0, 0, 0.1);
 }
 
-.modRow[data-has-error="true"] .modRowTitle {
+.modRow[data-has-error='true'] .modRowTitle {
   color: #ff6b6b;
 }
 

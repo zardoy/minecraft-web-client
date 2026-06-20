@@ -5,8 +5,7 @@ import type { ClientOnMap } from '../generatedServerPackets'
 import Title from './Title'
 import type { AnimationTimes } from './Title'
 
-
-const defaultText: Record<string, any> = { 'text': '' }
+const defaultText: Record<string, any> = { text: '' }
 const defaultTimings: AnimationTimes = { fadeIn: 500, stay: 3500, fadeOut: 1000 }
 
 const ticksToMs = (ticks: AnimationTimes) => {
@@ -22,7 +21,7 @@ const getComponent = (input: string | any) => {
     return mojangson.simplify(mojangson.parse(input))
   } else if (input.type === 'string') {
     // this is used for simple chat components without any special properties
-    return { 'text': input.value }
+    return { text: input.value }
   } else if (input.type === 'compound') {
     // this is used for complex chat components with special properties
     return nbt.simplify(input)
@@ -40,21 +39,21 @@ export default () => {
 
   useMemo(() => {
     // todo move to mineflayer
-    bot._client.on('set_title_text', (packet) => {
+    bot._client.on('set_title_text', packet => {
       setTitle(getComponent(packet.text))
       setOpenTitle(true)
     })
-    bot._client.on('set_title_subtitle', (packet) => {
+    bot._client.on('set_title_subtitle', packet => {
       setSubtitle(getComponent(packet.text))
     })
-    bot._client.on('action_bar', (packet) => {
+    bot._client.on('action_bar', packet => {
       setActionBar(getComponent(packet.text))
       setOpenActionBar(true)
     })
-    bot._client.on('set_title_time', (packet) => {
+    bot._client.on('set_title_time', packet => {
       setAnimTimes(ticksToMs(packet))
     })
-    bot._client.on('clear_titles', (mes) => {
+    bot._client.on('clear_titles', mes => {
       setOpenTitle(false)
       setOpenActionBar(false)
       if (mes.reset) {
@@ -65,8 +64,7 @@ export default () => {
       }
     })
 
-
-    bot.on('actionBar', (packet) => {
+    bot.on('actionBar', packet => {
       setAnimTimes({ fadeIn: 0, stay: 2000, fadeOut: 1000 })
       setActionBar(packet)
       setOpenActionBar(true)
@@ -146,12 +144,5 @@ export default () => {
     }
   }, [actionBar])
 
-  return <Title
-    title={title}
-    subtitle={subtitle}
-    actionBar={actionBar}
-    transitionTimes={animTimes}
-    openTitle={openTitle}
-    openActionBar={openActionBar}
-  />
+  return <Title title={title} subtitle={subtitle} actionBar={actionBar} transitionTimes={animTimes} openTitle={openTitle} openActionBar={openActionBar} />
 }

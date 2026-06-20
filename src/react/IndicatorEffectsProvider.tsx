@@ -9,15 +9,14 @@ import IndicatorEffects, { EffectType, defaultIndicatorsState } from './Indicato
 import { images } from './effectsImages'
 
 export const state = proxy({
-  indicators: {
-  },
+  indicators: {},
   effects: [] as EffectType[]
 })
 
 export const addEffect = (newEffect: Effect) => {
   const effectData = loadedData.effectsArray.find(e => e.id === newEffect.id)
   const name = effectData?.name ?? `unknown: ${newEffect.id}`
-  const nameKebab = name.replaceAll(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`).slice(1)
+  const nameKebab = name.replaceAll(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).slice(1)
   const image = images[nameKebab] ?? null
   if (!image) {
     inGameError(`received unknown effect id ${newEffect.id}`)
@@ -36,14 +35,14 @@ export const addEffect = (newEffect: Effect) => {
       image,
       level: newEffect.amplifier,
       initialTime: Date.now(),
-      duration: newEffect.duration / 20, // convert ticks to seconds
+      duration: newEffect.duration / 20 // convert ticks to seconds
     }
     state.effects.push(effect)
   }
 }
 
 const removeEffect = (id: number) => {
-  for (const [index, effect] of (state.effects).entries()) {
+  for (const [index, effect] of state.effects.entries()) {
     if (effect.id === id) {
       state.effects.splice(index, 1)
     }
@@ -51,7 +50,7 @@ const removeEffect = (id: number) => {
 }
 
 const getEffectIndex = (newEffect: Pick<EffectType, 'id'>) => {
-  for (const [index, effect] of (state.effects).entries()) {
+  for (const [index, effect] of state.effects.entries()) {
     if (effect.id === newEffect.id) {
       return index
     }
@@ -59,7 +58,7 @@ const getEffectIndex = (newEffect: Pick<EffectType, 'id'>) => {
   return null
 }
 
-export default ({ displayEffects = true, displayIndicators = true }: { displayEffects?: boolean, displayIndicators?: boolean }) => {
+export default ({ displayEffects = true, displayIndicators = true }: { displayEffects?: boolean; displayIndicators?: boolean }) => {
   const [dummyState, setDummyState] = useState(false)
   const stateIndicators = useSnapshot(state.indicators)
   const chunksLoading = !useSnapshot(appViewer.rendererState).world.allChunksLoaded
@@ -77,7 +76,7 @@ export default ({ displayEffects = true, displayIndicators = true }: { displayEf
     chunksLoading,
     preventSleep: !!bot?.wakeLock,
     // mesherWork,
-    ...stateIndicators,
+    ...stateIndicators
   }
 
   const effects = useSnapshot(state.effects)
@@ -91,10 +90,12 @@ export default ({ displayEffects = true, displayIndicators = true }: { displayEf
   }, [])
 
   useMemo(() => {
-    const effectsImages = Object.fromEntries(loadedData.effectsArray.map((effect) => {
-      const nameKebab = effect.name.replaceAll(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`).slice(1)
-      return [effect.id, images[nameKebab]]
-    }))
+    const effectsImages = Object.fromEntries(
+      loadedData.effectsArray.map(effect => {
+        const nameKebab = effect.name.replaceAll(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).slice(1)
+        return [effect.id, images[nameKebab]]
+      })
+    )
     const gotEffect = (entity: import('prismarine-entity').Entity, effect: Effect) => {
       if (entity.id !== bot.entity.id) return
       addEffect(effect)
@@ -117,10 +118,5 @@ export default ({ displayEffects = true, displayIndicators = true }: { displayEf
     })
   }, [])
 
-  return <IndicatorEffects
-    indicators={allIndicators}
-    effects={effects}
-    displayIndicators={displayIndicators}
-    displayEffects={displayEffects}
-  />
+  return <IndicatorEffects indicators={allIndicators} effects={effects} displayIndicators={displayIndicators} displayEffects={displayEffects} />
 }

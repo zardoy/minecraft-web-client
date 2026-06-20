@@ -27,7 +27,7 @@ const initialState = {
   isError: false,
   hideDots: false,
   loadingChunksData: null as null | Record<string, string>,
-  loadingChunksDataPlayerChunk: null as null | { x: number, z: number },
+  loadingChunksDataPlayerChunk: null as null | { x: number; z: number },
   isDisplaying: false,
   minecraftJsonMessage: null as null | Record<string, any>,
   showReconnect: false
@@ -38,10 +38,13 @@ export const resetAppStatusState = () => {
 }
 
 const saveReconnectOptions = (options: ConnectOptions) => {
-  sessionStorage.setItem('reconnectOptions', JSON.stringify({
-    value: options,
-    timestamp: Date.now()
-  }))
+  sessionStorage.setItem(
+    'reconnectOptions',
+    JSON.stringify({
+      value: options,
+      timestamp: Date.now()
+    })
+  )
 }
 
 export const reconnectReload = () => {
@@ -57,9 +60,11 @@ export const quickDevReconnect = () => {
   }
 
   resetAppStatusState()
-  window.dispatchEvent(new window.CustomEvent('connect', {
-    detail: lastConnectOptions.value
-  }))
+  window.dispatchEvent(
+    new window.CustomEvent('connect', {
+      detail: lastConnectOptions.value
+    })
+  )
 }
 
 const AppStatusProviderBase = () => {
@@ -74,7 +79,18 @@ const AppStatusProviderBase = () => {
   }
 
   const usingState = (isOpen ? currentState : lastState.current) as typeof currentState
-  const { isError, lastStatus, maybeRecoverable, status, hideDots, descriptionHint, loadingChunksData, loadingChunksDataPlayerChunk, minecraftJsonMessage, showReconnect } = usingState
+  const {
+    isError,
+    lastStatus,
+    maybeRecoverable,
+    status,
+    hideDots,
+    descriptionHint,
+    loadingChunksData,
+    loadingChunksDataPlayerChunk,
+    minecraftJsonMessage,
+    showReconnect
+  } = usingState
 
   useDidUpdateEffect(() => {
     // todo play effect only when world successfully loaded
@@ -93,7 +109,7 @@ const AppStatusProviderBase = () => {
       if (divingElem) {
         startDiveAnimation(divingElem as HTMLElement)
       } else {
-        observer = new MutationObserver((mutations) => {
+        observer = new MutationObserver(mutations => {
           const divingElem = document.querySelector('#viewer-canvas')
           if (divingElem) {
             startDiveAnimation(divingElem as HTMLElement)
@@ -115,20 +131,27 @@ const AppStatusProviderBase = () => {
 
   useEffect(() => {
     const controller = new AbortController()
-    window.addEventListener('keyup', (e) => {
-      if ('input textarea select'.split(' ').includes((e.target as HTMLElement).tagName?.toLowerCase() ?? '')) return
-      if (activeModalStack.at(-1)?.reactType !== 'app-status') return
-      // todo do only if reconnect is possible
-      if (e.code !== 'KeyR' || !lastConnectOptions.value) return
-      quickDevReconnect()
-    }, {
-      signal: controller.signal
-    })
+    window.addEventListener(
+      'keyup',
+      e => {
+        if ('input textarea select'.split(' ').includes((e.target as HTMLElement).tagName?.toLowerCase() ?? '')) return
+        if (activeModalStack.at(-1)?.reactType !== 'app-status') return
+        // todo do only if reconnect is possible
+        if (e.code !== 'KeyR' || !lastConnectOptions.value) return
+        quickDevReconnect()
+      },
+      {
+        signal: controller.signal
+      }
+    )
     return () => controller.abort()
   }, [])
 
-  const displayAuthButton = status.includes('This server appears to be an online server and you are providing no authentication.')
-    || JSON.stringify(minecraftJsonMessage ?? {}).toLowerCase().includes('authenticate')
+  const displayAuthButton =
+    status.includes('This server appears to be an online server and you are providing no authentication.') ||
+    JSON.stringify(minecraftJsonMessage ?? {})
+      .toLowerCase()
+      .includes('authenticate')
   const hasVpnText = (text: string) => text.includes('VPN') || text.includes('Proxy')
   const displayVpnButton = hasVpnText(status) || (minecraftJsonMessage && hasVpnText(JSON.stringify(minecraftJsonMessage)))
   const authReconnectAction = async () => {
@@ -170,33 +193,40 @@ const AppStatusProviderBase = () => {
       }
     }
   }
-  return <DiveTransition open={isOpen} isError={isError}>
-    <AppStatus
-      status={status}
-      isError={isError || status === ''} // display back button if status is empty as probably our app is errored
-      hideDots={hideDots}
-      lastStatus={lastStatus}
-      showReconnect={showReconnect}
-      onReconnect={reconnectReload}
-      description={<>{
-        displayAuthButton ? '' : (isError ? guessProblem(status) : '') || descriptionHint
-      }{
-        minecraftJsonMessage && <MessageFormattedString message={minecraftJsonMessage} />
-      }</>}
-      backAction={backAction}
-      actionsSlot={
-        <>
-          {displayAuthButton && <Button label='Authenticate' onClick={authReconnectAction} />}
-          {displayVpnButton && <PossiblyVpnBypassProxyButton reconnect={quickDevReconnect} />}
-          {replayActive && <Button label={`Download Packets Replay ${replayLogger?.contents.split('\n').length}L`} onClick={downloadPacketsReplay} />}
-          {wasDisconnected && lastAutoCapturedPackets && <Button label={`Inspect Last ${lastAutoCapturedPackets} Packets`} onClick={() => downloadAutoCapturedPackets()} />}
-        </>
-      }
-    >
-      {loadingChunksData && <LoadingChunks regionFiles={Object.keys(loadingChunksData)} stateMap={loadingChunksData} playerChunk={loadingChunksDataPlayerChunk} />}
-      {isOpen && <DisplayingIndicator />}
-    </AppStatus>
-  </DiveTransition>
+  return (
+    <DiveTransition open={isOpen} isError={isError}>
+      <AppStatus
+        status={status}
+        isError={isError || status === ''} // display back button if status is empty as probably our app is errored
+        hideDots={hideDots}
+        lastStatus={lastStatus}
+        showReconnect={showReconnect}
+        onReconnect={reconnectReload}
+        description={
+          <>
+            {displayAuthButton ? '' : (isError ? guessProblem(status) : '') || descriptionHint}
+            {minecraftJsonMessage && <MessageFormattedString message={minecraftJsonMessage} />}
+          </>
+        }
+        backAction={backAction}
+        actionsSlot={
+          <>
+            {displayAuthButton && <Button label="Authenticate" onClick={authReconnectAction} />}
+            {displayVpnButton && <PossiblyVpnBypassProxyButton reconnect={quickDevReconnect} />}
+            {replayActive && <Button label={`Download Packets Replay ${replayLogger?.contents.split('\n').length}L`} onClick={downloadPacketsReplay} />}
+            {wasDisconnected && lastAutoCapturedPackets && (
+              <Button label={`Inspect Last ${lastAutoCapturedPackets} Packets`} onClick={() => downloadAutoCapturedPackets()} />
+            )}
+          </>
+        }
+      >
+        {loadingChunksData && (
+          <LoadingChunks regionFiles={Object.keys(loadingChunksData)} stateMap={loadingChunksData} playerChunk={loadingChunksDataPlayerChunk} />
+        )}
+        {isOpen && <DisplayingIndicator />}
+      </AppStatus>
+    </DiveTransition>
+  )
 }
 
 export default withInjectableUi(AppStatusProviderBase, 'appStatusProvider')
@@ -217,7 +247,7 @@ const PossiblyVpnBypassProxyButton = ({ reconnect }: { reconnect: () => void }) 
   const [vpnBypassProxy, setVpnBypassProxy] = useState('')
 
   const useVpnBypassProxyAction = () => {
-    updateLoadedServerData((data) => {
+    updateLoadedServerData(data => {
       data.proxyOverride = vpnBypassProxy
       return data
     }, lastConnectOptions.value?.serverIndex)
@@ -229,15 +259,15 @@ const PossiblyVpnBypassProxyButton = ({ reconnect }: { reconnect: () => void }) 
     const proxy = lastConnectOptions.value?.proxy
     if (!proxy) return
     getProxyDetails(proxy)
-      .then(async (r) => r.json())
+      .then(async r => r.json())
       .then(({ capabilities }) => {
         const { vpnBypassProxy } = capabilities
         if (!vpnBypassProxy) return
         setVpnBypassProxy(vpnBypassProxy)
       })
-      .catch(() => { })
+      .catch(() => {})
   }, [])
 
   if (!vpnBypassProxy) return
-  return <Button label='Use VPN bypass proxy' onClick={useVpnBypassProxyAction} />
+  return <Button label="Use VPN bypass proxy" onClick={useVpnBypassProxyAction} />
 }

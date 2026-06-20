@@ -2,93 +2,93 @@
 
 .title,
 .screen-title {
-    font-size: 10px;
-    color: white;
-    text-align: center;
-    text-shadow: 1px 1px #222;
+  font-size: 10px;
+  color: white;
+  text-align: center;
+  text-shadow: 1px 1px #222;
 }
 
 .screen-title {
-    margin-bottom: 10px;
+  margin-bottom: 10px;
 }
 
 .backdrop {
-    position: fixed;
-    inset: 0;
-    height: 100dvh;
-    background: rgba(0, 0, 0, 0.75);
-    z-index: 12;
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 12;
 }
 
 .fullscreen {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    justify-content: center;
-    z-index: 12;
-    /* Account for GUI scaling */
-    width: calc(100dvw / var(--guiScale, 1));
-    height: calc(100dvh / var(--guiScale, 1));
-    overflow: hidden;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 12;
+  /* Account for GUI scaling */
+  width: calc(100dvw / var(--guiScale, 1));
+  height: calc(100dvh / var(--guiScale, 1));
+  overflow: hidden;
 }
 body.rotated .fullscreen {
-    width: calc(100dvh / var(--guiScale, 1));
-    height: calc(100dvw / var(--guiScale, 1));
+  width: calc(100dvh / var(--guiScale, 1));
+  height: calc(100dvw / var(--guiScale, 1));
 }
 
 .screen-content {
-    display: flex;
-    flex-direction: column;
-    margin-top: 35px;
-    /* todo remove it but without it in chrome android the screen is not scrollable */
-    overflow: auto;
-    /* height: fit-content; */
-    /*! delete this line after testing previous line */
-    /* todo I'm not sure about it */
-    /* margin-top: calc(100% / 6 - 16px); */
-    align-items: center;
-    /* apply safe area padding */
-    padding: 0 calc(env(safe-area-inset-left) / 2) 0 calc(env(safe-area-inset-right) / 2);
+  display: flex;
+  flex-direction: column;
+  margin-top: 35px;
+  /* todo remove it but without it in chrome android the screen is not scrollable */
+  overflow: auto;
+  /* height: fit-content; */
+  /*! delete this line after testing previous line */
+  /* todo I'm not sure about it */
+  /* margin-top: calc(100% / 6 - 16px); */
+  align-items: center;
+  /* apply safe area padding */
+  padding: 0 calc(env(safe-area-inset-left) / 2) 0 calc(env(safe-area-inset-right) / 2);
 
-    gap: 10px;
+  gap: 10px;
 }
 
 .scaled-content-container {
-    font-size: calc(16px * var(--scale));
+  font-size: calc(16px * var(--scale));
 }
 
 .scaled-content-container .screen-title {
-    font-size: calc(10px * var(--scale));
-    margin-top: calc(35px * var(--scale));
+  font-size: calc(10px * var(--scale));
+  margin-top: calc(35px * var(--scale));
 }
 
 .scaled-content-container .dirt-bg {
-    image-rendering: pixelated;
-    background-size: calc(32px * var(--scale));
-    transform: none;
+  image-rendering: pixelated;
+  background-size: calc(32px * var(--scale));
+  transform: none;
 }
 
 @media screen and (max-height: 426px) {
-    .fullscreen:not(.small-content) {
-        .screen-content {
-            /* margin-top: calc(14px * var(--scale)); */
-            margin-top: 14px;
-        }
-
-        .screen-title {
-            margin-bottom: 5px;
-        }
+  .fullscreen:not(.small-content) {
+    .screen-content {
+      /* margin-top: calc(14px * var(--scale)); */
+      margin-top: 14px;
     }
+
+    .screen-title {
+      margin-bottom: 5px;
+    }
+  }
 }
 
 .screen-items {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4px 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 10px;
 }
 
 @media screen and (max-width: 399px) {
-    .screen-items {
-        gap: 4px 1px;
-    }
+  .screen-items {
+    gap: 4px 1px;
+  }
 }

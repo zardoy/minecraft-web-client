@@ -18,7 +18,7 @@ let soundMap: SoundMap | undefined
 const updateResourcePack = async () => {
   if (!soundMap) return
   // todo, rework to await
-  void soundMap.updateActiveResourcePackBasePath(await getActiveResourcepackBasePath() ?? undefined)
+  void soundMap.updateActiveResourcePackBasePath((await getActiveResourcepackBasePath()) ?? undefined)
 }
 
 let musicInterval: ReturnType<typeof setInterval> | null = null
@@ -88,7 +88,7 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
     await musicSystem.playMusic(soundData.url, soundData.volume)
   }
 
-  function startMusicSystem () {
+  function startMusicSystem() {
     if (musicInterval) return
     musicInterval = setInterval(() => {
       void musicStartCheck()
@@ -99,8 +99,7 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
     void musicStartCheck(true)
   }
 
-
-  function stopMusicSystem () {
+  function stopMusicSystem() {
     if (musicInterval) {
       clearInterval(musicInterval)
       musicInterval = null
@@ -118,7 +117,7 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
     await playHardcodedSound(soundId, position, volume, pitch)
   })
 
-  bot._client.on('sound_effect', async (packet) => {
+  bot._client.on('sound_effect', async packet => {
     const hasNamedSoundEffect = versionToNumber(bot.version) < versionToNumber('1.19.3')
 
     const soundResource = packet['soundEvent']?.resource as string | undefined
@@ -133,7 +132,7 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
     await playHardcodedSound(soundResource.replace('minecraft:', ''), pos, packet.volume, packet.pitch)
   })
 
-  bot.on('entityHurt', async (entity) => {
+  bot.on('entityHurt', async entity => {
     if (entity.id === bot.entity.id) {
       await playHardcodedSound('entity.player.hurt')
     }
@@ -147,7 +146,7 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
     const RUN_THRESHOLD = 0.15
     const { x, z, y } = bot.entity.velocity
     if (bot.entity.onGround && (Math.abs(x) > VELOCITY_THRESHOLD || Math.abs(z) > VELOCITY_THRESHOLD)) {
-      const isRunning = (Math.abs(x) > RUN_THRESHOLD || Math.abs(z) > RUN_THRESHOLD)
+      const isRunning = Math.abs(x) > RUN_THRESHOLD || Math.abs(z) > RUN_THRESHOLD
       // movement happening
       if (Date.now() - lastStepSound > (isRunning ? 100 : 300)) {
         const blockUnder = bot.world.getBlock(bot.entity.position.offset(0, -1, 0))
@@ -226,7 +225,7 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
 subscribeKey(miscUiState, 'gameLoaded', () => {
   if (!miscUiState.gameLoaded) return
 
-  function buildFloorMap (x: number, y: number, z: number): number[] {
+  function buildFloorMap(x: number, y: number, z: number): number[] {
     const floorMap: number[] = []
     for (let dz = -2; dz <= 2; dz++) {
       for (let dx = -2; dx <= 2; dx++) {
@@ -305,9 +304,9 @@ export const downloadSoundsIfNeeded = async () => {
 
 export const lastPlayedSounds = {
   lastClientPlayed: [] as string[],
-  lastServerPlayed: {} as Record<string, { count: number, last: number }>,
+  lastServerPlayed: {} as Record<string, { count: number; last: number }>
 }
 
 const getDistance = (pos1: Vec3, pos2: Vec3) => {
-  return Math.hypot((pos1.x - pos2.x), (pos1.y - pos2.y), (pos1.z - pos2.z))
+  return Math.hypot(pos1.x - pos2.x, pos1.y - pos2.y, pos1.z - pos2.z)
 }

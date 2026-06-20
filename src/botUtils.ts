@@ -18,7 +18,7 @@ export const displayClientChat = (textOrJson: string | Record<string, any>) => {
   })
 }
 
-export const parseFormattedMessagePacket = (arg) => {
+export const parseFormattedMessagePacket = arg => {
   if (typeof arg === 'string') {
     try {
       arg = JSON.parse(arg)

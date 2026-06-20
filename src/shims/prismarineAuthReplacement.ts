@@ -2,6 +2,4 @@
 
 const Titles = {}
 
-export {
-  Titles
-}
+export { Titles }

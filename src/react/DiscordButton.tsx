@@ -4,7 +4,7 @@ import { CSSProperties, useState } from 'react'
 import Button from './Button'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 
-export const DiscordButton = ({ text, style }: { text?: string, style?: Record<string, any> }) => {
+export const DiscordButton = ({ text, style }: { text?: string; style?: Record<string, any> }) => {
   const links: DropdownButtonItem[] = [
     {
       text: 'Support Official Server (mcraft.fun)',
@@ -20,18 +20,16 @@ export const DiscordButton = ({ text, style }: { text?: string, style?: Record<s
 }
 
 export type DropdownButtonItem = {
-  text: string,
+  text: string
   clickHandler: () => void
 }
 
-export const DropdownButton = ({ text, style, links }: { text: string, style?: Record<string, any>, links: DropdownButtonItem[] }) => {
+export const DropdownButton = ({ text, style, links }: { text: string; style?: Record<string, any>; links: DropdownButtonItem[] }) => {
   const [isOpen, setIsOpen] = useState(false)
   const { refs, floatingStyles } = useFloating({
     open: isOpen,
     onOpenChange: setIsOpen,
-    middleware: [
-      autoPlacement()
-    ],
+    middleware: [autoPlacement()]
   })
 
   const styles: CSSProperties = {
@@ -48,29 +46,32 @@ export const DropdownButton = ({ text, style, links }: { text: string, style?: R
     zIndex: 11
   }
 
-  return <>
-    <Button
-      style={style ?? { position: 'relative', width: '98px' }}
-      rootRef={refs.setReference}
-      onClick={() => {
-        setIsOpen(!isOpen)
-      }}
-    >{text}<PixelartIcon
-        styles={{ position: 'absolute', top: '5px', right: '5px' }}
-        iconName={isOpen ? pixelartIcons['chevron-up'] : pixelartIcons['chevron-down']}
-      />
-    </Button>
-    {
-      isOpen && <div ref={refs.setFloating} style={styles}>
-        {links.map(el => {
-          return <Button
-            key={el.text}
-            style={{ width: '98px', fontSize: '7px' }}
-            onClick={el.clickHandler}
-          >{el.text}
-          </Button>
-        })}
-      </div>
-    }
-  </>
+  return (
+    <>
+      <Button
+        style={style ?? { position: 'relative', width: '98px' }}
+        rootRef={refs.setReference}
+        onClick={() => {
+          setIsOpen(!isOpen)
+        }}
+      >
+        {text}
+        <PixelartIcon
+          styles={{ position: 'absolute', top: '5px', right: '5px' }}
+          iconName={isOpen ? pixelartIcons['chevron-up'] : pixelartIcons['chevron-down']}
+        />
+      </Button>
+      {isOpen && (
+        <div ref={refs.setFloating} style={styles}>
+          {links.map(el => {
+            return (
+              <Button key={el.text} style={{ width: '98px', fontSize: '7px' }} onClick={el.clickHandler}>
+                {el.text}
+              </Button>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
 }

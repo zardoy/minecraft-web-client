@@ -6,5 +6,9 @@ export default ({ name, title, children }) => {
 
   if (!isWidgetActive) return null
 
-  return <Screen backdrop title={title}>{children}</Screen>
+  return (
+    <Screen backdrop title={title}>
+      {children}
+    </Screen>
+  )
 }

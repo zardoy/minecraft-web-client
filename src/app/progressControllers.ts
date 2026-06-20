@@ -11,7 +11,7 @@ const loadingChunksProgress = () => {
 
     let lastChunksLoaded = {
       count: 0,
-      time: 0,
+      time: 0
     }
     const update = () => {
       if (!appViewer) return
@@ -22,7 +22,7 @@ const loadingChunksProgress = () => {
 
       const deleteProgress = () => {
         setNotificationProgress('loadingChunks', {
-          delete: true,
+          delete: true
         })
         clearInterval(intervalId)
       }
@@ -40,7 +40,7 @@ const loadingChunksProgress = () => {
       } else {
         lastChunksLoaded = {
           count: currentChunksLoaded,
-          time: Date.now(),
+          time: Date.now()
         }
       }
 
@@ -48,7 +48,7 @@ const loadingChunksProgress = () => {
         message: 'Loading world chunks',
         current: currentChunksLoaded,
         total: chunksTotal,
-        priority: 1,
+        priority: 1
       })
     }
 
@@ -59,7 +59,7 @@ const loadingChunksProgress = () => {
   const startInventoryTexturesProgress = () => {
     if (!miscUiState.gameLoaded) return
     setNotificationProgress('inventoryTextures', {
-      message: 'Processing GUI textures',
+      message: 'Processing GUI textures'
     })
   }
 
@@ -88,7 +88,7 @@ const loadingChunksProgress = () => {
   })
   appViewer.resourcesManager.on('assetsInventoryReady', () => {
     setNotificationProgress('inventoryTextures', {
-      delete: true,
+      delete: true
     })
   })
 }

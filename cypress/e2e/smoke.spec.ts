@@ -14,13 +14,16 @@ const compareRenderedFlatWorld = () => {
 }
 
 const testWorldLoad = () => {
-  return cy.document().then({ timeout: 35_000 }, doc => {
-    return new Cypress.Promise(resolve => {
-      doc.addEventListener('cypress-world-ready', resolve)
+  return cy
+    .document()
+    .then({ timeout: 35_000 }, doc => {
+      return new Cypress.Promise(resolve => {
+        doc.addEventListener('cypress-world-ready', resolve)
+      })
     })
-  }).then(() => {
-    compareRenderedFlatWorld()
-  })
+    .then(() => {
+      compareRenderedFlatWorld()
+    })
 }
 
 it('Loads & renders singleplayer', () => {
@@ -31,7 +34,7 @@ it('Loads & renders singleplayer', () => {
         name: 'superflat',
         // eslint-disable-next-line unicorn/numeric-separators-style
         options: { seed: 250869072 }
-      },
+      }
     },
     renderDistance: 2
   })
@@ -57,32 +60,34 @@ it.skip('Joins to local latest Java vanilla server', () => {
     testWorldLoad().then(() => {
       let x = 0
       let z = 0
-      cy.window().then((win) => {
+      cy.window().then(win => {
         x = win.bot.entity.position.x
         z = win.bot.entity.position.z
       })
       cy.document().trigger('keydown', { code: 'KeyW' })
       cy.wait(1500).then(() => {
         cy.document().trigger('keyup', { code: 'KeyW' })
-        cy.window().then(async (win) => {
-          // eslint-disable-next-line prefer-destructuring
-          const bot: typeof __type_bot = win.bot
-          // todo use f3 stats instead
-          if (bot.entity.position.x === x && bot.entity.position.z === z) {
-            throw new Error('Player not moved')
-          }
+        cy.window()
+          .then(async win => {
+            // eslint-disable-next-line prefer-destructuring
+            const bot: typeof __type_bot = win.bot
+            // todo use f3 stats instead
+            if (bot.entity.position.x === x && bot.entity.position.z === z) {
+              throw new Error('Player not moved')
+            }
 
-          bot.chat('Hello') // todo assert
-          bot.chat('/gamemode creative')
-          // bot.on('message', () => {
-          void bot.creative.setInventorySlot(bot.inventory.hotbarStart, new win.PrismarineItem(1, 1, 0))
-          // })
-          await bot.lookAt(bot.entity.position.offset(1, 0, 1))
-        }).then(() => {
-          cy.document().trigger('mousedown', { button: 2, isTrusted: true, force: true }) // right click
-          cy.document().trigger('mouseup', { button: 2, isTrusted: true, force: true })
-          cy.wait(1000)
-        })
+            bot.chat('Hello') // todo assert
+            bot.chat('/gamemode creative')
+            // bot.on('message', () => {
+            void bot.creative.setInventorySlot(bot.inventory.hotbarStart, new win.PrismarineItem(1, 1, 0))
+            // })
+            await bot.lookAt(bot.entity.position.offset(1, 0, 1))
+          })
+          .then(() => {
+            cy.document().trigger('mousedown', { button: 2, isTrusted: true, force: true }) // right click
+            cy.document().trigger('mouseup', { button: 2, isTrusted: true, force: true })
+            cy.wait(1000)
+          })
       })
     })
   })
@@ -95,13 +100,12 @@ it('Loads & renders zip world', () => {
   testWorldLoad()
 })
 
-
 it.skip('Loads & renders world from folder', () => {
   cleanVisit()
   // dragndrop folder
   cy.get('[data-test-id="select-file-folder"]').click()
   cy.get('input[type="file"]').selectFile('server-jar/world', {
-    force: true,
+    force: true
     // action: 'drag-drop',
   })
   testWorldLoad()

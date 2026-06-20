@@ -18,7 +18,7 @@ export const notificationProxy = proxy({
   subMessage: '',
   icon: '',
   autoHide: true,
-  id: '',
+  id: ''
 } satisfies NotificationType as NotificationType)
 
 export const progressNotificationsProxy = proxy({
@@ -29,24 +29,27 @@ export const progressNotificationsProxy = proxy({
     current?: number
     total?: number
     priority?: number
-  }>,
+  }>
 })
 
-export const setNotificationProgress = (id: string, newProps: {
-  current?: number
-  total?: number
-  message?: string
-  subMessage?: string
-  delete?: boolean
-  priority?: number
-}) => {
-  const loaderExisting = progressNotificationsProxy.loaders.find((loader) => loader.id === id)
+export const setNotificationProgress = (
+  id: string,
+  newProps: {
+    current?: number
+    total?: number
+    message?: string
+    subMessage?: string
+    delete?: boolean
+    priority?: number
+  }
+) => {
+  const loaderExisting = progressNotificationsProxy.loaders.find(loader => loader.id === id)
   let loader = loaderExisting
   if (!loader) {
     loader = {
       id,
       message: '',
-      priority: newProps.priority,
+      priority: newProps.priority
     }
   }
   if (newProps.current !== undefined) loader.current = newProps.current
@@ -57,7 +60,7 @@ export const setNotificationProgress = (id: string, newProps: {
     progressNotificationsProxy.loaders.push(loader)
   }
   if (newProps.delete) {
-    progressNotificationsProxy.loaders = progressNotificationsProxy.loaders.filter((loader) => loader.id !== id)
+    progressNotificationsProxy.loaders = progressNotificationsProxy.loaders.filter(loader => loader.id !== id)
   }
 }
 
@@ -119,44 +122,39 @@ export default () => {
   }, [])
   const scale = useAppScale()
 
-  return <div
-    className='notification-container'
-    style={{
-      // transform: `scale(${scale})`,
-      // transformOrigin: 'top right',
-    }}
-  >
-    <Notification
-      action={action}
-      type={type}
-      message={message}
-      subMessage={subMessage}
-      open={open}
-      icon={icon}
-    />
-    <AnimatePresence>
-      {loaders.toSorted((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((loader, i) => (
-        <motion.div
-          key={loader.id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <Notification
-            type='progress'
-            open={true}
-            topPosition={i + 1}
-            icon={pixelartIcons.loader}
-            subMessage={loader.subMessage ?? (loader.current !== undefined && loader.total !== undefined ? formatProgress(loader.current, loader.total) : undefined)}
-            message={loader.message}
-            currentProgress={loader.current}
-            totalProgress={loader.total}
-          />
-        </motion.div>
-      ))}
-    </AnimatePresence>
-  </div>
+  return (
+    <div
+      className="notification-container"
+      style={
+        {
+          // transform: `scale(${scale})`,
+          // transformOrigin: 'top right',
+        }
+      }
+    >
+      <Notification action={action} type={type} message={message} subMessage={subMessage} open={open} icon={icon} />
+      <AnimatePresence>
+        {loaders
+          .toSorted((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+          .map((loader, i) => (
+            <motion.div key={loader.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <Notification
+                type="progress"
+                open={true}
+                topPosition={i + 1}
+                icon={pixelartIcons.loader}
+                subMessage={
+                  loader.subMessage ?? (loader.current !== undefined && loader.total !== undefined ? formatProgress(loader.current, loader.total) : undefined)
+                }
+                message={loader.message}
+                currentProgress={loader.current}
+                totalProgress={loader.total}
+              />
+            </motion.div>
+          ))}
+      </AnimatePresence>
+    </div>
+  )
 }
 
 const formatProgress = (current: number, total: number) => {

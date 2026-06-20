@@ -23,10 +23,15 @@ const state = proxy({
 })
 
 let resolve
-export const showOptionsModal = async <T extends string> (
+export const showOptionsModal = async <T extends string>(
   title: string,
   options: T[],
-  { cancel = true, descriptions = [], minecraftJsonMessage, hoveredOptionIndex = -1 }: Partial<Pick<typeof state, 'descriptions' | 'minecraftJsonMessage' | 'hoveredOptionIndex'>> & { cancel?: boolean } = {}
+  {
+    cancel = true,
+    descriptions = [],
+    minecraftJsonMessage,
+    hoveredOptionIndex = -1
+  }: Partial<Pick<typeof state, 'descriptions' | 'minecraftJsonMessage' | 'hoveredOptionIndex'>> & { cancel?: boolean } = {}
 ): Promise<T | undefined> => {
   showModal({ reactType: 'general-select' })
   let minecraftJsonMessageParsed
@@ -37,7 +42,7 @@ export const showOptionsModal = async <T extends string> (
       title += ` (${parseResult.plain})`
     }
   }
-  return new Promise((_resolve) => {
+  return new Promise(_resolve => {
     resolve = _resolve
     Object.assign(state, {
       title,
@@ -66,21 +71,15 @@ export const showInputsModal = async <T extends Record<string, InputOption>>(
     cancel = true,
     minecraftJsonMessage,
     showConfirm = true,
-    confirmLabel = 'Confirm',
+    confirmLabel = 'Confirm'
   }: {
-    cancel?: boolean,
+    cancel?: boolean
     minecraftJsonMessage?
     showConfirm?: boolean
     confirmLabel?: string
   } = {}
 ): Promise<{
-  [K in keyof T]: T[K] extends { type: 'text' }
-    ? string
-    : T[K] extends { type: 'checkbox' }
-      ? boolean
-      : T[K] extends { type: 'button' }
-        ? string
-        : never
+  [K in keyof T]: T[K] extends { type: 'text' } ? string : T[K] extends { type: 'checkbox' } ? boolean : T[K] extends { type: 'button' } ? string : never
 }> => {
   showModal({ reactType: 'general-select' })
   let minecraftJsonMessageParsed
@@ -91,7 +90,7 @@ export const showInputsModal = async <T extends Record<string, InputOption>>(
       title += ` (${parseResult.plain})`
     }
   }
-  return new Promise((_resolve) => {
+  return new Promise(_resolve => {
     resolve = _resolve
     Object.assign(state, {
       title,
@@ -112,7 +111,9 @@ export default () => {
   const inputValues = useRef({})
 
   useEffect(() => {
-    inputValues.current = Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.defaultValue ?? (input.type === 'checkbox' ? false : '')]))
+    inputValues.current = Object.fromEntries(
+      Object.entries(inputs).map(([key, input]) => [key, input.defaultValue ?? (input.type === 'checkbox' ? false : '')])
+    )
   }, [inputs])
 
   if (!isModalActive) return
@@ -128,104 +129,118 @@ export default () => {
   }
 
   const description = descriptions[hoveredOptionIndex]
-  return <Screen title={title} backdrop>
-    {minecraftJsonMessage && <div style={{ textAlign: 'center', }}>
-      <MessageFormattedString message={minecraftJsonMessage} />
-    </div>}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}>
-      {options.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        {options.map((option, index) => <Button
-          key={option}
-          onClick={() => {
-            resolveClose(option)
-          }}
-          onMouseEnter={() => {
-            state.hoveredOptionIndex = index
-          }}
-          onMouseLeave={() => {
-            state.hoveredOptionIndex = -1
-          }}
-          style={{
-            border: hoveredOptionIndex === index ? '2px solid #4CAF50' : undefined,
-            transition: 'border 0.2s ease'
-          }}
-        >{option}
-        </Button>)}
-      </div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {Object.entries(inputs).map(([key, input]) => {
-          const label = input.label ?? titleCase(noCase(key))
-          return <div key={key}>
-            {input.type === 'text' && (
-              <InputWithLabel
-                label={label}
-                autoFocus
-                type='text'
-                defaultValue={input.defaultValue as string}
-                placeholder={input.placeholder}
-                onChange={(e) => {
-                  inputValues.current[key] = e.target.value
-                }}
-              />
-            )}
-            {input.type === 'checkbox' && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                <input
-                  type='checkbox'
-                  style={{ marginBottom: -1, }}
-                  defaultChecked={input.defaultValue as boolean}
-                  onChange={(e) => {
-                    inputValues.current[key] = e.target.checked
-                  }}
-                />
-                {label}
-              </label>
-            )}
-            {input.type === 'button' && (
-              <Button
-                onClick={() => {
-                  resolveClose(inputValues.current)
-                  input.onButtonClick?.()
-                }}
-              >{label}
-              </Button>
-            )}
-          </div>
-        })}
-      </div>
-      {inputs && inputsConfirmButton && (
-        <Button
-          // style={{ marginTop: 30 }}
-          onClick={() => {
-            resolveClose(inputValues.current)
-          }}
-        >
-          {inputsConfirmButton}
-        </Button>
-      )}
-      {showCancel && (
-        <Button
-          // style={{ marginTop: 30 }}
-          onClick={() => {
-            resolveClose(undefined)
-          }}
-        >
-          Cancel
-        </Button>
-      )}
-      {hoveredOptionIndex >= 0 && description && (
-        <div style={{
-          padding: '8px 12px',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          borderRadius: '4px',
-          fontSize: '8px',
-          color: 'rgb(211, 211, 211)',
-          marginTop: '4px',
-          border: '1px solid rgba(0, 0, 0, 0.1)'
-        }}>
-          {description}
+  return (
+    <Screen title={title} backdrop>
+      {minecraftJsonMessage && (
+        <div style={{ textAlign: 'center' }}>
+          <MessageFormattedString message={minecraftJsonMessage} />
         </div>
       )}
-    </div>
-  </Screen>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}>
+        {options.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {options.map((option, index) => (
+              <Button
+                key={option}
+                onClick={() => {
+                  resolveClose(option)
+                }}
+                onMouseEnter={() => {
+                  state.hoveredOptionIndex = index
+                }}
+                onMouseLeave={() => {
+                  state.hoveredOptionIndex = -1
+                }}
+                style={{
+                  border: hoveredOptionIndex === index ? '2px solid #4CAF50' : undefined,
+                  transition: 'border 0.2s ease'
+                }}
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {Object.entries(inputs).map(([key, input]) => {
+            const label = input.label ?? titleCase(noCase(key))
+            return (
+              <div key={key}>
+                {input.type === 'text' && (
+                  <InputWithLabel
+                    label={label}
+                    autoFocus
+                    type="text"
+                    defaultValue={input.defaultValue as string}
+                    placeholder={input.placeholder}
+                    onChange={e => {
+                      inputValues.current[key] = e.target.value
+                    }}
+                  />
+                )}
+                {input.type === 'checkbox' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                    <input
+                      type="checkbox"
+                      style={{ marginBottom: -1 }}
+                      defaultChecked={input.defaultValue as boolean}
+                      onChange={e => {
+                        inputValues.current[key] = e.target.checked
+                      }}
+                    />
+                    {label}
+                  </label>
+                )}
+                {input.type === 'button' && (
+                  <Button
+                    onClick={() => {
+                      resolveClose(inputValues.current)
+                      input.onButtonClick?.()
+                    }}
+                  >
+                    {label}
+                  </Button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        {inputs && inputsConfirmButton && (
+          <Button
+            // style={{ marginTop: 30 }}
+            onClick={() => {
+              resolveClose(inputValues.current)
+            }}
+          >
+            {inputsConfirmButton}
+          </Button>
+        )}
+        {showCancel && (
+          <Button
+            // style={{ marginTop: 30 }}
+            onClick={() => {
+              resolveClose(undefined)
+            }}
+          >
+            Cancel
+          </Button>
+        )}
+        {hoveredOptionIndex >= 0 && description && (
+          <div
+            style={{
+              padding: '8px 12px',
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+              borderRadius: '4px',
+              fontSize: '8px',
+              color: 'rgb(211, 211, 211)',
+              marginTop: '4px',
+              border: '1px solid rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            {description}
+          </div>
+        )}
+      </div>
+    </Screen>
+  )
 }

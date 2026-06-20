@@ -13,15 +13,15 @@ let lastUpdate = performance.now()
 let lastYaw = 0
 let lastPitch = 0
 
-export function updateMotion () {
+export function updateMotion() {
   if (!bot?.entity) return
   const now = performance.now()
   const deltaTime = (now - lastUpdate) / 1000 // Convert to seconds
   lastUpdate = now
 
   // Get camera movement contribution
-  const yawDiff = (bot.entity.yaw - lastYaw)
-  const pitchDiff = (bot.entity.pitch - lastPitch)
+  const yawDiff = bot.entity.yaw - lastYaw
+  const pitchDiff = bot.entity.pitch - lastPitch
   lastYaw = bot.entity.yaw
   lastPitch = bot.entity.pitch
 
@@ -62,18 +62,18 @@ export function updateMotion () {
 }
 
 let motionEnabled = false
-export function initMotionTracking () {
+export function initMotionTracking() {
   if (motionEnabled) return
   motionEnabled = true
 
-  function animate () {
+  function animate() {
     updateMotion()
     requestAnimationFrame(animate)
   }
   animate()
 }
 
-export function useUiMotion (ref: React.RefObject<HTMLElement>, enabled = true) {
+export function useUiMotion(ref: React.RefObject<HTMLElement>, enabled = true) {
   useEffect(() => {
     if (!enabled || !ref.current) return
 

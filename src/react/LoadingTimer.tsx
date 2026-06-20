@@ -31,18 +31,22 @@ export default () => {
     return () => clearInterval(interval)
   }, [])
 
-  return <Portal to={document.getElementById('ui-root')!}>
-    <div style={{
-      position: 'absolute',
-      left: 0,
-      bottom: 0,
-      color: 'gray',
-      fontSize: '0.6em',
-      paddingLeft: 'calc(env(safe-area-inset-left) / 2)'
-    }}>
-      {total}/{networkTimeTotal}
-    </div>
-  </Portal>
+  return (
+    <Portal to={document.getElementById('ui-root')!}>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 0,
+          color: 'gray',
+          fontSize: '0.6em',
+          paddingLeft: 'calc(env(safe-area-inset-left) / 2)'
+        }}
+      >
+        {total}/{networkTimeTotal}
+      </div>
+    </Portal>
+  )
 }
 
 const Portal = ({ children, to = document.body }) => {

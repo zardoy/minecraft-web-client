@@ -7,11 +7,11 @@ import { packetsReplayState } from './react/state/packetsReplayState'
 export const goFullscreen = async (doToggle = false) => {
   if (!document.fullscreenElement) {
     // todo display a message or repeat?
-    await document.documentElement.requestFullscreen().catch(() => { })
+    await document.documentElement.requestFullscreen().catch(() => {})
     // request full keyboard access
     await navigator.keyboard?.lock?.(['Escape', 'KeyW'])
   } else if (doToggle) {
-    await document.exitFullscreen().catch(() => { })
+    await document.exitFullscreen().catch(() => {})
   }
 }
 
@@ -28,11 +28,11 @@ export const inGameError = err => {
 }
 
 export const pointerLock = {
-  get hasPointerLock () {
+  get hasPointerLock() {
     return document.pointerLockElement
   },
   justHitEscape: false,
-  async requestPointerLock () {
+  async requestPointerLock() {
     if (!isGameActive(true) || !document.documentElement.requestPointerLock || miscUiState.currentTouch) {
       return
     }
@@ -78,7 +78,7 @@ window.getScreenRefreshRate = getScreenRefreshRate
 /**
  * Allows to obtain the estimated Hz of the primary monitor in the system.
  */
-export async function getScreenRefreshRate (): Promise<number> {
+export async function getScreenRefreshRate(): Promise<number> {
   let requestId = null as number | null
   let callbackTriggered = false
   let resolve
@@ -90,10 +90,10 @@ export async function getScreenRefreshRate (): Promise<number> {
 
     if (DOMHighResTimeStampCollection.length > 10) {
       const t0 = DOMHighResTimeStampCollection.pop()!
-      const fps = Math.floor(1000 * 10 / (DOMHighResTimeStamp - t0))
+      const fps = Math.floor((1000 * 10) / (DOMHighResTimeStamp - t0))
 
       if (!callbackTriggered || fps > 1000) {
-        resolve(Math.min(fps, 1000)/* , DOMHighResTimeStampCollection */)
+        resolve(Math.min(fps, 1000) /* , DOMHighResTimeStampCollection */)
       }
 
       callbackTriggered = true
@@ -117,11 +117,16 @@ export async function getScreenRefreshRate (): Promise<number> {
 
 export const getGamemodeNumber = bot => {
   switch (bot.game.gameMode) {
-    case 'survival': return 0
-    case 'creative': return 1
-    case 'adventure': return 2
-    case 'spectator': return 3
-    default: return -1
+    case 'survival':
+      return 0
+    case 'creative':
+      return 1
+    case 'adventure':
+      return 2
+    case 'spectator':
+      return 3
+    default:
+      return -1
   }
 }
 
@@ -133,7 +138,7 @@ export const isMajorVersionGreater = (ver1: string, ver2: string) => {
 
 // doesn't support snapshots
 export const toMajorVersion = version => {
-  const [a, b] = (String(version)).split('.')
+  const [a, b] = String(version).split('.')
   return `${a}.${b}`
 }
 
@@ -175,7 +180,7 @@ export const resolveTimeout = async (promise, timeout = 10_000) => {
   })
 }
 
-export function assertDefined<T> (x: T | undefined): asserts x is T {
+export function assertDefined<T>(x: T | undefined): asserts x is T {
   if (!x) throw new Error('Assertion failed. Something is not available')
 }
 

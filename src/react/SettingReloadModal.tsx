@@ -32,7 +32,7 @@ type ModalParams = {
 const state = proxy({
   params: null as ModalParams | null,
   selectedValueIndex: 0,
-  reloadMode: 'later' as SettingReloadMode,
+  reloadMode: 'later' as SettingReloadMode
 })
 
 let resolve: ((result: SettingReloadModalResult | undefined) => void) | undefined
@@ -47,19 +47,16 @@ const getOptionLabel = (arrItem: string | [string, string]) => {
   return arrItem[1]
 }
 
-export const buildSettingValueChoices = (
-  _currentValue: unknown,
-  possibleValues?: OptionPossibleValues
-): ValueChoice[] => {
+export const buildSettingValueChoices = (_currentValue: unknown, possibleValues?: OptionPossibleValues): ValueChoice[] => {
   if (possibleValues && possibleValues.length > 0) {
-    return possibleValues.map((entry) => ({
+    return possibleValues.map(entry => ({
       value: getOptionValue(entry),
-      label: getOptionLabel(entry),
+      label: getOptionLabel(entry)
     }))
   }
   return [
     { value: true, label: 'ON' },
-    { value: false, label: 'OFF' },
+    { value: false, label: 'OFF' }
   ]
 }
 
@@ -69,21 +66,24 @@ const getDefaultReloadMode = (params: ModalParams): SettingReloadMode => {
   return 'later'
 }
 
-export const showSettingReloadModal = async (params: Omit<ModalParams, 'valueChoices'> & {
-  valueChoices: ValueChoice[]
-}): Promise<SettingReloadModalResult | undefined> => {
+export const showSettingReloadModal = async (
+  params: Omit<ModalParams, 'valueChoices'> & {
+    valueChoices: ValueChoice[]
+  }
+): Promise<SettingReloadModalResult | undefined> => {
   showModal({ reactType: 'setting-reload' })
-  const selectedValueIndex = Math.max(0, params.valueChoices.findIndex(choice => (
-    String(choice.value) === String(params.currentValue)
-  )))
-  return new Promise((_resolve) => {
+  const selectedValueIndex = Math.max(
+    0,
+    params.valueChoices.findIndex(choice => String(choice.value) === String(params.currentValue))
+  )
+  return new Promise(_resolve => {
     resolve = _resolve
     Object.assign(state, {
       params: {
-        ...params,
+        ...params
       },
       selectedValueIndex: selectedValueIndex === -1 ? 0 : selectedValueIndex,
-      reloadMode: getDefaultReloadMode(params),
+      reloadMode: getDefaultReloadMode(params)
     })
   })
 }
@@ -113,98 +113,91 @@ const SettingReloadModal = () => {
 
   if (!isModalActive || !params) return null
 
-  return <Screen
-    title={params.settingLabel}
-    backdrop
-  >
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', maxWidth: 280 }}>
-      <div style={{ fontSize: 10, color: '#ccc', textAlign: 'center' }}>
-        {translate('This setting requires a reload to take effect')}
-      </div>
-      {params.tooltip && (
-        <div style={{ fontSize: 9, color: '#999', textAlign: 'center' }}>
-          {params.tooltip}
-        </div>
-      )}
+  return (
+    <Screen title={params.settingLabel} backdrop>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', maxWidth: 280 }}>
+        <div style={{ fontSize: 10, color: '#ccc', textAlign: 'center' }}>{translate('This setting requires a reload to take effect')}</div>
+        {params.tooltip && <div style={{ fontSize: 9, color: '#999', textAlign: 'center' }}>{params.tooltip}</div>}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: '100%' }}>
-        <div style={{ fontSize: 10, color: '#ddd' }}>{translate('Select value')}</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, justifyContent: 'center' }}>
-          {valueChoices.map((choice, index) => (
-            <Button
-              key={`${String(choice.value)}-${choice.label}`}
-              onClick={() => {
-                state.selectedValueIndex = index
-              }}
-              style={{
-                border: selectedValueIndex === index ? '2px solid #4CAF50' : undefined,
-                minWidth: 72,
-              }}
-            >
-              {choice.label}
-            </Button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: '100%' }}>
+          <div style={{ fontSize: 10, color: '#ddd' }}>{translate('Select value')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, justifyContent: 'center' }}>
+            {valueChoices.map((choice, index) => (
+              <Button
+                key={`${String(choice.value)}-${choice.label}`}
+                onClick={() => {
+                  state.selectedValueIndex = index
+                }}
+                style={{
+                  border: selectedValueIndex === index ? '2px solid #4CAF50' : undefined,
+                  minWidth: 72
+                }}
+              >
+                {choice.label}
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-        <div style={{ fontSize: 10, color: '#ddd' }}>{translate('Apply with')}</div>
-        {showChunksReload && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+          <div style={{ fontSize: 10, color: '#ddd' }}>{translate('Apply with')}</div>
+          {showChunksReload && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={reloadMode === 'chunks'}
+                onChange={() => {
+                  state.reloadMode = 'chunks'
+                }}
+              />
+              {translate('Reload chunks')}
+            </label>
+          )}
+          {showPageReload && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={reloadMode === 'page'}
+                onChange={() => {
+                  state.reloadMode = 'page'
+                }}
+              />
+              {translate('Reconnect immediately (reload page)')}
+            </label>
+          )}
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
             <input
-              type='checkbox'
-              checked={reloadMode === 'chunks'}
+              type="checkbox"
+              checked={reloadMode === 'later'}
               onChange={() => {
-                state.reloadMode = 'chunks'
+                state.reloadMode = 'later'
               }}
             />
-            {translate('Reload chunks')}
+            {translate('Apply later without reload')}
           </label>
-        )}
-        {showPageReload && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
-            <input
-              type='checkbox'
-              checked={reloadMode === 'page'}
-              onChange={() => {
-                state.reloadMode = 'page'
-              }}
-            />
-            {translate('Reconnect immediately (reload page)')}
-          </label>
-        )}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
-          <input
-            type='checkbox'
-            checked={reloadMode === 'later'}
-            onChange={() => {
-              state.reloadMode = 'later'
-            }}
-          />
-          {translate('Apply later without reload')}
-        </label>
-      </div>
+        </div>
 
-      <Button
-        onClick={() => {
-          if (!selectedChoice) return
-          resolveClose({
-            value: selectedChoice.value,
-            reloadMode,
-          })
-        }}
-      >
-        {translate('Apply')}
-      </Button>
-      <Button
-        onClick={() => {
-          resolveClose(undefined)
-        }}
-      >
-        {translate('Cancel')}
-      </Button>
-    </div>
-  </Screen>
+        <Button
+          onClick={() => {
+            if (!selectedChoice) return
+            resolveClose({
+              value: selectedChoice.value,
+              reloadMode
+            })
+          }}
+        >
+          {translate('Apply')}
+        </Button>
+        <Button
+          onClick={() => {
+            resolveClose(undefined)
+          }}
+        >
+          {translate('Cancel')}
+        </Button>
+      </div>
+    </Screen>
+  )
 }
 
 export default SettingReloadModal

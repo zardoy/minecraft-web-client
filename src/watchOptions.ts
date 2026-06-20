@@ -23,11 +23,11 @@ watchValue(options, o => {
   document.documentElement.style.setProperty('--chatHeight', `${o.chatHeight}px`)
   // gui scale is set in scaleInterface.ts
 })
-const updateTouch = (o) => {
+const updateTouch = o => {
   miscUiState.currentTouch = o.alwaysShowMobileControls || isMobile()
 }
 watchValue(options, updateTouch)
-window.matchMedia('(pointer: coarse)').addEventListener('change', (e) => {
+window.matchMedia('(pointer: coarse)').addEventListener('change', e => {
   updateTouch(options)
 })
 
@@ -36,10 +36,10 @@ export const watchOptionsAfterViewerInit = () => {
   subscribeRendererOptions(appViewer, options, {
     isSafari,
     isCypress: isCypress(),
-    onRegisterFocusHandlers ({ onFocus, onBlur }) {
+    onRegisterFocusHandlers({ onFocus, onBlur }) {
       window.addEventListener('focus', onFocus)
       window.addEventListener('blur', onBlur)
-    },
+    }
   })
 
   // Volume — app-only (not in renderer sync)
@@ -48,19 +48,11 @@ export const watchOptionsAfterViewerInit = () => {
   })
 
   subscribeKey(options, 'newVersionsLighting', () => {
-    applyRendererEnableLighting(
-      appViewer,
-      options.newVersionsLighting,
-      bot.supportFeature('blockStateId')
-    )
+    applyRendererEnableLighting(appViewer, options.newVersionsLighting, bot.supportFeature('blockStateId'))
   })
 
   customEvents.on('mineflayerBotCreated', () => {
-    applyRendererEnableLighting(
-      appViewer,
-      options.newVersionsLighting,
-      bot.supportFeature('blockStateId')
-    )
+    applyRendererEnableLighting(appViewer, options.newVersionsLighting, bot.supportFeature('blockStateId'))
 
     const updateRaining = () => {
       if (bot.isRaining !== undefined) {

@@ -30,12 +30,7 @@ const DiveTransitionBase = ({ children, open, isError = false }) => {
     <AnimatePresence>
       {open && (
         <div className={styles.container}>
-          <motion.div
-            initial={false}
-            exit={isError ? undefined : { opacity: 0 }}
-            transition={{ duration: durationInSeconds }}
-            className={styles.main}
-          >
+          <motion.div initial={false} exit={isError ? undefined : { opacity: 0 }} transition={{ duration: durationInSeconds }} className={styles.main}>
             {children}
           </motion.div>
         </div>

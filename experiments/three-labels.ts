@@ -32,7 +32,7 @@ scene.add(axes)
 const waypoint = createWaypointSprite({
   position: new THREE.Vector3(0, 0, -5),
   color: 0xff0000,
-  label: 'Target',
+  label: 'Target'
 })
 scene.add(waypoint.group)
 

@@ -1,4 +1,10 @@
-import { getInitialPlayerState, getPlayerStateUtils, PlayerStateReactive, PlayerStateRenderer, PlayerStateUtils } from 'minecraft-renderer/src/playerState/playerState'
+import {
+  getInitialPlayerState,
+  getPlayerStateUtils,
+  PlayerStateReactive,
+  PlayerStateRenderer,
+  PlayerStateUtils
+} from 'minecraft-renderer/src/playerState/playerState'
 import { states } from 'minecraft-protocol'
 import { subscribe } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
@@ -22,12 +28,13 @@ const updateFovMultiplier = () => {
     fovModifier *= 1.05
   }
 
-  const movementSpeedAttr = (
-    bot.entity?.attributes?.['generic.movement_speed']
-    ?? bot.entity?.attributes?.['minecraft:movement_speed']
-    ?? bot.entity?.attributes?.['movement_speed']
-    ?? bot.entity?.attributes?.['minecraft:movementSpeed']
-  )?.value ?? BASE_MOVEMENT_SPEED
+  const movementSpeedAttr =
+    (
+      bot.entity?.attributes?.['generic.movement_speed'] ??
+      bot.entity?.attributes?.['minecraft:movement_speed'] ??
+      bot.entity?.attributes?.['movement_speed'] ??
+      bot.entity?.attributes?.['minecraft:movementSpeed']
+    )?.value ?? BASE_MOVEMENT_SPEED
 
   let currentSpeed = BASE_MOVEMENT_SPEED
   if (bot.controlState?.sprint && !bot.controlState?.sneak) {
@@ -83,7 +90,7 @@ export class PlayerStateControllerMain {
   reactive: PlayerStateReactive
   utils: PlayerStateUtils
 
-  constructor () {
+  constructor() {
     customEvents.on('mineflayerBotCreated', () => {
       this.attachBotSession()
     })
@@ -93,7 +100,7 @@ export class PlayerStateControllerMain {
    * Register inject_allowed before any async connect work so a slow validate/connect
    * cannot fire inject before listeners exist (eyeHeight / botCreated race).
    */
-  private attachBotSession () {
+  private attachBotSession() {
     this.ready = false
     this.isUsingItem = false
     this.timeOffGround = 0
@@ -105,7 +112,7 @@ export class PlayerStateControllerMain {
       const clientState = bot._client?.state
       console.log('[playerState] inject_allowed', {
         t: performance.now(),
-        clientState,
+        clientState
       })
       this.botCreated()
     }
@@ -119,17 +126,17 @@ export class PlayerStateControllerMain {
     if (clientState && clientState !== states.HANDSHAKING) {
       console.log('[playerState] inject_allowed already fired before attach', {
         clientState,
-        eyeHeight: this.reactive?.eyeHeight,
+        eyeHeight: this.reactive?.eyeHeight
       })
       onInjectAllowed()
     }
   }
 
-  private onBotCreatedOrGameJoined () {
+  private onBotCreatedOrGameJoined() {
     this.reactive.username = bot.username ?? ''
   }
 
-  private botCreated () {
+  private botCreated() {
     console.log('bot created & plugins injected')
 
     this.reactive = appViewer.playerState.reactive
@@ -140,7 +147,7 @@ export class PlayerStateControllerMain {
     this.reactive.perspective = options.defaultPerspective
     this.onBotCreatedOrGameJoined()
 
-    const handleDimensionData = (data) => {
+    const handleDimensionData = data => {
       let hasSkyLight = 1
       try {
         hasSkyLight = data.dimension.value.has_skylight.value
@@ -156,10 +163,10 @@ export class PlayerStateControllerMain {
       this.reactive.cardinalLight = cardinalLight
     }
 
-    bot._client.on('login', (packet) => {
+    bot._client.on('login', packet => {
       handleDimensionData(packet)
     })
-    bot._client.on('respawn', (packet) => {
+    bot._client.on('respawn', packet => {
       handleDimensionData(packet)
     })
 
@@ -172,7 +179,7 @@ export class PlayerStateControllerMain {
     bot.on('heldItemChanged', () => {
       return this.updateHeldItem(false)
     })
-    bot.inventory.on('updateSlot', (index) => {
+    bot.inventory.on('updateSlot', index => {
       if (index === 45) this.updateHeldItem(true)
     })
     const updateSneakingOrFlying = () => {
@@ -212,12 +219,14 @@ export class PlayerStateControllerMain {
 
     // do not attach on app load since we are not connected yet
     window.hello = () => {
-      console.log(`Hey, ${bot.username}! This game client is built on top of minecraft-web-client. Join us and let's make the open-source Minecraft client even better!`)
+      console.log(
+        `Hey, ${bot.username}! This game client is built on top of minecraft-web-client. Join us and let's make the open-source Minecraft client even better!`
+      )
     }
   }
 
   // #region Movement and Physics State
-  private updateMovementState () {
+  private updateMovementState() {
     if (!bot?.entity || this.disableStateUpdates) return
 
     const { velocity } = bot.entity
@@ -239,18 +248,16 @@ export class PlayerStateControllerMain {
       this.timeOffGround += deltaTime
     }
 
-    if (gameAdditionalState.isSneaking || gameAdditionalState.isFlying || (this.timeOffGround > OFF_GROUND_THRESHOLD)) {
+    if (gameAdditionalState.isSneaking || gameAdditionalState.isFlying || this.timeOffGround > OFF_GROUND_THRESHOLD) {
       this.reactive.movementState = 'SNEAKING'
     } else if (Math.abs(velocity.x) > VELOCITY_THRESHOLD || Math.abs(velocity.z) > VELOCITY_THRESHOLD) {
-      this.reactive.movementState = Math.abs(velocity.x) > SPRINTING_VELOCITY || Math.abs(velocity.z) > SPRINTING_VELOCITY
-        ? 'SPRINTING'
-        : 'WALKING'
+      this.reactive.movementState = Math.abs(velocity.x) > SPRINTING_VELOCITY || Math.abs(velocity.z) > SPRINTING_VELOCITY ? 'SPRINTING' : 'WALKING'
     } else {
       this.reactive.movementState = 'NOT_MOVING'
     }
   }
 
-  private updateWalkDistAndBob () {
+  private updateWalkDistAndBob() {
     if (!bot?.entity || this.disableStateUpdates) return
 
     const { velocity } = bot.entity
@@ -267,12 +274,12 @@ export class PlayerStateControllerMain {
     // isSwimming = sprinting + in water (not just touching water)
     const isSwimming = bot.controlState.sprint && this.reactive.inWater
     const isDeadOrDying = (bot.entity.health ?? 20) <= 0
-    const bobTarget = (bot.entity.onGround && !isDeadOrDying && !isSwimming) ? Math.min(0.1, horizontalDist) : 0
+    const bobTarget = bot.entity.onGround && !isDeadOrDying && !isSwimming ? Math.min(0.1, horizontalDist) : 0
     this.reactive.bob += (bobTarget - this.reactive.bob) * 0.4
   }
 
   // #region Held Item State
-  private updateHeldItem (isLeftHand: boolean) {
+  private updateHeldItem(isLeftHand: boolean) {
     const newItem = isLeftHand ? bot.inventory.slots[45] : bot.heldItem
     if (!newItem) {
       if (isLeftHand) {
@@ -290,7 +297,7 @@ export class PlayerStateControllerMain {
       properties: blockProperties,
       id: newItem.type,
       type: block ? 'block' : 'item',
-      fullItem: newItem,
+      fullItem: newItem
     }
 
     if (isLeftHand) {
@@ -301,22 +308,22 @@ export class PlayerStateControllerMain {
     // this.events.emit('heldItemChanged', item, isLeftHand)
   }
 
-  startUsingItem () {
+  startUsingItem() {
     if (this.isUsingItem) return
     this.isUsingItem = true
     this.reactive.itemUsageTicks = 0
   }
 
-  stopUsingItem () {
+  stopUsingItem() {
     this.isUsingItem = false
     this.reactive.itemUsageTicks = 0
   }
 
-  getItemUsageTicks (): number {
+  getItemUsageTicks(): number {
     return this.reactive.itemUsageTicks
   }
 
-  watchReactive () {
+  watchReactive() {
     if (this.eyeHeightWatchInstalled) return
     this.eyeHeightWatchInstalled = true
     subscribeKey(this.reactive, 'eyeHeight', () => {

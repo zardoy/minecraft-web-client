@@ -1,39 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-</head>
-<body>
+  </head>
+  <body>
     <div id="captured"></div>
     <script>
-        const pointers = []
-        const up = () => {
-            captured.textContent = pointers.join(', ')
-        }
-        window.addEventListener('pointerdown', (e) => {
-            pointers.push(e.pointerId)
-            document.body.setPointerCapture(e.pointerId)
-            up()
-            e.preventDefault()
-        })
-        const remove = (id) => {
-            pointers.splice(pointers.indexOf(id), 1)
-            up()
-        }
-        window.addEventListener('pointerup', (e) => {
-            pointers.push('up')
-            remove(e.pointerId)
-        })
-        window.addEventListener('pointercancel', (e) => {
-            pointers.push('cancel')
-            remove(e.pointerId)
-        })
-        window.addEventListener('lostpointercapture', (e) => {
-            pointers.push('lost')
-            remove(e.pointerId)
-        })
+      const pointers = []
+      const up = () => {
+        captured.textContent = pointers.join(', ')
+      }
+      window.addEventListener('pointerdown', e => {
+        pointers.push(e.pointerId)
+        document.body.setPointerCapture(e.pointerId)
+        up()
+        e.preventDefault()
+      })
+      const remove = id => {
+        pointers.splice(pointers.indexOf(id), 1)
+        up()
+      }
+      window.addEventListener('pointerup', e => {
+        pointers.push('up')
+        remove(e.pointerId)
+      })
+      window.addEventListener('pointercancel', e => {
+        pointers.push('cancel')
+        remove(e.pointerId)
+      })
+      window.addEventListener('lostpointercapture', e => {
+        pointers.push('lost')
+        remove(e.pointerId)
+      })
     </script>
-</body>
+  </body>
 </html>
