@@ -142,10 +142,7 @@ async function main() {
   if (answer === 'y' || answer === 'yes') {
     let newLockfileContent = lockfileContent
     for (const update of updates) {
-      newLockfileContent = newLockfileContent.replace(
-        new RegExp(update.currentHash, 'g'),
-        update.latestHash
-      )
+      newLockfileContent = newLockfileContent.replace(new RegExp(update.currentHash, 'g'), update.latestHash)
     }
     fs.writeFileSync(lockfilePath, newLockfileContent)
     console.log('\nUpdated pnpm-lock.yaml with new commit hashes')

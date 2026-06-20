@@ -25,7 +25,10 @@ const AppStatusBase = ({
 
   useEffect(() => {
     const statusRunner = async () => {
-      const timer = async (ms) => new Promise((resolve) => { setTimeout(resolve, ms) })
+      const timer = async ms =>
+        new Promise(resolve => {
+          setTimeout(resolve, ms)
+        })
 
       const load = async () => {
         // eslint-disable-next-line no-constant-condition
@@ -44,65 +47,71 @@ const AppStatusBase = ({
   const lockConnect = appQueryParams.lockConnect === 'true'
   const connectOptions = lastConnectOptions.value
   const connectionProxy =
-    connectOptions?.server && !connectOptions.server.startsWith('ws://') && !connectOptions.server.startsWith('wss://')
-      ? connectOptions.proxy : undefined
+    connectOptions?.server && !connectOptions.server.startsWith('ws://') && !connectOptions.server.startsWith('wss://') ? connectOptions.proxy : undefined
 
   return (
-    <div className=''>
+    <div className="">
       <Screen
-        className='small-content'
+        className="small-content"
         titleSelectable={isError}
         title={
           <>
             <span
-              className='app-status-title'
+              className="app-status-title"
               style={{
                 wordBreak: 'break-word',
-                whiteSpace: 'pre-wrap',
+                whiteSpace: 'pre-wrap'
               }}
             >
               {status}
             </span>
-            <div style={{ display: 'inline-flex', gap: '1px', }} hidden={hideDots || isError}>
-              {
-                [...'...'].map((dot, i) => {
-                  return <span
-                    key={i} style={{
-                      visibility: loadingDotIndex <= i ? 'hidden' : 'visible',
-                    }}>{dot}</span>
-                })
-              }
+            <div style={{ display: 'inline-flex', gap: '1px' }} hidden={hideDots || isError}>
+              {[...'...'].map((dot, i) => {
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      visibility: loadingDotIndex <= i ? 'hidden' : 'visible'
+                    }}
+                  >
+                    {dot}
+                  </span>
+                )
+              })}
             </div>
             <p className={styles.description}>{description}</p>
             <p className={styles['last-status']}>{lastStatus ? `Last status: ${lastStatus}` : lastStatus}</p>
-            {isError && <p className={`app-status-title-context-info ${styles.appStatusTitleContextInfo}`}>
-              S: {connectOptions?.server ?? 'N/A'} {' '}
-              P: {connectionProxy ?? 'N/A'} {' '}
-              V: {connectOptions?.botVersion ?? 'auto'} {' '}
-              U: {connectOptions?.username ?? 'N/A'}{' '}
-              cV: {process.env.RELEASE_TAG ?? 'N/A'}
-            </p>}
+            {isError && (
+              <p className={`app-status-title-context-info ${styles.appStatusTitleContextInfo}`}>
+                S: {connectOptions?.server ?? 'N/A'} P: {connectionProxy ?? 'N/A'} V: {connectOptions?.botVersion ?? 'auto'} U:{' '}
+                {connectOptions?.username ?? 'N/A'} cV: {process.env.RELEASE_TAG ?? 'N/A'}
+              </p>
+            )}
           </>
         }
-        backdrop='dirt'
+        backdrop="dirt"
       >
         {isError && (
           <>
-            {showReconnect && onReconnect && <Button onClick={onReconnect}>
-              <b>Reconnect</b>
-            </Button>}
+            {showReconnect && onReconnect && (
+              <Button onClick={onReconnect}>
+                <b>Reconnect</b>
+              </Button>
+            )}
             {actionsSlot}
-            {!lockConnect && <Button
-              onClick={() => {
-                if (location.search) {
-                  location.search = ''
-                } else {
-                  window.location.reload()
-                }
-              }}
-            >
-              <b>Reset App (recommended)</b>
-            </Button>}
+            {!lockConnect && (
+              <Button
+                onClick={() => {
+                  if (location.search) {
+                    location.search = ''
+                  } else {
+                    window.location.reload()
+                  }
+                }}
+              >
+                <b>Reset App (recommended)</b>
+              </Button>
+            )}
             {backAction && <Button label="Back" onClick={backAction} />}
           </>
         )}

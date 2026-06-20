@@ -5,7 +5,7 @@ export default () => {
   })
 }
 
-const waitingPackets = {} as Record<string, Array<{ name: string, data: any }>>
+const waitingPackets = {} as Record<string, Array<{ name: string; data: any }>>
 
 const botInit = () => {
   // PATCH READING

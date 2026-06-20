@@ -9,14 +9,16 @@ export default () => {
   const hasModals = useSnapshot(activeModalStack).length !== 0
   const setupActive = useIsModalActive('touch-buttons-setup')
 
-  return <TouchAreasControls
-    foregroundGameActive={!!bot && !!usingTouch && !hasModals}
-    setupActive={setupActive}
-    closeButtonsSetup={(newPositions) => {
-      if (newPositions) {
-        options.touchControlsPositions = newPositions
-      }
-      hideModal()
-    }}
-  />
+  return (
+    <TouchAreasControls
+      foregroundGameActive={!!bot && !!usingTouch && !hasModals}
+      setupActive={setupActive}
+      closeButtonsSetup={newPositions => {
+        if (newPositions) {
+          options.touchControlsPositions = newPositions
+        }
+        hideModal()
+      }}
+    />
+  )
 }

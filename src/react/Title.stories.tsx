@@ -14,7 +14,7 @@ export const Primary: Story = {
     openTitle: false,
     openActionBar: false,
     title: {
-      text: 'New title',
+      text: 'New title'
     },
     subtitle: {
       text: 'Subtitle'

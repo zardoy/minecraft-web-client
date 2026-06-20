@@ -17,275 +17,275 @@ const touchStartBreakingBlockMs = 500
 type JoystickOrigin = Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'> | null
 type UpdateJoystick = (e: Pick<PointerEvent, 'clientX' | 'clientY'>) => void
 
-function GameInteractionOverlayInner ({
+function GameInteractionOverlayInner({
   zIndex,
   setJoystickOrigin,
   updateJoystick
 }: {
-  zIndex: number,
+  zIndex: number
   setJoystickOrigin: (e: JoystickOrigin) => void
   updateJoystick: UpdateJoystick
 }) {
   const overlayRef = useRef<HTMLDivElement>(null)
 
+  useUtilsEffect(
+    ({ signal }) => {
+      if (!overlayRef.current) return
 
-  useUtilsEffect(({ signal }) => {
-    if (!overlayRef.current) return
-
-    const cameraControlEl = overlayRef.current
-    let virtualClickActive = false
-    let virtualClickTimeout: NodeJS.Timeout | undefined
-    let screenTouches = 0
-    const capturedPointer = {
-      active: null as {
-        id: number;
-        x: number;
-        y: number;
-        sourceX: number;
-        sourceY: number;
-        activateCameraMove: boolean;
-        time: number
-      } | null
-    }
-
-    const pointerDownHandler = (e: PointerEvent) => {
-      const clickedEl = e.composedPath()[0]
-      if (!isGameActive(true) || clickedEl !== cameraControlEl || e.pointerId === undefined) {
-        return
+      const cameraControlEl = overlayRef.current
+      let virtualClickActive = false
+      let virtualClickTimeout: NodeJS.Timeout | undefined
+      let screenTouches = 0
+      const capturedPointer = {
+        active: null as {
+          id: number
+          x: number
+          y: number
+          sourceX: number
+          sourceY: number
+          activateCameraMove: boolean
+          time: number
+        } | null
       }
-      getThreeJsRendererMethods()?.onPageInteraction()
-      screenTouches++
-      if (screenTouches === 3) {
-        // todo maybe mouse wheel click?
-      }
-      const { clientX, clientY, sizeX } = mapEventCoordinates(e)
-      const usingModernMovement = options.touchMovementType === 'modern'
-      if (usingModernMovement) {
-        if (!joystickPointer.pointer && clientX < sizeX / 2) {
-          cameraControlEl.setPointerCapture(e.pointerId)
-          setJoystickOrigin({
-            pointerId: e.pointerId,
-            clientX,
-            clientY
-          })
+
+      const pointerDownHandler = (e: PointerEvent) => {
+        const clickedEl = e.composedPath()[0]
+        if (!isGameActive(true) || clickedEl !== cameraControlEl || e.pointerId === undefined) {
           return
         }
+        getThreeJsRendererMethods()?.onPageInteraction()
+        screenTouches++
+        if (screenTouches === 3) {
+          // todo maybe mouse wheel click?
+        }
+        const { clientX, clientY, sizeX } = mapEventCoordinates(e)
+        const usingModernMovement = options.touchMovementType === 'modern'
+        if (usingModernMovement) {
+          if (!joystickPointer.pointer && clientX < sizeX / 2) {
+            cameraControlEl.setPointerCapture(e.pointerId)
+            setJoystickOrigin({
+              pointerId: e.pointerId,
+              clientX,
+              clientY
+            })
+            return
+          }
+        }
+        if (capturedPointer.active) {
+          return
+        }
+        cameraControlEl.setPointerCapture(e.pointerId)
+        capturedPointer.active = {
+          id: e.pointerId,
+          x: clientX,
+          y: clientY,
+          sourceX: clientX,
+          sourceY: clientY,
+          activateCameraMove: false,
+          time: Date.now()
+        }
+        if (options.touchInteractionType === 'classic') {
+          virtualClickTimeout ??= setTimeout(() => {
+            virtualClickActive = true
+            // If held item is activatable, use right click instead of left
+            const heldItemName = bot?.heldItem?.name
+            const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
+            document.dispatchEvent(new MouseEvent('mousedown', { button: isOnlyActivatable ? 2 : 0 }))
+          }, touchStartBreakingBlockMs)
+        }
       }
-      if (capturedPointer.active) {
-        return
+
+      const pointerMoveHandler = (e: PointerEvent) => {
+        if (e.pointerId === undefined) return
+        const scale = window.visualViewport?.scale || 1
+
+        const supportsPressure =
+          (e as any).pressure !== undefined &&
+          (e as any).pressure !== 0 &&
+          (e as any).pressure !== 0.5 &&
+          (e as any).pressure !== 1 &&
+          (e.pointerType === 'touch' || e.pointerType === 'pen')
+
+        const { clientX, clientY } = mapEventCoordinates(e)
+        if (e.pointerId === joystickPointer.pointer?.pointerId) {
+          updateJoystick({ clientX, clientY })
+          if (supportsPressure && (e as any).pressure > 0.5) {
+            bot.setControlState('sprint', true)
+          }
+          return
+        }
+        if (e.pointerId !== capturedPointer.active?.id) return
+        // window.scrollTo(0, 0)
+        e.preventDefault()
+        e.stopPropagation()
+
+        const allowedJitter = 1.1
+        if (supportsPressure) {
+          bot.setControlState('jump', (e as any).pressure > 0.5)
+        }
+
+        // Adjust coordinates for scale (logical axes when body.rotated)
+        const currentX = clientX / scale
+        const currentY = clientY / scale
+        const sourceX = capturedPointer.active.sourceX / scale
+        const sourceY = capturedPointer.active.sourceY / scale
+        const lastX = capturedPointer.active.x / scale
+        const lastY = capturedPointer.active.y / scale
+
+        const xDiff = Math.abs(currentX - sourceX) > allowedJitter
+        const yDiff = Math.abs(currentY - sourceY) > allowedJitter
+
+        if (!capturedPointer.active.activateCameraMove && (xDiff || yDiff)) {
+          capturedPointer.active.activateCameraMove = true
+        }
+        if (capturedPointer.active.activateCameraMove) {
+          clearTimeout(virtualClickTimeout)
+        }
+
+        onCameraMove({
+          movementX: currentX - lastX,
+          movementY: currentY - lastY,
+          type: 'touchmove',
+          stopPropagation: () => e.stopPropagation()
+        } as CameraMoveEvent)
+
+        capturedPointer.active.x = clientX
+        capturedPointer.active.y = clientY
       }
-      cameraControlEl.setPointerCapture(e.pointerId)
-      capturedPointer.active = {
-        id: e.pointerId,
-        x: clientX,
-        y: clientY,
-        sourceX: clientX,
-        sourceY: clientY,
-        activateCameraMove: false,
-        time: Date.now()
-      }
-      if (options.touchInteractionType === 'classic') {
-        virtualClickTimeout ??= setTimeout(() => {
-          virtualClickActive = true
+
+      const pointerUpHandler = (e: PointerEvent) => {
+        if (e.pointerId === undefined) return
+        if (e.pointerId === joystickPointer.pointer?.pointerId) {
+          setJoystickOrigin(null)
+          return
+        }
+        if (e.pointerId !== capturedPointer.active?.id) return
+        clearTimeout(virtualClickTimeout)
+        virtualClickTimeout = undefined
+
+        if (virtualClickActive) {
+          // button 0 is left click
           // If held item is activatable, use right click instead of left
           const heldItemName = bot?.heldItem?.name
           const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
-          document.dispatchEvent(new MouseEvent('mousedown', { button: isOnlyActivatable ? 2 : 0 }))
-        }, touchStartBreakingBlockMs)
-      }
-    }
-
-    const pointerMoveHandler = (e: PointerEvent) => {
-      if (e.pointerId === undefined) return
-      const scale = window.visualViewport?.scale || 1
-
-      const supportsPressure = (e as any).pressure !== undefined &&
-        (e as any).pressure !== 0 &&
-        (e as any).pressure !== 0.5 &&
-        (e as any).pressure !== 1 &&
-        (e.pointerType === 'touch' || e.pointerType === 'pen')
-
-      const { clientX, clientY } = mapEventCoordinates(e)
-      if (e.pointerId === joystickPointer.pointer?.pointerId) {
-        updateJoystick({ clientX, clientY })
-        if (supportsPressure && (e as any).pressure > 0.5) {
-          bot.setControlState('sprint', true)
+          document.dispatchEvent(new MouseEvent('mouseup', { button: isOnlyActivatable ? 2 : 0 }))
+          virtualClickActive = false
+        } else if (!capturedPointer.active.activateCameraMove && Date.now() - capturedPointer.active.time < touchStartBreakingBlockMs) {
+          // single click action
+          const MOUSE_BUTTON_RIGHT = 2
+          const MOUSE_BUTTON_LEFT = 0
+          const heldItemName = bot?.heldItem?.name
+          const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
+          const gonnaAttack = !!bot.mouse.getCursorState().entity || !!videoCursorInteraction()
+          // If not attacking entity and item is activatable, use right click for breaking
+          const useButton = !gonnaAttack && isOnlyActivatable ? MOUSE_BUTTON_RIGHT : gonnaAttack ? MOUSE_BUTTON_LEFT : MOUSE_BUTTON_RIGHT
+          document.dispatchEvent(new MouseEvent('mousedown', { button: useButton }))
+          bot.mouse.update()
+          document.dispatchEvent(new MouseEvent('mouseup', { button: useButton }))
         }
-        return
-      }
-      if (e.pointerId !== capturedPointer.active?.id) return
-      // window.scrollTo(0, 0)
-      e.preventDefault()
-      e.stopPropagation()
 
-      const allowedJitter = 1.1
-      if (supportsPressure) {
-        bot.setControlState('jump', (e as any).pressure > 0.5)
+        if (screenTouches > 0) {
+          screenTouches--
+        }
+        capturedPointer.active = null
       }
 
-      // Adjust coordinates for scale (logical axes when body.rotated)
-      const currentX = clientX / scale
-      const currentY = clientY / scale
-      const sourceX = capturedPointer.active.sourceX / scale
-      const sourceY = capturedPointer.active.sourceY / scale
-      const lastX = capturedPointer.active.x / scale
-      const lastY = capturedPointer.active.y / scale
-
-      const xDiff = Math.abs(currentX - sourceX) > allowedJitter
-      const yDiff = Math.abs(currentY - sourceY) > allowedJitter
-
-      if (!capturedPointer.active.activateCameraMove && (xDiff || yDiff)) {
-        capturedPointer.active.activateCameraMove = true
-      }
-      if (capturedPointer.active.activateCameraMove) {
-        clearTimeout(virtualClickTimeout)
+      const contextMenuHandler = (e: Event) => {
+        e.preventDefault()
       }
 
-      onCameraMove({
-        movementX: (currentX - lastX),
-        movementY: (currentY - lastY),
-        type: 'touchmove',
-        stopPropagation: () => e.stopPropagation()
-      } as CameraMoveEvent)
-
-      capturedPointer.active.x = clientX
-      capturedPointer.active.y = clientY
-    }
-
-    const pointerUpHandler = (e: PointerEvent) => {
-      if (e.pointerId === undefined) return
-      if (e.pointerId === joystickPointer.pointer?.pointerId) {
-        setJoystickOrigin(null)
-        return
-      }
-      if (e.pointerId !== capturedPointer.active?.id) return
-      clearTimeout(virtualClickTimeout)
-      virtualClickTimeout = undefined
-
-      if (virtualClickActive) {
-        // button 0 is left click
-        // If held item is activatable, use right click instead of left
-        const heldItemName = bot?.heldItem?.name
-        const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
-        document.dispatchEvent(new MouseEvent('mouseup', { button: isOnlyActivatable ? 2 : 0 }))
-        virtualClickActive = false
-      } else if (!capturedPointer.active.activateCameraMove && (Date.now() - capturedPointer.active.time < touchStartBreakingBlockMs)) {
-        // single click action
-        const MOUSE_BUTTON_RIGHT = 2
-        const MOUSE_BUTTON_LEFT = 0
-        const heldItemName = bot?.heldItem?.name
-        const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
-        const gonnaAttack = !!bot.mouse.getCursorState().entity || !!videoCursorInteraction()
-        // If not attacking entity and item is activatable, use right click for breaking
-        const useButton = !gonnaAttack && isOnlyActivatable ? MOUSE_BUTTON_RIGHT : (gonnaAttack ? MOUSE_BUTTON_LEFT : MOUSE_BUTTON_RIGHT)
-        document.dispatchEvent(new MouseEvent('mousedown', { button: useButton }))
-        bot.mouse.update()
-        document.dispatchEvent(new MouseEvent('mouseup', { button: useButton }))
+      const blurHandler = () => {
+        bot.clearControlStates()
       }
 
-      if (screenTouches > 0) {
-        screenTouches--
+      cameraControlEl.addEventListener('pointerdown', pointerDownHandler, { signal })
+      cameraControlEl.addEventListener('pointermove', pointerMoveHandler, { signal })
+      cameraControlEl.addEventListener('pointerup', pointerUpHandler, { signal })
+      cameraControlEl.addEventListener('pointercancel', pointerUpHandler, { signal })
+      cameraControlEl.addEventListener('lostpointercapture', pointerUpHandler, { signal })
+      cameraControlEl.addEventListener('contextmenu', contextMenuHandler, { signal })
+      window.addEventListener('blur', blurHandler, { signal })
+
+      // Add zoom detection and reset
+      const detectAndResetZoom = () => {
+        const { visualViewport } = window
+        if (!visualViewport) return
+
+        if (visualViewport.scale !== 1) {
+          // Reset zoom by updating viewport meta tag
+          const viewport = document.querySelector('meta[name=viewport]')
+          if (viewport) {
+            viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+            // Force re-layout
+            setTimeout(() => {
+              viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+            }, 300)
+          }
+        }
       }
-      capturedPointer.active = null
-    }
 
-    const contextMenuHandler = (e: Event) => {
-      e.preventDefault()
-    }
+      // Listen for zoom changes
+      window.visualViewport?.addEventListener('resize', detectAndResetZoom, { signal })
+      detectAndResetZoom()
 
-    const blurHandler = () => {
-      bot.clearControlStates()
-    }
+      // Prevent zoom gestures
+      document.addEventListener('gesturestart', e => e.preventDefault(), { signal })
+      document.addEventListener('gesturechange', e => e.preventDefault(), { signal })
+      document.addEventListener('gestureend', e => e.preventDefault(), { signal })
 
-    cameraControlEl.addEventListener('pointerdown', pointerDownHandler, { signal })
-    cameraControlEl.addEventListener('pointermove', pointerMoveHandler, { signal })
-    cameraControlEl.addEventListener('pointerup', pointerUpHandler, { signal })
-    cameraControlEl.addEventListener('pointercancel', pointerUpHandler, { signal })
-    cameraControlEl.addEventListener('lostpointercapture', pointerUpHandler, { signal })
-    cameraControlEl.addEventListener('contextmenu', contextMenuHandler, { signal })
-    window.addEventListener('blur', blurHandler, { signal })
+      // Debug method to simulate zoom
+      window.debugSimulateZoom = (scale = 1.1, x = 0, y = 0) => {
+        const viewport = document.querySelector('meta[name=viewport]')
+        if (viewport) {
+          viewport.setAttribute('content', `width=device-width, initial-scale=${scale}, user-scalable=no, viewport-fit=cover, transform-origin: ${x}px ${y}px`)
+        }
+        // This will trigger the visualViewport resize event
+        setTimeout(() => {
+          window.visualViewport?.dispatchEvent(new Event('resize'))
+        }, 100)
+      }
 
-    // Add zoom detection and reset
-    const detectAndResetZoom = () => {
-      const { visualViewport } = window
-      if (!visualViewport) return
-
-      if (visualViewport.scale !== 1) {
-        // Reset zoom by updating viewport meta tag
+      // Debug method to reset zoom
+      window.debugResetZoom = () => {
         const viewport = document.querySelector('meta[name=viewport]')
         if (viewport) {
           viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
-          // Force re-layout
-          setTimeout(() => {
-            viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
-          }, 300)
         }
+        setTimeout(() => {
+          window.visualViewport?.dispatchEvent(new Event('resize'))
+        }, 100)
       }
-    }
 
-    // Listen for zoom changes
-    window.visualViewport?.addEventListener('resize', detectAndResetZoom, { signal })
-    detectAndResetZoom()
-
-    // Prevent zoom gestures
-    document.addEventListener('gesturestart', (e) => e.preventDefault(), { signal })
-    document.addEventListener('gesturechange', (e) => e.preventDefault(), { signal })
-    document.addEventListener('gestureend', (e) => e.preventDefault(), { signal })
-
-
-    // Debug method to simulate zoom
-    window.debugSimulateZoom = (scale = 1.1, x = 0, y = 0) => {
-      const viewport = document.querySelector('meta[name=viewport]')
-      if (viewport) {
-        viewport.setAttribute('content', `width=device-width, initial-scale=${scale}, user-scalable=no, viewport-fit=cover, transform-origin: ${x}px ${y}px`)
-      }
-      // This will trigger the visualViewport resize event
-      setTimeout(() => {
-        window.visualViewport?.dispatchEvent(new Event('resize'))
-      }, 100)
-    }
-
-    // Debug method to reset zoom
-    window.debugResetZoom = () => {
-      const viewport = document.querySelector('meta[name=viewport]')
-      if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
-      }
-      setTimeout(() => {
-        window.visualViewport?.dispatchEvent(new Event('resize'))
-      }, 100)
-    }
-
-    signal.addEventListener('abort', () => {
-      setJoystickOrigin(null)
-    })
-  }, [setJoystickOrigin])
-
-  return (
-    <OverlayElement divRef={overlayRef} zIndex={zIndex} />
+      signal.addEventListener('abort', () => {
+        setJoystickOrigin(null)
+      })
+    },
+    [setJoystickOrigin]
   )
 
-
+  return <OverlayElement divRef={overlayRef} zIndex={zIndex} />
 }
 
-const OverlayElement = ({ divRef, zIndex }: { divRef: React.RefObject<HTMLDivElement>, zIndex: number }) => {
-  return <div
-    className='game-interaction-overlay'
-    ref={divRef}
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex,
-      touchAction: 'none',
-      userSelect: 'none'
-    }}
-  />
+const OverlayElement = ({ divRef, zIndex }: { divRef: React.RefObject<HTMLDivElement>; zIndex: number }) => {
+  return (
+    <div
+      className="game-interaction-overlay"
+      ref={divRef}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex,
+        touchAction: 'none',
+        userSelect: 'none'
+      }}
+    />
+  )
 }
 
-export default function GameInteractionOverlay ({ zIndex }: { zIndex: number }) {
+export default function GameInteractionOverlay({ zIndex }: { zIndex: number }) {
   const modalStack = useSnapshot(activeModalStack)
   const { currentTouch } = useSnapshot(miscUiState)
 
@@ -303,17 +303,12 @@ export default function GameInteractionOverlay ({ zIndex }: { zIndex: number }) 
     }
   }).current
 
-  const updateJoystick = useRef(((e) => {
+  const updateJoystick = useRef((e => {
     handleMovementStickDelta(e)
   }) satisfies UpdateJoystick).current
 
   if (modalStack.length > 0 || !currentTouch) return null
-  return <GameInteractionOverlayInner
-    zIndex={zIndex}
-    setJoystickOrigin={setJoystickOrigin}
-    updateJoystick={updateJoystick}
-  />
-
+  return <GameInteractionOverlayInner zIndex={zIndex} setJoystickOrigin={setJoystickOrigin} updateJoystick={updateJoystick} />
 }
 
 subscribe(activeModalStack, () => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { UAParser } from 'ua-parser-js'
 
-export function useDidUpdateEffect (fn, inputs) {
+export function useDidUpdateEffect(fn, inputs) {
   const isMountingRef = useRef(false)
 
   useEffect(() => {
@@ -25,11 +25,11 @@ export const isIos = ua.getOS().name === 'iOS'
 // memory-heavy features such as the WASM mesher conversion cache.
 export const isSafari = ua.getBrowser().name === 'Safari' || isIos
 
-export const reactKeyForMessage = (message) => {
+export const reactKeyForMessage = message => {
   return typeof message === 'string' ? message : JSON.stringify(message)
 }
 
-export const mapEventCoordinates = (e: { clientX: number, clientY: number }) => {
+export const mapEventCoordinates = (e: { clientX: number; clientY: number }) => {
   const isRotated = document.body.classList.contains('rotated')
   const rect = document.body.getBoundingClientRect()
 

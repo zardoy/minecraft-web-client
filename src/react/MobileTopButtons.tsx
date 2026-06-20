@@ -42,7 +42,8 @@ export default () => {
   }, [])
 
   const getButtonClassName = (button: MobileButtonConfig): string => {
-    const actionForStyle = button.action || (button.actionHold && typeof button.actionHold === 'object' && 'command' in button.actionHold ? button.actionHold.command : undefined)
+    const actionForStyle =
+      button.action || (button.actionHold && typeof button.actionHold === 'object' && 'command' in button.actionHold ? button.actionHold.command : undefined)
 
     if (typeof actionForStyle === 'string') {
       switch (actionForStyle) {
@@ -154,13 +155,7 @@ export default () => {
       }
 
       return (
-        <div
-          key={index}
-          className={className}
-          onPointerDown={onPointerDown}
-          onPointerUp={onPointerUp}
-          onLostPointerCapture={onPointerUp}
-        >
+        <div key={index} className={className} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onLostPointerCapture={onPointerUp}>
           {label}
         </div>
       )
@@ -169,13 +164,7 @@ export default () => {
 
   // ios note: just don't use <button>
   return (
-    <div
-      ref={elRef}
-      className={
-        `${styles['mobile-top-btns']}${portraitTallAspect ? ` ${styles['mobile-top-btns--portrait-tall']}` : ''}`
-      }
-      id="mobile-top"
-    >
+    <div ref={elRef} className={`${styles['mobile-top-btns']}${portraitTallAspect ? ` ${styles['mobile-top-btns--portrait-tall']}` : ''}`} id="mobile-top">
       {mobileButtonsConfig && mobileButtonsConfig.length > 0 ? renderConfigButtons() : null}
     </div>
   )

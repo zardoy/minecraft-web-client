@@ -14,7 +14,7 @@ export const customCommunication = {
     })
   },
   receiverSetup(processData) {
-    window.serverDataChannel[this.isServer ? 'emitServer' : 'emitClient'] = (data) => {
+    window.serverDataChannel[this.isServer ? 'emitServer' : 'emitClient'] = data => {
       processData(data)
     }
   }
@@ -33,7 +33,7 @@ class CustomChannelClient extends EventEmitter {
   }
 
   setSerializer(state) {
-    customCommunication.receiverSetup.call(this, (/** @type {{name, params, state?}} */parsed) => {
+    customCommunication.receiverSetup.call(this, (/** @type {{name, params, state?}} */ parsed) => {
       if (!options.excludeCommunicationDebugEvents.includes(parsed.name)) {
         debug(`receive in ${this.isServer ? 'server' : 'client'}: ${parsed.name}`)
       }
@@ -56,9 +56,7 @@ class CustomChannelClient extends EventEmitter {
     // eslint-disable-next-line unicorn/no-this-assignment
     const client = this
     if (client.state === states.PLAY) {
-      fullReason ||= loadedData.supportFeature('chatPacketsUseNbtComponents')
-        ? nbt.comp({ text: nbt.string(endReason) })
-        : JSON.stringify({ text: endReason })
+      fullReason ||= loadedData.supportFeature('chatPacketsUseNbtComponents') ? nbt.comp({ text: nbt.string(endReason) }) : JSON.stringify({ text: endReason })
       client.write('kick_disconnect', { reason: fullReason })
     } else if (client.state === states.LOGIN) {
       fullReason ||= JSON.stringify({ text: endReason })

@@ -7,12 +7,15 @@ export const registerServiceWorker = async () => {
   if (!isCypress() && process.env.NODE_ENV !== 'development') {
     return new Promise<void>(resolve => {
       window.addEventListener('load', async () => {
-        await navigator.serviceWorker.register('./service-worker.js').then(registration => {
-          console.log('SW registered:', registration)
-          resolve()
-        }).catch(registrationError => {
-          console.log('SW registration failed:', registrationError)
-        })
+        await navigator.serviceWorker
+          .register('./service-worker.js')
+          .then(registration => {
+            console.log('SW registered:', registration)
+            resolve()
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed:', registrationError)
+          })
       })
     })
   } else {

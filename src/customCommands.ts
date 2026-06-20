@@ -9,7 +9,7 @@ export const customCommandsConfig = {
         placeholder: 'Command to send e.g. gamemode creative'
       }
     ],
-    handler ([command]) {
+    handler([command]) {
       bot.chat(`/${command.replace(/^\//, '')}`)
     }
   },
@@ -33,9 +33,10 @@ export const customCommandsConfig = {
             if (config?.possibleValues && config.possibleValues.length > 0) {
               // Handle both string[] and Array<[string, string]> formats
               const { possibleValues } = config
-              const options = Array.isArray(possibleValues[0]) && typeof possibleValues[0][0] === 'string'
-                ? (possibleValues as Array<[string, string]>).map(([val]) => val)
-                : possibleValues as string[]
+              const options =
+                Array.isArray(possibleValues[0]) && typeof possibleValues[0][0] === 'string'
+                  ? (possibleValues as Array<[string, string]>).map(([val]) => val)
+                  : (possibleValues as string[])
               return {
                 type: 'select',
                 options
@@ -51,7 +52,7 @@ export const customCommandsConfig = {
               return {
                 type: 'number',
                 min: config?.min,
-                max: config?.max,
+                max: config?.max
               }
             }
             return {
@@ -65,16 +66,17 @@ export const customCommandsConfig = {
         }
       }
     ],
-    handler ([setting, action, value]) {
+    handler([setting, action, value]) {
       if (action === 'toggle' || action === undefined) {
         const currentValue = options[setting]
         const config = optionsMeta[setting as keyof typeof optionsMeta]
         if (config?.possibleValues && config.possibleValues.length > 0) {
           // Handle both string[] and Array<[string, string]> formats
           const { possibleValues } = config
-          const values = Array.isArray(possibleValues[0]) && typeof possibleValues[0][0] === 'string'
-            ? (possibleValues as Array<[string, string]>).map(([val]) => val)
-            : possibleValues as string[]
+          const values =
+            Array.isArray(possibleValues[0]) && typeof possibleValues[0][0] === 'string'
+              ? (possibleValues as Array<[string, string]>).map(([val]) => val)
+              : (possibleValues as string[])
           const currentIndex = values.indexOf(String(currentValue))
           const nextIndex = (currentIndex + 1) % values.length
           options[setting] = values[nextIndex] as any
@@ -101,10 +103,10 @@ export const customCommandsConfig = {
         placeholder: 'JavaScript code to run in main thread (sensitive!)'
       }
     ],
-    handler ([code]) {
+    handler([code]) {
       // eslint-disable-next-line no-new-func -- this is a feature, not a bug
       new Function(code)()
     }
-  },
+  }
   // openCommandsScreen: {}
 }

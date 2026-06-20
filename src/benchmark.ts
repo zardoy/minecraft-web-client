@@ -22,14 +22,17 @@ interface BenchmarkFixture {
 const fixtures: Record<string, BenchmarkFixture> = {
   default: {
     urlZip: 'https://bucket.mcraft.fun/Future CITY 4.4-slim.zip',
-    spawn: [-133, 87, 309] as [number, number, number],
+    spawn: [-133, 87, 309] as [number, number, number]
   },
   dir: {
-    urlDir: ['https://bucket.mcraft.fun/Greenfield%20v0.5.1/map-index.json', 'https://mcraft-proxy.vercel.app/0/bucket.mcraft.fun/Greenfield%20v0.5.1/map-index.json'],
+    urlDir: [
+      'https://bucket.mcraft.fun/Greenfield%20v0.5.1/map-index.json',
+      'https://mcraft-proxy.vercel.app/0/bucket.mcraft.fun/Greenfield%20v0.5.1/map-index.json'
+    ]
   },
   replay: {
-    replayFileUrl: 'https://raw.githubusercontent.com/zardoy/mcraft-fun-replays/refs/heads/main/hypepixel-tnt-lobby.worldstate.txt',
-  },
+    replayFileUrl: 'https://raw.githubusercontent.com/zardoy/mcraft-fun-replays/refs/heads/main/hypepixel-tnt-lobby.worldstate.txt'
+  }
 }
 
 Error.stackTraceLimit = Error.stackTraceLimit < 30 ? 30 : Error.stackTraceLimit
@@ -40,7 +43,6 @@ export const openBenchmark = async (renderDistance = DEFAULT_RENDER_DISTANCE) =>
   if (!fixtureNameOpen || fixtureNameOpen === '1' || fixtureNameOpen === 'true' || fixtureNameOpen === 'zip') {
     fixtureNameOpen = 'default'
   }
-
 
   if (sessionStorage.getItem(SESSION_STORAGE_BACKUP_KEY)) {
     const backup = JSON.stringify(JSON.parse(sessionStorage.getItem(SESSION_STORAGE_BACKUP_KEY)!), null, 2)
@@ -54,10 +56,12 @@ export const openBenchmark = async (renderDistance = DEFAULT_RENDER_DISTANCE) =>
     return
   }
 
-  const fixture: BenchmarkFixture = appQueryParams.benchmarkMapZipUrl ? {
-    urlZip: appQueryParams.benchmarkMapZipUrl,
-    spawn: appQueryParams.benchmarkPosition ? appQueryParams.benchmarkPosition.split(',').map(Number) as [number, number, number] : fixtures.default.spawn,
-  } : fixtures[fixtureNameOpen]
+  const fixture: BenchmarkFixture = appQueryParams.benchmarkMapZipUrl
+    ? {
+        urlZip: appQueryParams.benchmarkMapZipUrl,
+        spawn: appQueryParams.benchmarkPosition ? (appQueryParams.benchmarkPosition.split(',').map(Number) as [number, number, number]) : fixtures.default.spawn
+      }
+    : fixtures[fixtureNameOpen]
 
   if (!fixture) {
     setLoadingScreenStatus(`Benchmark fixture ${fixtureNameOpen} not found`)
@@ -105,7 +109,8 @@ export const openBenchmark = async (renderDistance = DEFAULT_RENDER_DISTANCE) =>
   }
 
   fixtureName += ` - ${renderDistance}`
-  if (process.env.NODE_ENV !== 'development') { // do not delay
+  if (process.env.NODE_ENV !== 'development') {
+    // do not delay
     setLoadingScreenStatus('Benchmark requested... Getting screen refresh rate')
     await new Promise(resolve => {
       setTimeout(resolve, 1000)
@@ -122,74 +127,72 @@ export const openBenchmark = async (renderDistance = DEFAULT_RENDER_DISTANCE) =>
 
   const screenRefreshRate = await getScreenRefreshRate()
   const benchmarkAdapter: BenchmarkAdapterInfo = {
-    get fixture () {
+    get fixture() {
       return fixtureName
     },
-    get worldLoadTimeSeconds () {
+    get worldLoadTimeSeconds() {
       return window.worldLoadTime
     },
-    get mesherWorkersCount () {
+    get mesherWorkersCount() {
       return (window.world as WorldRendererCommon).worldRendererConfig.mesherWorkers
     },
-    get mesherProcessAvgMs () {
+    get mesherProcessAvgMs() {
       return (window.world as WorldRendererCommon).workersProcessAverageTime
     },
-    get mesherProcessTotalMs () {
+    get mesherProcessTotalMs() {
       return (window.world as WorldRendererCommon).workersProcessAverageTime * (window.world as WorldRendererCommon).workersProcessAverageTimeCount
     },
-    get mesherProcessWorstMs () {
+    get mesherProcessWorstMs() {
       return (window.world as WorldRendererCommon).maxWorkersProcessTime
     },
-    get chunksFullInfo () {
-      return appViewer.nonReactiveState.world.chunksFullInfo
-        ?? (window.world as WorldRendererCommon | undefined)?.chunksFullInfo
-        ?? '-'
+    get chunksFullInfo() {
+      return appViewer.nonReactiveState.world.chunksFullInfo ?? (window.world as WorldRendererCommon | undefined)?.chunksFullInfo ?? '-'
     },
-    get averageRenderTimeMs () {
+    get averageRenderTimeMs() {
       return (window.world as WorldRendererCommon).renderTimeAvg
     },
-    get worstRenderTimeMs () {
+    get worstRenderTimeMs() {
       return (window.world as WorldRendererCommon).renderTimeMax
     },
-    get fpsAveragePrediction () {
+    get fpsAveragePrediction() {
       const avgRenderTime = (window.world as WorldRendererCommon).renderTimeAvg
       return 1000 / avgRenderTime
     },
-    get fpsWorstPrediction () {
+    get fpsWorstPrediction() {
       const maxRenderTime = (window.world as WorldRendererCommon).renderTimeMax
       return 1000 / maxRenderTime
     },
-    get fpsAverageReal () {
+    get fpsAverageReal() {
       return `${(window.world as WorldRendererCommon).fpsAverage.toFixed(0)} / ${screenRefreshRate}`
     },
-    get fpsWorstReal () {
+    get fpsWorstReal() {
       return (window.world as WorldRendererCommon).fpsWorst ?? -1
     },
-    get backendInfoReport () {
+    get backendInfoReport() {
       return (window.world as WorldRendererCommon).backendInfoReport
     },
-    get fpsAverageMainThread () {
+    get fpsAverageMainThread() {
       return mainThreadFpsAverage
     },
-    get fpsWorstMainThread () {
+    get fpsWorstMainThread() {
       return mainThreadFpsWorst ?? -1
     },
-    get memoryUsageAverage () {
+    get memoryUsageAverage() {
       return prettyBytes(memoryUsageAverage)
     },
-    get memoryUsageWorst () {
+    get memoryUsageWorst() {
       return prettyBytes(memoryUsageWorst)
     },
-    get gpuInfo () {
+    get gpuInfo() {
       return appViewer.rendererState.renderer
     },
-    get hardwareConcurrency () {
+    get hardwareConcurrency() {
       return navigator.hardwareConcurrency
     },
-    get userAgent () {
+    get userAgent() {
       return navigator.userAgent
     },
-    clientVersion: `${process.env.RELEASE_TAG} ${process.env.BUILD_VERSION} ${process.env.RELEASE_LINK ?? ''}`,
+    clientVersion: `${process.env.RELEASE_TAG} ${process.env.BUILD_VERSION} ${process.env.RELEASE_LINK ?? ''}`
   }
   window.benchmarkAdapter = benchmarkAdapter
 
@@ -202,17 +205,17 @@ export const openBenchmark = async (renderDistance = DEFAULT_RENDER_DISTANCE) =>
 
   void downloadAndOpenMapFromUrl(fixture.urlZip, undefined, fixture.urlDir, fixture.replayFileUrl, {
     connectEvents: {
-      serverCreated () {
+      serverCreated() {
         if (fixture.spawn) {
           localServer!.spawnPoint = new Vec3(...fixture.spawn)
-          localServer!.on('newPlayer', (player) => {
+          localServer!.on('newPlayer', player => {
             player.on('dataLoaded', () => {
               player.position = new Vec3(...fixture.spawn!)
               start = Date.now()
             })
           })
         }
-      },
+      }
     }
   })
 
@@ -281,7 +284,7 @@ window.addEventListener('beforeunload', () => {
   sessionStorage.removeItem(SESSION_STORAGE_BACKUP_KEY)
 })
 
-document.addEventListener('pointerlockchange', (e) => {
+document.addEventListener('pointerlockchange', e => {
   const panel = document.querySelector<HTMLDivElement>('#benchmark-panel')
   if (panel) {
     panel.hidden = !!document.pointerLockElement
@@ -300,7 +303,7 @@ export const registerOpenBenchmarkListener = () => {
     void openBenchmark(appQueryParams.renderDistance ? +appQueryParams.renderDistance : undefined)
   }
 
-  window.addEventListener('keydown', (e) => {
+  window.addEventListener('keydown', e => {
     if (e.code === 'KeyB' && e.shiftKey && !miscUiState.gameLoaded && activeModalStack.length === 0) {
       e.preventDefault()
       // add ?openBenchmark=true to url without reload

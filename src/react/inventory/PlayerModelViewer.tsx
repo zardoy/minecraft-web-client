@@ -8,7 +8,7 @@ import { PlayerModelCanvas } from '../OverlayModelViewer'
  * 1. Uses appViewer.playerState.reactive.playerSkin when available (reactive, updates on change)
  * 2. Falls back to loadSkinFromUsername(bot.username) when no local skin is set
  */
-export function PlayerModelViewer ({ width, height }: { width: number; height: number }) {
+export function PlayerModelViewer({ width, height }: { width: number; height: number }) {
   const [skinUrl, setSkinUrl] = useState<string>(() => appViewer?.playerState?.reactive?.playerSkin ?? '')
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export function PlayerModelViewer ({ width, height }: { width: number; height: n
     if (!reactive) return
 
     // Keep skinUrl in sync with playerState changes (e.g. resource pack swap, skin update)
-    const unsubscribe = subscribeKey(reactive, 'playerSkin', (skin) => {
+    const unsubscribe = subscribeKey(reactive, 'playerSkin', skin => {
       if (skin) setSkinUrl(skin)
     })
 

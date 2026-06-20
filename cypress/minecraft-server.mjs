@@ -6,21 +6,21 @@ import defaultOptions from 'flying-squid/config/default-settings.json' with { ty
 const serverOptions = {
   ...defaultOptions,
   'online-mode': false,
-  'logging': false,
-  'gameMode': 0,
-  'difficulty': 0,
-  'worldFolder': undefined,
+  logging: false,
+  gameMode: 0,
+  difficulty: 0,
+  worldFolder: undefined,
   // todo set sid, disable entities auto-spawn
-  'generation': {
-    'name': 'superflat',
+  generation: {
+    name: 'superflat',
     options: {}
     // 'options': {
     //   'worldHeight': 80
     // }
   },
-  'modpe': false,
+  modpe: false,
   'view-distance': 4,
   'everybody-op': true,
-  'version': '1.16.1'
+  version: '1.16.1'
 }
 const server = mcServer.createMCServer(serverOptions)

@@ -12,20 +12,22 @@ type Props = {
 
 const DeathScreenBase = ({ dieReasonMessage, respawnCallback, disconnectCallback }: Props) => {
   return (
-    <div className='deathScreen-container'>
+    <div className="deathScreen-container">
       <div className="deathScreen">
-        <h1 className='deathScreen-title'>You Died!</h1>
-        <h5 className='deathScreen-reason'>
+        <h1 className="deathScreen-title">You Died!</h1>
+        <h5 className="deathScreen-reason">
           <MessageFormatted parts={dieReasonMessage} />
         </h5>
-        <div className='deathScreen-buttons-grouped'>
+        <div className="deathScreen-buttons-grouped">
           <Button
-            label="Respawn" onClick={() => {
+            label="Respawn"
+            onClick={() => {
               respawnCallback()
             }}
           />
           <Button
-            label="Disconnect" onClick={() => {
+            label="Disconnect"
+            onClick={() => {
               disconnectCallback()
             }}
           />

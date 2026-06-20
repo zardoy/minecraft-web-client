@@ -20,7 +20,7 @@ const refreshApp = async (failedUpdate = false) => {
     const registration = await navigator.serviceWorker.getRegistration()
     if (registration) {
       // First, disconnect all clients
-      const clients = await window.clients?.matchAll() || []
+      const clients = (await window.clients?.matchAll()) || []
       await Promise.all(clients.map(client => client.postMessage('SKIP_WAITING')))
 
       // Force the waiting service worker to become active
@@ -34,17 +34,18 @@ const refreshApp = async (failedUpdate = false) => {
         setTimeout(() => reject(new Error('SW unregister timeout')), 3000)
       })
 
-      await Promise.race([unregisterPromise, timeoutPromise])
-        .catch(err => {
-          console.warn('SW unregister error:', err)
-          if (isMainMenu()) {
-            alert('Failed to unregister SW: ' + err)
-          }
-        })
+      await Promise.race([unregisterPromise, timeoutPromise]).catch(err => {
+        console.warn('SW unregister error:', err)
+        if (isMainMenu()) {
+          alert('Failed to unregister SW: ' + err)
+        }
+      })
     }
 
     if (failedUpdate) {
-      await new Promise(resolve => { setTimeout(resolve, 2000) })
+      await new Promise(resolve => {
+        setTimeout(resolve, 2000)
+      })
     }
 
     if (!isMainMenu()) return
@@ -69,7 +70,7 @@ const refreshApp = async (failedUpdate = false) => {
 }
 
 export const mainMenuState = proxy({
-  serviceWorkerLoaded: false,
+  serviceWorkerLoaded: false
 })
 
 // todo clean
@@ -94,24 +95,27 @@ const MainMenuRenderAppBase = () => {
     } else if (process.env.NODE_ENV === 'development') {
       setVersionStatus('(dev)')
     } else {
-      fetch('./version.txt').then(async (f) => {
-        if (f.status === 404) return
-        const contents = await f.text()
-        const isLatest = contents === process.env.BUILD_VERSION
-        if (!isLatest && sessionStorage.justReloaded) {
-          setVersionStatus('(force reloading, wait)')
-          void refreshApp(true)
-          return
+      fetch('./version.txt').then(
+        async f => {
+          if (f.status === 404) return
+          const contents = await f.text()
+          const isLatest = contents === process.env.BUILD_VERSION
+          if (!isLatest && sessionStorage.justReloaded) {
+            setVersionStatus('(force reloading, wait)')
+            void refreshApp(true)
+            return
+          }
+          const upStatus = () => {
+            setVersionStatus(`(${isLatest ? 'latest' : 'new version available'}${mainMenuState.serviceWorkerLoaded ? ', Downloaded' : ''})`)
+          }
+          subscribe(mainMenuState, upStatus)
+          upStatus()
+          setVersionTitle(`Loaded: ${process.env.BUILD_VERSION}. Remote: ${contents}`)
+        },
+        () => {
+          setVersionStatus('(offline)')
         }
-        const upStatus = () => {
-          setVersionStatus(`(${isLatest ? 'latest' : 'new version available'}${mainMenuState.serviceWorkerLoaded ? ', Downloaded' : ''})`)
-        }
-        subscribe(mainMenuState, upStatus)
-        upStatus()
-        setVersionTitle(`Loaded: ${process.env.BUILD_VERSION}. Remote: ${contents}`)
-      }, () => {
-        setVersionStatus('(offline)')
-      })
+      )
     }
   }, [])
 

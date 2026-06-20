@@ -21,7 +21,7 @@ export const importData = async () => {
     input.accept = '.json'
     input.click()
 
-    const file = await new Promise<File>((resolve) => {
+    const file = await new Promise<File>(resolve => {
       input.onchange = () => {
         if (!input.files?.[0]) return
         resolve(input.files[0])
@@ -37,38 +37,45 @@ export const importData = async () => {
     }
 
     // Build available data types for selection
-    const availableData: Record<keyof Omit<ExportedFile, '_about'>, { present: boolean, description: string }> = {
+    const availableData: Record<keyof Omit<ExportedFile, '_about'>, { present: boolean; description: string }> = {
       options: { present: !!data.options, description: 'Game settings and preferences' },
       keybindings: { present: !!data.keybindings, description: 'Custom key mappings' },
       servers: { present: !!data.servers, description: 'Saved server list' },
       username: { present: !!data.username, description: 'Username' },
       proxy: { present: !!data.proxy, description: 'Selected proxy server' },
       proxies: { present: !!data.proxies, description: 'Global proxies list' },
-      accountTokens: { present: !!data.accountTokens, description: 'Account authentication tokens' },
+      accountTokens: { present: !!data.accountTokens, description: 'Account authentication tokens' }
     }
 
     // Filter to only present data types
-    const presentTypes = Object.fromEntries(Object.entries(availableData)
-      .filter(([_, info]) => info.present)
-      .map<any>(([key, info]) => [key, info]))
+    const presentTypes = Object.fromEntries(
+      Object.entries(availableData)
+        .filter(([_, info]) => info.present)
+        .map<any>(([key, info]) => [key, info])
+    )
 
     if (Object.keys(presentTypes).length === 0) {
       alert('No compatible data found in the imported file.')
       return
     }
 
-    const importChoices = await showInputsModal('Select Data to Import', {
+    const importChoices = (await showInputsModal('Select Data to Import', {
       mergeData: {
         type: 'checkbox',
         label: 'Merge with existing data (uncheck to remove old data)',
-        defaultValue: true,
+        defaultValue: true
       },
-      ...Object.fromEntries(Object.entries(presentTypes).map(([key, info]) => [key, {
-        type: 'checkbox',
-        label: info.description,
-        defaultValue: true,
-      }]))
-    }) as { mergeData: boolean } & Record<keyof ExportedFile, boolean>
+      ...Object.fromEntries(
+        Object.entries(presentTypes).map(([key, info]) => [
+          key,
+          {
+            type: 'checkbox',
+            label: info.description,
+            defaultValue: true
+          }
+        ])
+      )
+    })) as { mergeData: boolean } & Record<keyof ExportedFile, boolean>
 
     if (!importChoices) return
 
@@ -159,55 +166,67 @@ export const importData = async () => {
 export const exportData = async () => {
   const data = await showInputsModal('Export Profile', {
     profileName: {
-      type: 'text',
+      type: 'text'
     },
     exportSettings: {
       type: 'checkbox',
-      defaultValue: true,
+      defaultValue: true
     },
     exportKeybindings: {
       type: 'checkbox',
-      defaultValue: true,
+      defaultValue: true
     },
     exportServers: {
       type: 'checkbox',
-      defaultValue: true,
+      defaultValue: true
     },
     saveUsernameAndProxy: {
       type: 'checkbox',
-      defaultValue: true,
+      defaultValue: true
     },
     exportGlobalProxiesList: {
       type: 'checkbox',
-      defaultValue: false,
+      defaultValue: false
     },
     exportAccountTokens: {
       type: 'checkbox',
-      defaultValue: false,
-    },
+      defaultValue: false
+    }
   })
   const fileName = `${data.profileName ? `${data.profileName}-` : ''}web-client-profile.json`
   const json: ExportedFile = {
     _about: 'Minecraft Web Client (mcraft.fun) Profile',
-    ...data.exportSettings ? {
-      options: getChangedSettings(),
-    } : {},
-    ...data.exportKeybindings ? {
-      keybindings: customKeymaps,
-    } : {},
-    ...data.exportServers ? {
-      servers: appStorage.serversList,
-    } : {},
-    ...data.saveUsernameAndProxy ? {
-      username: appStorage.username,
-      proxy: appStorage.proxiesData?.selected,
-    } : {},
-    ...data.exportGlobalProxiesList ? {
-      proxies: appStorage.proxiesData?.proxies,
-    } : {},
-    ...data.exportAccountTokens ? {
-      accountTokens: appStorage.authenticatedAccounts,
-    } : {},
+    ...(data.exportSettings
+      ? {
+          options: getChangedSettings()
+        }
+      : {}),
+    ...(data.exportKeybindings
+      ? {
+          keybindings: customKeymaps
+        }
+      : {}),
+    ...(data.exportServers
+      ? {
+          servers: appStorage.serversList
+        }
+      : {}),
+    ...(data.saveUsernameAndProxy
+      ? {
+          username: appStorage.username,
+          proxy: appStorage.proxiesData?.selected
+        }
+      : {}),
+    ...(data.exportGlobalProxiesList
+      ? {
+          proxies: appStorage.proxiesData?.proxies
+        }
+      : {}),
+    ...(data.exportAccountTokens
+      ? {
+          accountTokens: appStorage.authenticatedAccounts
+        }
+      : {})
   }
   const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)

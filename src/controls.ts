@@ -43,86 +43,89 @@ const controlOptions = {
   preventDefault: true
 }
 
-export const contro = new ControMax({
-  commands: {
-    movement: {
-      forward: ['KeyW'],
-      back: ['KeyS'],
-      left: ['KeyA'],
-      right: ['KeyD'],
-      jump: ['Space', 'A'],
-      sneak: ['ShiftLeft', 'Down'],
-      toggleSneakOrDown: [null, 'Right Stick'],
-      sprint: ['ControlLeft', 'Left Stick'],
-    },
-    general: {
-      inventory: ['KeyE', 'X'],
-      drop: ['KeyQ', 'B'],
-      dropStack: [null],
-      // game interactions
-      nextHotbarSlot: [null, 'Right Bumper'],
-      prevHotbarSlot: [null, 'Left Bumper'],
-      attackDestroy: [null, 'Right Trigger'],
-      interactPlace: [null, 'Left Trigger'],
-      swapHands: ['KeyF'],
-      selectItem: ['KeyH'],
-      rotateCameraLeft: [null],
-      rotateCameraRight: [null],
-      rotateCameraUp: [null],
-      rotateCameraDown: [null],
-      // ui?
-      chat: [['KeyT', 'Enter'], 'Right'],
-      command: ['Slash'],
-      playersList: ['Tab', 'Left'],
-      debugOverlay: ['F3'],
-      debugOverlayHelpMenu: [null],
-      // client side
-      zoom: ['KeyC'],
-      viewerConsole: ['Backquote'],
-      togglePerspective: ['F5', 'Up'],
-      takeScreenshot: ['F2'],
-    },
-    ui: {
-      toggleFullscreen: ['F11'],
-      back: [null/* 'Escape' */, 'B'],
-      toggleMap: ['KeyJ'],
-      leftClick: [null, 'A'],
-      rightClick: [null, 'X'],
-      speedupCursor: [null, 'Left Stick'],
-      pauseMenu: [null, 'Start']
-    },
-    communication: {
-      toggleMicrophone: ['KeyM'],
-    },
-    advanced: {
-      lockUrl: [null],
-    },
-    custom: {} as Record<string, SchemaCommandInput & { type: string, input: any[] }>,
-    // waila: {
-    //   showLookingBlockRecipe: ['Numpad3'],
-    //   showLookingBlockUsages: ['Numpad4']
-    // }
-  } satisfies Record<string, Record<string, SchemaCommandInput>>,
-  movementVector: '2d',
-  groupedCommands: {
-    general: {
-      switchSlot: ['Digits', []]
+export const contro = new ControMax(
+  {
+    commands: {
+      movement: {
+        forward: ['KeyW'],
+        back: ['KeyS'],
+        left: ['KeyA'],
+        right: ['KeyD'],
+        jump: ['Space', 'A'],
+        sneak: ['ShiftLeft', 'Down'],
+        toggleSneakOrDown: [null, 'Right Stick'],
+        sprint: ['ControlLeft', 'Left Stick']
+      },
+      general: {
+        inventory: ['KeyE', 'X'],
+        drop: ['KeyQ', 'B'],
+        dropStack: [null],
+        // game interactions
+        nextHotbarSlot: [null, 'Right Bumper'],
+        prevHotbarSlot: [null, 'Left Bumper'],
+        attackDestroy: [null, 'Right Trigger'],
+        interactPlace: [null, 'Left Trigger'],
+        swapHands: ['KeyF'],
+        selectItem: ['KeyH'],
+        rotateCameraLeft: [null],
+        rotateCameraRight: [null],
+        rotateCameraUp: [null],
+        rotateCameraDown: [null],
+        // ui?
+        chat: [['KeyT', 'Enter'], 'Right'],
+        command: ['Slash'],
+        playersList: ['Tab', 'Left'],
+        debugOverlay: ['F3'],
+        debugOverlayHelpMenu: [null],
+        // client side
+        zoom: ['KeyC'],
+        viewerConsole: ['Backquote'],
+        togglePerspective: ['F5', 'Up'],
+        takeScreenshot: ['F2']
+      },
+      ui: {
+        toggleFullscreen: ['F11'],
+        back: [null /* 'Escape' */, 'B'],
+        toggleMap: ['KeyJ'],
+        leftClick: [null, 'A'],
+        rightClick: [null, 'X'],
+        speedupCursor: [null, 'Left Stick'],
+        pauseMenu: [null, 'Start']
+      },
+      communication: {
+        toggleMicrophone: ['KeyM']
+      },
+      advanced: {
+        lockUrl: [null]
+      },
+      custom: {} as Record<string, SchemaCommandInput & { type: string; input: any[] }>
+      // waila: {
+      //   showLookingBlockRecipe: ['Numpad3'],
+      //   showLookingBlockUsages: ['Numpad4']
+      // }
+    } satisfies Record<string, Record<string, SchemaCommandInput>>,
+    movementVector: '2d',
+    groupedCommands: {
+      general: {
+        switchSlot: ['Digits', []]
+      }
     }
   },
-}, {
-  defaultControlOptions: controlOptions,
-  target: document,
-  captureEvents (e) {
-    return !isNextConsoleKeyboardTarget(e)
-  },
-  storeProvider: {
-    load: () => customKeymaps,
-    save () { },
-  },
-  gamepadPollingInterval: 10
-})
+  {
+    defaultControlOptions: controlOptions,
+    target: document,
+    captureEvents(e) {
+      return !isNextConsoleKeyboardTarget(e)
+    },
+    storeProvider: {
+      load: () => customKeymaps,
+      save() {}
+    },
+    gamepadPollingInterval: 10
+  }
+)
 window.controMax = contro
-export type Command = CommandEventArgument<typeof contro['_commandsRaw']>['command']
+export type Command = CommandEventArgument<(typeof contro)['_commandsRaw']>['command']
 
 export const isCommandDisabled = (command: Command) => {
   return miscUiState.appConfig?.disabledCommands?.includes(command)
@@ -190,7 +193,7 @@ contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
     ['z', -1, 'forward'],
     ['z', 1, 'back'],
     ['x', -1, 'left'],
-    ['x', 1, 'right'],
+    ['x', 1, 'right']
   ] as const
 
   const newState: Partial<typeof bot.controlState> = {}
@@ -204,7 +207,7 @@ contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
   }
 
   for (const key of ['forward', 'back', 'left', 'right'] as const) {
-    if (!!(newState[key]) === !!(bot.controlState[key])) continue
+    if (!!newState[key] === !!bot.controlState[key]) continue
     const action = !!newState[key]
     if (action && !isGameActive(true)) continue
     bot.setControlState(key, action)
@@ -218,15 +221,15 @@ contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
   }
 })
 
-let lastCommandTrigger = null as { command: string, time: number } | null
+let lastCommandTrigger = null as { command: string; time: number } | null
 
 const secondActionActivationTimeout = 300
 const secondActionCommands: Partial<Record<Command, () => void>> = {
-  'movement.jump' () {
+  'movement.jump'() {
     // if (bot.game.gameMode === 'spectator') return
     toggleFly()
   },
-  'movement.forward' () {
+  'movement.forward'() {
     setSprinting(true)
   }
 }
@@ -255,7 +258,7 @@ const cameraRotationControls = {
     up: { movementX: 0, movementY: -0.5 },
     down: { movementX: 0, movementY: 0.5 }
   },
-  updateMovement () {
+  updateMovement() {
     if (cameraRotationControls.activeDirections.size === 0) {
       if (cameraRotationControls.interval) {
         clearInterval(cameraRotationControls.interval)
@@ -276,20 +279,20 @@ const cameraRotationControls = {
         onCameraMove({
           ...movement,
           type: 'keyboardRotation',
-          stopPropagation () {}
+          stopPropagation() {}
         })
       }, cameraRotationControls.config.interval)
     }
   },
-  start (direction: 'left' | 'right' | 'up' | 'down') {
+  start(direction: 'left' | 'right' | 'up' | 'down') {
     cameraRotationControls.activeDirections.add(direction)
     cameraRotationControls.updateMovement()
   },
-  stop (direction: 'left' | 'right' | 'up' | 'down') {
+  stop(direction: 'left' | 'right' | 'up' | 'down') {
     cameraRotationControls.activeDirections.delete(direction)
     cameraRotationControls.updateMovement()
   },
-  handleCommand (command: string, pressed: boolean) {
+  handleCommand(command: string, pressed: boolean) {
     // Don't allow movement while spectating an entity
     if (isSpectatingEntity()) return
 
@@ -314,7 +317,6 @@ window.cameraRotationControls = cameraRotationControls
 const setSneaking = (state: boolean) => {
   gameAdditionalState.isSneaking = state
   bot.setControlState('sneak', state)
-
 }
 
 const onTriggerOrReleased = (command: Command, pressed: boolean) => {
@@ -449,7 +451,8 @@ const onTriggerOrReleased = (command: Command, pressed: boolean) => {
 const alwaysPressedHandledCommand = (command: Command) => {
   // triggered even outside of the game
   if (command === 'general.inventory') {
-    if (activeModalStack.at(-1)?.reactType?.startsWith?.('player_win:')) { // todo?
+    if (activeModalStack.at(-1)?.reactType?.startsWith?.('player_win:')) {
+      // todo?
       hideCurrentModal()
     }
   }
@@ -461,7 +464,7 @@ const alwaysPressedHandledCommand = (command: Command) => {
   }
 }
 
-export function lockUrl () {
+export function lockUrl() {
   let newQs = ''
   if (fsState.saveLoaded && fsState.inMemorySave) {
     const worldFolder = fsState.inMemorySavePath
@@ -484,7 +487,7 @@ export function lockUrl () {
   }
 }
 
-function cycleHotbarSlot (dir: 1 | -1) {
+function cycleHotbarSlot(dir: 1 | -1) {
   const newHotbarSlot = (bot.quickBarSlot + dir + 9) % 9
   bot.setQuickBarSlot(newHotbarSlot)
 }
@@ -528,7 +531,7 @@ contro.on('trigger', ({ command }) => {
     } else {
       lastCommandTrigger = {
         command,
-        time: Date.now(),
+        time: Date.now()
       }
     }
   }
@@ -551,13 +554,13 @@ contro.on('trigger', ({ command }) => {
       case 'general.swapHands': {
         if (isSpectatingEntity()) break
         bot._client.write('block_dig', {
-          'status': 6,
-          'location': {
-            'x': 0,
-            'z': 0,
-            'y': 0
+          status: 6,
+          location: {
+            x: 0,
+            z: 0,
+            y: 0
           },
-          'face': 0,
+          face: 0
         })
         break
       }
@@ -573,13 +576,13 @@ contro.on('trigger', ({ command }) => {
         if (isSpectatingEntity()) break
         // protocol 1.9+
         bot._client.write('block_dig', {
-          'status': 4,
-          'location': {
-            'x': 0,
-            'z': 0,
-            'y': 0
+          status: 4,
+          location: {
+            x: 0,
+            z: 0,
+            y: 0
           },
-          'face': 0,
+          face: 0,
           sequence: 0
         })
         const slot = bot.inventory.hotbarStart + bot.quickBarSlot
@@ -652,17 +655,19 @@ contro.on('release', ({ command }) => {
 // hard-coded keybindings
 
 export const f3Keybinds: Array<{
-  key?: string,
-  action: () => void | Promise<void>,
+  key?: string
+  action: () => void | Promise<void>
   mobileTitle: string
   enabled?: () => boolean
 }> = [
   {
     key: 'KeyA',
-    action () {
+    action() {
       const wv = appViewer.worldView
       if (!wv) return
-      const loadedChunks = Object.entries(wv.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
+      const loadedChunks = Object.entries(wv.loadedChunks)
+        .filter(([, v]) => v)
+        .map(([key]) => key.split(',').map(Number))
       for (const [x, z] of loadedChunks) {
         wv.unloadChunk({ x, z })
       }
@@ -681,31 +686,31 @@ export const f3Keybinds: Array<{
         appViewer.backend.backendMethods.reloadWorld()
       }
     },
-    mobileTitle: 'Reload chunks',
+    mobileTitle: 'Reload chunks'
   },
   {
     key: 'KeyG',
-    action () {
+    action() {
       options.showChunkBorders = !options.showChunkBorders
     },
-    mobileTitle: 'Toggle chunk borders',
+    mobileTitle: 'Toggle chunk borders'
   },
   {
     key: 'KeyH',
-    action () {
+    action() {
       showModal({ reactType: 'chunks-debug' })
     },
-    mobileTitle: 'Show Chunks Debug',
+    mobileTitle: 'Show Chunks Debug'
   },
   {
-    action () {
+    action() {
       showModal({ reactType: 'renderer-debug' })
     },
-    mobileTitle: 'Renderer Debug Menu',
+    mobileTitle: 'Renderer Debug Menu'
   },
   {
     key: 'KeyY',
-    async action () {
+    async action() {
       // waypoints
       const widgetNames = widgets.map(widget => widget.name)
       const widget = await showOptionsModal('Open Widget', widgetNames)
@@ -716,7 +721,7 @@ export const f3Keybinds: Array<{
   },
   {
     key: 'KeyT',
-    async action () {
+    async action() {
       // TODO!
       if (resourcePackState.resourcePackInstalled || gameAdditionalState.usingServerResourcePack) {
         showNotification('Reloading textures...')
@@ -727,7 +732,7 @@ export const f3Keybinds: Array<{
   },
   {
     key: 'F4',
-    async action () {
+    async action() {
       let nextGameMode: GameMode
       switch (bot.game.gameMode) {
         case 'creative': {
@@ -750,7 +755,7 @@ export const f3Keybinds: Array<{
 
           break
         }
-      // No default
+        // No default
       }
       if (lastConnectOptions.value?.worldStateFileContents) {
         switchGameMode(nextGameMode)
@@ -762,16 +767,19 @@ export const f3Keybinds: Array<{
   },
   {
     key: 'KeyP',
-    async action () {
+    async action() {
       const { uuid, ping: playerPing, username } = bot.player
       const proxyPing = await bot['pingProxy']()
-      void showOptionsModal(`${username}: last known total latency (ping): ${playerPing}. Connected to ${lastConnectOptions.value?.proxy} with current ping ${proxyPing}. Player UUID: ${uuid}`, [])
+      void showOptionsModal(
+        `${username}: last known total latency (ping): ${playerPing}. Connected to ${lastConnectOptions.value?.proxy} with current ping ${proxyPing}. Player UUID: ${uuid}`,
+        []
+      )
     },
     mobileTitle: 'Show Player & Ping Details',
     enabled: () => !lastConnectOptions.value?.singleplayer && !!bot.player
   },
   {
-    action () {
+    action() {
       void copyServerResourcePackToRegular()
     },
     mobileTitle: 'Copy Server Resource Pack',
@@ -784,43 +792,46 @@ export const reloadChunksAction = () => {
   void action!.action()
 }
 
-document.addEventListener('keydown', (e) => {
-  if (!isGameActive(false)) return
-  if (contro.pressedKeys.has('F3')) {
-    const keybind = f3Keybinds.find((v) => v.key === e.code)
-    if (keybind && (keybind.enabled?.() ?? true)) {
-      e.preventDefault() // F4 etc. have browser defaults (e.g. F4 focuses URL bar)
-      void keybind.action()
-      e.stopPropagation()
+document.addEventListener(
+  'keydown',
+  e => {
+    if (!isGameActive(false)) return
+    if (contro.pressedKeys.has('F3')) {
+      const keybind = f3Keybinds.find(v => v.key === e.code)
+      if (keybind && (keybind.enabled?.() ?? true)) {
+        e.preventDefault() // F4 etc. have browser defaults (e.g. F4 focuses URL bar)
+        void keybind.action()
+        e.stopPropagation()
+      }
     }
+  },
+  {
+    capture: true
   }
-}, {
-  capture: true,
-})
+)
 
 const isFlying = () => (bot as any).physicsEngineCtx?.state?.flying ?? false
 
 const startFlying = (sendAbilities = true) => {
   if (sendAbilities) {
     bot._client.write('abilities', {
-      flags: 2,
+      flags: 2
     })
   }
-  (bot.entity as any).flying = true
+  ;(bot.entity as any).flying = true
 }
 
 const endFlying = (sendAbilities = true) => {
   if (!isFlying()) return
   if (sendAbilities) {
     bot._client.write('abilities', {
-      flags: 0,
+      flags: 0
     })
   }
-  (bot.entity as any).flying = false
+  ;(bot.entity as any).flying = false
 }
 
-export const onBotCreate = () => {
-}
+export const onBotCreate = () => {}
 
 const toggleFly = (newState = !isFlying(), sendAbilities?: boolean) => {
   if (!bot.entity.canFly) return
@@ -851,7 +862,7 @@ const selectItem = async () => {
   bot.updateHeldItem()
 }
 
-addEventListener('mousedown', async (e) => {
+addEventListener('mousedown', async e => {
   // always prevent default for side buttons (back / forward navigation)
   if (e.button === 3 || e.button === 4) {
     e.preventDefault()
@@ -869,7 +880,7 @@ addEventListener('mousedown', async (e) => {
   }
 })
 
-window.addEventListener('keydown', (e) => {
+window.addEventListener('keydown', e => {
   if (e.code !== 'Escape') return
   if (!activeModalStack.length) {
     getThreeJsRendererMethods()?.onPageInteraction()
@@ -896,14 +907,14 @@ window.addEventListener('keydown', (e) => {
   }
 })
 
-window.addEventListener('keydown', (e) => {
+window.addEventListener('keydown', e => {
   if (e.code !== 'F1' || e.repeat || !isGameActive(true)) return
   e.preventDefault()
   miscUiState.showUI = !miscUiState.showUI
 })
 
 // #region experimental debug things
-window.addEventListener('keydown', (e) => {
+window.addEventListener('keydown', e => {
   if (e.code === 'KeyL' && e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
     console.clear()
   }
@@ -921,30 +932,37 @@ window.addEventListener('keydown', (e) => {
 })
 // #endregion
 
-export function updateBinds (commands: any) {
-  contro.inputSchema.commands.custom = Object.fromEntries(Object.entries(commands?.custom ?? {}).map(([key, value]) => {
-    return [key, {
-      keys: [],
-      gamepad: [],
-      type: '',
-      inputs: []
-    }]
-  }))
+export function updateBinds(commands: any) {
+  contro.inputSchema.commands.custom = Object.fromEntries(
+    Object.entries(commands?.custom ?? {}).map(([key, value]) => {
+      return [
+        key,
+        {
+          keys: [],
+          gamepad: [],
+          type: '',
+          inputs: []
+        }
+      ]
+    })
+  )
 
   for (const [group, actions] of Object.entries(commands)) {
-    contro.userConfig![group] = Object.fromEntries(Object.entries(actions).map(([key, value]) => {
-      const newValue = {
-        keys: value?.keys ?? undefined,
-        gamepad: value?.gamepad ?? undefined,
-      }
+    contro.userConfig![group] = Object.fromEntries(
+      Object.entries(actions).map(([key, value]) => {
+        const newValue = {
+          keys: value?.keys ?? undefined,
+          gamepad: value?.gamepad ?? undefined
+        }
 
-      if (group === 'custom') {
-        newValue['type'] = (value).type
-        newValue['inputs'] = (value).inputs
-      }
+        if (group === 'custom') {
+          newValue['type'] = value.type
+          newValue['inputs'] = value.inputs
+        }
 
-      return [key, newValue]
-    }))
+        return [key, newValue]
+      })
+    )
   }
 }
 
@@ -980,8 +998,8 @@ export const handleMobileButtonActionCommand = (command: ActionType | ActionHold
   if (typeof commandValue === 'string' && isCommandDisabled(commandValue as Command)) return
 
   if (typeof commandValue === 'string' && !stringStartsWith(commandValue, 'custom')) {
-    const event: CommandEventArgument<typeof contro['_commandsRaw']> = {
-      command: commandValue as Command,
+    const event: CommandEventArgument<(typeof contro)['_commandsRaw']> = {
+      command: commandValue as Command
     }
     if (isDown) {
       contro.emit('trigger', event)

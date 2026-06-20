@@ -6,14 +6,14 @@ import { ClientOnMap } from '../../../generatedServerPackets'
 import { DARK_COLORS } from './constants'
 
 const formatters: Record<string, (data: any) => string> = {
-  position: (data) => `x:${data.x.toFixed(2)} y:${data.y.toFixed(2)} z:${data.z.toFixed(2)}`,
+  position: data => `x:${data.x.toFixed(2)} y:${data.y.toFixed(2)} z:${data.z.toFixed(2)}`,
   // chat: (data) => data,
-  map_chunk (data: ClientOnMap['map_chunk'] | any) {
+  map_chunk(data: ClientOnMap['map_chunk'] | any) {
     const sizeOfChunk = data.chunkData?.length
     const blockEntitiesCount = data.blockEntities?.length
     return `x:${data.x} z:${data.z} C:${sizeOfChunk} E:${blockEntitiesCount}`
   },
-  default: (data) => processPacketDataForLogging(data)
+  default: data => processPacketDataForLogging(data)
 }
 
 const getPacketIcon = (packet: PacketData): string => {
@@ -34,7 +34,7 @@ interface Props {
 const ROW_HEIGHT = 24
 const EXPANDED_HEIGHT = 120
 
-function formatTimeDiff (current: number, prev: number | null): string {
+function formatTimeDiff(current: number, prev: number | null): string {
   if (prev === null) return ''
   const diff = current - prev
   return `+${Math.floor(diff / 1000)}`
@@ -63,7 +63,7 @@ const styles = {
   } as const
 }
 
-export default function PacketList ({ packets, filter, maxHeight = 300 }: Props) {
+export default function PacketList({ packets, filter, maxHeight = 300 }: Props) {
   const listRef = useRef<HTMLDivElement>(null)
   const [expandedPacket, setExpandedPacket] = useState<number | null>(null)
   const { scrollToBottom } = useScrollBehavior(listRef, { messages: packets, opened: true })
@@ -108,13 +108,13 @@ export default function PacketList ({ packets, filter, maxHeight = 300 }: Props)
                     #{packet.position}
                     {timeDiff && <span style={{ marginLeft: '4px' }}>{timeDiff}</span>}
                   </span>
-                  {filter && (
-                    <span style={{ color: DARK_COLORS.textDim }}>#{index + 1}</span>
-                  )}
-                  <span style={{
-                    color: packet.actualVersion ? DARK_COLORS.modified : DARK_COLORS.text,
-                    fontWeight: 'bold'
-                  }}>
+                  {filter && <span style={{ color: DARK_COLORS.textDim }}>#{index + 1}</span>}
+                  <span
+                    style={{
+                      color: packet.actualVersion ? DARK_COLORS.modified : DARK_COLORS.text,
+                      fontWeight: 'bold'
+                    }}
+                  >
                     {packet.name}
                   </span>
                   <span style={{ color: DARK_COLORS.textDim, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -125,9 +125,7 @@ export default function PacketList ({ packets, filter, maxHeight = 300 }: Props)
                   <div style={styles.expandedPacket}>
                     <div style={{ marginBottom: '8px' }}>
                       <strong>Data:</strong>
-                      <pre style={{ margin: '4px 0', color: DARK_COLORS.textDim }}>
-                        {JSON.stringify(JSON.parse(formatters.default(packet.data)), null, 2)}
-                      </pre>
+                      <pre style={{ margin: '4px 0', color: DARK_COLORS.textDim }}>{JSON.stringify(JSON.parse(formatters.default(packet.data)), null, 2)}</pre>
                     </div>
                     {packet.actualVersion && (
                       <div>

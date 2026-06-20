@@ -19,16 +19,16 @@ interface Props extends React.ComponentProps<'button'> {
 }
 
 const ButtonContext = createContext({
-  onClick () { },
+  onClick() {}
 })
 
-export const ButtonProvider: FC<{ children, onClick }> = ({ children, onClick }) => {
+export const ButtonProvider: FC<{ children; onClick }> = ({ children, onClick }) => {
   return <ButtonContext.Provider value={{ onClick }}>{children}</ButtonContext.Provider>
 }
 
 const ButtonBase = (({ label, icon, children, inScreen, rootRef, type = 'button', postLabel, overlayColor, noTranslate, ...args }) => {
   const style = {
-    ...args.style,
+    ...args.style
   } as React.CSSProperties
 
   const buttonRef = useRef<any>(null)
@@ -54,7 +54,7 @@ const ButtonBase = (({ label, icon, children, inScreen, rootRef, type = 'button'
 
   const ctx = useContext(ButtonContext)
 
-  const onClick = (e) => {
+  const onClick = e => {
     ctx.onClick()
     args.onClick?.(e)
   }
@@ -73,12 +73,14 @@ const ButtonBase = (({ label, icon, children, inScreen, rootRef, type = 'button'
 
   const iconOnly = Boolean(icon && !label && !children && !postLabel)
   const iconWidth = typeof style.width === 'number' ? style.width : 20
-  const iconStyles = iconOnly ? {
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    fontSize: Math.round(14 * (iconWidth / 20)),
-  } as React.CSSProperties : undefined
+  const iconStyles = iconOnly
+    ? ({
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        fontSize: Math.round(14 * (iconWidth / 20))
+      } as React.CSSProperties)
+    : undefined
 
   const tryToTranslate = (maybeText: any) => {
     if (noTranslate) return maybeText
@@ -91,36 +93,42 @@ const ButtonBase = (({ label, icon, children, inScreen, rootRef, type = 'button'
     return maybeText
   }
 
-  return <SharedHudVars>
-    <button
-      ref={(button) => {
-        buttonRef.current = button
-        if (typeof rootRef === 'function') {
-          rootRef(button)
-        } else if (rootRef) {
-        //@ts-expect-error
-          rootRef.current = button
-        }
-      }}
-      {...args}
-      style={style}
-      className={classNames(buttonCss.button, args.className)}
-      onClick={onClick}
-      type={type}
-    >
-      {icon && <PixelartIcon className={buttonCss.icon} iconName={icon} styles={iconStyles} />}
-      {label}
-      {postLabel}
-      {children}
-      {overlayColor && <div style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundColor: overlayColor,
-        opacity: 0.5,
-        pointerEvents: 'none'
-      }} />}
-    </button>
-  </SharedHudVars>
+  return (
+    <SharedHudVars>
+      <button
+        ref={button => {
+          buttonRef.current = button
+          if (typeof rootRef === 'function') {
+            rootRef(button)
+          } else if (rootRef) {
+            //@ts-expect-error
+            rootRef.current = button
+          }
+        }}
+        {...args}
+        style={style}
+        className={classNames(buttonCss.button, args.className)}
+        onClick={onClick}
+        type={type}
+      >
+        {icon && <PixelartIcon className={buttonCss.icon} iconName={icon} styles={iconStyles} />}
+        {label}
+        {postLabel}
+        {children}
+        {overlayColor && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: overlayColor,
+              opacity: 0.5,
+              pointerEvents: 'none'
+            }}
+          />
+        )}
+      </button>
+    </SharedHudVars>
+  )
 }) satisfies FC<Props>
 
 export default withInjectableUi(ButtonBase, 'button')

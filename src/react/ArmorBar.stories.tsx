@@ -3,9 +3,8 @@ import icons from 'mc-assets/dist/other-textures/latest/gui/icons.png'
 
 import ArmorBar from './ArmorBar'
 
-
 const meta: Meta<typeof ArmorBar> = {
-  component: ArmorBar,
+  component: ArmorBar
 }
 
 export default meta

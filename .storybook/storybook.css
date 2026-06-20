@@ -1,18 +1,18 @@
 #storybook-root::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image: url("../assets/storybook-bg.jpg");
-    background-size: cover;
-    background-position: center;
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url('../assets/storybook-bg.jpg');
+  background-size: cover;
+  background-position: center;
 }
 
 @font-face {
-    font-family: minecraft;
-    src: url(../assets/minecraftia.woff);
+  font-family: minecraft;
+  src: url(../assets/minecraftia.woff);
 }
 
 @font-face {
-    font-family: mojangles;
-    src: url(../assets/mojangles.ttf);
+  font-family: mojangles;
+  src: url(../assets/mojangles.ttf);
 }

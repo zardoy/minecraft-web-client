@@ -25,36 +25,40 @@ export default () => {
         label: x === defaultLocalServerOptions.version ? `${x} (default)` : x
       }
     })
-    return <CreateWorld
-      defaultVersion={defaultLocalServerOptions.version}
-      cancelClick={() => {
-        hideCurrentModal()
-      }}
-      createClick={async () => {
-        // create new world
-        const { title, type, version, gameMode, plugins } = creatingWorldState
-        // todo display path in ui + disable if exist
-        const savePath = await uniqueFileNameFromWorldName(title, getWorldsPath())
-        await mkdirRecursive(savePath)
-        await loadPluginsIntoWorld(savePath, plugins)
-        hideCurrentModal()
-        window.dispatchEvent(new CustomEvent('singleplayer', {
-          detail: {
-            levelName: title,
-            version,
-            generation: {
-              name: type
-            },
-            'worldFolder': savePath,
-            gameMode: gameMode === 'survival' ? 0 : 1,
-          },
-        }))
-      }}
-      customizeClick={() => {
-        showModal({ reactType: 'customize-world' })
-      }}
-      versions={versions}
-    />
+    return (
+      <CreateWorld
+        defaultVersion={defaultLocalServerOptions.version}
+        cancelClick={() => {
+          hideCurrentModal()
+        }}
+        createClick={async () => {
+          // create new world
+          const { title, type, version, gameMode, plugins } = creatingWorldState
+          // todo display path in ui + disable if exist
+          const savePath = await uniqueFileNameFromWorldName(title, getWorldsPath())
+          await mkdirRecursive(savePath)
+          await loadPluginsIntoWorld(savePath, plugins)
+          hideCurrentModal()
+          window.dispatchEvent(
+            new CustomEvent('singleplayer', {
+              detail: {
+                levelName: title,
+                version,
+                generation: {
+                  name: type
+                },
+                worldFolder: savePath,
+                gameMode: gameMode === 'survival' ? 0 : 1
+              }
+            })
+          )
+        }}
+        customizeClick={() => {
+          showModal({ reactType: 'customize-world' })
+        }}
+        versions={versions}
+      />
+    )
   }
   if (activeCustomize) {
     return <WorldCustomize backClick={() => hideCurrentModal()} />
@@ -65,7 +69,7 @@ export default () => {
 export const loadPluginsIntoWorld = async (worldPath: string, plugins: string[]) => {
   for (const plugin of plugins) {
     // eslint-disable-next-line no-await-in-loop
-    const { content, version } = await getServerPlugin(plugin) ?? {}
+    const { content, version } = (await getServerPlugin(plugin)) ?? {}
     if (content) {
       // eslint-disable-next-line no-await-in-loop
       await mkdirRecursive(path.join(worldPath, 'plugins'))

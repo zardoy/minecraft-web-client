@@ -20,38 +20,44 @@ export default () => {
       username: username || '',
       server: ip,
       proxy,
-      botVersion: version,
+      botVersion: version
     }
     window.dispatchEvent(new CustomEvent('connect', { detail: connectOptions }))
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      background: 'rgba(0, 0, 0, 0.25)',
-      zIndex: 1000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0, 0, 0, 0.25)',
+        zIndex: 1000,
         display: 'flex',
-        gap: '40px',
         alignItems: 'center',
-        background: 'rgba(0, 0, 0, 0.5)',
-        padding: VERTICAL_LAYOUT ? '15px 40px' : '25px',
-        // paddingRight: VERTICAL_LAYOUT ? '0' : '40px',
-        borderRadius: '5px',
-        flexDirection: VERTICAL_LAYOUT ? 'column' : 'row',
-      }}>
-        <div style={{
-          color: 'white',
-          fontSize: '13px'
-        }}>
+        justifyContent: 'center'
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          gap: '40px',
+          alignItems: 'center',
+          background: 'rgba(0, 0, 0, 0.5)',
+          padding: VERTICAL_LAYOUT ? '15px 40px' : '25px',
+          // paddingRight: VERTICAL_LAYOUT ? '0' : '40px',
+          borderRadius: '5px',
+          flexDirection: VERTICAL_LAYOUT ? 'column' : 'row'
+        }}
+      >
+        <div
+          style={{
+            color: 'white',
+            fontSize: '13px'
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
             <PixelartIcon iconName={pixelartIcons.server} width={16} />
             <span style={{ marginLeft: '8px' }}>{ip}</span>

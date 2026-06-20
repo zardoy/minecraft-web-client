@@ -1,0 +1,6 @@
+# Lockfile — managed by the package manager, must never be reformatted.
+pnpm-lock.yaml
+
+# Generated CSS-module type declarations (emitted by @rsbuild/plugin-typed-css-modules).
+# Prettier must not own these — the generator re-emits them on every build.
+*.module.css.d.ts

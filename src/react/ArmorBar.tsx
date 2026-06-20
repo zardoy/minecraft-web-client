@@ -3,16 +3,12 @@ import SharedHudVars from './SharedHudVars'
 import './ArmorBar.css'
 import { withInjectableUi } from './extendableSystem'
 
-
 export type ArmorBarProps = {
-  armorValue: number,
+  armorValue: number
   style?: CSSProperties
 }
 
-const ArmorBarBase = ({
-  armorValue,
-  style
-}: ArmorBarProps) => {
+const ArmorBarBase = ({ armorValue, style }: ArmorBarProps) => {
   const armorRef = useRef<HTMLDivElement>(null!)
 
   useEffect(() => {
@@ -35,17 +31,15 @@ const ArmorBarBase = ({
     }
   }, [armorValue])
 
-  return <SharedHudVars>
-    <div style={style ?? {}} ref={armorRef} className='armor_container' >
-      {
-        Array.from({ length: 10 }, () => 0)
-          .map((num, index) => <div
-            key={`armor-${index}`}
-            className='armor'
-          />)
-      }
-    </div>
-  </SharedHudVars>
+  return (
+    <SharedHudVars>
+      <div style={style ?? {}} ref={armorRef} className="armor_container">
+        {Array.from({ length: 10 }, () => 0).map((num, index) => (
+          <div key={`armor-${index}`} className="armor" />
+        ))}
+      </div>
+    </SharedHudVars>
+  )
 }
 
 export default withInjectableUi(ArmorBarBase, 'armorBar')

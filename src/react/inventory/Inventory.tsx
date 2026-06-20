@@ -10,7 +10,7 @@ import {
   createMineflayerConnector,
   type MineflayerBot,
   type JEIItem,
-  type RecipeGuide,
+  type RecipeGuide
 } from 'minecraft-inventory/src'
 import { useAppScale } from '../../scaleInterface'
 import { activeModalStack, hideCurrentModal, openOptionsMenu } from '../../globalState'
@@ -20,7 +20,6 @@ import { PlayerModelViewer } from './PlayerModelViewer'
 import { buildItemMapper, textureConfig, clearInventoryCaches, formatWindowTitle } from './sharedConnectorSetup'
 
 export { clearInventoryCaches } from './sharedConnectorSetup'
-
 
 // ----- Inventory component -----
 
@@ -32,14 +31,13 @@ export const Inventory = () => {
   useEffect(() => {
     const onGame = () => setGameMode(bot.game.gameMode)
     bot.on('game', onGame)
-    return () => { bot.removeListener('game', onGame) }
+    return () => {
+      bot.removeListener('game', onGame)
+    }
   }, [])
 
   const modalStack = useSnapshot(activeModalStack) as Array<{ reactType: string }>
-  const activeInvModal = useMemo(
-    () => modalStack.findLast(m => m.reactType.startsWith('player_win:')),
-    [modalStack],
-  )
+  const activeInvModal = useMemo(() => modalStack.findLast(m => m.reactType.startsWith('player_win:')), [modalStack])
   const inventoryType = activeInvModal?.reactType.replace('player_win:', '') ?? null
   // Hide inventory overlay when another modal (e.g. settings) is stacked on top
   const isInventoryOnTop = modalStack.at(-1)?.reactType === activeInvModal?.reactType
@@ -51,7 +49,7 @@ export const Inventory = () => {
     return createMineflayerConnector(bot as MineflayerBot, {
       itemMapper: buildItemMapper(bot.version),
       formatTitle: formatWindowTitle,
-      computeAnvilCost (item1, item2) {
+      computeAnvilCost(item1, item2) {
         if (!item1) return null
         try {
           const result = Item.anvil(item1 as any, item2 as any, bot.game.gameMode === 'creative', undefined)
@@ -59,7 +57,7 @@ export const Inventory = () => {
         } catch (e) {
           return null
         }
-      },
+      }
     })
   }, [textureVersion, !!inventoryType])
 
@@ -85,8 +83,7 @@ export const Inventory = () => {
     }
   }, [])
 
-  const jeiEnabled = options.inventoryJei === true
-    || (Array.isArray(options.inventoryJei) && options.inventoryJei.includes(bot.game?.gameMode as any))
+  const jeiEnabled = options.inventoryJei === true || (Array.isArray(options.inventoryJei) && options.inventoryJei.includes(bot.game?.gameMode as any))
   const inventoryNotesEnabled = options.inventoryNotes
   const inventoryPlaceholdersEnabled = options.inventoryPlaceholders
   const inventoryPlayerModelEnabled = options.inventoryPlayerModel
@@ -104,22 +101,15 @@ export const Inventory = () => {
         if (!cancelled) setJeiReady(true)
       })
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [!!inventoryType, jeiEnabled])
 
-  const jeiItems = useMemo(
-    (): JEIItem[] => (jeiReady ? getJeiItems() : []),
-    [jeiReady, textureVersion],
-  )
+  const jeiItems = useMemo((): JEIItem[] => (jeiReady ? getJeiItems() : []), [jeiReady, textureVersion])
 
-  const handleGetRecipes = useCallback(
-    (item: JEIItem): RecipeGuide[] => getItemRecipes(item.name),
-    [],
-  )
-  const handleGetUsages = useCallback(
-    (item: JEIItem): RecipeGuide[] => getItemUsages(item.name),
-    [],
-  )
+  const handleGetRecipes = useCallback((item: JEIItem): RecipeGuide[] => getItemRecipes(item.name), [])
+  const handleGetUsages = useCallback((item: JEIItem): RecipeGuide[] => getItemUsages(item.name), [])
 
   const handleJeiItemGive = useCallback((item: JEIItem, count: number) => {
     if (!item.type || !loadedData.items[item.type]) return
@@ -156,7 +146,7 @@ export const Inventory = () => {
           <InventoryProvider
             connector={connector}
             noPlaceholders={!inventoryPlaceholdersEnabled}
-            resolveEnchantmentName={(id) => (globalThis as any).loadedData?.enchantments?.[id]?.displayName}
+            resolveEnchantmentName={id => (globalThis as any).loadedData?.enchantments?.[id]?.displayName}
           >
             <InventoryOverlay
               type={inventoryType}
@@ -175,6 +165,6 @@ export const Inventory = () => {
         </ScaleProvider>
       </TextureProvider>
     </div>,
-    document.body,
+    document.body
   )
 }

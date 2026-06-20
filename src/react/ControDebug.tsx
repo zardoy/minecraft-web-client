@@ -51,7 +51,7 @@ export default () => {
 
   return (
     <div
-      className='debug-contro'
+      className="debug-contro"
       style={{
         position: 'fixed',
         right: 0,
@@ -65,7 +65,7 @@ export default () => {
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
-        zIndex: 2,
+        zIndex: 2
       }}
     >
       <div>Keys: {[...pressedKeys].join(', ')}</div>

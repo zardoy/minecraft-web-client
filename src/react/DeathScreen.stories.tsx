@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import DeathScreen from './DeathScreen'
 
 const meta: Meta<typeof DeathScreen> = {
-  component: DeathScreen,
+  component: DeathScreen
 }
 
 export default meta
@@ -13,12 +13,10 @@ export const Primary: Story = {
   args: {
     dieReasonMessage: [
       {
-        text: 'test',
+        text: 'test'
       }
     ],
-    respawnCallback () {
-    },
-    disconnectCallback () {
-    },
-  },
+    respawnCallback() {},
+    disconnectCallback() {}
+  }
 }

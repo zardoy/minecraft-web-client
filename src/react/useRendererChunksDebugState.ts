@@ -19,14 +19,14 @@ const readFromMainThreadWorld = (world: WorldRendererThree): RendererChunksDebug
   return {
     loadedSectionsChunks,
     loadedChunks: world.loadedChunks,
-    finishedChunks: world.finishedChunks,
+    finishedChunks: world.finishedChunks
   }
 }
 
 const emptyRendererChunksState = (): RendererChunksDebugState => ({
   loadedSectionsChunks: {},
   loadedChunks: {},
-  finishedChunks: {},
+  finishedChunks: {}
 })
 
 export const useRendererChunksDebugState = (update: number) => {
@@ -35,23 +35,28 @@ export const useRendererChunksDebugState = (update: number) => {
     return world ? readFromMainThreadWorld(world) : emptyRendererChunksState()
   })
 
-  useUtilsEffect(({ interval }) => {
-    interval(500, () => {
-      const world = globalThis.world as WorldRendererThree | undefined
-      if (world) {
-        setState(readFromMainThreadWorld(world))
-        return
-      }
-      const getChunksDebugState = (appViewer.backend?.backendMethods)?.getChunksDebugState
-      if (!getChunksDebugState) {
-        setState(emptyRendererChunksState())
-        return
-      }
-      void Promise.resolve(getChunksDebugState()).then(setState).catch(() => {
-        setState(emptyRendererChunksState())
+  useUtilsEffect(
+    ({ interval }) => {
+      interval(500, () => {
+        const world = globalThis.world as WorldRendererThree | undefined
+        if (world) {
+          setState(readFromMainThreadWorld(world))
+          return
+        }
+        const getChunksDebugState = appViewer.backend?.backendMethods?.getChunksDebugState
+        if (!getChunksDebugState) {
+          setState(emptyRendererChunksState())
+          return
+        }
+        void Promise.resolve(getChunksDebugState())
+          .then(setState)
+          .catch(() => {
+            setState(emptyRendererChunksState())
+          })
       })
-    })
-  }, [update])
+    },
+    [update]
+  )
 
   return state
 }

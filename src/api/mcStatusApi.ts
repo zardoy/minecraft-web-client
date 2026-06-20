@@ -4,18 +4,14 @@ globalThis.resolveDnsFallback = async (hostname: string) => {
 }
 
 export const isServerValid = (ip: string, allowLocalhost = false) => {
-  const isInLocalNetwork = ip.startsWith('192.168.') ||
-    ip.startsWith('10.') ||
-    ip.startsWith('172.') ||
-    ip.startsWith('127.') ||
-    ip.startsWith('localhost') ||
-    ip.startsWith(':')
+  const isInLocalNetwork =
+    ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.') || ip.startsWith('127.') || ip.startsWith('localhost') || ip.startsWith(':')
   const VALID_IP_OR_DOMAIN = ip.includes('.') || ip.includes('localhost')
 
   return (!isInLocalNetwork || allowLocalhost) && VALID_IP_OR_DOMAIN
 }
 
-export async function fetchServerStatus (ip: string, signal?: AbortSignal, versionOverride?: string) {
+export async function fetchServerStatus(ip: string, signal?: AbortSignal, versionOverride?: string) {
   if (!isServerValid(ip)) return
 
   const response = await fetch(`https://api.mcstatus.io/v2/status/java/${ip}`, { signal })
@@ -24,9 +20,7 @@ export async function fetchServerStatus (ip: string, signal?: AbortSignal, versi
 
   return {
     formattedText: data.motd?.raw ?? '',
-    textNameRight: data.online ?
-      `${versionOverride ?? versionClean} ${data.players?.online ?? '??'}/${data.players?.max ?? '??'}` :
-      '',
+    textNameRight: data.online ? `${versionOverride ?? versionClean} ${data.players?.online ?? '??'}/${data.players?.max ?? '??'}` : '',
     icon: data.icon,
     offline: !data.online,
     raw: data
@@ -52,10 +46,10 @@ export type ServerResponse = {
     raw: string
   }
   // todo circle error icon
-  mods?: Array<{ name: string, version: string }>
+  mods?: Array<{ name: string; version: string }>
   // todo display via hammer icon
   software?: string
-  plugins?: Array<{ name, version }>
+  plugins?: Array<{ name; version }>
   // port?: number
   srv_record?: {
     host: string

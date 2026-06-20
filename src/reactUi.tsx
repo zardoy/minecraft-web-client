@@ -100,24 +100,26 @@ const DisplayQr = () => {
 
   if (!currentDisplayQr) return null
 
-  return <div
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 15
-    }}
-    onClick={() => {
-      miscUiState.currentDisplayQr = null
-    }}
-  >
-    <QRCodeSVG size={384} value={currentDisplayQr} style={{ display: 'block', border: '2px solid black' }} />
-  </div>
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 15
+      }}
+      onClick={() => {
+        miscUiState.currentDisplayQr = null
+      }}
+    >
+      <QRCodeSVG size={384} value={currentDisplayQr} style={{ display: 'block', border: '2px solid black' }} />
+    </div>
+  )
 }
 
 // mounted earlier than ingame ui TODO
@@ -163,59 +165,61 @@ const InGameUi = () => {
 
   if (!adapter) adapter = new DrawerAdapterImpl(bot.entity.position)
 
-  return <>
-    <RobustPortal to={document.querySelector('#ui-root')}>
-      {/* apply scaling */}
-      <div style={{ display: showUI ? 'block' : 'none' }}>
-        <PerComponentErrorBoundary>
-          <GameInteractionOverlay zIndex={7} />
-          {!disabledUiParts.includes('death-screen') && <DeathScreenProvider />}
-          {!disabledUiParts.includes('debug-overlay') && <DebugOverlay />}
-          {!disabledUiParts.includes('mobile-top-buttons') && <MobileTopButtons />}
-          {!disabledUiParts.includes('players-list') && <PlayerListOverlayProvider />}
-          {!disabledUiParts.includes('chat') && <ChatProvider />}
-          <SoundMuffler />
-          {showMinimap !== 'never' && <MinimapProvider adapter={adapter} displayMode='minimapOnly' />}
-          {!disabledUiParts.includes('title') && <TitleProvider />}
-          {!disabledUiParts.includes('scoreboard') && <ScoreboardProvider />}
-          <IndicatorEffectsProvider displayEffects={!disabledUiParts.includes('effects')} displayIndicators={!disabledUiParts.includes('indicators')} />
-          {!disabledUiParts.includes('crosshair') && <Crosshair />}
-          {!disabledUiParts.includes('books') && <BookProvider />}
-          {!disabledUiParts.includes('bossbars') && displayBossBars && <BossBarOverlayProvider />}
-          <VoiceMicrophone />
-          <ChunksDebugScreen />
-          <RendererDebugMenu />
-          {!disabledUiParts.includes('fire') && <FireRenderer />}
-        </PerComponentErrorBoundary>
-      </div>
-
-      <PerComponentErrorBoundary>
-        <PauseScreen />
-        <FullscreenTime />
-        <MineflayerPluginHud />
-        <MineflayerPluginConsole />
-        {showUI && <TouchInteractionHint />}
-        <GlobalOverlayHints />
+  return (
+    <>
+      <RobustPortal to={document.querySelector('#ui-root')}>
+        {/* apply scaling */}
         <div style={{ display: showUI ? 'block' : 'none' }}>
-          {!disabledUiParts.includes('xp-bar') && <XPBarProvider />}
-          {!disabledUiParts.includes('hud-bars') && <HudBarsProvider />}
-          <BedTime />
+          <PerComponentErrorBoundary>
+            <GameInteractionOverlay zIndex={7} />
+            {!disabledUiParts.includes('death-screen') && <DeathScreenProvider />}
+            {!disabledUiParts.includes('debug-overlay') && <DebugOverlay />}
+            {!disabledUiParts.includes('mobile-top-buttons') && <MobileTopButtons />}
+            {!disabledUiParts.includes('players-list') && <PlayerListOverlayProvider />}
+            {!disabledUiParts.includes('chat') && <ChatProvider />}
+            <SoundMuffler />
+            {showMinimap !== 'never' && <MinimapProvider adapter={adapter} displayMode="minimapOnly" />}
+            {!disabledUiParts.includes('title') && <TitleProvider />}
+            {!disabledUiParts.includes('scoreboard') && <ScoreboardProvider />}
+            <IndicatorEffectsProvider displayEffects={!disabledUiParts.includes('effects')} displayIndicators={!disabledUiParts.includes('indicators')} />
+            {!disabledUiParts.includes('crosshair') && <Crosshair />}
+            {!disabledUiParts.includes('books') && <BookProvider />}
+            {!disabledUiParts.includes('bossbars') && displayBossBars && <BossBarOverlayProvider />}
+            <VoiceMicrophone />
+            <ChunksDebugScreen />
+            <RendererDebugMenu />
+            {!disabledUiParts.includes('fire') && <FireRenderer />}
+          </PerComponentErrorBoundary>
         </div>
-        {showUI && !disabledUiParts.includes('hotbar') && <HotbarRenderApp />}
+
+        <PerComponentErrorBoundary>
+          <PauseScreen />
+          <FullscreenTime />
+          <MineflayerPluginHud />
+          <MineflayerPluginConsole />
+          {showUI && <TouchInteractionHint />}
+          <GlobalOverlayHints />
+          <div style={{ display: showUI ? 'block' : 'none' }}>
+            {!disabledUiParts.includes('xp-bar') && <XPBarProvider />}
+            {!disabledUiParts.includes('hud-bars') && <HudBarsProvider />}
+            <BedTime />
+          </div>
+          {showUI && !disabledUiParts.includes('hotbar') && <HotbarRenderApp />}
+        </PerComponentErrorBoundary>
+      </RobustPortal>
+      <PerComponentErrorBoundary>
+        <SignEditorProvider />
+        <DisplayQr />
+        <Inventory />
       </PerComponentErrorBoundary>
-    </RobustPortal>
-    <PerComponentErrorBoundary>
-      <SignEditorProvider />
-      <DisplayQr />
-      <Inventory />
-    </PerComponentErrorBoundary>
-    <RobustPortal to={document.body}>
-      {displayFullmap && <MinimapProvider adapter={adapter} displayMode='fullmapOnly' />}
-      {/* because of z-index */}
-      {showUI && <TouchControls />}
-      <GlobalSearchInput />
-    </RobustPortal>
-  </>
+      <RobustPortal to={document.body}>
+        {displayFullmap && <MinimapProvider adapter={adapter} displayMode="fullmapOnly" />}
+        {/* because of z-index */}
+        {showUI && <TouchControls />}
+        <GlobalSearchInput />
+      </RobustPortal>
+    </>
+  )
 }
 
 const AllWidgets = () => {
@@ -236,7 +240,7 @@ const AppBase = () => {
       <div>
         <ButtonAppProvider>
           <RobustPortal to={document.body}>
-            <div className='overlay-bottom-scaled'>
+            <div className="overlay-bottom-scaled">
               <InGameComponent>
                 <HeldMapUi />
               </InGameComponent>
@@ -270,7 +274,7 @@ const AppBase = () => {
             <NoModalFoundProvider />
           </RobustPortal>
           <RobustPortal to={document.body}>
-            <div className='overlay-top-scaled'>
+            <div className="overlay-top-scaled">
               <GamepadUiCursor />
             </div>
             <div />
@@ -288,16 +292,18 @@ const AppBase = () => {
 }
 
 const PerComponentErrorBoundary = ({ children }) => {
-  return children.map((child, i) => <ErrorBoundary
-    key={i}
-    renderError={(error) => {
-      const componentNameClean = (child.type.name || child.type.displayName || 'Unknown').replaceAll(/__|_COMPONENT/g, '')
-      showNotification(`UI component ${componentNameClean} crashed!`, 'Please report this. Use console for more.', true, undefined)
-      return null
-    }}
-  >
-    {child}
-  </ErrorBoundary>)
+  return children.map((child, i) => (
+    <ErrorBoundary
+      key={i}
+      renderError={error => {
+        const componentNameClean = (child.type.name || child.type.displayName || 'Unknown').replaceAll(/__|_COMPONENT/g, '')
+        showNotification(`UI component ${componentNameClean} crashed!`, 'Please report this. Use console for more.', true, undefined)
+        return null
+      }}
+    >
+      {child}
+    </ErrorBoundary>
+  ))
 }
 
 const noUi = urlParams.get('no-ui') === 'true' || isPlayground
@@ -311,12 +317,12 @@ if (!noUi) {
   }
   renderToDom(<AppRender />, {
     strictMode: false,
-    selector: '#react-root',
+    selector: '#react-root'
   })
 }
 
 disableReactProfiling()
-function disableReactProfiling () {
+function disableReactProfiling() {
   if (window.reactPerfPatchApplied) return
   window.reactPerfPatchApplied = true
   //@ts-expect-error

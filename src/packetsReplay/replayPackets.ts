@@ -24,7 +24,7 @@ interface OpenFileOptions {
   filesize?: number
 }
 
-export function openFile ({ contents, filename = 'unnamed', filesize }: OpenFileOptions) {
+export function openFile({ contents, filename = 'unnamed', filesize }: OpenFileOptions) {
   packetsReplayState.replayName = `${filename} (${getFixedFilesize(filesize ?? contents.length)})`
   packetsReplayState.isPlaying = false
 
@@ -64,12 +64,8 @@ export const startLocalReplayServer = (contents: string) => {
   })
 
   const data = MinecraftData(header.minecraftVersion)
-  server.on(data.supportFeature('hasConfigurationState') ? 'playerJoin' : 'login' as any, async client => {
-    await mainPacketsReplayer(
-      client,
-      packets,
-      packetsReplayState.customButtons.validateClientPackets.state ? undefined : true
-    )
+  server.on(data.supportFeature('hasConfigurationState') ? 'playerJoin' : ('login' as any), async client => {
+    await mainPacketsReplayer(client, packets, packetsReplayState.customButtons.validateClientPackets.state ? undefined : true)
   })
 
   return {
@@ -110,9 +106,7 @@ const addPacketToReplayer = (name: string, data, isFromClient: boolean, wasUpcom
   }
 }
 
-const IGNORE_SERVER_PACKETS = new Set([
-  'kick_disconnect',
-])
+const IGNORE_SERVER_PACKETS = new Set(['kick_disconnect'])
 
 const ADDITIONAL_DELAY = 500
 
@@ -124,25 +118,25 @@ const mainPacketsReplayer = async (client: ServerClient, packets: ParsedReplayPa
 
   const playPackets = packets.filter(p => p.state === 'play')
 
-  let clientPackets = [] as Array<{ name: string, params: any }>
+  let clientPackets = [] as Array<{ name: string; params: any }>
   const clientsPacketsWaiter = createPacketsWaiter({
-    unexpectedPacketReceived (name, params) {
+    unexpectedPacketReceived(name, params) {
       console.log('unexpectedPacketReceived', name, params)
       addPacketToReplayer(name, params, true)
     },
-    expectedPacketReceived (name, params) {
+    expectedPacketReceived(name, params) {
       console.log('expectedPacketReceived', name, params)
       addPacketToReplayer(name, params, true, true)
     },
     unexpectedPacketsLimit: 15,
-    onUnexpectedPacketsLimitReached () {
+    onUnexpectedPacketsLimitReached() {
       addPacketToReplayer('...', {}, true)
     }
   })
 
   // Patch console.error to detect errors
   const originalConsoleError = console.error
-  let lastSentPacket: { name: string, params: any } | null = null
+  let lastSentPacket: { name: string; params: any } | null = null
   console.error = (...args) => {
     if (lastSentPacket) {
       console.log('Got error after packet', lastSentPacket.name, lastSentPacket.params)
@@ -168,7 +162,7 @@ const mainPacketsReplayer = async (client: ServerClient, packets: ParsedReplayPa
   }
 
   try {
-    bot.on('error', (err) => {
+    bot.on('error', err => {
       console.error('Mineflayer error:', err)
     })
 
@@ -214,15 +208,19 @@ const mainPacketsReplayer = async (client: ServerClient, packets: ParsedReplayPa
               isFromClient: true,
               position: positions.client++,
               timestamp: Date.now(),
-              isUpcoming: true,
+              isUpcoming: true
             })
           }
 
           await Promise.race([
             clientsPacketsWaiter.waitForPackets(clientPackets.map(p => p.name)),
-            ...(packetsReplayState.customButtons.skipMissingOnTimeout.state ? [new Promise(resolve => {
-              setTimeout(resolve, 1000)
-            })] : [])
+            ...(packetsReplayState.customButtons.skipMissingOnTimeout.state
+              ? [
+                  new Promise(resolve => {
+                    setTimeout(resolve, 1000)
+                  })
+                ]
+              : [])
           ])
           clientsPacketsWaiter.stopWaiting()
           clientPackets = []
@@ -244,7 +242,7 @@ export const switchGameMode = (gameMode: GameMode) => {
   }
   if (gameMode === 'spectator') {
     bot._client.emit('abilities', {
-    // can fly + is flying
+      // can fly + is flying
       flags: 6
     })
   }
@@ -269,7 +267,7 @@ interface PacketsWaiter {
 
 const createPacketsWaiter = (options: PacketsWaiterOptions = {}): PacketsWaiter => {
   let packetHandler: ((data: any, name: string) => void) | null = null
-  const queuedPackets: Array<{ name: string, params: any }> = []
+  const queuedPackets: Array<{ name: string; params: any }> = []
   let isWaiting = false
   let unexpectedPacketsCount = 0
   const handlePacket = (data: any, name: string, waitingPackets: string[], resolve: () => void) => {
@@ -292,7 +290,7 @@ const createPacketsWaiter = (options: PacketsWaiterOptions = {}): PacketsWaiter 
   }
 
   return {
-    addPacket (name: string, params: any) {
+    addPacket(name: string, params: any) {
       if (packetHandler) {
         packetHandler(params, name)
       } else {
@@ -300,7 +298,7 @@ const createPacketsWaiter = (options: PacketsWaiterOptions = {}): PacketsWaiter 
       }
     },
 
-    async waitForPackets (packets: string[]) {
+    async waitForPackets(packets: string[]) {
       if (isWaiting) {
         throw new Error('Already waiting for packets')
       }
@@ -326,7 +324,7 @@ const createPacketsWaiter = (options: PacketsWaiterOptions = {}): PacketsWaiter 
         packetHandler = null
       }
     },
-    stopWaiting () {
+    stopWaiting() {
       isWaiting = false
       packetHandler = null
       queuedPackets.length = 0

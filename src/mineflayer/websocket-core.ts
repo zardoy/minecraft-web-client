@@ -2,13 +2,16 @@ import { Duplex } from 'stream'
 import { UserError } from './userError'
 
 class CustomDuplex extends Duplex {
-  constructor (options, public writeAction) {
+  constructor(
+    options,
+    public writeAction
+  ) {
     super(options)
   }
 
-  override _read () {}
+  override _read() {}
 
-  override _write (chunk, encoding, callback) {
+  override _write(chunk, encoding, callback) {
     this.writeAction(chunk)
     callback()
   }
@@ -58,6 +61,6 @@ export const getWebsocketStream = async (host: string) => {
 
   return {
     mineflayerStream: clientDuplex,
-    ws,
+    ws
   }
 }

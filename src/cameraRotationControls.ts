@@ -15,7 +15,7 @@ export type CameraMoveEvent = {
   stopPropagation?: () => void
 }
 
-export function onCameraMove (e: MouseEvent | CameraMoveEvent) {
+export function onCameraMove(e: MouseEvent | CameraMoveEvent) {
   if (!isGameActive(true)) return
   if (e.type === 'mousemove' && !document.pointerLockElement) return
   e.stopPropagation?.()
@@ -53,9 +53,13 @@ export const moveCameraRawHandler = ({ x, y }: { x: number; y: number }) => {
   appViewer.backend?.updateCamera(null, bot.entity.yaw, pitch)
 }
 
-window.addEventListener('mousemove', (e: MouseEvent) => {
-  onCameraMove(e)
-}, { capture: true })
+window.addEventListener(
+  'mousemove',
+  (e: MouseEvent) => {
+    onCameraMove(e)
+  },
+  { capture: true }
+)
 
 export const onControInit = () => {
   contro.on('stickMovement', ({ stick, vector }) => {
@@ -68,13 +72,13 @@ export const onControInit = () => {
       movementX: x * 10,
       movementY: z * 10,
       type: 'stickMovement',
-      stopPropagation () {}
+      stopPropagation() {}
     } as CameraMoveEvent)
     miscUiState.usingGamepadInput = true
   })
 }
 
-function pointerLockChangeCallback () {
+function pointerLockChangeCallback() {
   if (appViewer.rendererState.preventEscapeMenu) return
   if (!pointerLock.hasPointerLock && activeModalStack.length === 0 && miscUiState.gameLoaded) {
     showModal({ reactType: 'pause-screen' })

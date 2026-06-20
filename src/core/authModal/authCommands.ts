@@ -8,12 +8,15 @@ interface AuthFlowBot {
 
 export const buildAuthCommand = (mode: AuthMode, password: string, newPassword?: string): string | null => {
   switch (mode) {
-    case 'login': return `/login ${password}`
-    case 'register': return `/register ${password} ${password}`
+    case 'login':
+      return `/login ${password}`
+    case 'register':
+      return `/register ${password} ${password}`
     case 'changepassword':
       if (!newPassword) return null
       return `/changepassword ${password} ${newPassword}`
-    case 'unregister': return `/unregister ${password}`
+    case 'unregister':
+      return `/unregister ${password}`
   }
 }
 
@@ -24,16 +27,13 @@ export type AuthFlowResult = {
   commandSent?: boolean
 }
 
-export const sendAuthCommand = (
-  bot: AuthFlowBot | undefined | null,
-  mode: AuthMode,
-  password: string,
-  newPassword?: string,
-): boolean => {
+export const sendAuthCommand = (bot: AuthFlowBot | undefined | null, mode: AuthMode, password: string, newPassword?: string): boolean => {
   if (!bot) return false
   const cmd = buildAuthCommand(mode, password, newPassword)
   if (!cmd) return false
-  try { bot.chat(cmd) } catch {}
+  try {
+    bot.chat(cmd)
+  } catch {}
   return true
 }
 
@@ -41,7 +41,7 @@ export const runAuthFlow = (
   bot: AuthFlowBot | undefined | null,
   mode: AuthMode,
   result: AuthFlowResult,
-  ctx: { serverIp: string, username: string, source: 'manual' | 'modal', preSaved?: boolean }
+  ctx: { serverIp: string; username: string; source: 'manual' | 'modal'; preSaved?: boolean }
 ): boolean => {
   if (result.commandSent) return true
   if (!sendAuthCommand(bot, mode, result.password, result.newPassword)) return false
@@ -52,7 +52,7 @@ export const runAuthFlow = (
     source: ctx.source,
     serverIp: ctx.serverIp,
     username: ctx.username,
-    preSaved: ctx.preSaved ?? false,
+    preSaved: ctx.preSaved ?? false
   })
   return true
 }

@@ -8,7 +8,7 @@ import { isCypress } from '../../standaloneUtils'
 import { playerState } from '../playerState'
 import { sendVideoInteraction, videoCursorInteraction } from '../../customChannels'
 
-function cursorBlockDisplay (bot: Bot) {
+function cursorBlockDisplay(bot: Bot) {
   const updateCursorBlock = (data?: { block: Block }) => {
     if (!data?.block || bot.game.gameMode === 'spectator') {
       playerState.reactive.lookingAtBlock = undefined
@@ -34,20 +34,25 @@ function cursorBlockDisplay (bot: Bot) {
 
   bot.on('blockBreakProgressStage', (block, stage) => {
     const mergedShape = bot.mouse.getMergedCursorShape(block)
-    playerState.reactive.diggingBlock = stage === null ? undefined : {
-      x: block.position.x,
-      y: block.position.y,
-      z: block.position.z,
-      stage,
-      mergedShape: mergedShape ? bot.mouse.getDataFromShape(mergedShape) : undefined
-    }
+    playerState.reactive.diggingBlock =
+      stage === null
+        ? undefined
+        : {
+            x: block.position.x,
+            y: block.position.y,
+            z: block.position.z,
+            stage,
+            mergedShape: mergedShape ? bot.mouse.getDataFromShape(mergedShape) : undefined
+          }
   })
 }
 
 export default (bot: Bot) => {
-  bot.loadPlugin(createMouse({
-    useMineflayerInteractMethods: false,
-  }))
+  bot.loadPlugin(
+    createMouse({
+      useMineflayerInteractMethods: false
+    })
+  )
 
   domListeners(bot)
   cursorBlockDisplay(bot)
@@ -56,7 +61,7 @@ export default (bot: Bot) => {
 }
 
 const otherListeners = () => {
-  bot.on('startDigging', (block) => {
+  bot.on('startDigging', block => {
     customEvents.emit('digStart')
   })
 
@@ -64,11 +69,11 @@ const otherListeners = () => {
     showModal({ reactType: 'bed' })
   })
 
-  bot.on('botArmSwingStart', (hand) => {
+  bot.on('botArmSwingStart', hand => {
     getThreeJsRendererMethods()?.changeHandSwingingState(true, hand === 'left')
   })
 
-  bot.on('botArmSwingEnd', (hand) => {
+  bot.on('botArmSwingEnd', hand => {
     getThreeJsRendererMethods()?.changeHandSwingingState(false, hand === 'left')
   })
 
@@ -84,32 +89,40 @@ const otherListeners = () => {
 
 const domListeners = (bot: Bot) => {
   const abortController = new AbortController()
-  document.addEventListener('mousedown', (e) => {
-    if (e.isTrusted && !document.pointerLockElement && !isCypress()) return
-    if (!isGameActive(true)) return
+  document.addEventListener(
+    'mousedown',
+    e => {
+      if (e.isTrusted && !document.pointerLockElement && !isCypress()) return
+      if (!isGameActive(true)) return
 
-    getThreeJsRendererMethods()?.onPageInteraction()
+      getThreeJsRendererMethods()?.onPageInteraction()
 
-    const videoInteraction = videoCursorInteraction()
-    if (videoInteraction) {
-      sendVideoInteraction(videoInteraction.id, videoInteraction.x, videoInteraction.y, e.button === 0)
-      return
-    }
+      const videoInteraction = videoCursorInteraction()
+      if (videoInteraction) {
+        sendVideoInteraction(videoInteraction.id, videoInteraction.x, videoInteraction.y, e.button === 0)
+        return
+      }
 
-    if (e.button === 0) {
-      bot.leftClickStart()
-    } else if (e.button === 2) {
-      bot.rightClickStart()
-    }
-  }, { signal: abortController.signal })
+      if (e.button === 0) {
+        bot.leftClickStart()
+      } else if (e.button === 2) {
+        bot.rightClickStart()
+      }
+    },
+    { signal: abortController.signal }
+  )
 
-  document.addEventListener('mouseup', (e) => {
-    if (e.button === 0) {
-      bot.leftClickEnd()
-    } else if (e.button === 2) {
-      bot.rightClickEnd()
-    }
-  }, { signal: abortController.signal })
+  document.addEventListener(
+    'mouseup',
+    e => {
+      if (e.button === 0) {
+        bot.leftClickEnd()
+      } else if (e.button === 2) {
+        bot.rightClickEnd()
+      }
+    },
+    { signal: abortController.signal }
+  )
 
   bot.mouse.beforeUpdateChecks = () => {
     if (!document.hasFocus() || !isGameActive(true)) {

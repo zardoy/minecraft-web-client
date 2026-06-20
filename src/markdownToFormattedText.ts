@@ -9,7 +9,7 @@ export default (markdown: string) => {
   return lines
 }
 
-function transformToMinecraftJSON (element: Element): any {
+function transformToMinecraftJSON(element: Element): any {
   switch (element.type) {
     case 'root': {
       if (!element.children) return
@@ -39,20 +39,20 @@ function transformToMinecraftJSON (element: Element): any {
 
 interface Position {
   start: {
-    line: number;
-    column: number;
-    offset: number;
-  };
+    line: number
+    column: number
+    offset: number
+  }
   end: {
-    line: number;
-    column: number;
-    offset: number;
-  };
+    line: number
+    column: number
+    offset: number
+  }
 }
 
 interface Element {
-  type: string;
-  children?: Element[];
-  value?: string;
-  position: Position;
+  type: string
+  children?: Element[]
+  value?: string
+  position: Position
 }

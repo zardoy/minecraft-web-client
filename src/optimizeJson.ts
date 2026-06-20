@@ -3,14 +3,14 @@ import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 type IdMap = Record<string, number>
 
 type DiffData = {
-  removed: number[],
-  changed: any[],
-  removedProps: Array<[number, number[]]>,
+  removed: number[]
+  changed: any[]
+  removedProps: Array<[number, number[]]>
   added
 }
 
 type SourceData = {
-  keys: IdMap,
+  keys: IdMap
   properties: IdMap
   source: Record<number, any>
   diffs: Record<string, DiffData>
@@ -18,18 +18,18 @@ type SourceData = {
   __IS_OPTIMIZED__: true
 }
 
-function getRecipesProcessorProcessRecipes (items, blocks) {
-  return (current) => {
+function getRecipesProcessorProcessRecipes(items, blocks) {
+  return current => {
     // can require the same multiple times per different versions
-    const itemsIdsMap = Object.fromEntries(items.map((b) => [b.name, b.id]))
-    const blocksIdsMap = Object.fromEntries(blocks.map((b) => [b.name, b.id]))
+    const itemsIdsMap = Object.fromEntries(items.map(b => [b.name, b.id]))
+    const blocksIdsMap = Object.fromEntries(blocks.map(b => [b.name, b.id]))
     const keys = Object.keys(current)
     for (const key of keys) {
       if (key === '_proccessed') {
         delete current[key]
         continue
       }
-      const mapId = (id) => {
+      const mapId = id => {
         if (typeof id !== 'string' && typeof id !== 'number') throw new Error('Incorrect type')
         const mapped = itemsIdsMap[id] ?? blocksIdsMap[id]
         if (!mapped) {
@@ -37,7 +37,7 @@ function getRecipesProcessorProcessRecipes (items, blocks) {
         }
         return mapped
       }
-      const processRecipe = (obj) => {
+      const processRecipe = obj => {
         // if (!obj) return
         // if (Array.isArray(obj)) {
         //   obj.forEach((id, i) => {
@@ -51,7 +51,7 @@ function getRecipesProcessorProcessRecipes (items, blocks) {
         // } else {
         //   throw new Error('unknown type')
         // }
-        const parseRecipeItem = (item) => {
+        const parseRecipeItem = item => {
           if (typeof item === 'number' || typeof item === 'string') return mapId(item)
           if (Array.isArray(item)) return [mapId(item), ...item.slice(1)]
           if (!item) {
@@ -63,7 +63,7 @@ function getRecipesProcessorProcessRecipes (items, blocks) {
           }
           throw new Error('unhandled')
         }
-        const maybeProccessShape = (shape) => {
+        const maybeProccessShape = shape => {
           if (!shape) return
           for (const shapeRow of shape) {
             for (const [i, item] of shapeRow.entries()) {
@@ -108,7 +108,7 @@ export const restoreMinecraftData = (allVersionData: any, type: string, version:
   if (type === 'recipes') {
     restorer = getRecipesProcessorProcessRecipes(
       JsonOptimizer.restoreData(allVersionData.items, version, undefined),
-      JsonOptimizer.restoreData(allVersionData.blocks, version, undefined),
+      JsonOptimizer.restoreData(allVersionData.blocks, version, undefined)
     )
   }
   return JsonOptimizer.restoreData(allVersionData[type], version, restorer)
@@ -123,9 +123,13 @@ export default class JsonOptimizer {
   previousValues = {} as Record<number, any>
   diffs = {} as Record<string, DiffData>
 
-  constructor (public arrKey?: string, public ignoreChanges = false, public ignoreRemoved = false) { }
+  constructor(
+    public arrKey?: string,
+    public ignoreChanges = false,
+    public ignoreRemoved = false
+  ) {}
 
-  export () {
+  export() {
     const { keys, properties, source, arrKey, diffs } = this
     return {
       keys,
@@ -133,11 +137,11 @@ export default class JsonOptimizer {
       source,
       arrKey,
       diffs,
-      '__IS_OPTIMIZED__': true
+      __IS_OPTIMIZED__: true
     } satisfies SourceData
   }
 
-  diffObj (diffing): DiffData {
+  diffObj(diffing): DiffData {
     const removed = [] as number[]
     const changed = [] as any[]
     const removedProps = [] as any[]
@@ -146,10 +150,14 @@ export default class JsonOptimizer {
 
     if (!diffing || typeof diffing !== 'object') throw new Error('diffing data is not object')
     if (Array.isArray(diffing) && !arrKey) throw new Error('arrKey is required for arrays')
-    const diffingObj = Array.isArray(diffing) ? Object.fromEntries(diffing.map(x => {
-      const key = JsonOptimizer.getByArrKey(x, arrKey!)
-      return [key, x]
-    })) : diffing
+    const diffingObj = Array.isArray(diffing)
+      ? Object.fromEntries(
+          diffing.map(x => {
+            const key = JsonOptimizer.getByArrKey(x, arrKey!)
+            return [key, x]
+          })
+        )
+      : diffing
 
     const possiblyNewKeys = Object.keys(diffingObj)
     this.keys ??= {}
@@ -240,13 +248,13 @@ export default class JsonOptimizer {
     }
   }
 
-  recordDiff (key: string, diffObj: string) {
+  recordDiff(key: string, diffObj: string) {
     const diff = this.diffObj(diffObj)
     // problem is that 274 key 10.20.6 no removed keys in diff created
     this.diffs[key] = diff
   }
 
-  static isOptimizedChangeDiff (changePossiblyArrDiff) {
+  static isOptimizedChangeDiff(changePossiblyArrDiff) {
     if (!Array.isArray(changePossiblyArrDiff)) return false
     if (changePossiblyArrDiff.length % 2 !== 0) return false
     for (let i = 0; i < changePossiblyArrDiff.length; i += 2) {
@@ -255,7 +263,7 @@ export default class JsonOptimizer {
     return true
   }
 
-  static restoreData ({ keys, properties, source, arrKey, diffs }: SourceData, targetKey: string, dataRestorer: ((data) => void) | undefined) {
+  static restoreData({ keys, properties, source, arrKey, diffs }: SourceData, targetKey: string, dataRestorer: ((data) => void) | undefined) {
     // if (!diffs[targetKey]) throw new Error(`The requested data to restore with key ${targetKey} does not exist`)
     source = structuredClone(source)
     const keysById = Object.fromEntries(Object.entries(keys).map(x => [x[1], x[0]]))
@@ -311,11 +319,14 @@ export default class JsonOptimizer {
     return data
   }
 
-  static getByArrKey (item: any, arrKey: string) {
-    return arrKey.split('+').map(x => item[x]).join('+')
+  static getByArrKey(item: any, arrKey: string) {
+    return arrKey
+      .split('+')
+      .map(x => item[x])
+      .join('+')
   }
 
-  static resolveDefaults (arr) {
+  static resolveDefaults(arr) {
     if (!Array.isArray(arr)) throw new Error('not an array')
     const propsValueCount = {} as {
       [key: string]: {
@@ -331,10 +342,12 @@ export default class JsonOptimizer {
         propsValueCount[key][valJson] += 1
       }
     }
-    const defaults = Object.fromEntries(Object.entries(propsValueCount).map(([prop, values]) => {
-      const defaultValue = Object.entries(values).sort(([, count1], [, count2]) => count2 - count1)[0][0]
-      return [prop, defaultValue]
-    }))
+    const defaults = Object.fromEntries(
+      Object.entries(propsValueCount).map(([prop, values]) => {
+        const defaultValue = Object.entries(values).sort(([, count1], [, count2]) => count2 - count1)[0][0]
+        return [prop, defaultValue]
+      })
+    )
 
     const newData = [] as any[]
     const noData = {}

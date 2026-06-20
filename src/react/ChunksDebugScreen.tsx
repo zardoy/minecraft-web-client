@@ -20,14 +20,11 @@ const Inner = () => {
       // setUpdate(u => u + 1)
     }
     bot.on('chunkColumnLoad', up)
-    interval(
-      500,
-      () => {
-        setPlayerX(Math.floor(worldView!.lastPos.x / 16) * 16)
-        setPlayerZ(Math.floor(worldView!.lastPos.z / 16) * 16)
-        setUpdate(u => u + 1)
-      }
-    )
+    interval(500, () => {
+      setPlayerX(Math.floor(worldView!.lastPos.x / 16) * 16)
+      setPlayerZ(Math.floor(worldView!.lastPos.z / 16) * 16)
+      setUpdate(u => u + 1)
+    })
     return () => {
       bot.removeListener('chunkColumnLoad', up)
     }
@@ -69,9 +66,9 @@ const Inner = () => {
       state,
       lines: [line, line2],
       sidebarLines: [
-        `loads: ${chunk?.loads?.map(l => `${l.reason} ${l.dataLength} ${l.time}`).join('\n')}`,
+        `loads: ${chunk?.loads?.map(l => `${l.reason} ${l.dataLength} ${l.time}`).join('\n')}`
         // `blockUpdates: ${chunk.blockUpdates}`,
-      ],
+      ]
     }
   }
 
@@ -87,33 +84,29 @@ const Inner = () => {
 
   const chunksDone = Object.keys(rendererFinishedChunks).map(key => mapChunk(key, 'done'))
 
+  const chunksWaitingOrder = Object.values(allSpiralChunks)
+    .map(([x, z]) => {
+      const pos = new Vec3(x * 16, 0, z * 16)
+      if (bot.world.getColumnAt(pos) === null) return null
+      return mapChunk(`${pos.x},${pos.z}`, 'order-queued')
+    })
+    .filter(a => !!a)
 
-  const chunksWaitingOrder = Object.values(allSpiralChunks).map(([x, z]) => {
-    const pos = new Vec3(x * 16, 0, z * 16)
-    if (bot.world.getColumnAt(pos) === null) return null
-    return mapChunk(`${pos.x},${pos.z}`, 'order-queued')
-  }).filter(a => !!a)
-
-  const allChunks = [
-    ...chunksWaitingServer,
-    ...chunksWaitingClient,
-    ...clientProcessingChunks,
-    ...chunksDone,
-    ...chunksDoneEmpty,
-    ...chunksWaitingOrder,
-  ]
-  return <Screen title={`Chunks Debug (avg: ${worldView!.lastChunkReceiveTimeAvg.toFixed(1)}ms)`}>
-    <ChunksDebug
-      chunks={allChunks}
-      playerChunk={{
-        x: playerX,
-        z: playerZ
-      }}
-      maxDistance={worldView!.viewDistance}
-      tileSize={32}
-      fontSize={8}
-    />
-  </Screen>
+  const allChunks = [...chunksWaitingServer, ...chunksWaitingClient, ...clientProcessingChunks, ...chunksDone, ...chunksDoneEmpty, ...chunksWaitingOrder]
+  return (
+    <Screen title={`Chunks Debug (avg: ${worldView!.lastChunkReceiveTimeAvg.toFixed(1)}ms)`}>
+      <ChunksDebug
+        chunks={allChunks}
+        playerChunk={{
+          x: playerX,
+          z: playerZ
+        }}
+        maxDistance={worldView!.viewDistance}
+        tileSize={32}
+        fontSize={8}
+      />
+    </Screen>
+  )
 }
 
 export default () => {

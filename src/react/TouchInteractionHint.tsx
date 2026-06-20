@@ -61,17 +61,11 @@ export default () => {
   if (!entityName) return null
 
   return (
-    <div
-      className={`${styles.hint_container} interaction-hint`}
-    >
+    <div className={`${styles.hint_container} interaction-hint`}>
       {/* temporary hide hint indicator and text */}
       {/* <PixelartIcon iconName={pixelartIcons['sun-alt']} width={14} />
       <span className={styles.hint_text}>{hintText || 'Attack entity'}</span> */}
-      <Button
-        onClick={handleUseButtonClick}
-      >
-        {`Use ${entityName}`}
-      </Button>
+      <Button onClick={handleUseButtonClick}>{`Use ${entityName}`}</Button>
     </div>
   )
 }

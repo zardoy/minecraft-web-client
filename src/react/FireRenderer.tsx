@@ -42,7 +42,7 @@ export default () => {
 
       const keys = Object.keys(blocksAtlasParser.atlas.latest.textures).filter(key => /^fire_\d+$/.exec(key))
       for (const key of keys) {
-        const textureInfo = blocksAtlasParser.getTextureInfo(key) as { u: number, v: number, width?: number, height?: number }
+        const textureInfo = blocksAtlasParser.getTextureInfo(key) as { u: number; v: number; width?: number; height?: number }
         if (textureInfo) {
           const defaultSize = blocksAtlasParser.atlas.latest.tileSize
           const imageWidth = blocksAtlasParser.atlas.latest.width
@@ -55,17 +55,7 @@ export default () => {
           const tempCtx = tempCanvas.getContext('2d')
           if (tempCtx && blocksAtlasParser.latestImage) {
             const image = await getLoadedImage(blocksAtlasParser.latestImage)
-            tempCtx.drawImage(
-              image,
-              textureInfo.u * imageWidth,
-              textureInfo.v * imageHeight,
-              textureWidth,
-              textureHeight,
-              0,
-              0,
-              textureWidth,
-              textureHeight
-            )
+            tempCtx.drawImage(image, textureInfo.u * imageWidth, textureInfo.v * imageHeight, textureWidth, textureHeight, 0, 0, textureWidth, textureHeight)
 
             // Create final canvas with only top 20% of the texture
             const finalHeight = Math.ceil(textureHeight * 0.4)
@@ -119,7 +109,7 @@ export default () => {
 
   return (
     <div
-      className='fire-renderer-container'
+      className="fire-renderer-container"
       style={{
         position: 'fixed',
         left: 0,

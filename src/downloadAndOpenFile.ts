@@ -23,7 +23,13 @@ const inner = async () => {
   return downloadAndOpenMapFromUrl(map, texturepack, mapDir, replayFileUrl)
 }
 
-export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, texturepackUrl: string | undefined, mapUrlDir: string[] | undefined, replayFileUrl: string | undefined, connectOptions?: Partial<ConnectOptions>) => {
+export const downloadAndOpenMapFromUrl = async (
+  mapUrl: string | undefined,
+  texturepackUrl: string | undefined,
+  mapUrlDir: string[] | undefined,
+  replayFileUrl: string | undefined,
+  connectOptions?: Partial<ConnectOptions>
+) => {
   if (replayFileUrl) {
     setLoadingScreenStatus('Downloading replay file')
     const response = await fetch(replayFileUrl)
@@ -32,31 +38,37 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
     const filename = replayFileUrl.split('/').pop()
 
     let downloadedBytes = 0
-    const buffer = await new Response(new ReadableStream({
-      async start (controller) {
-        if (!response.body) throw new Error('Server returned no response!')
-        const reader = response.body.getReader()
+    const buffer = await new Response(
+      new ReadableStream({
+        async start(controller) {
+          if (!response.body) throw new Error('Server returned no response!')
+          const reader = response.body.getReader()
 
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { done, value } = await reader.read()
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            const { done, value } = await reader.read()
 
-          if (done) {
-            controller.close()
-            break
+            if (done) {
+              controller.close()
+              break
+            }
+
+            downloadedBytes += value.byteLength
+
+            // Calculate download progress as a percentage
+            const progress = size ? (downloadedBytes / size) * 100 : undefined
+            setLoadingScreenStatus(
+              `Download replay file progress: ${progress === undefined ? '?' : Math.floor(progress)}% (${getFixedFilesize(downloadedBytes)} / ${size && getFixedFilesize(size)})`,
+              false,
+              true
+            )
+
+            // Pass the received data to the controller
+            controller.enqueue(value)
           }
-
-          downloadedBytes += value.byteLength
-
-          // Calculate download progress as a percentage
-          const progress = size ? (downloadedBytes / size) * 100 : undefined
-          setLoadingScreenStatus(`Download replay file progress: ${progress === undefined ? '?' : Math.floor(progress)}% (${getFixedFilesize(downloadedBytes)} / ${size && getFixedFilesize(size)})`, false, true)
-
-          // Pass the received data to the controller
-          controller.enqueue(value)
         }
-      },
-    })).arrayBuffer()
+      })
+    ).arrayBuffer()
 
     // Convert buffer to text, handling any compression automatically
     const decoder = new TextDecoder()
@@ -106,31 +118,37 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   setLoadingScreenStatus(`Downloading ${downloadThing} ${name}: have to download ${contentLength && getFixedFilesize(contentLength)}...`)
 
   let downloadedBytes = 0
-  const buffer = await new Response(new ReadableStream({
-    async start (controller) {
-      if (!response.body) throw new Error('Server returned no response!')
-      const reader = response.body.getReader()
+  const buffer = await new Response(
+    new ReadableStream({
+      async start(controller) {
+        if (!response.body) throw new Error('Server returned no response!')
+        const reader = response.body.getReader()
 
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await reader.read()
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read()
 
-        if (done) {
-          controller.close()
-          break
+          if (done) {
+            controller.close()
+            break
+          }
+
+          downloadedBytes += value.byteLength
+
+          // Calculate download progress as a percentage
+          const progress = contentLength ? (downloadedBytes / contentLength) * 100 : undefined
+          setLoadingScreenStatus(
+            `Download ${downloadThing} progress: ${progress === undefined ? '?' : Math.floor(progress)}% (${getFixedFilesize(downloadedBytes)} / ${contentLength && getFixedFilesize(contentLength)})`,
+            false,
+            true
+          )
+
+          // Pass the received data to the controller
+          controller.enqueue(value)
         }
-
-        downloadedBytes += value.byteLength
-
-        // Calculate download progress as a percentage
-        const progress = contentLength ? (downloadedBytes / contentLength) * 100 : undefined
-        setLoadingScreenStatus(`Download ${downloadThing} progress: ${progress === undefined ? '?' : Math.floor(progress)}% (${getFixedFilesize(downloadedBytes)} / ${contentLength && getFixedFilesize(contentLength)})`, false, true)
-
-        // Pass the received data to the controller
-        controller.enqueue(value)
       }
-    },
-  })).arrayBuffer()
+    })
+  ).arrayBuffer()
   if (texturepackUrl) {
     const name = mapUrl.slice(mapUrl.lastIndexOf('/') + 1).slice(-30)
     await installResourcepackPack(buffer, createFullScreenProgressReporter(), name)

@@ -8,7 +8,7 @@ export const signInMessageState = proxy({
   link: '',
   expiresOn: 0,
   shouldSaveToken: true,
-  abortController: ref(new AbortController()),
+  abortController: ref(new AbortController())
 })
 
 export default () => {
@@ -17,18 +17,20 @@ export default () => {
 
   if (!code && !signInTestModal) return null
 
-  return <SignInMessage
-    code={code}
-    expiresEnd={expiresOn}
-    loginLink={link}
-    defaultSaveToken={shouldSaveToken}
-    setSaveToken={(state) => {
-      signInMessageState.shouldSaveToken = state
-    }}
-    connectingServer={lastConnectOptions.value?.server ?? ''}
-    onCancel={() => {
-      signInMessageState.abortController.abort()
-    }}
-    directLink={`http://microsoft.com/link?otc=${code}`}
-  />
+  return (
+    <SignInMessage
+      code={code}
+      expiresEnd={expiresOn}
+      loginLink={link}
+      defaultSaveToken={shouldSaveToken}
+      setSaveToken={state => {
+        signInMessageState.shouldSaveToken = state
+      }}
+      connectingServer={lastConnectOptions.value?.server ?? ''}
+      onCancel={() => {
+        signInMessageState.abortController.abort()
+      }}
+      directLink={`http://microsoft.com/link?otc=${code}`}
+    />
+  )
 }

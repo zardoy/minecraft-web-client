@@ -73,7 +73,7 @@ export const Primary: Story = {
       progress={{ current: 0, total: 100 }}
       speed={1}
       defaultFilter=""
-      customButtons={{ }}
+      customButtons={{}}
       onPlayPause={() => {}}
       onRestart={() => {}}
       onSpeedChange={() => {}}
@@ -94,7 +94,7 @@ export const Playing: Story = {
       progress={{ current: 50, total: 100 }}
       speed={1}
       defaultFilter=""
-      customButtons={{ }}
+      customButtons={{}}
       onPlayPause={() => {}}
       onRestart={() => {}}
       onSpeedChange={() => {}}

@@ -21,7 +21,11 @@ customEvents.on('mineflayerBotCreated', () => {
   //   }
   // }
   class MinecraftProtocolError extends Error {
-    constructor (message: string, cause?: Error, public data?: any) {
+    constructor(
+      message: string,
+      cause?: Error,
+      public data?: any
+    ) {
       if (data?.customPayload) {
         message += ` (Custom payload: ${data.customPayload.channel})`
       }
@@ -43,11 +47,11 @@ customEvents.on('mineflayerBotCreated', () => {
 
   // todo move more code here
   if (!appQueryParams.noPacketsValidation) {
-    (bot._client as unknown as Client).on('packet', (data, packetMeta, buffer, fullBuffer) => {
+    ;(bot._client as unknown as Client).on('packet', (data, packetMeta, buffer, fullBuffer) => {
       validatePacket(packetMeta.name, data, fullBuffer, true)
       lastPacketTime = performance.now()
-    });
-    (bot._client as unknown as Client).on('writePacket', (name, params) => {
+    })
+    ;(bot._client as unknown as Client).on('writePacket', (name, params) => {
       validatePacket(name, params, Buffer.alloc(0), false)
     })
   }
@@ -55,7 +59,8 @@ customEvents.on('mineflayerBotCreated', () => {
 
 setInterval(() => {
   if (!bot || !lastPacketTime) return
-  if (bot.player?.ping > 500) { // TODO: we cant rely on server ping 1. weird calculations 2. available with delays instead patch minecraft-protocol to get latency of keep_alive packet
+  if (bot.player?.ping > 500) {
+    // TODO: we cant rely on server ping 1. weird calculations 2. available with delays instead patch minecraft-protocol to get latency of keep_alive packet
     gameAdditionalState.poorConnection = true
   } else {
     gameAdditionalState.poorConnection = false
@@ -67,8 +72,14 @@ setInterval(() => {
   gameAdditionalState.noConnection = true
 }, 1000)
 
-
-export const getServerInfo = async (ip: string, port?: number, preferredVersion = getVersionAutoSelect(), ping = false, progressReporter?: ProgressReporter, setProxyParams?: ProxyParams) => {
+export const getServerInfo = async (
+  ip: string,
+  port?: number,
+  preferredVersion = getVersionAutoSelect(),
+  ping = false,
+  progressReporter?: ProgressReporter,
+  setProxyParams?: ProxyParams
+) => {
   await downloadAllMinecraftData()
   const isWebSocket = ip.startsWith('ws://') || ip.startsWith('wss://')
   let stream
@@ -89,7 +100,7 @@ export const getServerInfo = async (ip: string, port?: number, preferredVersion 
   return pingServerVersion(ip, port, {
     ...(stream ? { stream } : {}),
     ...(ping ? { noPongTimeout: 3000 } : {}),
-    ...(preferredVersion ? { version: preferredVersion } : {}),
+    ...(preferredVersion ? { version: preferredVersion } : {})
   }).finally(() => {
     window.setLoadingMessage = undefined
   })
@@ -97,7 +108,7 @@ export const getServerInfo = async (ip: string, port?: number, preferredVersion 
 
 globalThis.debugTestPing = async (ip: string) => {
   const parsed = parseServerAddress(ip, false)
-  const result = await getServerInfo(parsed.host, parsed.port ? Number(parsed.port) : undefined, undefined, true, undefined, { address: getCurrentProxy(), })
+  const result = await getServerInfo(parsed.host, parsed.port ? Number(parsed.port) : undefined, undefined, true, undefined, { address: getCurrentProxy() })
   console.log('result', result)
   return result
 }

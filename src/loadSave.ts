@@ -29,12 +29,12 @@ export const fsState = proxy({
 
 const PROPOSE_BACKUP = true
 
-export function longArrayToNumber (longArray: number[]) {
+export function longArrayToNumber(longArray: number[]) {
   const [high, low] = longArray
   return (high << 32) + low
 }
 
-export const readLevelDat = async (path) => {
+export const readLevelDat = async path => {
   let levelDatContent
   try {
     // todo-low cache reading
@@ -64,12 +64,10 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
   // todo do it in singleplayer as well
   // eslint-disable-next-line guard-for-in
   for (const key in forceCachedDataPaths) {
-
     delete forceCachedDataPaths[key]
   }
   // eslint-disable-next-line guard-for-in
   for (const key in forceRedirectPaths) {
-
     delete forceRedirectPaths[key]
   }
   // todo check jsHeapSizeLimit
@@ -99,7 +97,10 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
     const lowerBound = isMajorVersionGreater(firstSupportedVersion, version)
     const upperBound = versionToNumber(version) > versionToNumber(lastSupportedVersion)
     if (lowerBound || upperBound) {
-      version = prompt(`Version ${version} is not supported, supported versions are ${supportedVersions.join(', ')}, what try to use instead?`, lowerBound ? firstSupportedVersion : lastSupportedVersion)
+      version = prompt(
+        `Version ${version} is not supported, supported versions are ${supportedVersions.join(', ')}, what try to use instead?`,
+        lowerBound ? firstSupportedVersion : lastSupportedVersion
+      )
       if (!version) return
     }
 
@@ -168,14 +169,18 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
   // todo should not be set here
   fsState.saveLoaded = true
   fsState.inMemorySavePath = root
-  window.dispatchEvent(new CustomEvent('singleplayer', {
-    // todo check gamemode level.dat data etc
-    detail: {
-      version,
-      ...root === '/world' ? {} : {
-        'worldFolder': root
-      },
-      connectOptions
-    },
-  }))
+  window.dispatchEvent(
+    new CustomEvent('singleplayer', {
+      // todo check gamemode level.dat data etc
+      detail: {
+        version,
+        ...(root === '/world'
+          ? {}
+          : {
+              worldFolder: root
+            }),
+        connectOptions
+      }
+    })
+  )
 }

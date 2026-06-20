@@ -1,42 +1,40 @@
 {
-    "name": "minecraft-react",
-    "description": "A Minecraft-like React UI library",
-    "keywords": [
-        "minecraft",
-        "minecraft style",
-        "minecraft ui",
-        "minecraft components",
-        "minecraft react",
-        "minecraft library",
-        "minecraft web",
-        "minecraft browser"
-    ],
-    "license": "MIT",
-    "sideEffects": false,
-    "files": [
-        "**"
-    ],
-    "exports": {
-        ".": {
-            "default": "./dist/react/npmReactComponents.js",
-            "types": "./dist/react/npmReactComponents.d.ts"
-        },
-        "./*": {
-            "default": "./dist/react/*",
-            "types": "./dist/react/*"
-        },
-        "./dist": {
-            "default": "./dist/*",
-            "types": "./dist/*"
-        }
+  "name": "minecraft-react",
+  "description": "A Minecraft-like React UI library",
+  "keywords": [
+    "minecraft",
+    "minecraft style",
+    "minecraft ui",
+    "minecraft components",
+    "minecraft react",
+    "minecraft library",
+    "minecraft web",
+    "minecraft browser"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "files": ["**"],
+  "exports": {
+    ".": {
+      "default": "./dist/react/npmReactComponents.js",
+      "types": "./dist/react/npmReactComponents.d.ts"
     },
-    "module": "./dist/react/npmReactComponents.js",
-    "types": "./dist/react/npmReactComponents.d.ts",
-    "repository": "zardoy/minecraft-web-client",
-    "version": "0.0.0-dev",
-    "dependencies": {},
-    "peerDependencies": {
-        "react": "^18.0.0",
-        "react-dom": "^18.0.0"
+    "./*": {
+      "default": "./dist/react/*",
+      "types": "./dist/react/*"
+    },
+    "./dist": {
+      "default": "./dist/*",
+      "types": "./dist/*"
     }
+  },
+  "module": "./dist/react/npmReactComponents.js",
+  "types": "./dist/react/npmReactComponents.d.ts",
+  "repository": "zardoy/minecraft-web-client",
+  "version": "0.0.0-dev",
+  "dependencies": {},
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
 }

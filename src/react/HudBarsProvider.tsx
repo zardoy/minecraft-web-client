@@ -23,7 +23,7 @@ export default () => {
   const [effectToRemove, setEffectToRemove] = useState<number | null>(null)
   const hurtTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const getEffectClass = (effect) => {
+  const getEffectClass = effect => {
     switch (effect) {
       case 19:
         return 'poisoned'
@@ -44,12 +44,12 @@ export default () => {
     }, 1000)
   }
 
-  const updateHealth = (hValue) => {
+  const updateHealth = hValue => {
     setHealthValue(prev => hValue)
   }
 
   useMemo(() => {
-    bot.on('entityHurt', (entity) => {
+    bot.on('entityHurt', entity => {
       if (entity !== bot.entity) return
       onDamage()
     })
@@ -94,35 +94,38 @@ export default () => {
     upArmour()
   }, [])
 
-  return <div className='hud-bars-container'>
-    {!disabledUiParts.includes('health-bar') && <HealthBar
-      gameMode={gameMode}
-      isHardcore={isHardcore}
-      damaged={damaged}
-      healthValue={healthValue}
-      effectToAdd={effectToAdd}
-      effectToRemove={effectToRemove}
-      resetEffects={() => {
-        setEffectToAdd(null)
-        setEffectToRemove(null)
-      }}
-    />}
-    {!disabledUiParts.includes('armor-bar') && <ArmorBar
-      armorValue={armorValue}
-      style={gameMode !== 'survival' && gameMode !== 'adventure' ? { display: 'none' } : { display: 'flex' }}
-    />}
-    {!disabledUiParts.includes('food-bar') && <FoodBar
-      gameMode={gameMode}
-      food={food}
-      effectToAdd={effectToAdd}
-      effectToRemove={effectToRemove}
-      resetEffects={() => {
-        setEffectToAdd(null)
-        setEffectToRemove(null)
-      }}
-    />}
-    {!disabledUiParts.includes('breath-bar') && <BreathBar
-      oxygen={gameMode !== 'survival' && gameMode !== 'adventure' ? 0 : oxygen}
-    />}
-  </div>
+  return (
+    <div className="hud-bars-container">
+      {!disabledUiParts.includes('health-bar') && (
+        <HealthBar
+          gameMode={gameMode}
+          isHardcore={isHardcore}
+          damaged={damaged}
+          healthValue={healthValue}
+          effectToAdd={effectToAdd}
+          effectToRemove={effectToRemove}
+          resetEffects={() => {
+            setEffectToAdd(null)
+            setEffectToRemove(null)
+          }}
+        />
+      )}
+      {!disabledUiParts.includes('armor-bar') && (
+        <ArmorBar armorValue={armorValue} style={gameMode !== 'survival' && gameMode !== 'adventure' ? { display: 'none' } : { display: 'flex' }} />
+      )}
+      {!disabledUiParts.includes('food-bar') && (
+        <FoodBar
+          gameMode={gameMode}
+          food={food}
+          effectToAdd={effectToAdd}
+          effectToRemove={effectToRemove}
+          resetEffects={() => {
+            setEffectToAdd(null)
+            setEffectToRemove(null)
+          }}
+        />
+      )}
+      {!disabledUiParts.includes('breath-bar') && <BreathBar oxygen={gameMode !== 'survival' && gameMode !== 'adventure' ? 0 : oxygen} />}
+    </div>
+  )
 }

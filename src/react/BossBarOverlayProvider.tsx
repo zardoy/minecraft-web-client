@@ -4,15 +4,19 @@ import { miscUiState } from '../globalState'
 import './BossBarOverlay.css'
 import BossBar, { BossBarType } from './BossBarOverlay'
 
-
 export default () => {
   const { currentTouch } = useSnapshot(miscUiState)
   const [bossBars, setBossBars] = useState(new Map<string, BossBarType>())
   const addBossBar = (bossBar: BossBarType) => {
-    setBossBars(prevBossBars => new Map(prevBossBars.set(bossBar.entityUUID, {
-      ...bossBar,
-      lastUpdated: Date.now()
-    })))
+    setBossBars(
+      prevBossBars =>
+        new Map(
+          prevBossBars.set(bossBar.entityUUID, {
+            ...bossBar,
+            lastUpdated: Date.now()
+          })
+        )
+    )
   }
 
   const removeBossBar = (bossBar: BossBarType) => {
@@ -24,14 +28,14 @@ export default () => {
   }
 
   useEffect(() => {
-    bot.on('bossBarCreated', (bossBar) => {
+    bot.on('bossBarCreated', bossBar => {
       addBossBar(bossBar as BossBarType)
     })
-    bot.on('bossBarUpdated', (bossBar) => {
+    bot.on('bossBarUpdated', bossBar => {
       if (!bossBar) return
       addBossBar(bossBar as BossBarType)
     })
-    bot.on('bossBarDeleted', (bossBar) => {
+    bot.on('bossBarDeleted', bossBar => {
       if (!bossBar) return
       removeBossBar(bossBar as BossBarType)
     })

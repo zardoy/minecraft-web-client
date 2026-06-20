@@ -8,13 +8,9 @@ import { AppConfig } from './appConfig'
 
 // todo: refactor structure with support of hideNext=false
 
-export const notHideableModalsWithoutForce = new Set([
-  'app-status',
-  'divkit:nonclosable',
-  'only-connect-server',
-])
+export const notHideableModalsWithoutForce = new Set(['app-status', 'divkit:nonclosable', 'only-connect-server'])
 
-type Modal = ({ elem?: HTMLElement & Record<string, any> } & { reactType: string })
+type Modal = { elem?: HTMLElement & Record<string, any> } & { reactType: string }
 
 type ContextMenuItem = { callback; label }
 
@@ -39,7 +35,7 @@ const showModalInner = (modal: Modal) => {
   return true
 }
 
-export const showModal = (elem: /* (HTMLElement & Record<string, any>) |  */{ reactType: string } | string) => {
+export const showModal = (elem: /* (HTMLElement & Record<string, any>) |  */ { reactType: string } | string) => {
   const resolved = typeof elem === 'string' ? { reactType: elem } : elem
   const curModal = activeModalStack.at(-1)
   if ((resolved.reactType && resolved.reactType === curModal?.reactType) || !showModalInner(resolved)) return
@@ -110,7 +106,7 @@ export const showContextmenu = (items: ContextMenuItem[], { clientX, clientY }) 
   Object.assign(currentContextMenu, {
     items,
     x: clientX,
-    y: clientY,
+    y: clientY
   })
 }
 
@@ -143,7 +139,7 @@ export const miscUiState = proxy({
   displayRotationEnabled: false,
   /** `innerWidth < innerHeight` — used to show the rotate button on mobile. */
   viewportPortrait: false,
-  disconnectedCleanup: null as { callback: () => void, date: number, wasConnected: boolean } | null
+  disconnectedCleanup: null as { callback: () => void; date: number; wasConnected: boolean } | null
 })
 
 export const maybeCleanupAfterDisconnect = () => {
@@ -180,7 +176,7 @@ export const gameAdditionalState = proxy({
   viewerConnection: false,
 
   usingServerResourcePack: false,
-  typingUsers: [] as Array<{ username: string; timestamp: number }>,
+  typingUsers: [] as Array<{ username: string; timestamp: number }>
 })
 
 window.gameAdditionalState = gameAdditionalState

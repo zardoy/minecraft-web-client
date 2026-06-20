@@ -4,7 +4,6 @@ import { options } from '../optionsStorage'
 import { useIsModalActive } from './utilsApp'
 import SignEditor, { ResultType } from './SignEditor'
 
-
 const isWysiwyg = async () => {
   const items = await bot.tabComplete('/data ', true, true)
   const commands = new Set<string>(['merge'])
@@ -17,7 +16,7 @@ const isWysiwyg = async () => {
 }
 
 export default () => {
-  const [location, setLocation] = useState<{ x: number, y: number, z: number } | null>(null)
+  const [location, setLocation] = useState<{ x: number; y: number; z: number } | null>(null)
   const [isFrontText, setIsFrontText] = useState(true)
   const text = useRef<string[]>(['', '', '', ''])
   const [enableWysiwyg, setEnableWysiwyg] = useState(false)
@@ -37,7 +36,16 @@ export default () => {
 
     if (result.dataText) {
       if (!location) return
-      const command = `/data merge block ${location.x} ${location.y} ${location.z} {Text1:'` + JSON.stringify(result.dataText[0]) + '\',Text2: \'' + JSON.stringify(result.dataText[1]) + '\',Text3:\'' + JSON.stringify(result.dataText[2]) + '\',Text4:\'' + JSON.stringify(result.dataText[3]) + '\'}' // mojangson
+      const command =
+        `/data merge block ${location.x} ${location.y} ${location.z} {Text1:'` +
+        JSON.stringify(result.dataText[0]) +
+        "',Text2: '" +
+        JSON.stringify(result.dataText[1]) +
+        "',Text3:'" +
+        JSON.stringify(result.dataText[2]) +
+        "',Text4:'" +
+        JSON.stringify(result.dataText[3]) +
+        "'}" // mojangson
       bot.chat(command)
     }
   }
@@ -58,13 +66,13 @@ export default () => {
   }
 
   useMemo(() => {
-    bot._client.on('open_sign_entity', (packet) => {
+    bot._client.on('open_sign_entity', packet => {
       if (!options.autoSignEditor) return
       setIsFrontText((packet as any).isFrontText ?? true)
       setLocation(prev => packet.location)
       showModal({ reactType: 'signs-editor-screen' })
       if (options.wysiwygSignEditor === 'auto') {
-        void isWysiwyg().then((value) => {
+        void isWysiwyg().then(value => {
           setEnableWysiwyg(value)
         })
       } else if (options.wysiwygSignEditor === 'always') {

@@ -19,20 +19,22 @@ contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
 
 const emitMousemove = () => {
   const { x, y } = gamepadUiCursorState
-  const xAbs = x / 100 * window.innerWidth
-  const yAbs = y / 100 * window.innerHeight
+  const xAbs = (x / 100) * window.innerWidth
+  const yAbs = (y / 100) * window.innerHeight
   const element = document.elementFromPoint(xAbs, yAbs) as HTMLElement | null
   if (!element) return
-  element.dispatchEvent(new MouseEvent('mousemove', {
-    clientX: xAbs,
-    clientY: yAbs
-  }))
+  element.dispatchEvent(
+    new MouseEvent('mousemove', {
+      clientX: xAbs,
+      clientY: yAbs
+    })
+  )
 }
 
 const trackHoveredElement = () => {
   const { x, y } = gamepadUiCursorState
-  const xAbs = x / 100 * window.innerWidth
-  const yAbs = y / 100 * window.innerHeight
+  const xAbs = (x / 100) * window.innerWidth
+  const yAbs = (y / 100) * window.innerHeight
   const element = document.elementFromPoint(xAbs, yAbs) as HTMLElement | null
 
   if (element !== lastHoveredElement) {
@@ -87,15 +89,15 @@ contro.on('stickMovement', ({ stick, vector }) => {
 // todo make also control with left/right
 
 const emitGamepadInputChange = (x: number, isStickMovement: boolean) => {
-  const cursorX = gamepadUiCursorState.x / 100 * window.innerWidth
-  const cursorY = gamepadUiCursorState.y / 100 * window.innerHeight
+  const cursorX = (gamepadUiCursorState.x / 100) * window.innerWidth
+  const cursorY = (gamepadUiCursorState.y / 100) * window.innerHeight
   const element = document.elementFromPoint(cursorX, cursorY) as HTMLElement | null
 
   if (element) {
     // Emit custom event for input value change
     const customEvent = new CustomEvent('gamepadInputChange', {
       bubbles: true,
-      detail: { direction: x > 0 ? 1 : -1, value: x, isStickMovement },
+      detail: { direction: x > 0 ? 1 : -1, value: x, isStickMovement }
     })
     element.dispatchEvent(customEvent)
   }
@@ -103,8 +105,8 @@ const emitGamepadInputChange = (x: number, isStickMovement: boolean) => {
 
 const emulateGamepadScroll = (z: number) => {
   // Get element under cursor
-  const cursorX = gamepadUiCursorState.x / 100 * window.innerWidth
-  const cursorY = gamepadUiCursorState.y / 100 * window.innerHeight
+  const cursorX = (gamepadUiCursorState.x / 100) * window.innerWidth
+  const cursorY = (gamepadUiCursorState.y / 100) * window.innerHeight
   const element = document.elementFromPoint(cursorX, cursorY) as HTMLElement | null
 
   if (!element) return
@@ -184,35 +186,43 @@ contro.on('release', ({ command }) => {
 export const emulateMouseClick = (isRightClick: boolean) => {
   // in percent
   const { x, y } = gamepadUiCursorState
-  const xAbs = x / 100 * window.innerWidth
-  const yAbs = y / 100 * window.innerHeight
+  const xAbs = (x / 100) * window.innerWidth
+  const yAbs = (y / 100) * window.innerHeight
   const el = document.elementFromPoint(xAbs, yAbs) as HTMLElement
   if (el) {
     if (el === lastClickedEl && !isRightClick) {
-      el.dispatchEvent(new MouseEvent('dblclick', {
+      el.dispatchEvent(
+        new MouseEvent('dblclick', {
+          bubbles: true,
+          clientX: xAbs,
+          clientY: yAbs
+        })
+      )
+      return
+    }
+    el.dispatchEvent(
+      new MouseEvent('mousedown', {
+        button: isRightClick ? 2 : 0,
         bubbles: true,
         clientX: xAbs,
         clientY: yAbs
-      }))
-      return
-    }
-    el.dispatchEvent(new MouseEvent('mousedown', {
-      button: isRightClick ? 2 : 0,
-      bubbles: true,
-      clientX: xAbs,
-      clientY: yAbs
-    }))
-    el.dispatchEvent(new MouseEvent(isRightClick ? 'contextmenu' : 'click', {
-      bubbles: true,
-      clientX: xAbs,
-      clientY: yAbs
-    }))
-    el.dispatchEvent(new MouseEvent('mouseup', {
-      button: isRightClick ? 2 : 0,
-      bubbles: true,
-      clientX: xAbs,
-      clientY: yAbs
-    }))
+      })
+    )
+    el.dispatchEvent(
+      new MouseEvent(isRightClick ? 'contextmenu' : 'click', {
+        bubbles: true,
+        clientX: xAbs,
+        clientY: yAbs
+      })
+    )
+    el.dispatchEvent(
+      new MouseEvent('mouseup', {
+        button: isRightClick ? 2 : 0,
+        bubbles: true,
+        clientX: xAbs,
+        clientY: yAbs
+      })
+    )
     el.focus()
     lastClickedEl = el
     if (lastClickedElTimeout) clearTimeout(lastClickedElTimeout)
@@ -220,7 +230,6 @@ export const emulateMouseClick = (isRightClick: boolean) => {
       lastClickedEl = null
     }, 500)
   }
-
 }
 
 globalThis.emulateMouseClick = emulateMouseClick

@@ -28,8 +28,7 @@ const processData = (data: Shapes) => {
         else data.blocks[block] = existingShapeId
         replaced++
         shapesToRemove.add(id)
-      }
-      else {
+      } else {
         shapesMap.set(shapesKey, id)
       }
     }

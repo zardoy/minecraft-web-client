@@ -9,16 +9,16 @@ type LockRoot = {
   optionalDependencies?: Record<string, DepEntry>
 }
 
-function shortSha (hex: string) {
+function shortSha(hex: string) {
   return hex.slice(0, 7)
 }
 
-function pinLine (name: string, value: string) {
+function pinLine(name: string, value: string) {
   return `${name}: ${value}`
 }
 
 /** pnpm `version` field for git deps: https://codeload.github.com/org/repo/tar.gz/<40hex>(peer...) */
-function displayPin (name: string, specifier: string | undefined, versionField: string | undefined) {
+function displayPin(name: string, specifier: string | undefined, versionField: string | undefined) {
   const spec = specifier ?? ''
   const ver = versionField ?? ''
 
@@ -53,22 +53,22 @@ function displayPin (name: string, specifier: string | undefined, versionField: 
   return pinLine(name, spec || ver || '?')
 }
 
-export function resolveWatermarkPackagePins (lockfilePath: string, names: string[]): string[] {
+export function resolveWatermarkPackagePins(lockfilePath: string, names: string[]): string[] {
   const doc = parseYaml(fs.readFileSync(lockfilePath, 'utf8')) as {
     importers?: Record<string, LockRoot>
   }
   const root = doc.importers?.['.']
   if (!root) {
-    return names.map((n) => pinLine(n, '?'))
+    return names.map(n => pinLine(n, '?'))
   }
 
   const merged: Record<string, DepEntry> = {
     ...root.dependencies,
     ...root.devDependencies,
-    ...root.optionalDependencies,
+    ...root.optionalDependencies
   }
 
-  return names.map((name) => {
+  return names.map(name => {
     const entry = merged[name]
     if (!entry) return pinLine(name, '?')
     return displayPin(name, entry.specifier, entry.version)
@@ -76,10 +76,7 @@ export function resolveWatermarkPackagePins (lockfilePath: string, names: string
 }
 
 /** Reads `watermarkPackages`, appends resolved lines to `watermark`, removes `watermarkPackages`. */
-export function applyWatermarkPackagesToConfig (
-  configJson: Record<string, unknown>,
-  lockfilePath: string
-) {
+export function applyWatermarkPackagesToConfig(configJson: Record<string, unknown>, lockfilePath: string) {
   const pkgs = configJson.watermarkPackages
   if (!Array.isArray(pkgs) || pkgs.length === 0) return
 

@@ -51,7 +51,7 @@ import {
   miscUiState,
   showModal,
   gameAdditionalState,
-  maybeCleanupAfterDisconnect,
+  maybeCleanupAfterDisconnect
 } from './globalState'
 
 import { parseServerAddress } from './parseServerAddress'
@@ -126,7 +126,7 @@ customChannels()
 
 if (appQueryParams.testCrashApp === '2') throw new Error('test')
 
-function hideCurrentScreens () {
+function hideCurrentScreens() {
   const appStatus = activeModalStack.find(x => x.reactType === 'app-status')
   activeModalStacks['main-menu'] = activeModalStack.filter(x => x !== appStatus)
   insertActiveModalStack('', appStatus ? [appStatus] : [])
@@ -134,10 +134,12 @@ function hideCurrentScreens () {
 
 const loadSingleplayer = (serverOverrides = {}, flattenedServerOverrides = {}, connectOptions?: Partial<ConnectOptions>) => {
   const serverSettingsQsRaw = appQueryParamsArray.serverSetting ?? []
-  const serverSettingsQs = serverSettingsQsRaw.map(x => x.split(':')).reduce<Record<string, string>>((acc, [key, value]) => {
-    acc[key] = JSON.parse(value)
-    return acc
-  }, {})
+  const serverSettingsQs = serverSettingsQsRaw
+    .map(x => x.split(':'))
+    .reduce<Record<string, string>>((acc, [key, value]) => {
+      acc[key] = JSON.parse(value)
+      return acc
+    }, {})
   void connect({
     singleplayer: true,
     username: options.localUsername,
@@ -151,19 +153,19 @@ const loadSingleplayer = (serverOverrides = {}, flattenedServerOverrides = {}, c
     ...connectOptions
   })
 }
-function listenGlobalEvents () {
+function listenGlobalEvents() {
   window.addEventListener('connect', e => {
     const options = (e as CustomEvent).detail
     void connect(options)
   })
-  window.addEventListener('singleplayer', (e) => {
-    const { detail } = (e as CustomEvent)
+  window.addEventListener('singleplayer', e => {
+    const { detail } = e as CustomEvent
     const { connectOptions, ...rest } = detail
     loadSingleplayer(rest, {}, connectOptions)
   })
 }
 
-export async function connect (connectOptions: ConnectOptions) {
+export async function connect(connectOptions: ConnectOptions) {
   if (miscUiState.gameLoaded) return
 
   if (sessionStorage.delayLoadUntilFocus) {
@@ -232,7 +234,7 @@ export async function connect (connectOptions: ConnectOptions) {
     if (ended) return
     loadingTimerState.loading = false
     const { alwaysReconnect } = appQueryParams
-    if ((!wasKicked && miscUiState.appConfig?.allowAutoConnect && appQueryParams.autoConnect && lastConnectOptions.hadWorldLoaded) || (alwaysReconnect)) {
+    if ((!wasKicked && miscUiState.appConfig?.allowAutoConnect && appQueryParams.autoConnect && lastConnectOptions.hadWorldLoaded) || alwaysReconnect) {
       if (alwaysReconnect === 'quick' || alwaysReconnect === 'fast') {
         quickDevReconnect()
       } else {
@@ -247,7 +249,7 @@ export async function connect (connectOptions: ConnectOptions) {
     bot.emit('end', '')
 
     miscUiState.disconnectedCleanup = {
-      callback () {
+      callback() {
         appViewer.resetBackend(true)
         localServer = window.localServer = window.server = undefined
         gameAdditionalState.viewerConnection = false
@@ -257,7 +259,7 @@ export async function connect (connectOptions: ConnectOptions) {
           bot._client.removeAllListeners()
           bot._client = {
             //@ts-expect-error
-            write (packetName) {
+            write(packetName) {
               console.warn('Tried to write packet', packetName, 'after bot was destroyed')
             }
           }
@@ -308,38 +310,51 @@ export async function connect (connectOptions: ConnectOptions) {
 
   // todo(hard): remove it!
   const errorAbortController = new AbortController()
-  window.addEventListener('unhandledrejection', (e) => {
-    if (e.reason.name === 'ServerPluginLoadFailure') {
-      if (confirm(`Failed to load server plugin ${e.reason.pluginName} (invoking ${e.reason.pluginMethod}). Continue?`)) {
+  window.addEventListener(
+    'unhandledrejection',
+    e => {
+      if (e.reason.name === 'ServerPluginLoadFailure') {
+        if (confirm(`Failed to load server plugin ${e.reason.pluginName} (invoking ${e.reason.pluginMethod}). Continue?`)) {
+          return
+        }
+      }
+      if (e.reason?.stack?.includes('chrome-extension://')) {
+        // ignore issues caused by chrome extension
         return
       }
+      handleError(e.reason, 'Unhandled promise rejection')
+    },
+    {
+      signal: errorAbortController.signal
     }
-    if (e.reason?.stack?.includes('chrome-extension://')) {
-      // ignore issues caused by chrome extension
-      return
+  )
+  window.addEventListener(
+    'error',
+    e => {
+      const statusAtError = appStatusState.status
+      setTimeout(() => {
+        if (appStatusState.status !== statusAtError || miscUiState.gameLoaded) return
+        handleError(e.error ?? e.message, 'Uncaught window error')
+      }, 10_000)
+    },
+    {
+      signal: errorAbortController.signal
     }
-    handleError(e.reason, 'Unhandled promise rejection')
-  }, {
-    signal: errorAbortController.signal
-  })
-  window.addEventListener('error', (e) => {
-    const statusAtError = appStatusState.status
-    setTimeout(() => {
-      if (appStatusState.status !== statusAtError || miscUiState.gameLoaded) return
-      handleError(e.error ?? e.message, 'Uncaught window error')
-    }, 10_000)
-  }, {
-    signal: errorAbortController.signal
-  })
+  )
 
   let clientDataStream: Duplex | undefined
 
   if (connectOptions.server && !connectOptions.viewerWsConnect && !parsedServer.isWebSocket) {
     console.log(`using proxy ${proxy.host}:${proxy.port || location.port}`)
-    net['setProxy']({ hostname: proxy.host, port: proxy.port, headers: { Authorization: `Bearer ${new URLSearchParams(location.search).get('token') ?? ''}` }, artificialDelay: appQueryParams.addPing ? Number(appQueryParams.addPing) : undefined })
+    net['setProxy']({
+      hostname: proxy.host,
+      port: proxy.port,
+      headers: { Authorization: `Bearer ${new URLSearchParams(location.search).get('token') ?? ''}` },
+      artificialDelay: appQueryParams.addPing ? Number(appQueryParams.addPing) : undefined
+    })
   }
 
-  let updateDataAfterJoin = () => { }
+  let updateDataAfterJoin = () => {}
   let localServer
   let localReplaySession: ReturnType<typeof startLocalReplayServer> | undefined
   let lastKnownKickReason = undefined as string | undefined
@@ -362,10 +377,7 @@ export async function connect (connectOptions: ConnectOptions) {
         progress.setSubStage('download-mcdata', `(${downloadingAssets.join(', ')})`)
       }
 
-      await Promise.all([
-        downloadAllMinecraftData(reportAssetDownload),
-        downloadOtherGameData(reportAssetDownload)
-      ])
+      await Promise.all([downloadAllMinecraftData(reportAssetDownload), downloadOtherGameData(reportAssetDownload)])
       loadingTimerState.networkOnlyStart = 0
     })
 
@@ -375,35 +387,26 @@ export async function connect (connectOptions: ConnectOptions) {
       dataDownloaded = true
       appViewer.resourcesManager.currentConfig = { version, texturesVersion: options.useVersionsTextures || undefined }
 
-      await progress.executeWithMessage(
-        'Processing downloaded Minecraft data',
-        async () => {
-          await loadMinecraftData(version)
-          await appViewer.resourcesManager.loadSourceData(version)
-        }
-      )
+      await progress.executeWithMessage('Processing downloaded Minecraft data', async () => {
+        await loadMinecraftData(version)
+        await appViewer.resourcesManager.loadSourceData(version)
+      })
 
-      await progress.executeWithMessage(
-        'Applying user-installed resource pack',
-        async () => {
-          try {
-            await resourcepackReload(true)
-          } catch (err) {
-            console.error(err)
-            const doContinue = confirm('Failed to apply texture pack. See errors in the console. Continue?')
-            if (!doContinue) {
-              throw err
-            }
+      await progress.executeWithMessage('Applying user-installed resource pack', async () => {
+        try {
+          await resourcepackReload(true)
+        } catch (err) {
+          console.error(err)
+          const doContinue = confirm('Failed to apply texture pack. See errors in the console. Continue?')
+          if (!doContinue) {
+            throw err
           }
         }
-      )
+      })
 
-      await progress.executeWithMessage(
-        'Preparing textures',
-        async () => {
-          await appViewer.resourcesManager.updateAssetsData({})
-        }
-      )
+      await progress.executeWithMessage('Preparing textures', async () => {
+        await appViewer.resourcesManager.updateAssetsData({})
+      })
     }
 
     let finalVersion = connectOptions.botVersion || (singleplayer ? serverOptions.version : undefined)
@@ -414,7 +417,9 @@ export async function connect (connectOptions: ConnectOptions) {
       const versionNum = versionToNumber(version)
       const thresholdNum = versionToNumber(FORBIDDEN_VERSION_THRESHOLD)
       if (versionNum >= thresholdNum) {
-        throw new UserError(`Version ${version} is not supported due to critical world display issues. Please use version ${FORBIDDEN_VERSION_THRESHOLD} or earlier.`)
+        throw new UserError(
+          `Version ${version} is not supported due to critical world display issues. Please use version ${FORBIDDEN_VERSION_THRESHOLD} or earlier.`
+        )
       }
     }
 
@@ -459,18 +464,15 @@ export async function connect (connectOptions: ConnectOptions) {
       // loadingScreen.maybeRecoverable = false
       // init world, todo: do it for any async plugins
       if (!localServer.pluginsReady) {
-        await progress.executeWithMessage(
-          'Starting local server',
-          async () => {
-            await new Promise(resolve => {
-              localServer.once('pluginsReady', resolve)
-            })
-          }
-        )
+        await progress.executeWithMessage('Starting local server', async () => {
+          await new Promise(resolve => {
+            localServer.once('pluginsReady', resolve)
+          })
+        })
       }
 
-      localServer.on('newPlayer', (player) => {
-        player.on('loadingStatus', (newStatus) => {
+      localServer.on('newPlayer', player => {
+        player.on('loadingStatus', newStatus => {
           progress.setMessage(newStatus)
         })
       })
@@ -515,10 +517,10 @@ export async function connect (connectOptions: ConnectOptions) {
       authData = await microsoftAuthflow({
         tokenCaches: cachedTokens,
         proxyBaseUrl: connectOptions.proxy,
-        setProgressText (text) {
+        setProgressText(text) {
           progress.setMessage(text)
         },
-        setCacheResult (result) {
+        setCacheResult(result) {
           newTokensCacheResult = result
         },
         connectingServer: server.host
@@ -562,68 +564,78 @@ export async function connect (connectOptions: ConnectOptions) {
       port: server.port ? +server.port : undefined,
       brand,
       version: finalVersion || false,
-      ...clientDataStream ? {
-        stream: clientDataStream as any,
-      } : {},
-      ...singleplayer || p2pMultiplayer || localReplaySession ? {
-        keepAlive: false,
-      } : {},
-      ...singleplayer ? {
-        version: serverOptions.version,
-        connect () { },
-        Client: CustomChannelClient as any,
-      } : {},
-      ...localReplaySession ? {
-        connect () { },
-        Client: CustomChannelClient as any,
-      } : {},
-      onMsaCode (data) {
+      ...(clientDataStream
+        ? {
+            stream: clientDataStream as any
+          }
+        : {}),
+      ...(singleplayer || p2pMultiplayer || localReplaySession
+        ? {
+            keepAlive: false
+          }
+        : {}),
+      ...(singleplayer
+        ? {
+            version: serverOptions.version,
+            connect() {},
+            Client: CustomChannelClient as any
+          }
+        : {}),
+      ...(localReplaySession
+        ? {
+            connect() {},
+            Client: CustomChannelClient as any
+          }
+        : {}),
+      onMsaCode(data) {
         signInMessageState.code = data.user_code
         signInMessageState.link = data.verification_uri
         signInMessageState.expiresOn = Date.now() + data.expires_in * 1000
       },
       sessionServer: authData?.sessionEndpoint?.toString(),
-      auth: connectOptions.authenticatedAccount ? async (client, options) => {
-        authData!.setOnMsaCodeCallback(options.onMsaCode)
-        authData?.setConnectingVersion(client.version)
-        //@ts-expect-error
-        client.authflow = authData!.authFlow
-        try {
-          signInMessageState.abortController = ref(new AbortController())
-          await Promise.race([
-            protocolMicrosoftAuth.authenticate(client, options),
-            new Promise((_r, reject) => {
-              signInMessageState.abortController.signal.addEventListener('abort', () => {
-                reject(new UserError('Aborted by user'))
-              })
-            })
-          ])
-          if (signInMessageState.shouldSaveToken) {
-            updateAuthenticatedAccountData(accounts => {
-              const existingAccount = accounts.find(a => a.username === client.username)
-              if (existingAccount) {
-                existingAccount.cachedTokens = { ...existingAccount.cachedTokens, ...newTokensCacheResult }
-              } else {
-                accounts.push({
-                  username: client.username,
-                  cachedTokens: { ...cachedTokens, ...newTokensCacheResult }
+      auth: connectOptions.authenticatedAccount
+        ? async (client, options) => {
+            authData!.setOnMsaCodeCallback(options.onMsaCode)
+            authData?.setConnectingVersion(client.version)
+            //@ts-expect-error
+            client.authflow = authData!.authFlow
+            try {
+              signInMessageState.abortController = ref(new AbortController())
+              await Promise.race([
+                protocolMicrosoftAuth.authenticate(client, options),
+                new Promise((_r, reject) => {
+                  signInMessageState.abortController.signal.addEventListener('abort', () => {
+                    reject(new UserError('Aborted by user'))
+                  })
                 })
+              ])
+              if (signInMessageState.shouldSaveToken) {
+                updateAuthenticatedAccountData(accounts => {
+                  const existingAccount = accounts.find(a => a.username === client.username)
+                  if (existingAccount) {
+                    existingAccount.cachedTokens = { ...existingAccount.cachedTokens, ...newTokensCacheResult }
+                  } else {
+                    accounts.push({
+                      username: client.username,
+                      cachedTokens: { ...cachedTokens, ...newTokensCacheResult }
+                    })
+                  }
+                  return accounts
+                })
+                updateDataAfterJoin = () => {
+                  updateLoadedServerData(s => ({ ...s, authenticatedAccountOverride: client.username }), connectOptions.serverIndex)
+                }
+              } else {
+                updateDataAfterJoin = () => {
+                  updateLoadedServerData(s => ({ ...s, authenticatedAccountOverride: undefined }), connectOptions.serverIndex)
+                }
               }
-              return accounts
-            })
-            updateDataAfterJoin = () => {
-              updateLoadedServerData(s => ({ ...s, authenticatedAccountOverride: client.username }), connectOptions.serverIndex)
-            }
-          } else {
-            updateDataAfterJoin = () => {
-              updateLoadedServerData(s => ({ ...s, authenticatedAccountOverride: undefined }), connectOptions.serverIndex)
+              setLoadingScreenStatus('Authentication successful. Logging in to server')
+            } finally {
+              signInMessageState.code = ''
             }
           }
-          setLoadingScreenStatus('Authentication successful. Logging in to server')
-        } finally {
-          signInMessageState.code = ''
-        }
-      } : undefined,
+        : undefined,
       username,
       viewDistance: renderDistance,
       checkTimeoutInterval: 240 * 1000,
@@ -631,7 +643,7 @@ export async function connect (connectOptions: ConnectOptions) {
       closeTimeout: 240 * 1000,
       respawn: options.autoRespawn,
       maxCatchupTicks: 0,
-      'mapDownloader-saveToFile': false,
+      'mapDownloader-saveToFile': false
       // "mapDownloader-saveInternal": false, // do not save into memory, todo must be implemeneted as we do really care of ram
     }) as unknown as typeof __type_bot
     window.bot = bot
@@ -645,7 +657,7 @@ export async function connect (connectOptions: ConnectOptions) {
       if (singleplayer || p2pMultiplayer) {
         // in case of p2pMultiplayer there is still flying-squid on the host side
         const _supportFeature = bot.supportFeature
-        bot.supportFeature = ((feature) => {
+        bot.supportFeature = (feature => {
           if (unsupportedLocalServerFeatures.includes(feature)) {
             return false
           }
@@ -661,7 +673,8 @@ export async function connect (connectOptions: ConnectOptions) {
     } else {
       const setupConnectHandlers = () => {
         bot._client.socket['handleStringMessage'] = function (message: string) {
-          if (message.startsWith('proxy-message') || message.startsWith('proxy-command:')) { // for future
+          if (message.startsWith('proxy-message') || message.startsWith('proxy-command:')) {
+            // for future
             return false
           }
           if (message.startsWith('proxy-shutdown:')) {
@@ -697,28 +710,31 @@ export async function connect (connectOptions: ConnectOptions) {
         setupConnectHandlers()
       } else {
         const originalSetSocket = bot._client.setSocket.bind(bot._client)
-        bot._client.setSocket = (socket) => {
+        bot._client.setSocket = socket => {
           if (!bot) return
           originalSetSocket(socket)
           setupConnectHandlers()
         }
       }
-
     }
   } catch (err) {
     handleError(err, 'Connection setup error')
   }
   if (!bot) return
 
-  const p2pConnectTimeout = p2pMultiplayer ? setTimeout(() => { throw new UserError('Spawn timeout. There might be error on the other side, check console.') }, 20_000) : undefined
+  const p2pConnectTimeout = p2pMultiplayer
+    ? setTimeout(() => {
+        throw new UserError('Spawn timeout. There might be error on the other side, check console.')
+      }, 20_000)
+    : undefined
 
   // bot.on('inject_allowed', () => {
   //   loadingScreen.maybeRecoverable = false
   // })
 
-  bot.on('error', (err) => handleError(err, 'Mineflayer error'))
+  bot.on('error', err => handleError(err, 'Mineflayer error'))
 
-  bot.on('kicked', (kickReason) => {
+  bot.on('kicked', kickReason => {
     console.log('You were kicked!', kickReason)
     const { formatted: kickReasonFormatted, plain: kickReasonString } = parseFormattedMessagePacket(kickReason)
     // close all modals
@@ -734,14 +750,14 @@ export async function connect (connectOptions: ConnectOptions) {
     lastPacket = fullBuffer.toString()
   }
   bot._client.on('packet', packetBeforePlay as any)
-  const playStateSwitch = (newState) => {
+  const playStateSwitch = newState => {
     if (newState === 'play') {
       bot._client.removeListener('packet', packetBeforePlay)
     }
   }
   bot._client.on('state', playStateSwitch)
 
-  bot.on('end', (endReason) => {
+  bot.on('end', endReason => {
     if (ended) return
     console.log('disconnected for', endReason)
     if (endReason === 'socketClosed') {
@@ -780,7 +796,7 @@ export async function connect (connectOptions: ConnectOptions) {
           resolve()
           unsub()
         } else {
-          const perc = Math.round(Object.keys(appViewer.rendererState.world.chunksLoaded).length / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
+          const perc = Math.round((Object.keys(appViewer.rendererState.world.chunksLoaded).length / appViewer.nonReactiveState.world.chunksTotalNumber) * 100)
           progress?.reportProgress('chunks', perc / 100)
         }
       })
@@ -842,7 +858,6 @@ export async function connect (connectOptions: ConnectOptions) {
         }, 500)
       }
 
-
       console.log('bot spawned - starting viewer')
       await appViewer.startWorld(bot.world, renderDistance)
       if (appViewer.backend) {
@@ -874,13 +889,9 @@ export async function connect (connectOptions: ConnectOptions) {
           return
         }
 
-        await progress.executeWithMessage(
-          'Loading chunks',
-          'chunks',
-          async () => {
-            await waitForChunksToLoad(progress)
-          }
-        )
+        await progress.executeWithMessage('Loading chunks', 'chunks', async () => {
+          await waitForChunksToLoad(progress)
+        })
       }
 
       await waitForChunks()
@@ -912,7 +923,9 @@ export async function connect (connectOptions: ConnectOptions) {
             // Create large arrays until we run out of memory
             // eslint-disable-next-line no-constant-condition
             while (true) {
-              const arr = Array.from({ length: 1024 * 1024 }).fill(0).map((_, i) => i)
+              const arr = Array.from({ length: 1024 * 1024 })
+                .fill(0)
+                .map((_, i) => i)
               arrays.push(arr)
             }
           } catch (e) {
@@ -954,8 +967,8 @@ export async function connect (connectOptions: ConnectOptions) {
 listenGlobalEvents()
 
 // #region fire click event on touch as we disable default behaviors
-let activeTouch: { touch: Touch, elem: HTMLElement, start: number } | undefined
-document.body.addEventListener('touchend', (e) => {
+let activeTouch: { touch: Touch; elem: HTMLElement; start: number } | undefined
+document.body.addEventListener('touchend', e => {
   if (!isGameActive(true)) return
   if (activeTouch?.touch.identifier !== e.changedTouches[0].identifier) return
   if (Date.now() - activeTouch.start > 500) {
@@ -965,26 +978,30 @@ document.body.addEventListener('touchend', (e) => {
   }
   activeTouch = undefined
 })
-document.body.addEventListener('touchstart', (e) => {
-  const targetElement = (e.target as HTMLElement).closest('#ui-root')
-  if (!isGameActive(true) || !targetElement) return
-  // we always prevent default behavior to disable magnifier on ios, but by doing so we also disable click events
-  e.preventDefault()
-  let firstClickable // todo remove composedPath and this workaround when lit-element is fully dropped
-  const path = e.composedPath() as Array<{ click?: () => void }>
-  for (const elem of path) {
-    if (elem.click) {
-      firstClickable = elem
-      break
+document.body.addEventListener(
+  'touchstart',
+  e => {
+    const targetElement = (e.target as HTMLElement).closest('#ui-root')
+    if (!isGameActive(true) || !targetElement) return
+    // we always prevent default behavior to disable magnifier on ios, but by doing so we also disable click events
+    e.preventDefault()
+    let firstClickable // todo remove composedPath and this workaround when lit-element is fully dropped
+    const path = e.composedPath() as Array<{ click?: () => void }>
+    for (const elem of path) {
+      if (elem.click) {
+        firstClickable = elem
+        break
+      }
     }
-  }
-  if (!firstClickable) return
-  activeTouch = {
-    touch: e.touches[0],
-    elem: firstClickable,
-    start: Date.now(),
-  }
-}, { passive: false })
+    if (!firstClickable) return
+    activeTouch = {
+      touch: e.touches[0],
+      elem: firstClickable,
+      start: Date.now()
+    }
+  },
+  { passive: false }
+)
 // #endregion
 
 // immediate game enter actions: reconnect or URL QS
@@ -1031,10 +1048,13 @@ const maybeEnterGame = () => {
 
   if (appQueryParams.singleplayer === '1' || appQueryParams.sp === '1') {
     return waitForConfigFsLoad(async () => {
-      loadSingleplayer({}, {
-        worldFolder: undefined,
-        ...appQueryParams.version ? { version: appQueryParams.version } : {}
-      })
+      loadSingleplayer(
+        {},
+        {
+          worldFolder: undefined,
+          ...(appQueryParams.version ? { version: appQueryParams.version } : {})
+        }
+      )
     })
   }
   if (appQueryParams.loadSave) {
@@ -1057,7 +1077,7 @@ const maybeEnterGame = () => {
           server: appQueryParams.ip,
           proxy: getCurrentProxy(),
           botVersion: appQueryParams.version ?? undefined,
-          username: getCurrentUsername()!,
+          username: getCurrentUsername()!
         })
         return
       }
@@ -1093,13 +1113,12 @@ const maybeEnterGame = () => {
       peerOptions
     })
     return
-
   }
 
   if (appQueryParams.viewerConnect) {
     void connect({
       username: `viewer-${Math.random().toString(36).slice(2, 10)}`,
-      viewerWsConnect: appQueryParams.viewerConnect,
+      viewerWsConnect: appQueryParams.viewerConnect
     })
     return
   }

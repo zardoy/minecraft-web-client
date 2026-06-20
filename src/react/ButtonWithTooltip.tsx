@@ -21,7 +21,7 @@ export default ({ initialTooltip, alwaysTooltip, ...args }: Props) => {
 
   useEffect(() => {
     let timeout
-    function hide () {
+    function hide() {
       if (!localStorageKey) return
       localStorage[localStorageKey] = 'false'
       setShowTooltips(false)
@@ -46,30 +46,32 @@ export default ({ initialTooltip, alwaysTooltip, ...args }: Props) => {
       arrow({
         element: arrowRef
       }),
-      offsetMiddleware(ARROW_HEIGHT + GAP + offset),
+      offsetMiddleware(ARROW_HEIGHT + GAP + offset)
     ],
-    placement: initialTooltip.placement,
+    placement: initialTooltip.placement
   })
 
-  return <>
-    <Button {...args} rootRef={refs.setReference} />
-    <div
-      ref={refs.setFloating}
-      style={{
-        ...floatingStyles,
-        background: 'rgba(0, 0, 0, 0.3)',
-        fontSize: 8,
-        pointerEvents: 'none',
-        userSelect: 'text',
-        padding: '2px 4px',
-        opacity: showTooltips ? 1 : 0,
-        transition: 'opacity 0.3s ease-in-out',
-        textShadow: '1px 1px 2px BLACK',
-        zIndex: 11
-      }}
-    >
-      {alwaysTooltip || initialTooltip.content}
-      <FloatingArrow ref={arrowRef} context={context} style={{ opacity: 0.7 }} />
-    </div>
-  </>
+  return (
+    <>
+      <Button {...args} rootRef={refs.setReference} />
+      <div
+        ref={refs.setFloating}
+        style={{
+          ...floatingStyles,
+          background: 'rgba(0, 0, 0, 0.3)',
+          fontSize: 8,
+          pointerEvents: 'none',
+          userSelect: 'text',
+          padding: '2px 4px',
+          opacity: showTooltips ? 1 : 0,
+          transition: 'opacity 0.3s ease-in-out',
+          textShadow: '1px 1px 2px BLACK',
+          zIndex: 11
+        }}
+      >
+        {alwaysTooltip || initialTooltip.content}
+        <FloatingArrow ref={arrowRef} context={context} style={{ opacity: 0.7 }} />
+      </div>
+    </>
+  )
 }

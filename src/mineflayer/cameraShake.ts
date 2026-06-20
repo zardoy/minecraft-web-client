@@ -1,7 +1,7 @@
 import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 
 customEvents.on('mineflayerBotCreated', () => {
-  customEvents.on('hurtAnimation', (yaw) => {
+  customEvents.on('hurtAnimation', yaw => {
     getThreeJsRendererMethods()?.shakeFromDamage()
   })
 

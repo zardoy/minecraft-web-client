@@ -30,7 +30,7 @@ const FullscreenTime = () => {
   const { topRightTimeDisplay } = useSnapshot(options)
   const { fullscreen } = useSnapshot(miscUiState)
   const [time, setTime] = useState('')
-  const [batteryInfo, setBatteryInfo] = useState<{ level: number, charging: boolean } | null>(null)
+  const [batteryInfo, setBatteryInfo] = useState<{ level: number; charging: boolean } | null>(null)
 
   useEffect(() => {
     // Update time every second
@@ -71,7 +71,7 @@ const FullscreenTime = () => {
 
   return (
     <div
-      className='top-right-time'
+      className="top-right-time"
       style={{
         position: 'fixed',
         top: 'env(safe-area-inset-top, 5px)',
@@ -92,10 +92,7 @@ const FullscreenTime = () => {
       <span>{time}</span>
       {batteryInfo && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-          <PixelartIcon
-            iconName={getBatteryIcon(batteryInfo.level, batteryInfo.charging)}
-            styles={{ fontSize: 10 }}
-          />
+          <PixelartIcon iconName={getBatteryIcon(batteryInfo.level, batteryInfo.charging)} styles={{ fontSize: 10 }} />
           <span>{batteryInfo.level}%</span>
         </div>
       )}

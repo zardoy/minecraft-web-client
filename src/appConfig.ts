@@ -36,7 +36,7 @@ export type AppConfig = {
   // defaultVersion?: string
   peerJsServer?: string
   peerJsServerFallback?: string
-  promoteServers?: Array<{ ip, description, name?, version?, }>
+  promoteServers?: Array<{ ip; description; name?; version? }>
   mapsProvider?: string
 
   appParams?: Record<string, any> // query string params
@@ -73,12 +73,12 @@ export type AppConfig = {
 
 let watermarkEl: HTMLDivElement | null = null
 
-function dismissWatermark () {
+function dismissWatermark() {
   watermarkEl?.remove()
   watermarkEl = null
 }
 
-function watermarkTextFromConfig (cfg: AppConfig | undefined) {
+function watermarkTextFromConfig(cfg: AppConfig | undefined) {
   const parts: string[] = []
   const w = cfg?.watermark?.trim()
   if (w) parts.push(w)
@@ -88,7 +88,7 @@ function watermarkTextFromConfig (cfg: AppConfig | undefined) {
   return parts.length ? parts.join('\n') : ''
 }
 
-function setWatermarkFromConfig (cfg: AppConfig | undefined) {
+function setWatermarkFromConfig(cfg: AppConfig | undefined) {
   const text = watermarkTextFromConfig(cfg)
   if (!text) {
     watermarkEl?.remove()
@@ -107,7 +107,6 @@ function setWatermarkFromConfig (cfg: AppConfig | undefined) {
 }
 
 export const loadAppConfig = (appConfig: AppConfig) => {
-
   if (miscUiState.appConfig) {
     Object.assign(miscUiState.appConfig, appConfig)
   } else {
@@ -143,13 +142,20 @@ export const loadAppConfig = (appConfig: AppConfig) => {
 export const isBundledConfigUsed = !!process.env.INLINED_APP_CONFIG
 
 if (isBundledConfigUsed) {
-  loadAppConfig(process.env.INLINED_APP_CONFIG as AppConfig ?? {})
+  loadAppConfig((process.env.INLINED_APP_CONFIG as AppConfig) ?? {})
 } else {
-  void window.fetch('config.json').then(async res => res.json()).then(c => c, (error) => {
-  // console.warn('Failed to load optional app config.json', error)
-  // return {}
-    setLoadingScreenStatus('Failed to load app config.json', true)
-  }).then((config: AppConfig) => {
-    loadAppConfig(config)
-  })
+  void window
+    .fetch('config.json')
+    .then(async res => res.json())
+    .then(
+      c => c,
+      error => {
+        // console.warn('Failed to load optional app config.json', error)
+        // return {}
+        setLoadingScreenStatus('Failed to load app config.json', true)
+      }
+    )
+    .then((config: AppConfig) => {
+      loadAppConfig(config)
+    })
 }

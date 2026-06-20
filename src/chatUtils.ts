@@ -104,16 +104,18 @@ export const formatMessage = (message: MessageInput, mcData: IndexedData = globa
 
   readMsg(message)
 
-  const flat = (msg) => {
+  const flat = msg => {
     return [msg, msg.extra?.flatMap(flat) ?? []]
   }
 
-  msglist = msglist.map(msg => {
-    // normalize §
-    if (!msg.text.includes?.('§')) return msg
-    const newMsg = fromFormattedString(msg.text)
-    return flat(newMsg)
-  }).flat(Infinity)
+  msglist = msglist
+    .map(msg => {
+      // normalize §
+      if (!msg.text.includes?.('§')) return msg
+      const newMsg = fromFormattedString(msg.text)
+      return flat(newMsg)
+    })
+    .flat(Infinity)
 
   return msglist
 }
@@ -138,7 +140,7 @@ export const getItemFromBlock = (block: import('prismarine-block').Block) => {
   return item
 }
 
-export function isAllowedChatCharacter (char: string): boolean {
+export function isAllowedChatCharacter(char: string): boolean {
   // if (char.length !== 1) {
   //   throw new Error('Input must be a single character')
   // }

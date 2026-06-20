@@ -21,14 +21,16 @@ import { enrichItemStack } from './react/inventory/sharedConnectorSetup'
 let PrismarineItem: typeof Item
 
 export const jeiCustomCategories = proxy({
-  value: [] as Array<{ id: string, categoryTitle: string, items: any[] }>
+  value: [] as Array<{ id: string; categoryTitle: string; items: any[] }>
 })
 
 let remotePlayerSkin: string | undefined | Promise<string>
 
 // ----- JEI items cache -----
 let jeiItemsCache: JEIItem[] | null = null
-const clearJeiItemsCache = () => { jeiItemsCache = null }
+const clearJeiItemsCache = () => {
+  jeiItemsCache = null
+}
 subscribe(jeiCustomCategories, clearJeiItemsCache)
 
 const modalCloseCallbacks: Array<() => void> = []
@@ -78,12 +80,12 @@ export const onGameLoad = () => {
       generic_5x1: 'hopper',
       generic_3x3: 'dispenser',
       crafting: 'crafting_table',
-      crafting3x3: 'crafting_table',
+      crafting3x3: 'crafting_table'
     }
     return remap[stripped] ?? stripped
   }
 
-  bot.on('windowOpen', (win) => {
+  bot.on('windowOpen', win => {
     const mappedType = mapWindowType(win.type as string, win.inventoryStart)
     const isImplemented = !!getInventoryType(mappedType)
 
@@ -93,7 +95,12 @@ export const onGameLoad = () => {
       }
       showModal({ reactType: `player_win:${isImplemented ? mappedType : 'chest'}` })
     } else {
-      displayClientChat(`[client error] cannot open unimplemented window ${(win as any).id} (${win.type}). Slots: ${win.slots.map(item => getItemName(item as any)).filter(Boolean).join(', ')}`)
+      displayClientChat(
+        `[client error] cannot open unimplemented window ${(win as any).id} (${win.type}). Slots: ${win.slots
+          .map(item => getItemName(item as any))
+          .filter(Boolean)
+          .join(', ')}`
+      )
       displayClientChat('You can help us fix it! Open a pull request adding support for it on https://github.com/zardoy/minecraft-inventory')
       bot.currentWindow?.['close']()
     }
@@ -146,8 +153,14 @@ export const onGameLoad = () => {
 
   if (!appViewer.resourcesManager['_inventoryChangeTracked']) {
     appViewer.resourcesManager['_inventoryChangeTracked'] = true
-    appViewer.resourcesManager.on('assetsInventoryReady', () => { clearJeiItemsCache(); clearInventoryCaches() })
-    appViewer.resourcesManager.on('assetsTexturesUpdated', () => { clearJeiItemsCache(); clearInventoryCaches() })
+    appViewer.resourcesManager.on('assetsInventoryReady', () => {
+      clearJeiItemsCache()
+      clearInventoryCaches()
+    })
+    appViewer.resourcesManager.on('assetsTexturesUpdated', () => {
+      clearJeiItemsCache()
+      clearInventoryCaches()
+    })
   }
 }
 
@@ -206,7 +219,7 @@ const getResultingRecipe = (slots: Array<Item | null>, gridRows: number) => {
   return item
 }
 
-const ingredientToItem = (recipeItem) => (recipeItem === null ? null : new PrismarineItem(recipeItem, 1))
+const ingredientToItem = recipeItem => (recipeItem === null ? null : new PrismarineItem(recipeItem, 1))
 
 // Legacy format used by openItemsCanvas / HotbarRenderApp
 // const getAllItemRecipesLegacy = (itemName: string) => {
@@ -330,7 +343,9 @@ export const getItemRecipes = (itemName: string): RecipeGuide[] => {
 
     if ('ingredients' in recipe && recipe.ingredients) {
       const grid: Array<InventoryItemStack | null> = Array.from({ length: 9 }, () => null)
-      for (const [i, id] of recipe.ingredients.slice(0, 9).entries()) { grid[i] = idToItemStack(id as number | null | undefined) }
+      for (const [i, id] of recipe.ingredients.slice(0, 9).entries()) {
+        grid[i] = idToItemStack(id as number | null | undefined)
+      }
       guides.push({ type: 'crafting', title: resultData.displayName, description: 'Shapeless', ingredients: grid, result: resultStack })
     }
   }
@@ -372,16 +387,18 @@ export const getJeiItems = (): JEIItem[] => {
   if (jeiItemsCache) return jeiItemsCache
   if (!PrismarineItem) return []
 
-  const customItems: JEIItem[] = jeiCustomCategories.value.flatMap(cat => (cat.items).filter(Boolean).map(item => ({
-    type: item.type ?? item.id ?? 0,
-    name: item.name ?? '',
-    displayName: getItemName(item) ?? item.displayName ?? item.name ?? '',
-  })))
+  const customItems: JEIItem[] = jeiCustomCategories.value.flatMap(cat =>
+    cat.items.filter(Boolean).map(item => ({
+      type: item.type ?? item.id ?? 0,
+      name: item.name ?? '',
+      displayName: getItemName(item) ?? item.displayName ?? item.name ?? ''
+    }))
+  )
 
   const vanillaItems: JEIItem[] = loadedData.itemsArray.map(item => ({
     type: item.id,
     name: item.name,
-    displayName: item.displayName,
+    displayName: item.displayName
   }))
 
   const allItems = [...customItems, ...vanillaItems]

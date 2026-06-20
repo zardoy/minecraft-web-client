@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import ButtonWithTooltip from './ButtonWithTooltip'
 
 const meta: Meta<typeof ButtonWithTooltip> = {
-  component: ButtonWithTooltip,
+  component: ButtonWithTooltip
 }
 
 export default meta
@@ -14,7 +14,7 @@ export const Primary: Story = {
     label: 'test',
     initialTooltip: {
       content: 'hi there',
-      localStorageKey: null,
-    },
-  },
+      localStorageKey: null
+    }
+  }
 }

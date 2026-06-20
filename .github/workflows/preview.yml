@@ -51,7 +51,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "pnpm"
+          cache: 'pnpm'
       - name: Get PR body for issue_comment events
         if: github.event_name == 'issue_comment'
         uses: actions/github-script@v7

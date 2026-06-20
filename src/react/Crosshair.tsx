@@ -24,7 +24,7 @@ export default () => {
       const displayBar = (item: import('prismarine-item').Item | null) => {
         const itemName = item?.name
         if (!itemName) return
-        return loadedData.foodsArray.map((food) => food.name).includes(itemName) || itemName === 'bow' || itemName === 'shield' || itemName === 'crossbow'
+        return loadedData.foodsArray.map(food => food.name).includes(itemName) || itemName === 'bow' || itemName === 'shield' || itemName === 'crossbow'
       }
       setDisplayIndicator(displayBar(bot.heldItem) || displayBar(bot.inventory.slots[45]) || false)
     })
@@ -38,7 +38,7 @@ export default () => {
     if (usingItem === 'bow' || usingItem === 'crossbow') {
       maxTime = 1000
     }
-    const isFood = loadedData.foodsArray.some((food) => food.name === usingItem)
+    const isFood = loadedData.foodsArray.some(food => food.name === usingItem)
     if (isFood) {
       maxTime = 32 * 50
     }
@@ -58,15 +58,20 @@ export default () => {
     }
   }, [usingItem])
 
-  return <SharedHudVars>
-    <div className='crosshair' />
-    {displayIndicator && <div
-      className='crosshair-indicator' style={{
-      //@ts-expect-error
-        '--crosshair-indicator-size': `${indicatorSize}px`,
-        borderLeft: `solid ${indicatorSize * indicatorProgress}px white`,
-        backgroundColor: alternativeIndicator ? 'dodgerblue' : undefined,
-      }}
-    />}
-  </SharedHudVars>
+  return (
+    <SharedHudVars>
+      <div className="crosshair" />
+      {displayIndicator && (
+        <div
+          className="crosshair-indicator"
+          style={{
+            //@ts-expect-error
+            '--crosshair-indicator-size': `${indicatorSize}px`,
+            borderLeft: `solid ${indicatorSize * indicatorProgress}px white`,
+            backgroundColor: alternativeIndicator ? 'dodgerblue' : undefined
+          }}
+        />
+      )}
+    </SharedHudVars>
+  )
 }

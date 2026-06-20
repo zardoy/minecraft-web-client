@@ -2,9 +2,8 @@ import * as crypto from 'crypto'
 import UUID from 'uuid-1345'
 import { fsState } from './loadSave'
 
-
 // https://github.com/PrismarineJS/node-minecraft-protocol/blob/cf1f67117d586b5e6e21f0d9602da12e9fcf46b6/src/server/login.js#L170
-function javaUUID (s: string) {
+function javaUUID(s: string) {
   const hash = crypto.createHash('md5')
   hash.update(s, 'utf8')
   const buffer = hash.digest()
@@ -13,11 +12,11 @@ function javaUUID (s: string) {
   return buffer
 }
 
-export function nameToMcOfflineUUID (name) {
-  return (new UUID(javaUUID('OfflinePlayer:' + name))).toString()
+export function nameToMcOfflineUUID(name) {
+  return new UUID(javaUUID('OfflinePlayer:' + name)).toString()
 }
 
-export async function savePlayers (autoSave: boolean) {
+export async function savePlayers(autoSave: boolean) {
   if (!localServer?.players[0]) return
   if (autoSave && new URL(location.href).searchParams.get('noSave') === 'true') return
   //@ts-expect-error TODO

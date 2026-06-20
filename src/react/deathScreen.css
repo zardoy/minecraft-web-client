@@ -1,33 +1,33 @@
 .deathScreen-container {
-    position: fixed;
-    inset: 0;
-    background: rgba(255, 0, 0, 0.5);
-    z-index: 10;
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 0, 0, 0.5);
+  z-index: 10;
 }
 
 .deathScreen {
-    position: fixed;
-    top: 20%;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  position: fixed;
+  top: 20%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .deathScreen-title {
-    color: white;
-    margin-bottom: 10px;
+  color: white;
+  margin-bottom: 10px;
 }
 
 .deathScreen-reason {
-    color: white;
-    margin-bottom: 20px;
-    font-weight: normal;
+  color: white;
+  margin-bottom: 20px;
+  font-weight: normal;
 }
 
 .deathScreen-buttons-grouped {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }

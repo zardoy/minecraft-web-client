@@ -11,15 +11,7 @@ interface Props {
   serverPacketsAutocomplete: string[]
 }
 
-export default function FilterInput ({
-  value,
-  onChange,
-  hiddenCount,
-  shownCount,
-  onClearFilter,
-  clientPacketsAutocomplete,
-  serverPacketsAutocomplete
-}: Props) {
+export default function FilterInput({ value, onChange, hiddenCount, shownCount, onClearFilter, clientPacketsAutocomplete, serverPacketsAutocomplete }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [showAutocomplete, setShowAutocomplete] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -30,9 +22,7 @@ export default function FilterInput ({
   ].sort((a, b) => a.name.localeCompare(b.name))
 
   const currentWord = value.split(/,\s*/).pop() || ''
-  const filteredSuggestions = allSuggestions.filter(
-    ({ name }) => name.toLowerCase().includes(currentWord.toLowerCase().replace(/^\$/, ''))
-  )
+  const filteredSuggestions = allSuggestions.filter(({ name }) => name.toLowerCase().includes(currentWord.toLowerCase().replace(/^\$/, '')))
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -92,19 +82,21 @@ export default function FilterInput ({
           }}
         />
         {showAutocomplete && filteredSuggestions.length > 0 && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            backgroundColor: DARK_COLORS.bg,
-            border: `1px solid ${DARK_COLORS.border}`,
-            borderRadius: '4px',
-            marginTop: '4px',
-            maxHeight: '200px',
-            overflowY: 'auto',
-            zIndex: 1
-          }}>
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              backgroundColor: DARK_COLORS.bg,
+              border: `1px solid ${DARK_COLORS.border}`,
+              borderRadius: '4px',
+              marginTop: '4px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              zIndex: 1
+            }}
+          >
             {filteredSuggestions.map(({ name, isClient }, index) => (
               <div
                 key={name}
@@ -122,24 +114,28 @@ export default function FilterInput ({
           </div>
         )}
       </div>
-      <div style={{
-        marginTop: '4px',
-        fontSize: '12px',
-        color: DARK_COLORS.textDim,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px'
-      }}>
+      <div
+        style={{
+          marginTop: '4px',
+          fontSize: '12px',
+          color: DARK_COLORS.textDim,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}
+      >
         <span>Showing: {shownCount}</span>
         <span>•</span>
         <span>Hidden: {hiddenCount}</span>
 
-        <div style={{
-          opacity: value ? 1 : 0,
-          gap: '4px',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
+        <div
+          style={{
+            opacity: value ? 1 : 0,
+            gap: '4px',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
           <span>•</span>
           <button
             onClick={onClearFilter}
@@ -149,13 +145,12 @@ export default function FilterInput ({
               padding: 0,
               color: DARK_COLORS.text,
               cursor: 'pointer',
-              textDecoration: 'underline',
+              textDecoration: 'underline'
             }}
           >
             clear all
           </button>
         </div>
-
       </div>
     </div>
   )

@@ -21,7 +21,8 @@ interface ActiveMonitor {
   cleanup: () => void
 }
 
-const FAILURE_REGEX = /wrong password|incorrect password|invalid password|wrong username|login failed|access denied|old password is wrong|неверн|неправильн|пароль[^а-яё]*невер/i
+const FAILURE_REGEX =
+  /wrong password|incorrect password|invalid password|wrong username|login failed|access denied|old password is wrong|неверн|неправильн|пароль[^а-яё]*невер/i
 const SUCCESS_REGEX = /password changed|password successfully updated|account removed|пароль изменён|аккаунт удалён/i
 
 let activeMonitor: ActiveMonitor | undefined
@@ -31,7 +32,7 @@ export const isLoginMonitorActive = (): boolean => activeMonitor !== undefined
 const extractText = (message: any): string => {
   try {
     const parts = formatMessage(message)
-    return parts.map((p) => p.text ?? '').join('')
+    return parts.map(p => p.text ?? '').join('')
   } catch {
     if (typeof message === 'string') return message
     return ''
@@ -73,7 +74,7 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
   const localBot = bot
   let finished = false
   let timer: ReturnType<typeof setTimeout> | undefined
-  const monitorRef: ActiveMonitor = { cleanup () {} }
+  const monitorRef: ActiveMonitor = { cleanup() {} }
 
   const cleanup = () => {
     if (timer !== undefined) {
@@ -96,24 +97,30 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     cleanup()
 
     if (opts.preSaved && opts.mode !== 'unregister') {
-      try { clearServerPassword() } catch (err) { console.error('clearServerPassword failed', err) }
+      try {
+        clearServerPassword()
+      } catch (err) {
+        console.error('clearServerPassword failed', err)
+      }
     }
 
     const subtitle = opts.preSaved && opts.mode !== 'unregister' ? 'Saved password was cleared' : 'Try again'
-    const title = opts.mode === 'changepassword' ? 'Auto-fill: password change failed'
-      : opts.mode === 'unregister' ? 'Auto-fill: unregister failed'
-        : 'Auto-fill login: wrong password'
+    const title =
+      opts.mode === 'changepassword'
+        ? 'Auto-fill: password change failed'
+        : opts.mode === 'unregister'
+          ? 'Auto-fill: unregister failed'
+          : 'Auto-fill login: wrong password'
     showNotification(title, subtitle, true)
 
     if (opts.source === 'modal' && opts.serverIp && opts.username && opts.mode !== 'unregister') {
       const { serverIp, username, mode } = opts
       setTimeout(() => {
-        void showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword: findServerPassword() })
-          .then(result => {
-            if (!result?.password) return
-            if (mode === 'changepassword' && !result.newPassword) return
-            runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
-          })
+        void showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword: findServerPassword() }).then(result => {
+          if (!result?.password) return
+          if (mode === 'changepassword' && !result.newPassword) return
+          runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
+        })
       }, 50)
     }
   }
@@ -124,7 +131,11 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     cleanup()
 
     if (opts.mode === 'unregister') {
-      try { clearServerPassword() } catch (err) { console.error('clearServerPassword failed', err) }
+      try {
+        clearServerPassword()
+      } catch (err) {
+        console.error('clearServerPassword failed', err)
+      }
       showNotification('Account unregistered', 'Saved password was removed', false)
       return
     }
@@ -142,7 +153,7 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     }
   }
 
-  function messageListener (message: any) {
+  function messageListener(message: any) {
     const text = extractText(message)
     if (!text) return
     if (FAILURE_REGEX.test(text)) {
@@ -154,7 +165,7 @@ export const monitorLoginAttempt = (opts: MonitorOptions): void => {
     }
   }
 
-  function kickListener () {
+  function kickListener() {
     onFailure()
   }
 

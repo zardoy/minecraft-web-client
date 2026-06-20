@@ -7,10 +7,7 @@ import { miscUiState } from './globalState'
 import { watchOptionsAfterViewerInit } from './watchOptions'
 import { showNotification } from './react/NotificationProvider'
 
-export const appGraphicBackends = [
-  createGraphicsBackendSingleThread,
-  createGraphicsBackendOffThread,
-]
+export const appGraphicBackends = [createGraphicsBackendSingleThread, createGraphicsBackendOffThread]
 
 export const getCurrentGraphicsBackend = () => {
   const id = options.activeRenderer === 'auto' ? appGraphicBackends[0].id : options.activeRenderer

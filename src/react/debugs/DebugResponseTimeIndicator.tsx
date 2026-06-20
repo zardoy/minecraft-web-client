@@ -26,7 +26,5 @@ export default () => {
 
   if (!('debugResponseTimeIndicator' in options) || !options.debugResponseTimeIndicator) return null
 
-  return isPointerDown ? (
-    <div className={styles.debugResponseTimeIndicator} />
-  ) : null
+  return isPointerDown ? <div className={styles.debugResponseTimeIndicator} /> : null
 }

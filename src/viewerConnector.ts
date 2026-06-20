@@ -21,13 +21,16 @@ export const viewerVersionState = proxy({
 })
 
 class CustomDuplex extends Duplex {
-  constructor (options, public writeAction) {
+  constructor(
+    options,
+    public writeAction
+  ) {
     super(options)
   }
 
-  override _read () {}
+  override _read() {}
 
-  override _write (chunk, encoding, callback) {
+  override _write(chunk, encoding, callback) {
     this.writeAction(chunk)
     callback()
   }
@@ -38,15 +41,15 @@ export const getViewerVersionData = async (url: string) => {
   ws.send('version')
   const result = await new Promise<{
     version: string
-    time: number,
-    replEnabled: boolean,
-    consoleEnabled: boolean,
-    requiresPass: boolean,
-    forwardChat: boolean,
+    time: number
+    replEnabled: boolean
+    consoleEnabled: boolean
+    requiresPass: boolean
+    forwardChat: boolean
     clientIgnoredPackets?: string[]
     takeoverMode?: boolean
   }>((resolve, reject) => {
-    ws.addEventListener('message', async (message) => {
+    ws.addEventListener('message', async message => {
       const { data } = message
       const parsed = JSON.parse(data.toString())
       resolve(parsed)
@@ -79,8 +82,8 @@ const openWebsocket = async (url: string) => {
   const ws = new WebSocket(url)
   await new Promise<void>((resolve, reject) => {
     ws.onopen = () => resolve()
-    ws.onerror = (err) => reject(new Error(`[websocket] Failed to connect to ${url}`))
-    ws.onclose = (ev) => reject(ev.reason)
+    ws.onerror = err => reject(new Error(`[websocket] Failed to connect to ${url}`))
+    ws.onclose = ev => reject(ev.reason)
   })
   return ws
 }
@@ -93,7 +96,7 @@ export const getWsProtocolStream = async (url: string) => {
   })
   // todo use keep alive instead?
   let lastMessageTime = performance.now()
-  ws.addEventListener('message', async (message) => {
+  ws.addEventListener('message', async message => {
     let { data } = message
     if (data instanceof Blob) {
       data = await data.arrayBuffer()
@@ -147,7 +150,7 @@ const handleCustomChannel = () => {
   }
 
   // Set up console execution handler
-  mineflayerConsoleState.onExecute = (code) => {
+  mineflayerConsoleState.onExecute = code => {
     send({
       type: 'eval',
       code
@@ -155,7 +158,7 @@ const handleCustomChannel = () => {
   }
 
   const on = (callback: (data: CustomChannelPacketFromServer) => void) => {
-    bot._client.on(CHANNEL_NAME as any, (data) => {
+    bot._client.on(CHANNEL_NAME as any, data => {
       const parsed = JSON.parse(data.toString())
       callback(parsed)
     })
@@ -163,7 +166,7 @@ const handleCustomChannel = () => {
 
   const lils = {} as Record<string, Gui.GUI>
 
-  on((data) => {
+  on(data => {
     switch (data.type) {
       case 'eval': {
         // Handle eval results
@@ -209,7 +212,7 @@ const handleCustomChannel = () => {
             delete lils[update.id]
           }
         } else {
-        // Add or update UI element
+          // Add or update UI element
           const existingIndex = mineflayerPluginHudState.ui.findIndex(ui => ui.id === update.id)
           if (existingIndex === -1) {
             mineflayerPluginHudState.ui.push({ ...update.data, id: update.id })
@@ -221,7 +224,7 @@ const handleCustomChannel = () => {
             let gui = lils[update.id]
             if (!gui) {
               gui = new Gui.GUI({
-                title: update.data.title,
+                title: update.data.title
               })
               lils[update.id] = gui
             }
@@ -252,7 +255,7 @@ const handleCustomChannel = () => {
                 const obj = { [paramName]: value }
                 const controller = gui.add(obj, paramName)
                 if (!buttons?.includes(paramName)) {
-                  controller.onChange((value) => {
+                  controller.onChange(value => {
                     send({
                       type: 'ui',
                       id: update.id,

@@ -9,10 +9,10 @@ const customResolver = () => {
   let resolvedData
   return {
     ...resolver,
-    get resolvedData () {
+    get resolvedData() {
       return resolvedData
     },
-    resolve (data) {
+    resolve(data) {
       resolver.resolve(data)
       resolvedData = data
     }
@@ -75,18 +75,24 @@ const possiblyGetFromCache = (version: string) => {
   cacheTime.set(version, Date.now())
   return data
 }
-window.allLoadedMcData = new Proxy({}, {
-  get (t, version: string) {
-    // special properties like $typeof
-    if (version.includes('$')) return
-    // todo enumerate all props
-    return new Proxy({}, {
-      get (target, prop) {
-        return possiblyGetFromCache(version)[prop]
-      },
-    })
+window.allLoadedMcData = new Proxy(
+  {},
+  {
+    get(t, version: string) {
+      // special properties like $typeof
+      if (version.includes('$')) return
+      // todo enumerate all props
+      return new Proxy(
+        {},
+        {
+          get(target, prop) {
+            return possiblyGetFromCache(version)[prop]
+          }
+        }
+      )
+    }
   }
-})
+)
 
 setInterval(() => {
   const now = Date.now()

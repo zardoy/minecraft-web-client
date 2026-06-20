@@ -3,15 +3,14 @@ import SignInMessage from './SignInMessage'
 
 const meta: Meta<{ open }> = {
   component: SignInMessage as any,
-  render ({ open }) {
+  render({ open }) {
     return <SignInMessage />
-  },
+  }
 }
 
 export default meta
 type Story = StoryObj<{ open }>
 
 export const Primary: Story = {
-  args: {
-  },
+  args: {}
 }

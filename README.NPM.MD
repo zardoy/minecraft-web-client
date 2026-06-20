@@ -21,7 +21,7 @@ const App = () => {
       items={[
         { name: 'Player 1', value: 10 },
         { name: 'Player 2', value: 20 },
-        { name: 'Player 3', value: 30 },
+        { name: 'Player 3', value: 30 }
       ]}
     />
   )

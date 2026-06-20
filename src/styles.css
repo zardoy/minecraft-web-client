@@ -11,7 +11,7 @@
   padding: 6px 10px;
   font-size: 12px;
   line-height: 1.35;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   color: rgba(255, 255, 255, 0.92);
   background: rgba(0, 0, 0, 0.7);
   border-radius: 4px;
@@ -147,7 +147,7 @@ body {
 }
 
 /* todo move from here */
-[data-name="TouchMovementArea"] {
+[data-name='TouchMovementArea'] {
   /* padding-left: calc(env(safe-area-inset-left) / 2);
   padding-right: calc(env(safe-area-inset-right) / 2);
   padding-bottom: calc(env(safe-area-inset-bottom) / 2); */
@@ -155,16 +155,16 @@ body {
   --border: none;
 }
 
-[data-name="TouchMovementArea"]:first-child {
+[data-name='TouchMovementArea']:first-child {
   --border: 1px solid rgba(255, 255, 255, 0.1);
   margin-right: 0;
 }
 
-[data-name="TouchMovementArea"]:last-child {
+[data-name='TouchMovementArea']:last-child {
   margin-left: 0;
 }
 
-[data-name="MovementButton"] {
+[data-name='MovementButton'] {
   opacity: var(--touch-movement-buttons-opacity);
   border: var(--border);
 }
@@ -196,7 +196,8 @@ body {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
-.overlay-top-scaled, .overlay-bottom-scaled {
+.overlay-top-scaled,
+.overlay-bottom-scaled {
   position: fixed;
   inset: 0;
   transform-origin: top left;

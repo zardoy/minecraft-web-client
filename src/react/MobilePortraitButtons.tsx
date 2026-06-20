@@ -45,7 +45,7 @@ export default () => {
     width: btnSize,
     minHeight: btnSize,
     maxHeight: btnSize,
-    '--scale': btnSize / 20,
+    '--scale': btnSize / 20
   } as React.CSSProperties
 
   return (
@@ -57,7 +57,7 @@ export default () => {
         display: 'flex',
         flexDirection: 'row',
         gap: BTN_GAP,
-        zIndex: 7,
+        zIndex: 7
       }}
     >
       {showRotate && (
@@ -74,7 +74,7 @@ export default () => {
         <Button
           icon={pixelartIcons.scale}
           style={btnStyle}
-          title='Полный экран'
+          title="Полный экран"
           onClick={async () => {
             try {
               await document.documentElement.requestFullscreen()

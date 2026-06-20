@@ -14,7 +14,7 @@ const notImplemented = () => {
   return 'Not implemented yet'
 }
 
-async function addFolderToZip (folderPath, zip, relativePath) {
+async function addFolderToZip(folderPath, zip, relativePath) {
   const entries = await fs.promises.readdir(folderPath)
 
   for (const entry of entries) {
@@ -77,14 +77,14 @@ const exportLoadedWorld = async () => {
 
 window.exportWorld = exportLoadedWorld
 
-const writeText = (text) => {
+const writeText = text => {
   displayClientChat(text)
 }
 
 export const commands: Array<{
-  command: string[],
-  alwaysAvailable?: boolean,
-  invoke (args: string[]): Promise<void> | void
+  command: string[]
+  alwaysAvailable?: boolean
+  invoke(args: string[]): Promise<void> | void
   //@ts-format-ignore-region
 }> = [
   {
@@ -93,21 +93,21 @@ export const commands: Array<{
   },
   {
     command: ['/publish', '/share'],
-    async invoke () {
+    async invoke() {
       const text = await openToWanAndCopyJoinLink(writeText)
       if (text) writeText(text)
     }
   },
   {
     command: ['/close'],
-    invoke () {
+    invoke() {
       const text = closeWan()
       if (text) writeText(text)
     }
   },
   {
     command: ['/save'],
-    async invoke () {
+    async invoke() {
       await saveServer(false)
       writeText('Saved to browser memory')
     }
@@ -115,8 +115,8 @@ export const commands: Array<{
   {
     command: ['/pos'],
     alwaysAvailable: true,
-    async invoke ([type]) {
-      let pos: { x: number, y: number, z: number } | undefined
+    async invoke([type]) {
+      let pos: { x: number; y: number; z: number } | undefined
       if (type === 'block') {
         const blockPos = window.cursorBlockRel()?.position
         if (blockPos) {
@@ -135,7 +135,7 @@ export const commands: Array<{
   {
     command: ['/mesherlog'],
     alwaysAvailable: true,
-    invoke () {
+    invoke() {
       getThreeJsRendererMethods()?.downloadMesherLog()
     }
   }

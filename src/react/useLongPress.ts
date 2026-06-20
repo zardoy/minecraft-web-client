@@ -1,15 +1,11 @@
 import { useCallback, useRef, useState } from 'react'
 
 interface LongPressOptions {
-  shouldPreventDefault?: boolean;
-  delay?: number;
+  shouldPreventDefault?: boolean
+  delay?: number
 }
 
-const useLongPress = (
-  onLongPress: () => void,
-  onClick: () => void,
-  { shouldPreventDefault = false, delay = 300 }: LongPressOptions = {}
-) => {
+const useLongPress = (onLongPress: () => void, onClick: () => void, { shouldPreventDefault = false, delay = 300 }: LongPressOptions = {}) => {
   const [longPressTriggered, setLongPressTriggered] = useState(false)
   const timeout = useRef<number | undefined>()
   const target = useRef<EventTarget | null>(null)
@@ -53,7 +49,7 @@ const useLongPress = (
     onMouseUp: (e: React.MouseEvent) => clear(e),
     onMouseLeave: (e: React.MouseEvent) => clear(e),
     onTouchEnd: (e: React.TouchEvent) => clear(e),
-    onClick (e: React.MouseEvent) {
+    onClick(e: React.MouseEvent) {
       onClick()
     }
   }

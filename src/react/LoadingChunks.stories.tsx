@@ -5,8 +5,21 @@ import LoadingChunks from './LoadingChunks'
 
 const meta: Meta<typeof LoadingChunks> = {
   component: LoadingChunks,
-  render (args) {
-    const [stateMap, setStateMap] = useState(Object.fromEntries(args.regionFiles!.map(x => x.split('.').slice(1, 3).map(Number).map(y => y.toString()).join(',')).map(x => [x, 'loading'])))
+  render(args) {
+    const [stateMap, setStateMap] = useState(
+      Object.fromEntries(
+        args
+          .regionFiles!.map(x =>
+            x
+              .split('.')
+              .slice(1, 3)
+              .map(Number)
+              .map(y => y.toString())
+              .join(',')
+          )
+          .map(x => [x, 'loading'])
+      )
+    )
 
     useEffect(() => {
       const interval = setInterval(() => {
@@ -19,7 +32,7 @@ const meta: Meta<typeof LoadingChunks> = {
     }, [])
 
     return <LoadingChunks stateMap={stateMap} {...args} />
-  },
+  }
 }
 
 export default meta
@@ -27,17 +40,11 @@ type Story = StoryObj<typeof LoadingChunks>
 
 export const Primary: Story = {
   args: {
-    regionFiles: [
-      'r.-1.-1.mca',
-      'r.-1.0.mca',
-      'r.0.-1.mca',
-      'r.0.0.mca',
-      'r.0.1.mca',
-    ],
+    regionFiles: ['r.-1.-1.mca', 'r.-1.0.mca', 'r.0.-1.mca', 'r.0.0.mca', 'r.0.1.mca'],
     playerChunk: {
       x: -1,
       z: 0
     },
-    displayText: true,
-  },
+    displayText: true
+  }
 }

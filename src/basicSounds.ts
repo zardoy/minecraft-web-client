@@ -8,10 +8,10 @@ const sounds: Record<string, any> = {}
 
 // Track currently playing sounds and their gain nodes
 const activeSounds: Array<{
-  source: AudioBufferSourceNode;
-  gainNode: GainNode;
-  volumeMultiplier: number;
-  isMusic: boolean;
+  source: AudioBufferSourceNode
+  gainNode: GainNode
+  volumeMultiplier: number
+  isMusic: boolean
 }> = []
 window.activeSounds = activeSounds
 
@@ -19,7 +19,7 @@ window.activeSounds = activeSounds
 const loadingSounds = [] as string[]
 const convertedSounds = [] as string[]
 
-export async function loadSound (path: string, contents = path) {
+export async function loadSound(path: string, contents = path) {
   if (loadingSounds.includes(path)) return true
   loadingSounds.push(path)
 
@@ -60,7 +60,7 @@ export const loadOrPlaySound = async (url, soundVolume = 1, loadTimeout = option
   return playSound(url, soundVolume, loop, isMusic)
 }
 
-async function playSound (url, soundVolume = 1, loop = false, isMusic = false) {
+async function playSound(url, soundVolume = 1, loop = false, isMusic = false) {
   const volume = soundVolume * (options.volume / 100) * (isMusic ? options.musicVolume / 100 : 1)
 
   if (!volume) return
@@ -103,10 +103,10 @@ async function playSound (url, soundVolume = 1, loop = false, isMusic = false) {
   }
 
   return {
-    onEnded (callback: () => void) {
+    onEnded(callback: () => void) {
       callbacks.push(callback)
     },
-    stop () {
+    stop() {
       try {
         source.stop()
         // Remove from active sounds
@@ -116,12 +116,12 @@ async function playSound (url, soundVolume = 1, loop = false, isMusic = false) {
         console.warn('Failed to stop sound:', err)
       }
     },
-    gainNode,
+    gainNode
   }
 }
 window.playSound = playSound
 
-export function stopAllSounds () {
+export function stopAllSounds() {
   for (const { source } of activeSounds) {
     try {
       source.stop()
@@ -132,7 +132,7 @@ export function stopAllSounds () {
   activeSounds.length = 0
 }
 
-export function stopSound (url: string) {
+export function stopSound(url: string) {
   const soundIndex = activeSounds.findIndex(s => s.source.buffer === sounds[url])
   if (soundIndex !== -1) {
     const { source } = activeSounds[soundIndex]
@@ -145,7 +145,7 @@ export function stopSound (url: string) {
   }
 }
 
-export function changeVolumeOfCurrentlyPlayingSounds (newVolume: number, newMusicVolume: number) {
+export function changeVolumeOfCurrentlyPlayingSounds(newVolume: number, newMusicVolume: number) {
   const normalizedVolume = newVolume / 100
   for (const { gainNode, volumeMultiplier, isMusic } of activeSounds) {
     try {

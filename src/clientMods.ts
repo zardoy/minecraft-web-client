@@ -24,7 +24,7 @@ const protectRuntime = () => {
   sillyProtection = true
   const sensetiveKeys = new Set(['authenticatedAccounts', 'serversList', 'username'])
   const proxy = new Proxy(window.localStorage, {
-    get (target, prop) {
+    get(target, prop) {
       if (typeof prop === 'string') {
         if (sensetiveKeys.has(prop)) {
           console.warn(`Access to sensitive key "${prop}" was blocked`)
@@ -64,14 +64,14 @@ const protectRuntime = () => {
       }
       return Reflect.get(target, prop)
     },
-    set (target, prop, value) {
+    set(target, prop, value) {
       if (typeof prop === 'string' && sensetiveKeys.has(prop)) {
         console.warn(`Attempt to set sensitive key "${prop}" was blocked`)
         return false
       }
       return Reflect.set(target, prop, value)
     },
-    deleteProperty (target, prop) {
+    deleteProperty(target, prop) {
       if (typeof prop === 'string' && sensetiveKeys.has(prop)) {
         console.warn(`Attempt to delete sensitive key "${prop}" was blocked`)
         return false
@@ -82,20 +82,20 @@ const protectRuntime = () => {
   Object.defineProperty(window, 'localStorage', {
     value: proxy,
     writable: false,
-    configurable: false,
+    configurable: false
   })
 }
 
 // #region Database
 const dbPromise = openDB('mods-db', 1, {
-  upgrade (db) {
+  upgrade(db) {
     db.createObjectStore('mods', {
-      keyPath: 'name',
+      keyPath: 'name'
     })
     db.createObjectStore('repositories', {
-      keyPath: 'url',
+      keyPath: 'url'
     })
-  },
+  }
 })
 
 export interface ModSetting {
@@ -137,11 +137,11 @@ export interface Repository extends McraftRepoFile {
 }
 
 export interface ClientMod {
-  name: string; // unique identifier like owner.name
+  name: string // unique identifier like owner.name
   version: string
   enabled?: boolean
 
-  scriptMainUnstable?: string;
+  scriptMainUnstable?: string
   serverPlugin?: string
   // serverPlugins?: string[]
   // mesherThread?: string
@@ -179,30 +179,30 @@ export type ClientModDefinition = Omit<ClientMod, 'enabled' | 'wasModifiedLocall
   threeJsBackend?: boolean
 }
 
-export async function saveClientModData (data: ClientMod) {
+export async function saveClientModData(data: ClientMod) {
   const db = await dbPromise
   data.lastUpdated = Date.now()
   await db.put('mods', data)
   modsReactiveUpdater.counter++
 }
 
-async function getPlugin (name: string) {
+async function getPlugin(name: string) {
   const db = await dbPromise
   return db.get('mods', name) as Promise<ClientMod | undefined>
 }
 
-export async function getAllMods () {
+export async function getAllMods() {
   const db = await dbPromise
   return db.getAll('mods') as Promise<ClientMod[]>
 }
 
-async function deletePlugin (name) {
+async function deletePlugin(name) {
   const db = await dbPromise
   await db.delete('mods', name)
   modsReactiveUpdater.counter++
 }
 
-async function removeAllMods () {
+async function removeAllMods() {
   const db = await dbPromise
   await db.clear('mods')
   modsReactiveUpdater.counter++
@@ -210,24 +210,24 @@ async function removeAllMods () {
 
 // ---
 
-async function saveRepository (data: Repository) {
+async function saveRepository(data: Repository) {
   const db = await dbPromise
   data.lastUpdated = Date.now()
   await db.put('repositories', data)
 }
 
-async function getRepository (url: string) {
+async function getRepository(url: string) {
   const db = await dbPromise
   return db.get('repositories', url) as Promise<Repository | undefined>
 }
 
-async function getAllRepositories () {
+async function getAllRepositories() {
   const db = await dbPromise
   return db.getAll('repositories') as Promise<Repository[]>
 }
 window.getAllRepositories = getAllRepositories
 
-async function deleteRepository (url) {
+async function deleteRepository(url) {
   const db = await dbPromise
   await db.delete('repositories', url)
 }
@@ -246,10 +246,10 @@ window.mcraft = {
   build: process.env.BUILD_VERSION,
   ui: {
     registeredReactWrappers: {},
-    registerReactWrapper (place: InjectUiPlace, id: string, component: React.FC) {
+    registerReactWrapper(place: InjectUiPlace, id: string, component: React.FC) {
       window.mcraft.ui.registeredReactWrappers[place] ??= {}
       window.mcraft.ui.registeredReactWrappers[place][id] = component
-    },
+    }
   },
   React,
   ReactJsxRuntime,
@@ -259,8 +259,8 @@ window.mcraft = {
   classNames,
   valtio: {
     ...valtio,
-    ...valtioUtils,
-  },
+    ...valtioUtils
+  }
   // openDB
 }
 
@@ -336,14 +336,14 @@ const normalizeParentMod = (mod: Partial<ClientMod>): ClientMod => {
     actionsMain: mod.actionsMain,
     wasModifiedLocally: mod.wasModifiedLocally,
     autoUpdateOverride: mod.autoUpdateOverride,
-    lastUpdated: mod.lastUpdated,
+    lastUpdated: mod.lastUpdated
   }
 }
 
 const requestModsFromParentFrame = async (): Promise<ClientMod[]> => {
   if (window.parent === window) return []
 
-  return new Promise<ClientMod[]>((resolve) => {
+  return new Promise<ClientMod[]>(resolve => {
     let cleanedUp = false
     const cleanup = () => {
       if (cleanedUp) return
@@ -406,7 +406,10 @@ const loadParentFrameModsIfRequested = async (): Promise<Set<string>> => {
 
 export const appStartup = async () => {
   void checkModsUpdates()
-  const oldRegisteredReactWrappers = Object.entries(window.mcraft?.ui?.registeredReactWrappers).reduce((acc, [place, components]) => acc + Object.keys(components).length, 0)
+  const oldRegisteredReactWrappers = Object.entries(window.mcraft?.ui?.registeredReactWrappers).reduce(
+    (acc, [place, components]) => acc + Object.keys(components).length,
+    0
+  )
   const parentFrameActivatedMods = await loadParentFrameModsIfRequested()
 
   const mods = await getAllMods()
@@ -463,37 +466,25 @@ const installOrUpdateMod = async (repo: Repository, mod: ClientModDefinition, ac
       return undefined
     }
     if (mod.stylesGlobal) {
-      await progress?.executeWithMessage(
-        `Downloading ${mod.name} styles`,
-        async () => {
-          mod.stylesGlobal = await fetchData(['global.css']) as any
-        }
-      )
+      await progress?.executeWithMessage(`Downloading ${mod.name} styles`, async () => {
+        mod.stylesGlobal = (await fetchData(['global.css'])) as any
+      })
     }
     if (mod.scriptMainUnstable) {
-      await progress?.executeWithMessage(
-        `Downloading ${mod.name} script`,
-        async () => {
-          mod.scriptMainUnstable = await fetchData(['mainUnstable.js']) as any
-        }
-      )
+      await progress?.executeWithMessage(`Downloading ${mod.name} script`, async () => {
+        mod.scriptMainUnstable = (await fetchData(['mainUnstable.js'])) as any
+      })
     }
     if (mod.threeJsBackend) {
-      await progress?.executeWithMessage(
-        `Downloading ${mod.name} three.js backend`,
-        async () => {
-          mod.threeJsBackend = await fetchData(['three.js']) as any
-        }
-      )
+      await progress?.executeWithMessage(`Downloading ${mod.name} three.js backend`, async () => {
+        mod.threeJsBackend = (await fetchData(['three.js'])) as any
+      })
     }
     if (mod.serverPlugin) {
       if (mod.name.endsWith('.disabled')) throw new Error(`Mod name ${mod.name} can't end with .disabled`)
-      await progress?.executeWithMessage(
-        `Downloading ${mod.name} server plugin`,
-        async () => {
-          mod.serverPlugin = await fetchData(['serverPlugin.js']) as any
-        }
-      )
+      await progress?.executeWithMessage(`Downloading ${mod.name} server plugin`, async () => {
+        mod.serverPlugin = (await fetchData(['serverPlugin.js'])) as any
+      })
     }
     if (activate) {
       // todo try to de-activate mod if it's already loaded
@@ -513,18 +504,16 @@ const installOrUpdateMod = async (repo: Repository, mod: ClientModDefinition, ac
 
 const checkRepositoryUpdates = async (repo: Repository) => {
   for (const mod of repo.packages) {
-
     const modExisting = await getPlugin(mod.name)
     if (modExisting?.version && gt(mod.version, modExisting.version)) {
       modsUpdateStatus[mod.name] = [modExisting.version, mod.version]
-      if (options.modsAutoUpdate === 'always' && (!repo.autoUpdateOverride && !modExisting.autoUpdateOverride)) {
+      if (options.modsAutoUpdate === 'always' && !repo.autoUpdateOverride && !modExisting.autoUpdateOverride) {
         void installOrUpdateMod(repo, mod).catch(e => {
           console.error(`Error updating mod ${mod.name}:`, e)
         })
       }
     }
   }
-
 }
 
 export const fetchRepository = async (urlOriginal: string, url: string, hasMirrors = false) => {
@@ -545,21 +534,22 @@ export const fetchRepository = async (urlOriginal: string, url: string, hasMirro
 
 export const fetchAllRepositories = async () => {
   const repositories = await getAllRepositories()
-  await Promise.all(repositories.map(async (repo) => {
-    const allUrls = [repo.url, ...(repo.mirrorUrls || [])]
-    for (const [i, url] of allUrls.entries()) {
-      const isLast = i === allUrls.length - 1
+  await Promise.all(
+    repositories.map(async repo => {
+      const allUrls = [repo.url, ...(repo.mirrorUrls || [])]
+      for (const [i, url] of allUrls.entries()) {
+        const isLast = i === allUrls.length - 1
 
-      if (await fetchRepository(repo.url, url, !isLast)) break
-    }
-  }))
+        if (await fetchRepository(repo.url, url, !isLast)) break
+      }
+    })
+  )
   appStorage.modsAutoUpdateLastCheck = Date.now()
 }
 
 const checkModsUpdates = async () => {
   await autoRefreshModRepositories()
   for (const repo of await getAllRepositories()) {
-
     await checkRepositoryUpdates(repo)
   }
 }
@@ -633,19 +623,20 @@ export const getAllModsDisplayList = async () => {
   const repos = await getAllRepositories()
   const installedMods = await getAllMods()
   const modsWithoutRepos = installedMods.filter(mod => !repos.some(repo => repo.packages.some(m => m.name === mod.name)))
-  const mapMods = (mapMods: ClientMod[]) => mapMods.map(mod => ({
-    ...mod,
-    installed: installedMods.find(m => m.name === mod.name),
-    activated: !!window.loadedMods?.[mod.name],
-    installedVersion: installedMods.find(m => m.name === mod.name)?.version,
-    canBeActivated: mod.scriptMainUnstable || mod.stylesGlobal,
-  }))
+  const mapMods = (mapMods: ClientMod[]) =>
+    mapMods.map(mod => ({
+      ...mod,
+      installed: installedMods.find(m => m.name === mod.name),
+      activated: !!window.loadedMods?.[mod.name],
+      installedVersion: installedMods.find(m => m.name === mod.name)?.version,
+      canBeActivated: mod.scriptMainUnstable || mod.stylesGlobal
+    }))
   return {
     repos: repos.map(repo => ({
       ...repo,
-      packages: mapMods(repo.packages as ClientMod[]),
+      packages: mapMods(repo.packages as ClientMod[])
     })),
-    modsWithoutRepos: mapMods(modsWithoutRepos),
+    modsWithoutRepos: mapMods(modsWithoutRepos)
   }
 }
 
@@ -659,7 +650,10 @@ export const removeRepositoryAction = async (url: string) => {
 
 export const selectAndRemoveRepository = async () => {
   const repos = await getAllRepositories()
-  const choice = await showOptionsModal('Select repository to remove', repos.map(repo => repo.url))
+  const choice = await showOptionsModal(
+    'Select repository to remove',
+    repos.map(repo => repo.url)
+  )
   if (!choice) return
   await removeRepositoryAction(choice)
 }
@@ -669,8 +663,8 @@ export const addRepositoryAction = async () => {
     url: {
       type: 'text',
       label: 'Repository URL or slug',
-      placeholder: 'github-owner/repo-name',
-    },
+      placeholder: 'github-owner/repo-name'
+    }
   })
   if (!url) return
   await fetchRepository(url, url)
@@ -742,7 +736,7 @@ export const getModSettingsProxy = (mod: ClientMod) => {
     proxy[key] = options[`mod-${mod.name}-${key}`] ?? setting.default
   }
 
-  valtio.subscribe(proxy, (ops) => {
+  valtio.subscribe(proxy, ops => {
     for (const op of ops) {
       const [type, path, value] = op
       const key = path[0] as string

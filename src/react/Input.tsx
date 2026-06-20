@@ -28,29 +28,30 @@ const InputBase = ({ autoFocus, rootStyles, inputRef, validateInput, defaultValu
     ref.current.focus()
   }, [])
 
-
   useEffect(() => {
     setValidationStyle(validateInput?.(value as any) ?? {})
   }, [value, validateInput])
 
-  return <div id='input-container' className={styles.container} style={rootStyles}>
-    <input
-      ref={ref}
-      autoComplete='off'
-      autoCapitalize='off'
-      autoCorrect='off'
-      autoSave='off'
-      spellCheck='false'
-      style={{ ...validationStyle }}
-      {...inputProps}
-      className={styles.input + ' ' + (inputProps.className ?? '')}
-      value={value}
-      onChange={(e) => {
-        setValue(e.target.value)
-        inputProps.onChange?.(e)
-      }}
-    />
-  </div>
+  return (
+    <div id="input-container" className={styles.container} style={rootStyles}>
+      <input
+        ref={ref}
+        autoComplete="off"
+        autoCapitalize="off"
+        autoCorrect="off"
+        autoSave="off"
+        spellCheck="false"
+        style={{ ...validationStyle }}
+        {...inputProps}
+        className={styles.input + ' ' + (inputProps.className ?? '')}
+        value={value}
+        onChange={e => {
+          setValue(e.target.value)
+          inputProps.onChange?.(e)
+        }}
+      />
+    </div>
+  )
 }
 
 const Input = withInjectableUi(InputBase, 'input')
@@ -59,14 +60,17 @@ export default Input
 
 export const INPUT_LABEL_WIDTH = 190
 
-export const InputWithLabel = ({ label, span, ...props }: React.ComponentProps<typeof Input> & { label, span? }) => {
-  return <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    gridRow: span ? 'span 2 / span 2' : undefined,
-  }}
-  >
-    <label style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>{label}</label>
-    <InputBase rootStyles={{ width: INPUT_LABEL_WIDTH }} {...props} />
-  </div>
+export const InputWithLabel = ({ label, span, ...props }: React.ComponentProps<typeof Input> & { label; span? }) => {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gridRow: span ? 'span 2 / span 2' : undefined
+      }}
+    >
+      <label style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>{label}</label>
+      <InputBase rootStyles={{ width: INPUT_LABEL_WIDTH }} {...props} />
+    </div>
+  )
 }

@@ -6,11 +6,14 @@ div.style.height = '100px'
 div.style.backgroundColor = 'red'
 document.body.appendChild(div)
 
-const pos = {x: 0, y: 0}
+const pos = { x: 0, y: 0 }
 
-const positionSwitcher = new SmoothSwitcher(() => pos, (key, value) => {
-  pos[key] = value
-})
+const positionSwitcher = new SmoothSwitcher(
+  () => pos,
+  (key, value) => {
+    pos[key] = value
+  }
+)
 globalThis.positionSwitcher = positionSwitcher
 
 document.body.addEventListener('keydown', e => {
@@ -30,8 +33,8 @@ document.body.addEventListener('keydown', e => {
 
 const render = () => {
   positionSwitcher.update()
-    div.style.transform = `translate(${pos.x}px, ${pos.y}px)`
-    requestAnimationFrame(render)
+  div.style.transform = `translate(${pos.x}px, ${pos.y}px)`
+  requestAnimationFrame(render)
 }
 
 render()

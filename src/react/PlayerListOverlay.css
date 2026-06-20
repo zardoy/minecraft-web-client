@@ -1,4 +1,3 @@
-
 .playerlist-container {
   position: absolute;
   background-color: rgba(0, 0, 0, 0.3);
@@ -15,8 +14,9 @@
   z-index: 30;
 }
 
-.playerlist-header, .playerlist-footer {
-  font-size: 0.5rem
+.playerlist-header,
+.playerlist-footer {
+  font-size: 0.5rem;
 }
 
 .playerlist-title {

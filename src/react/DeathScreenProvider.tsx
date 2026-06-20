@@ -14,7 +14,7 @@ export default () => {
   const isModalActive = useIsModalActive('death-screen')
 
   useEffect(() => {
-    bot._client.on('death_combat_event', (data) => {
+    bot._client.on('death_combat_event', data => {
       try {
         if (data.playerId !== bot.entity.id) return
         const messageParsed = JSON.parse(data.message)
@@ -24,7 +24,8 @@ export default () => {
         console.error(err)
       }
     })
-    bot.on('health', () => { // bot.isAlive can be already false so can't use death event (respawn packet)
+    bot.on('health', () => {
+      // bot.isAlive can be already false so can't use death event (respawn packet)
       if (dieReasonProxy.value || bot.health > 0) return
       dieReasonProxy.value = []
     })
@@ -49,13 +50,15 @@ export default () => {
 
   if (!isModalActive || !dieReasonMessage || options.autoRespawn) return null
 
-  return <DeathScreen
-    dieReasonMessage={dieReasonMessage as MessageFormatPart[]}
-    respawnCallback={() => {
-      bot._client.write('client_command', bot.supportFeature('respawnIsPayload') ? { payload: 0 } : { actionId: 0 })
-    }}
-    disconnectCallback={() => {
-      void disconnect()
-    }}
-  />
+  return (
+    <DeathScreen
+      dieReasonMessage={dieReasonMessage as MessageFormatPart[]}
+      respawnCallback={() => {
+        bot._client.write('client_command', bot.supportFeature('respawnIsPayload') ? { payload: 0 } : { actionId: 0 })
+      }}
+      disconnectCallback={() => {
+        void disconnect()
+      }}
+    />
+  )
 }

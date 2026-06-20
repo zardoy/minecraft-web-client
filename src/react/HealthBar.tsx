@@ -3,28 +3,18 @@ import SharedHudVars from './SharedHudVars'
 import './HealthBar.css'
 import { barEffectAdded, barEffectEnded } from './BarsCommon'
 
-
 export type HealthBarProps = {
-  gameMode?: string,
-  isHardcore: boolean,
-  damaged: boolean,
-  healthValue: number,
-  effectToAdd?: number | null,
-  effectToRemove?: number | null,
+  gameMode?: string
+  isHardcore: boolean
+  damaged: boolean
+  healthValue: number
+  effectToAdd?: number | null
+  effectToRemove?: number | null
   resetEffects?: () => void
   style?: React.CSSProperties
 }
 
-export default ({
-  gameMode,
-  isHardcore,
-  damaged,
-  healthValue,
-  effectToAdd,
-  effectToRemove,
-  resetEffects,
-  style
-}: HealthBarProps) => {
+export default ({ gameMode, isHardcore, damaged, healthValue, effectToAdd, effectToRemove, resetEffects, style }: HealthBarProps) => {
   const healthRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -92,15 +82,13 @@ export default ({
     resetEffects?.()
   }, [effectToAdd, effectToRemove])
 
-  return <SharedHudVars>
-    <div ref={healthRef} className='health' style={style}>
-      {
-        Array.from({ length: 10 }, () => 0)
-          .map((num, index) => <div
-            key={`heart-${index}`}
-            className='heart'
-          />)
-      }
-    </div>
-  </SharedHudVars>
+  return (
+    <SharedHudVars>
+      <div ref={healthRef} className="health" style={style}>
+        {Array.from({ length: 10 }, () => 0).map((num, index) => (
+          <div key={`heart-${index}`} className="heart" />
+        ))}
+      </div>
+    </SharedHudVars>
+  )
 }

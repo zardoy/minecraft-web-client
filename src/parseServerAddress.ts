@@ -1,5 +1,3 @@
-
-
 export const parseServerAddress = (address: string | undefined, removeHttp = true): ParsedServerAddress => {
   if (!address) {
     return { host: '', isWebSocket: false, serverIpFull: '' }

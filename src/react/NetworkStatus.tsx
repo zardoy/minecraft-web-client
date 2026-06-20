@@ -92,7 +92,7 @@ export default () => {
         </>
       )}
       <span className={`${styles.dataRow} ${styles.ping} ${isServerStale ? styles.stale : ''}`}>
-        {isWebSocket ? (pingTotal || '?') : (pingTotal ? pingTotal - (proxyPing ?? 0) : '...')}ms
+        {isWebSocket ? pingTotal || '?' : pingTotal ? pingTotal - (proxyPing ?? 0) : '...'}ms
       </span>
       <span className={styles.dataRow}>{serverIp}</span>
 

@@ -21,13 +21,13 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.7)
 scene.add(ambientLight)
 
 // Animation loop
-function animate () {
+function animate() {
   requestAnimationFrame(animate)
   controls.update()
   renderer.render(scene, camera)
 }
 
-async function setupItemMesh () {
+async function setupItemMesh() {
   try {
     const loader = new THREE.TextureLoader()
     const atlasTexture = await loader.loadAsync(itemsAtlas)
@@ -49,17 +49,7 @@ async function setupItemMesh () {
     const ctx = canvas.getContext('2d')!
 
     ctx.imageSmoothingEnabled = false
-    ctx.drawImage(
-      atlasTexture.image,
-      tileX * tileSize,
-      tileY * tileSize,
-      tileSize,
-      tileSize,
-      0,
-      0,
-      tileSize,
-      tileSize
-    )
+    ctx.drawImage(atlasTexture.image, tileX * tileSize, tileY * tileSize, tileSize, tileSize, 0, 0, tileSize, tileSize)
 
     // Test both approaches - working manual extraction:
     const meshOld = createItemMeshFromCanvas(canvas, { depth: 0.1 })
@@ -76,15 +66,22 @@ async function setupItemMesh () {
     const sizeX = tileSize / atlasWidth
     const sizeY = tileSize / atlasHeight
 
-    console.log('Debug texture coords:', {u, v, sizeX, sizeY, atlasWidth, atlasHeight})
+    console.log('Debug texture coords:', { u, v, sizeX, sizeY, atlasWidth, atlasHeight })
 
-    const resultNew = createItemMesh(atlasTexture, {
-      u, v, sizeX, sizeY
-    }, {
-      faceCamera: false,
-      use3D: true,
-      depth: 0.1
-    })
+    const resultNew = createItemMesh(
+      atlasTexture,
+      {
+        u,
+        v,
+        sizeX,
+        sizeY
+      },
+      {
+        faceCamera: false,
+        use3D: true,
+        depth: 0.1
+      }
+    )
 
     resultNew.mesh.position.x = 1
     resultNew.mesh.rotation.x = -Math.PI / 12

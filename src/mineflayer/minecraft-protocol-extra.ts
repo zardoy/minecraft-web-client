@@ -8,14 +8,16 @@ export const pingServerVersion = async (ip: string, port?: number, mergeOptions:
     port,
     noPongTimeout: 10_000,
     closeTimeout: 20_000,
-    ...mergeOptions,
+    ...mergeOptions
   }
   let latency = 0
   let fullInfo: any = null
-  fakeClient.autoVersionHooks = [(res) => {
-    latency = res.latency
-    fullInfo = res
-  }]
+  fakeClient.autoVersionHooks = [
+    res => {
+      latency = res.latency
+      fullInfo = res
+    }
+  ]
 
   // TODO use client.socket.destroy() instead of client.end() for faster cleanup
   clientAutoVersion(fakeClient, options)
@@ -26,11 +28,11 @@ export const pingServerVersion = async (ip: string, port?: number, mergeOptions:
       })
     }),
     new Promise<void>((resolve, reject) => {
-      fakeClient.on('error', (err) => {
+      fakeClient.on('error', err => {
         reject(new Error(err.message ?? err))
       })
       if (mergeOptions.stream) {
-        mergeOptions.stream.on('end', (err) => {
+        mergeOptions.stream.on('end', err => {
           setTimeout(() => {
             reject(new Error('Connection closed. Please report if you see this but the server is actually fine.'))
           })
@@ -42,7 +44,7 @@ export const pingServerVersion = async (ip: string, port?: number, mergeOptions:
   return {
     version: fakeClient.version,
     latency,
-    fullInfo,
+    fullInfo
   }
 }
 
@@ -91,7 +93,7 @@ export const validatePacket = (name: string, data: any, fullBuffer: Buffer, isFr
   }
 }
 
-function getObjectMaxDepth (obj: unknown, currentDepth = 0): number {
+function getObjectMaxDepth(obj: unknown, currentDepth = 0): number {
   // Base case: null or primitive types have depth 0
   if (obj === null || typeof obj !== 'object' || obj instanceof Buffer) {
     return currentDepth

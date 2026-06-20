@@ -15,12 +15,12 @@ import { showAutoFillLoginModal } from './AutoFillLoginModal'
 import { findServerPassword } from './serversStorage'
 
 export type Message = {
-  parts: MessageFormatPart[],
+  parts: MessageFormatPart[]
   id: number
   timestamp?: number
 }
 
-const MessageLine = ({ message, currentPlayerName, chatOpened }: { message: Message, currentPlayerName?: string, chatOpened?: boolean }) => {
+const MessageLine = ({ message, currentPlayerName, chatOpened }: { message: Message; currentPlayerName?: string; chatOpened?: boolean }) => {
   const [fadeState, setFadeState] = useState<'visible' | 'fading' | 'faded'>('visible')
 
   useEffect(() => {
@@ -48,29 +48,37 @@ const MessageLine = ({ message, currentPlayerName, chatOpened }: { message: Mess
     'chat-message-faded': !chatOpened && fadeState === 'faded'
   }
 
-  return <li className={Object.entries(classes).filter(([, val]) => val).map(([name]) => name).join(' ')} data-time={message.timestamp ? new Date(message.timestamp).toLocaleString('en-US', { hour12: false }) : undefined}>
-    {message.parts.map((msg, i) => {
-      // Check if this is a text part that might contain a mention
-      if (typeof msg.text === 'string' && currentPlayerName) {
-        const parts = msg.text.split(new RegExp(`(@${currentPlayerName})`, 'i'))
-        if (parts.length > 1) {
-          return parts.map((txtPart, j) => {
-            const part = {
-              ...msg,
-              text: txtPart
-            }
-            if (txtPart.toLowerCase() === `@${currentPlayerName}`.toLowerCase()) {
-              part.color = '#ffa500'
-              part.bold = true
+  return (
+    <li
+      className={Object.entries(classes)
+        .filter(([, val]) => val)
+        .map(([name]) => name)
+        .join(' ')}
+      data-time={message.timestamp ? new Date(message.timestamp).toLocaleString('en-US', { hour12: false }) : undefined}
+    >
+      {message.parts.map((msg, i) => {
+        // Check if this is a text part that might contain a mention
+        if (typeof msg.text === 'string' && currentPlayerName) {
+          const parts = msg.text.split(new RegExp(`(@${currentPlayerName})`, 'i'))
+          if (parts.length > 1) {
+            return parts.map((txtPart, j) => {
+              const part = {
+                ...msg,
+                text: txtPart
+              }
+              if (txtPart.toLowerCase() === `@${currentPlayerName}`.toLowerCase()) {
+                part.color = '#ffa500'
+                part.bold = true
+                return <MessagePart key={j} part={part} />
+              }
               return <MessagePart key={j} part={part} />
-            }
-            return <MessagePart key={j} part={part} />
-          })
+            })
+          }
         }
-      }
-      return <MessagePart key={i} part={msg} />
-    })}
-  </li>
+        return <MessagePart key={i} part={msg} />
+      })}
+    </li>
+  )
 }
 
 type Props = {
@@ -80,7 +88,12 @@ type Props = {
   opened?: boolean
   onClose?: () => void
   sendMessage?: (message: string) => Promise<void> | void
-  fetchCompletionItems?: (triggerKind: 'implicit' | 'explicit', completeValue: string, fullValue: string, abortController?: AbortController) => Promise<string[] | void>
+  fetchCompletionItems?: (
+    triggerKind: 'implicit' | 'explicit',
+    completeValue: string,
+    fullValue: string,
+    abortController?: AbortController
+  ) => Promise<string[] | void>
   // width?: number
   allowSelection?: boolean
   inputDisabled?: string
@@ -147,32 +160,38 @@ const ChatBase = ({
   const typingIndicatorText = useTypingIndicatorText()
 
   const typingIndicator = typingIndicatorText ? (
-    <div style={{
-      position: 'relative',
-      /* Below chat-completions (z-index 2) so tab completion list stays on top */
-      zIndex: 1,
-    }}>
-      <div style={{
-        fontSize: '9px',
-        color: 'white',
-        textShadow: '1px 1px 0px #3f3f3f',
-        fontFamily: 'mojangles, minecraft, monospace',
-        padding: '2px 4px',
-        borderRadius: '2px',
-        width: '100%',
-        boxSizing: 'border-box',
-        position: 'absolute',
-        left: 0,
-        height: 0,
-        overflow: 'visible',
-        ...(usingTouch ? {
-          top: '100%',
-          marginTop: 2,
-        } : {
-          bottom: '100%',
-          marginBottom: 11,
-        })
-      }}>
+    <div
+      style={{
+        position: 'relative',
+        /* Below chat-completions (z-index 2) so tab completion list stays on top */
+        zIndex: 1
+      }}
+    >
+      <div
+        style={{
+          fontSize: '9px',
+          color: 'white',
+          textShadow: '1px 1px 0px #3f3f3f',
+          fontFamily: 'mojangles, minecraft, monospace',
+          padding: '2px 4px',
+          borderRadius: '2px',
+          width: '100%',
+          boxSizing: 'border-box',
+          position: 'absolute',
+          left: 0,
+          height: 0,
+          overflow: 'visible',
+          ...(usingTouch
+            ? {
+                top: '100%',
+                marginTop: 2
+              }
+            : {
+                bottom: '100%',
+                marginBottom: 11
+              })
+        }}
+      >
         {typingIndicatorText}
       </div>
     </div>
@@ -211,7 +230,7 @@ const ChatBase = ({
     } else {
       // Command/other: replace current space-separated token, preserve rest
       const lastSpaceInBefore = valueBeforeCursor.lastIndexOf(' ')
-      prefix = lastSpaceInBefore >= 0 ? valueBeforeCursor.slice(0, lastSpaceInBefore + 1) : (valueBeforeCursor.startsWith('/') ? '' : valueBeforeCursor)
+      prefix = lastSpaceInBefore >= 0 ? valueBeforeCursor.slice(0, lastSpaceInBefore + 1) : valueBeforeCursor.startsWith('/') ? '' : valueBeforeCursor
       const firstSpaceInAfter = valueAfterCursor.indexOf(' ')
       suffix = firstSpaceInAfter >= 0 ? valueAfterCursor.slice(firstSpaceInAfter) : ''
     }
@@ -238,7 +257,8 @@ const ChatBase = ({
 
   const handleArrowUp = () => {
     if (chatHistoryPos.current === 0) return
-    if (chatHistoryPos.current === sendHistoryRef.current.length) { // started navigating history
+    if (chatHistoryPos.current === sendHistoryRef.current.length) {
+      // started navigating history
       inputCurrentlyEnteredValue.current = chatInput.current.value
     }
     chatHistoryPos.current--
@@ -253,7 +273,8 @@ const ChatBase = ({
 
   const handleCommandArrowUp = () => {
     if (commandHistoryPos.current === 0 || commandHistoryRef.current.length === 0) return
-    if (commandHistoryPos.current === commandHistoryRef.current.length) { // started navigating command history
+    if (commandHistoryPos.current === commandHistoryRef.current.length) {
+      // started navigating command history
       inputCurrentlyEnteredValue.current = chatInput.current.value
     }
     commandHistoryPos.current--
@@ -352,7 +373,10 @@ const ChatBase = ({
     const match = /^\/(login|register|changepassword|unregister)( |$)/i.exec(inputValue)
     setAutoFillHint(match ? (match[1].toLowerCase() as 'login' | 'register' | 'changepassword' | 'unregister') : null)
 
-    const lastWord = inputValue.slice(0, chatInput.current.selectionEnd ?? inputValue.length).split(' ').at(-1)!
+    const lastWord = inputValue
+      .slice(0, chatInput.current.selectionEnd ?? inputValue.length)
+      .split(' ')
+      .at(-1)!
     const isCommand = inputValue.startsWith('/')
 
     if (lastWord.startsWith('@') && getPingComplete && !isCommand) {
@@ -382,7 +406,7 @@ const ChatBase = ({
     const completeValue = getCompleteValue(inputValue)
     completeRequestValue.current = completeValue
     resetCompletionItems()
-    const newItems = await fetchCompletionItems?.(implicit ? 'implicit' : 'explicit', completeValue, inputValue) ?? []
+    const newItems = (await fetchCompletionItems?.(implicit ? 'implicit' : 'explicit', completeValue, inputValue)) ?? []
     // if (completeValue !== completeRequestValue.current) return
     if (!showList) return
     setCompletionItemsSource(newItems)
@@ -392,7 +416,7 @@ const ChatBase = ({
   const fetchPingCompletions = async (implicit: boolean, inputValue: string) => {
     completeRequestValue.current = inputValue
     resetCompletionItems()
-    const newItems = await getPingComplete?.(inputValue) ?? []
+    const newItems = (await getPingComplete?.(inputValue)) ?? []
     if (inputValue !== completeRequestValue.current) return
     // Sort items by ping history
     const sortedItems = [...newItems].sort((a, b) => {
@@ -407,13 +431,16 @@ const ChatBase = ({
     updateFilteredCompleteItems(sortedItems)
   }
 
-  const updateFilteredCompleteItems = (sourceItems: string[] | Array<{ match: string, toolip: string }>) => {
+  const updateFilteredCompleteItems = (sourceItems: string[] | Array<{ match: string; toolip: string }>) => {
     const newCompleteItems = sourceItems
       .map((item): string => (typeof item === 'string' ? item : item.match))
       .filter(item => {
         // this regex is imporatnt is it controls the word matching
         // const compareableParts = item.split(/[[\]{},_:]/)
-        const lastWord = chatInput.current.value.slice(0, chatInput.current.selectionEnd ?? chatInput.current.value.length).split(' ').at(-1)!
+        const lastWord = chatInput.current.value
+          .slice(0, chatInput.current.selectionEnd ?? chatInput.current.value.length)
+          .split(' ')
+          .at(-1)!
         if (lastWord.startsWith('@')) {
           return item.toLowerCase().includes(lastWord.slice(1).toLowerCase())
         }
@@ -462,79 +489,81 @@ const ChatBase = ({
   return (
     <>
       <div
-        className={`chat-wrapper chat-messages-wrapper ${usingTouch ? 'display-mobile' : ''} ${opened ? 'chat-opened' : ''}`} style={{
-          userSelect: opened && allowSelection ? 'text' : undefined,
+        className={`chat-wrapper chat-messages-wrapper ${usingTouch ? 'display-mobile' : ''} ${opened ? 'chat-opened' : ''}`}
+        style={{
+          userSelect: opened && allowSelection ? 'text' : undefined
         }}
       >
         {/* Close button for desktop when chat is opened */}
         {!usingTouch && opened && (
-          <div style={{
-            position: 'absolute',
-            top: '-19px',
-            left: '5px',
-            pointerEvents: 'auto',
-          }}>
-            <Button
-              icon={pixelartIcons['close']}
-              onClick={() => onClose?.()}
-              style={{ color: '#ff5d5d' }}
-            />
+          <div
+            style={{
+              position: 'absolute',
+              top: '-19px',
+              left: '5px',
+              pointerEvents: 'auto'
+            }}
+          >
+            <Button icon={pixelartIcons['close']} onClick={() => onClose?.()} style={{ color: '#ff5d5d' }} />
           </div>
         )}
-        {opacity && <div ref={chatMessages} className={`chat ${opened ? 'opened' : ''}`} id="chat-messages" style={{ opacity }}>
-          {debugChatScroll && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 5,
-                left: 5,
-                display: 'flex',
-                gap: 4,
-                zIndex: 100,
-              }}
-            >
+        {(opacity && (
+          <div ref={chatMessages} className={`chat ${opened ? 'opened' : ''}`} id="chat-messages" style={{ opacity }}>
+            {debugChatScroll && (
               <div
-                title="Right now is at bottom (updated every 50ms)"
                 style={{
-                  width: 12,
-                  height: 12,
-                  backgroundColor: rightNowAtBottom ? '#00ff00' : '#ff0000',
-                  border: '1px solid #fff',
+                  position: 'absolute',
+                  top: 5,
+                  left: 5,
+                  display: 'flex',
+                  gap: 4,
+                  zIndex: 100
                 }}
-              />
-              <div
-                title="Currently at bottom"
-                style={{
-                  width: 12,
-                  height: 12,
-                  backgroundColor: currentlyAtBottom ? '#00ff00' : '#ff0000',
-                  border: '1px solid #fff',
-                }}
-              />
-              <div
-                title="Was at bottom"
-                style={{
-                  width: 12,
-                  height: 12,
-                  backgroundColor: wasAtBottom() ? '#00ff00' : '#ff0000',
-                  border: '1px solid #fff',
-                }}
-              />
-              <div
-                title="Chat opened"
-                style={{
-                  width: 12,
-                  height: 12,
-                  backgroundColor: opened ? '#00ff00' : '#ff0000',
-                  border: '1px solid #fff',
-                }}
-              />
-            </div>
-          )}
-          {messages.map((m) => (
-            <MessageLine key={reactKeyForMessage(m)} message={m} currentPlayerName={playerNameValidated} chatOpened={opened} />
-          ))}
-        </div> || undefined}
+              >
+                <div
+                  title="Right now is at bottom (updated every 50ms)"
+                  style={{
+                    width: 12,
+                    height: 12,
+                    backgroundColor: rightNowAtBottom ? '#00ff00' : '#ff0000',
+                    border: '1px solid #fff'
+                  }}
+                />
+                <div
+                  title="Currently at bottom"
+                  style={{
+                    width: 12,
+                    height: 12,
+                    backgroundColor: currentlyAtBottom ? '#00ff00' : '#ff0000',
+                    border: '1px solid #fff'
+                  }}
+                />
+                <div
+                  title="Was at bottom"
+                  style={{
+                    width: 12,
+                    height: 12,
+                    backgroundColor: wasAtBottom() ? '#00ff00' : '#ff0000',
+                    border: '1px solid #fff'
+                  }}
+                />
+                <div
+                  title="Chat opened"
+                  style={{
+                    width: 12,
+                    height: 12,
+                    backgroundColor: opened ? '#00ff00' : '#ff0000',
+                    border: '1px solid #fff'
+                  }}
+                />
+              </div>
+            )}
+            {messages.map(m => (
+              <MessageLine key={reactKeyForMessage(m)} message={m} currentPlayerName={playerNameValidated} chatOpened={opened} />
+            ))}
+          </div>
+        )) ||
+          undefined}
       </div>
 
       <div className={`chat-wrapper chat-input-wrapper ${usingTouch ? 'input-mobile' : ''}`} hidden={!opened}>
@@ -558,13 +587,15 @@ const ChatBase = ({
             style={{
               position: 'absolute',
               left: 0,
-              ...(usingTouch ? {
-                top: '100%',
-                marginTop: 4,
-              } : {
-                bottom: '100%',
-                marginBottom: 4,
-              }),
+              ...(usingTouch
+                ? {
+                    top: '100%',
+                    marginTop: 4
+                  }
+                : {
+                    bottom: '100%',
+                    marginBottom: 4
+                  }),
               padding: '4px 6px',
               background: 'rgba(0, 0, 0, 0.7)',
               color: 'white',
@@ -574,7 +605,7 @@ const ChatBase = ({
               cursor: 'pointer',
               zIndex: 10,
               maxWidth: 'calc(100% - 4px)',
-              boxSizing: 'border-box',
+              boxSizing: 'border-box'
             }}
           >
             💡 Use Auto-fill UI for password manager
@@ -587,16 +618,16 @@ const ChatBase = ({
               onClick={() => onClose?.()}
               style={{
                 width: 20,
-                flexShrink: 0,
+                flexShrink: 0
               }}
             />
 
-            {(chatInput.current?.value && !chatInput.current.value.startsWith('/')) ? (
+            {chatInput.current?.value && !chatInput.current.value.startsWith('/') ? (
               // TOGGLE SPELL CHECK
               <Button
                 style={{
                   width: 20,
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
                 overlayColor={spellCheckEnabled ? '#00ff00' : '#ff0000'}
                 icon={pixelartIcons['text-wrap']}
@@ -611,7 +642,7 @@ const ChatBase = ({
               <Button
                 style={{
                   width: 20,
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
                 label={chatInput.current?.value ? undefined : '/'}
                 icon={chatInput.current?.value ? pixelartIcons['arrow-right'] : undefined}
@@ -632,10 +663,10 @@ const ChatBase = ({
             <div className="chat-completions">
               <div className="chat-completions-pad-text">{completePadText}</div>
               <div className="chat-completions-items">
-                {completionItems.map((item) => (
+                {completionItems.map(item => (
                   <div
                     key={item}
-                    onMouseDown={(e) => {
+                    onMouseDown={e => {
                       e.preventDefault() // Prevent blur before click
                       acceptComplete(item)
                     }}
@@ -648,28 +679,31 @@ const ChatBase = ({
           ) : null}
           {/* Typing indicator - above input on desktop */}
           {!usingTouch && typingIndicator}
-          <form onSubmit={async (e) => {
-            e.preventDefault()
-            const message = chatInput.current.value
-            if (message) {
-              setSendHistory([...sendHistoryRef.current, message])
-              onClose?.()
-              await sendMessage?.(message)
-              // Always scroll to bottom after sending a message
-              scrollToBottom()
-            }
-          }}
+          <form
+            onSubmit={async e => {
+              e.preventDefault()
+              const message = chatInput.current.value
+              if (message) {
+                setSendHistory([...sendHistoryRef.current, message])
+                onClose?.()
+                await sendMessage?.(message)
+                // Always scroll to bottom after sending a message
+                scrollToBottom()
+              }
+            }}
           >
-            {isIos && <input
-              value=''
-              type="text"
-              className="chat-mobile-input-hidden chat-mobile-input-hidden-up"
-              id="chatinput-next-command"
-              spellCheck={false}
-              autoComplete="off"
-              onFocus={() => auxInputFocus('up')}
-              onChange={() => { }}
-            />}
+            {isIos && (
+              <input
+                value=""
+                type="text"
+                className="chat-mobile-input-hidden chat-mobile-input-hidden-up"
+                id="chatinput-next-command"
+                spellCheck={false}
+                autoComplete="off"
+                onFocus={() => auxInputFocus('up')}
+                onChange={() => {}}
+              />
+            )}
             <input
               maxLength={chatVanillaRestrictions ? 256 : undefined}
               defaultValue={preservedInputValue}
@@ -689,7 +723,7 @@ const ChatBase = ({
               placeholder={inputDisabled || placeholder}
               onFocus={() => setIsInputFocused(true)}
               onBlur={() => setIsInputFocused(false)}
-              onKeyDown={(e) => {
+              onKeyDown={e => {
                 if (e.code === 'ArrowUp') {
                   if (e.altKey) {
                     handleCommandArrowUp()
@@ -720,22 +754,23 @@ const ChatBase = ({
                   const showList = chatInput.current.value.startsWith('/')
                   // alternative we could just simply use keyup, but only with keydown we can display suggestions popup as soon as possible
                   void fetchCompletions(true, getCompleteValue(getDefaultCompleteValue() + ' '), showList)
-
                 }
               }}
             />
-            {isIos && <input
-              value=''
-              type="text"
-              className="chat-mobile-input-hidden chat-mobile-input-hidden-down"
-              id="chatinput-prev-command"
-              spellCheck={false}
-              autoComplete="off"
-              onFocus={() => auxInputFocus('down')}
-              onChange={() => { }}
-            />}
+            {isIos && (
+              <input
+                value=""
+                type="text"
+                className="chat-mobile-input-hidden chat-mobile-input-hidden-down"
+                id="chatinput-prev-command"
+                spellCheck={false}
+                autoComplete="off"
+                onFocus={() => auxInputFocus('down')}
+                onChange={() => {}}
+              />
+            )}
             {/* for some reason this is needed to make Enter work on android chrome */}
-            <button type='submit' className="chat-submit-button" />
+            <button type="submit" className="chat-submit-button" />
           </form>
           {/* Typing indicator - below input on mobile */}
           {usingTouch && typingIndicator}

@@ -1,11 +1,11 @@
 .crosshair {
-    width: 16px;
-    height: 16px;
-    background: var(--gui-icons);
-    background-size: calc(256px * var(--crosshair-scale));
-    position: fixed;
-    z-index: 100;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    image-rendering: pixelated;
+  width: 16px;
+  height: 16px;
+  background: var(--gui-icons);
+  background-size: calc(256px * var(--crosshair-scale));
+  position: fixed;
+  z-index: 100;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  image-rendering: pixelated;
 }

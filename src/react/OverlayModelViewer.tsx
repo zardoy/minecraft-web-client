@@ -8,38 +8,41 @@ import { applySkinToPlayerObject, createPlayerObject, PlayerObjectType } from 'm
 import { currentScaling } from '../scaleInterface'
 import { activeModalStack } from '../globalState'
 
-
 export const modelViewerState = proxy({
-  model: undefined as undefined | {
-    models?: string[] // Array of model URLs (URL itself is the cache key)
-    steveModelSkin?: string
-    debug?: boolean
-    // absolute positioning
-    positioning: {
-      windowWidth: number
-      windowHeight: number
-      x: number
-      y: number
-      width: number
-      height: number
-      scaled?: boolean
-      onlyInitialScale?: boolean
-    }
-    followCursor?: boolean
-    followCursorCenter?: {
-      x: number
-      y: number
-    }
-    modelCustomization?: { [modelUrl: string]: { color?: string, opacity?: number, metalness?: number, roughness?: number, rotation?: { x?: number, y?: number, z?: number } } }
-    resetRotationOnReleae?: boolean
-    continiousRender?: boolean
-    alwaysRender?: boolean
-    playModelAnimation?: string
-    playModelAnimationSpeed?: number
-    playModelAnimationLoop?: boolean
-    followCursorCenterDebug?: boolean
-    zIndex?: number
-  }
+  model: undefined as
+    | undefined
+    | {
+        models?: string[] // Array of model URLs (URL itself is the cache key)
+        steveModelSkin?: string
+        debug?: boolean
+        // absolute positioning
+        positioning: {
+          windowWidth: number
+          windowHeight: number
+          x: number
+          y: number
+          width: number
+          height: number
+          scaled?: boolean
+          onlyInitialScale?: boolean
+        }
+        followCursor?: boolean
+        followCursorCenter?: {
+          x: number
+          y: number
+        }
+        modelCustomization?: {
+          [modelUrl: string]: { color?: string; opacity?: number; metalness?: number; roughness?: number; rotation?: { x?: number; y?: number; z?: number } }
+        }
+        resetRotationOnReleae?: boolean
+        continiousRender?: boolean
+        alwaysRender?: boolean
+        playModelAnimation?: string
+        playModelAnimationSpeed?: number
+        playModelAnimationLoop?: boolean
+        followCursorCenterDebug?: boolean
+        zIndex?: number
+      }
 })
 globalThis.modelViewerState = modelViewerState
 
@@ -73,14 +76,16 @@ globalThis.getModelViewerValues = () => {
     },
     cursor: {
       position: globalThis.cursorPosition || { x: 0, y: 0 },
-      normalized: globalThis.cursorPosition ? {
-        x: globalThis.cursorPosition.x * 2 - 1,
-        y: globalThis.cursorPosition.y * 2 - 1
-      } : { x: 0, y: 0 }
+      normalized: globalThis.cursorPosition
+        ? {
+            x: globalThis.cursorPosition.x * 2 - 1,
+            y: globalThis.cursorPosition.y * 2 - 1
+          }
+        : { x: 0, y: 0 }
     },
     visibleArea: {
-      height: 2 * Math.tan(camera.fov * Math.PI / 180 / 2) * camera.position.z,
-      width: 2 * Math.tan(camera.fov * Math.PI / 180 / 2) * camera.position.z * camera.aspect
+      height: 2 * Math.tan((camera.fov * Math.PI) / 180 / 2) * camera.position.z,
+      width: 2 * Math.tan((camera.fov * Math.PI) / 180 / 2) * camera.position.z * camera.aspect
     }
   }
 }
@@ -96,13 +101,9 @@ subscribe(activeModalStack, () => {
 
 // Helper function to setup material transparency
 const setupMaterialTransparency = (material: THREE.Material): void => {
-  if (material instanceof THREE.MeshStandardMaterial ||
-    material instanceof THREE.MeshBasicMaterial ||
-    material instanceof THREE.MeshPhongMaterial) {
+  if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshBasicMaterial || material instanceof THREE.MeshPhongMaterial) {
     // Check if material should be transparent
-    const hasAlpha = material.alphaMap ||
-      (material.opacity !== undefined && material.opacity < 1) ||
-      (material.map && material.map.format === THREE.RGBAFormat)
+    const hasAlpha = material.alphaMap || (material.opacity !== undefined && material.opacity < 1) || (material.map && material.map.format === THREE.RGBAFormat)
 
     if (hasAlpha) {
       // Configure transparency properly
@@ -140,7 +141,7 @@ export const PlayerModelCanvas = ({
   height,
   skinUrl = '',
   followCursor = true,
-  computeNormalized,
+  computeNormalized
 }: {
   width: number
   height: number
@@ -165,7 +166,9 @@ export const PlayerModelCanvas = ({
   } | null>(null)
   // Always-fresh ref so the pointer-move closure never goes stale
   const computeNormalizedRef = useRef(computeNormalized)
-  useEffect(() => { computeNormalizedRef.current = computeNormalized })
+  useEffect(() => {
+    computeNormalizedRef.current = computeNormalized
+  })
 
   // Three.js scene setup — runs once on mount
   useEffect(() => {
@@ -200,7 +203,7 @@ export const PlayerModelCanvas = ({
     playerObject.ears.visible = false
     playerObject.cape.visible = false
 
-    wrapper.traverse((child) => {
+    wrapper.traverse(child => {
       if (child instanceof THREE.Mesh && child.material) {
         const mats = Array.isArray(child.material) ? child.material : [child.material]
         for (const mat of mats) setupMaterialTransparency(mat)
@@ -212,7 +215,7 @@ export const PlayerModelCanvas = ({
     const size = box.getSize(new THREE.Vector3())
     const center = box.getCenter(new THREE.Vector3())
     const cameraDistance = camera.position.z
-    const fov = camera.fov * Math.PI / 180
+    const fov = (camera.fov * Math.PI) / 180
     const visibleHeight = 2 * Math.tan(fov / 2) * cameraDistance
     const visibleWidth = visibleHeight * (width / height)
     const scaleFactor = Math.min(visibleHeight / size.y, visibleWidth / size.x)
@@ -222,7 +225,9 @@ export const PlayerModelCanvas = ({
     scene.add(wrapper)
 
     playerObjectRef.current = playerObject
-    const render = () => { renderer.render(scene, camera) }
+    const render = () => {
+      renderer.render(scene, camera)
+    }
     sceneRef.current = { renderer, camera, scene, controls, render }
 
     controls.addEventListener('change', render)
@@ -249,7 +254,10 @@ export const PlayerModelCanvas = ({
       playerObject.skin.head.rotation.x = THREE.MathUtils.lerp(playerObject.skin.head.rotation.x, ny * maxAngle, 0.1)
       playerObject.rotation.y = THREE.MathUtils.lerp(playerObject.rotation.y, nx * maxAngle * 0.3, 0.05)
       if (!waitingRender) {
-        requestAnimationFrame(() => { render(); waitingRender = false })
+        requestAnimationFrame(() => {
+          render()
+          waitingRender = false
+        })
         waitingRender = true
       }
     }
@@ -259,7 +267,7 @@ export const PlayerModelCanvas = ({
       if (followCursor) window.removeEventListener('pointermove', handlePointerMove)
       controls.removeEventListener('change', render)
       controls.dispose()
-      wrapper.traverse((child) => {
+      wrapper.traverse(child => {
         if (child instanceof THREE.Mesh) {
           const mats = Array.isArray(child.material) ? child.material : [child.material]
           for (const mat of mats) (mat as THREE.Material).dispose()
@@ -267,7 +275,7 @@ export const PlayerModelCanvas = ({
         }
       })
       if ((playerObject.skin as any).map) {
-        ((playerObject.skin as any).map as THREE.Texture).dispose()
+        ;((playerObject.skin as any).map as THREE.Texture).dispose()
       }
       renderer.dispose()
       renderer.domElement?.remove()
@@ -325,21 +333,20 @@ export default () => {
     const { positioning, followCursorCenter } = modelViewerState.model!
     const { windowWidth, windowHeight } = positioning
     const rect = windowRef.current?.getBoundingClientRect()
-    const effectiveScale = rect ? (rect.width / windowWidth) : getUiScaleFactor(positioning.scaled, positioning.onlyInitialScale)
+    const effectiveScale = rect ? rect.width / windowWidth : getUiScaleFactor(positioning.scaled, positioning.onlyInitialScale)
 
-    const centerPxX = (followCursorCenter?.x ?? (windowWidth / 2)) * effectiveScale
-    const centerPxY = (followCursorCenter?.y ?? (windowHeight / 2)) * effectiveScale
+    const centerPxX = (followCursorCenter?.x ?? windowWidth / 2) * effectiveScale
+    const centerPxY = (followCursorCenter?.y ?? windowHeight / 2) * effectiveScale
 
-    const localX = rect ? (clientX - rect.left) : clientX
-    const localY = rect ? (clientY - rect.top) : clientY
+    const localX = rect ? clientX - rect.left : clientX
+    const localY = rect ? clientY - rect.top : clientY
 
-    const denomX = rect ? (rect.width / 2) : (window.innerWidth / 2)
-    const denomY = rect ? (rect.height / 2) : (window.innerHeight / 2)
+    const denomX = rect ? rect.width / 2 : window.innerWidth / 2
+    const denomY = rect ? rect.height / 2 : window.innerHeight / 2
     const normalizedX = (localX - centerPxX) / denomX
     const normalizedY = (localY - centerPxY) / denomY
     return { normalizedX, normalizedY }
   }
-
 
   // Model management state
   const loadedModels = useRef<Map<string, THREE.Object3D>>(new Map())
@@ -433,7 +440,7 @@ export default () => {
       if (customization?.rotation) {
         object.rotation.set(customization.rotation.x ?? 0, customization.rotation.y ?? 0, customization.rotation.z ?? 0)
       }
-      object.traverse((child) => {
+      object.traverse(child => {
         if (child instanceof THREE.Mesh) {
           const material = child.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial | THREE.MeshPhongMaterial
 
@@ -501,11 +508,11 @@ export default () => {
     }
 
     if (isGLTF) {
-      (loader as GLTFLoader).load(modelUrl, (gltf) => {
+      ;(loader as GLTFLoader).load(modelUrl, gltf => {
         onLoad(gltf.scene, gltf.animations)
       })
     } else {
-      (loader as OBJLoader).load(modelUrl, onLoad)
+      ;(loader as OBJLoader).load(modelUrl, onLoad)
     }
   }
 
@@ -513,7 +520,7 @@ export default () => {
     const model = loadedModels.current.get(modelUrl)
     if (model) {
       sceneRef.current?.scene.remove(model)
-      model.traverse((child) => {
+      model.traverse(child => {
         if (child instanceof THREE.Mesh) {
           if (child.material) {
             if (Array.isArray(child.material)) {
@@ -655,7 +662,7 @@ export default () => {
       camera,
       renderer,
       controls,
-      dispose () {
+      dispose() {
         if (!model.continiousRender) {
           controls.removeEventListener('change', render)
         }
@@ -664,7 +671,7 @@ export default () => {
         // Clean up loaded GLTF/OBJ models
         for (const [modelUrl, model] of loadedModels.current) {
           scene.remove(model)
-          model.traverse((child) => {
+          model.traverse(child => {
             if (child instanceof THREE.Mesh) {
               if (child.material) {
                 if (Array.isArray(child.material)) {
@@ -727,7 +734,7 @@ export default () => {
 
   return (
     <div
-      className='overlay-model-viewer-container'
+      className="overlay-model-viewer-container"
       style={{
         zIndex: model.zIndex ?? 100,
         position: 'fixed',
@@ -738,46 +745,46 @@ export default () => {
         justifyContent: 'center',
         alignItems: 'center',
         transform: scaled ? `scale(${scaleValue})` : 'none',
-        pointerEvents: 'none',
+        pointerEvents: 'none'
       }}
     >
       <div
         ref={windowRef}
-        className='overlay-model-viewer-window'
+        className="overlay-model-viewer-window"
         style={{
           width: windowWidth,
           height: windowHeight,
           position: 'relative',
-          pointerEvents: 'none',
+          pointerEvents: 'none'
         }}
       >
-        {model.followCursor && model.followCursorCenterDebug ? (
-          (() => {
-            const { followCursorCenter } = model
-            const cx = (followCursorCenter?.x ?? (windowWidth / 2))
-            const cy = (followCursorCenter?.y ?? (windowHeight / 2))
-            const size = 6
-            return (
-              <div
-                className='overlay-model-viewer-follow-cursor-center-debug'
-                style={{
-                  position: 'absolute',
-                  left: cx - (size / 2),
-                  top: cy - (size / 2),
-                  width: size,
-                  height: size,
-                  backgroundColor: 'red',
-                  pointerEvents: 'none',
-                  zIndex: 1000,
-                }}
-              />
-            )
-          })()
-        ) : null}
+        {model.followCursor && model.followCursorCenterDebug
+          ? (() => {
+              const { followCursorCenter } = model
+              const cx = followCursorCenter?.x ?? windowWidth / 2
+              const cy = followCursorCenter?.y ?? windowHeight / 2
+              const size = 6
+              return (
+                <div
+                  className="overlay-model-viewer-follow-cursor-center-debug"
+                  style={{
+                    position: 'absolute',
+                    left: cx - size / 2,
+                    top: cy - size / 2,
+                    width: size,
+                    height: size,
+                    backgroundColor: 'red',
+                    pointerEvents: 'none',
+                    zIndex: 1000
+                  }}
+                />
+              )
+            })()
+          : null}
         {model.steveModelSkin === undefined ? (
           <div
             ref={containerRef}
-            className='overlay-model-viewer'
+            className="overlay-model-viewer"
             style={{
               position: 'absolute',
               left: x,
@@ -785,18 +792,18 @@ export default () => {
               width,
               height,
               pointerEvents: 'auto',
-              backgroundColor: model.debug ? 'red' : undefined,
+              backgroundColor: model.debug ? 'red' : undefined
             }}
           />
         ) : (
           <div
-            className='overlay-model-viewer'
+            className="overlay-model-viewer"
             style={{
               position: 'absolute',
               left: x,
               top: y,
               pointerEvents: 'auto',
-              backgroundColor: model.debug ? 'red' : undefined,
+              backgroundColor: model.debug ? 'red' : undefined
             }}
           >
             <PlayerModelCanvas

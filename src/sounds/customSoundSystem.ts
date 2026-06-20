@@ -5,7 +5,7 @@ const customSoundSystem = () => {
   bot._client.on('named_sound_effect', packet => {
     if (!options.remoteSoundsSupport) return
     let { soundName } = packet
-    let metadata = {} as { loadTimeout?: number, loop?: boolean }
+    let metadata = {} as { loadTimeout?: number; loop?: boolean }
 
     // Extract JSON metadata from parentheses at the end
     const jsonMatch = /\(({.*})\)$/.exec(soundName)

@@ -89,8 +89,5 @@ export const downloadOtherGameData = async (reporter?: AssetDownloadReporter) =>
   reporter?.('fonts', false)
   reporter?.('sounds', false)
 
-  await Promise.all([
-    loadFonts().then(() => reporter?.('fonts', true)),
-    downloadSoundsIfNeeded().then(() => reporter?.('sounds', true))
-  ])
+  await Promise.all([loadFonts().then(() => reporter?.('fonts', true)), downloadSoundsIfNeeded().then(() => reporter?.('sounds', true))])
 }

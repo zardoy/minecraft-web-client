@@ -10,7 +10,10 @@ export const useTypingIndicatorText = () => {
     if (activeTypingUsers.length === 0) return ''
     if (activeTypingUsers.length === 1) return `${activeTypingUsers[0]?.username || 'Someone'} is typing...`
     if (activeTypingUsers.length === 2) return `${activeTypingUsers[0]?.username || 'Someone'} and ${activeTypingUsers[1]?.username || 'Someone'} are typing...`
-    const usernames = activeTypingUsers.slice(0, -1).map(user => user?.username || 'Someone').join(', ')
+    const usernames = activeTypingUsers
+      .slice(0, -1)
+      .map(user => user?.username || 'Someone')
+      .join(', ')
     const lastUser = activeTypingUsers.at(-1)?.username || 'Someone'
     return `${usernames} and ${lastUser} are typing...`
   }, [typingUsers])

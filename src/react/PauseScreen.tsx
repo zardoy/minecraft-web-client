@@ -8,14 +8,7 @@ import { Vec3 } from 'vec3'
 import { generateSpiralMatrix } from 'flying-squid/dist/utils'
 import { subscribeKey } from 'valtio/utils'
 import { ErrorBoundary } from '@zardoy/react-util'
-import {
-  activeModalStack,
-  showModal,
-  hideModal,
-  miscUiState,
-  openOptionsMenu,
-  gameAdditionalState
-} from '../globalState'
+import { activeModalStack, showModal, hideModal, miscUiState, openOptionsMenu, gameAdditionalState } from '../globalState'
 import { fsState } from '../loadSave'
 import { disconnect } from '../flyingSquidUtils'
 import { openGithub, pointerLock } from '../utils'
@@ -62,7 +55,7 @@ export const saveToBrowserMemory = async () => {
     const allFilesToCopy = [] as string[]
     for (const dirBase of allRootPaths) {
       // eslint-disable-next-line no-await-in-loop
-      if (dirBase.includes('.') && await fileExistsAsyncOptimized(join(worldFolder, dirBase))) {
+      if (dirBase.includes('.') && (await fileExistsAsyncOptimized(join(worldFolder, dirBase)))) {
         allFilesToCopy.push(dirBase)
         continue
       }
@@ -91,17 +84,19 @@ export const saveToBrowserMemory = async () => {
       const totalSIze = copyPaths.flat().length
       for (const copyFileGroup of copyPaths) {
         // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-        await Promise.all(copyFileGroup.map(async (copyPath) => {
-          const srcPath = join(worldFolder, copyPath)
-          const savePath = join(saveRootPath, copyPath)
-          await mkdirRecursive(savePath)
-          await fs.promises.writeFile(savePath, await fs.promises.readFile(srcPath) as any)
-          upProgress(totalSIze)
-          if (isRegionFiles) {
-            const regionFile = copyPath.split('/').at(-1)!
-            appStatusState.loadingChunksData![regionFile] = 'done'
-          }
-        }))
+        await Promise.all(
+          copyFileGroup.map(async copyPath => {
+            const srcPath = join(worldFolder, copyPath)
+            const savePath = join(saveRootPath, copyPath)
+            await mkdirRecursive(savePath)
+            await fs.promises.writeFile(savePath, (await fs.promises.readFile(srcPath)) as any)
+            upProgress(totalSIze)
+            if (isRegionFiles) {
+              const regionFile = copyPath.split('/').at(-1)!
+              appStatusState.loadingChunksData![regionFile] = 'done'
+            }
+          })
+        )
         // eslint-disable-next-line no-await-in-loop
         await waitForPotentialRender()
       }
@@ -200,7 +195,7 @@ export default () => {
       return
     }
     if (!wanOpened || !qr) {
-      await openToWanAndCopyJoinLink((err) => {
+      await openToWanAndCopyJoinLink(err => {
         if (!miscUiState.wanOpening) return
         alert(`Something went wrong: ${err}`)
       }, !qr)
@@ -230,118 +225,117 @@ export default () => {
 
   if (!isModalActive) return null
 
-  return <Screen title='Game Menu'>
-    <div style={{ position: 'fixed', top: '5px', left: 'calc(env(safe-area-inset-left) + 5px)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <Button
-        icon="pixelarticons:folder"
-        onClick={async () => openWorldActions()}
-      />
-      {displayPacketsButtons && (
-        <>
-          <Button
-            icon={packetsReplaceActive ? 'pixelarticons:debug-stop' : 'pixelarticons:circle'}
-            onClick={() => {
-              packetsRecordingState.active = !packetsRecordingState.active
-            }}
-          />
-          {packetsReplaceHasRecordedPackets && (
+  return (
+    <Screen title="Game Menu">
+      <div style={{ position: 'fixed', top: '5px', left: 'calc(env(safe-area-inset-left) + 5px)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <Button icon="pixelarticons:folder" onClick={async () => openWorldActions()} />
+        {displayPacketsButtons && (
+          <>
             <Button
-              icon={pixelartIcons['briefcase-download']}
-              onClick={async () => downloadPacketsReplay()}
-            />
-          )}
-          <Button
-            icon={pixelartIcons['download']}
-            onClick={async () => bot.downloadCurrentWorldState()}
-          />
-        </>
-      )}
-    </div>
-    <ErrorBoundary renderError={() => <div>error</div>}>
-      <div style={{ position: 'fixed', top: '5px', left: 'calc(env(safe-area-inset-left) + 35px)' }}>
-        <NetworkStatus />
-      </div>
-    </ErrorBoundary>
-    <div className={styles.pause_container}>
-      <Button className="button" style={{ width: '204px' }} onClick={onReturnPress}>Back to Game</Button>
-      <PauseLinkButtons />
-      <Button className="button" style={{ width: '204px' }} onClick={() => openOptionsMenu('main')}>Options...</Button>
-      {singleplayer ? (
-        <div className={styles.row}>
-          <Button className="button" style={{ width: '170px' }} onClick={async () => clickJoinLinkButton()}>
-            {wanOpening ? 'Opening, wait...' : wanOpened ? 'Close Wan' : 'Copy Join Link'}
-          </Button>
-          {(navigator.share as typeof navigator.share | undefined) ? (
-            <Button
-              title="Share Join Link"
-              className="button"
-              icon="pixelarticons:arrow-up"
-              style={{ width: '20px' }}
-              onClick={async () => clickWebShareButton()}
-            />
-          ) : null}
-          <Button
-            title='Display QR for the Join Link'
-            className="button"
-            icon="pixelarticons:dice"
-            style={{ width: '20px' }}
-            onClick={async () => clickJoinLinkButton(true)}
-          />
-        </div>
-      ) : null}
-      {(noConnection || appConfig?.alwaysReconnectButton) && (
-        <div className={styles.row}>
-          <Button className="button" style={{ width: appConfig?.reportBugButtonWithReconnect ? '98px' : '204px' }} onClick={reconnectReload}>
-            Reconnect
-          </Button>
-          {appConfig?.reportBugButtonWithReconnect && (
-            <Button
-              label="Report Problem"
-              className="button"
-              style={{ width: '98px' }}
-              onClick={async () => {
-                const platform = (navigator as any).userAgentData?.platform ?? navigator.platform
-                const body = `Version: ${window.location.hostname}\nServer: ${lastConnectOptions.value?.server ?? '<not a server>'}\nPlatform: ${platform}\nWebsite: ${window.location.href}`
-                const currentHost = window.location.hostname
-                const options = [
-                  'GitHub (please use it if you can)',
-                  'Email',
-                  ...((currentHost === 'mcraft.fun' || currentHost === 'ru.mcraft.fun') ? ['Try Beta Version'] : []),
-                  // 'Use previous versions of client'
-                ]
-                const action = await showOptionsModal('Report client issue', options)
-                if (!action) return
-
-                switch (action) {
-                  case 'GitHub (please use it if you can)':
-                    openGithub(`/issues/new?body=${encodeURIComponent(body)}&title=${encodeURIComponent('[Bug Report] <describe your issue here>')}&labels=bug`)
-                    break
-                  case 'Email': {
-                    window.location.href = `mailto:support@mcraft.fun?body=${encodeURIComponent(body)}`
-                    break
-                  }
-                  case 'Try Beta Version': {
-                    if (currentHost === 'mcraft.fun') {
-                      window.location.href = 'https://s.mcraft.fun'
-                    }
-                    break
-                  }
-                  case 'Use previous versions of client':
-                    // TODO: Implement versions screen
-                    void showOptionsModal('Previous versions', [])
-                    break
-                }
+              icon={packetsReplaceActive ? 'pixelarticons:debug-stop' : 'pixelarticons:circle'}
+              onClick={() => {
+                packetsRecordingState.active = !packetsRecordingState.active
               }}
             />
-          )}
+            {packetsReplaceHasRecordedPackets && <Button icon={pixelartIcons['briefcase-download']} onClick={async () => downloadPacketsReplay()} />}
+            <Button icon={pixelartIcons['download']} onClick={async () => bot.downloadCurrentWorldState()} />
+          </>
+        )}
+      </div>
+      <ErrorBoundary renderError={() => <div>error</div>}>
+        <div style={{ position: 'fixed', top: '5px', left: 'calc(env(safe-area-inset-left) + 35px)' }}>
+          <NetworkStatus />
         </div>
-      )}
-      {!lockConnect && <>
-        <Button className="button" style={{ width: '204px' }} onClick={disconnect}>
-          {fsState.inMemorySave && !fsState.syncFs && !fsState.isReadonly ? 'Save & Quit' : 'Disconnect & Reset'}
+      </ErrorBoundary>
+      <div className={styles.pause_container}>
+        <Button className="button" style={{ width: '204px' }} onClick={onReturnPress}>
+          Back to Game
         </Button>
-      </>}
-    </div>
-    <LoadingTimer />
-  </Screen>
+        <PauseLinkButtons />
+        <Button className="button" style={{ width: '204px' }} onClick={() => openOptionsMenu('main')}>
+          Options...
+        </Button>
+        {singleplayer ? (
+          <div className={styles.row}>
+            <Button className="button" style={{ width: '170px' }} onClick={async () => clickJoinLinkButton()}>
+              {wanOpening ? 'Opening, wait...' : wanOpened ? 'Close Wan' : 'Copy Join Link'}
+            </Button>
+            {(navigator.share as typeof navigator.share | undefined) ? (
+              <Button
+                title="Share Join Link"
+                className="button"
+                icon="pixelarticons:arrow-up"
+                style={{ width: '20px' }}
+                onClick={async () => clickWebShareButton()}
+              />
+            ) : null}
+            <Button
+              title="Display QR for the Join Link"
+              className="button"
+              icon="pixelarticons:dice"
+              style={{ width: '20px' }}
+              onClick={async () => clickJoinLinkButton(true)}
+            />
+          </div>
+        ) : null}
+        {(noConnection || appConfig?.alwaysReconnectButton) && (
+          <div className={styles.row}>
+            <Button className="button" style={{ width: appConfig?.reportBugButtonWithReconnect ? '98px' : '204px' }} onClick={reconnectReload}>
+              Reconnect
+            </Button>
+            {appConfig?.reportBugButtonWithReconnect && (
+              <Button
+                label="Report Problem"
+                className="button"
+                style={{ width: '98px' }}
+                onClick={async () => {
+                  const platform = (navigator as any).userAgentData?.platform ?? navigator.platform
+                  const body = `Version: ${window.location.hostname}\nServer: ${lastConnectOptions.value?.server ?? '<not a server>'}\nPlatform: ${platform}\nWebsite: ${window.location.href}`
+                  const currentHost = window.location.hostname
+                  const options = [
+                    'GitHub (please use it if you can)',
+                    'Email',
+                    ...(currentHost === 'mcraft.fun' || currentHost === 'ru.mcraft.fun' ? ['Try Beta Version'] : [])
+                    // 'Use previous versions of client'
+                  ]
+                  const action = await showOptionsModal('Report client issue', options)
+                  if (!action) return
+
+                  switch (action) {
+                    case 'GitHub (please use it if you can)':
+                      openGithub(
+                        `/issues/new?body=${encodeURIComponent(body)}&title=${encodeURIComponent('[Bug Report] <describe your issue here>')}&labels=bug`
+                      )
+                      break
+                    case 'Email': {
+                      window.location.href = `mailto:support@mcraft.fun?body=${encodeURIComponent(body)}`
+                      break
+                    }
+                    case 'Try Beta Version': {
+                      if (currentHost === 'mcraft.fun') {
+                        window.location.href = 'https://s.mcraft.fun'
+                      }
+                      break
+                    }
+                    case 'Use previous versions of client':
+                      // TODO: Implement versions screen
+                      void showOptionsModal('Previous versions', [])
+                      break
+                  }
+                }}
+              />
+            )}
+          </div>
+        )}
+        {!lockConnect && (
+          <>
+            <Button className="button" style={{ width: '204px' }} onClick={disconnect}>
+              {fsState.inMemorySave && !fsState.syncFs && !fsState.isReadonly ? 'Save & Quit' : 'Disconnect & Reset'}
+            </Button>
+          </>
+        )}
+      </div>
+      <LoadingTimer />
+    </Screen>
+  )
 }

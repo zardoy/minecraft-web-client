@@ -27,18 +27,17 @@ export const showResetSettingsModal = async () => {
   }
 
   const checkboxInputs = Object.fromEntries(
-    changedKeys.map(key => [key, {
-      type: 'checkbox' as const,
-      label: titleCase(noCase(key)),
-      defaultValue: true,
-    }])
+    changedKeys.map(key => [
+      key,
+      {
+        type: 'checkbox' as const,
+        label: titleCase(noCase(key)),
+        defaultValue: true
+      }
+    ])
   )
 
-  const selectedSettings = await showInputsModal(
-    'Select Settings to Reset',
-    checkboxInputs,
-    { cancel: true, showConfirm: true, confirmLabel: 'Reset' }
-  )
+  const selectedSettings = await showInputsModal('Select Settings to Reset', checkboxInputs, { cancel: true, showConfirm: true, confirmLabel: 'Reset' })
 
   if (!selectedSettings) return
 
@@ -104,18 +103,17 @@ export default () => {
 
     // Create checkboxes for each changed setting (all checked by default)
     const checkboxInputs = Object.fromEntries(
-      changedKeys.map(key => [key, {
-        type: 'checkbox' as const,
-        label: titleCase(noCase(key)),
-        defaultValue: true,
-      }])
+      changedKeys.map(key => [
+        key,
+        {
+          type: 'checkbox' as const,
+          label: titleCase(noCase(key)),
+          defaultValue: true
+        }
+      ])
     )
 
-    const selectedSettings = await showInputsModal(
-      'Select Changed Settings to Include in URL',
-      checkboxInputs,
-      { cancel: true, showConfirm: true }
-    )
+    const selectedSettings = await showInputsModal('Select Changed Settings to Include in URL', checkboxInputs, { cancel: true, showConfirm: true })
 
     if (!selectedSettings) return
 
@@ -126,12 +124,14 @@ export default () => {
       return
     }
 
-    const urlParams = selectedKeys.map(key => {
-      const value = changedSettings[key]
-      // JSON encode the value as mentioned in the requirement
-      const jsonValue = JSON.stringify(value)
-      return `setting=${encodeURIComponent(key)}:${encodeURIComponent(jsonValue)}`
-    }).join('&')
+    const urlParams = selectedKeys
+      .map(key => {
+        const value = changedSettings[key]
+        // JSON encode the value as mentioned in the requirement
+        const jsonValue = JSON.stringify(value)
+        return `setting=${encodeURIComponent(key)}:${encodeURIComponent(jsonValue)}`
+      })
+      .join('&')
 
     const url = `${window.location.origin}${window.location.pathname}?${urlParams}`
 
@@ -182,10 +182,7 @@ export default () => {
         }
       }
       const optionLabels = meta.possibleValues.map(getOptionLabel)
-      const result = await showOptionsModal(
-        `Select ${titleCase(noCase(key))}`,
-        optionLabels
-      )
+      const result = await showOptionsModal(`Select ${titleCase(noCase(key))}`, optionLabels)
       if (result) {
         const selectedIndex = optionLabels.indexOf(result)
         if (selectedIndex !== -1) {
@@ -207,11 +204,13 @@ export default () => {
             defaultValue: value,
             placeholder: `Enter ${titleCase(noCase(key))}`
           },
-          ...hadOptionChanged ? {
-            reset: {
-              type: 'button',
-            }
-          } : {}
+          ...(hadOptionChanged
+            ? {
+                reset: {
+                  type: 'button'
+                }
+              }
+            : {})
         },
         { cancel: true, showConfirm: true }
       )
@@ -252,7 +251,7 @@ export default () => {
     }
   }
 
-  const OptionRow = ({ optionKey, value }: { optionKey: string, value: any }) => {
+  const OptionRow = ({ optionKey, value }: { optionKey: string; value: any }) => {
     const valueButtonRef = useRef<HTMLDivElement>(null)
     const isDisabled = disabledSettingsSnapshot.value.has(optionKey)
     const isEditing = editingKey === optionKey
@@ -276,7 +275,7 @@ export default () => {
         minWidth: '120px',
         maxHeight: '300px',
         overflowY: 'auto',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)'
       }
 
       if (valueButtonRef.current) {
@@ -295,10 +294,14 @@ export default () => {
                   cursor: 'pointer',
                   backgroundColor: '#333',
                   borderRadius: '2px',
-                  marginBottom: '4px',
+                  marginBottom: '4px'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#444' }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#333' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#444'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = '#333'
+                }}
                 onClick={() => handleValueChange(optionKey, 'true')}
               >
                 true
@@ -308,10 +311,14 @@ export default () => {
                   padding: '6px 12px',
                   cursor: 'pointer',
                   backgroundColor: '#333',
-                  borderRadius: '2px',
+                  borderRadius: '2px'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#444' }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#333' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#444'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = '#333'
+                }}
                 onClick={() => handleValueChange(optionKey, 'false')}
               >
                 false
@@ -323,7 +330,7 @@ export default () => {
                 defaultValue={String(value)}
                 autoFocus
                 rootStyles={{ width: '100%' }}
-                onKeyDown={(e) => {
+                onKeyDown={e => {
                   if (e.key === 'Enter') {
                     handleValueChange(optionKey, e.currentTarget.value)
                   } else if (e.key === 'Escape') {
@@ -338,7 +345,7 @@ export default () => {
                     }
                   }, 200)
                 }}
-                onChange={(e) => setEditingValue(e.target.value)}
+                onChange={e => setEditingValue(e.target.value)}
               />
             </div>
           ) : isNumber ? (
@@ -348,7 +355,7 @@ export default () => {
                 defaultValue={String(value)}
                 autoFocus
                 rootStyles={{ width: '100%' }}
-                onKeyDown={(e) => {
+                onKeyDown={e => {
                   if (e.key === 'Enter') {
                     handleValueChange(optionKey, e.currentTarget.value)
                   } else if (e.key === 'Escape') {
@@ -362,13 +369,11 @@ export default () => {
                     }
                   }, 200)
                 }}
-                onChange={(e) => setEditingValue(e.target.value)}
+                onChange={e => setEditingValue(e.target.value)}
               />
             </div>
           ) : (
-            <div style={{ padding: '8px', color: '#999', fontSize: '12px' }}>
-              Complex type (object/array)
-            </div>
+            <div style={{ padding: '8px', color: '#999', fontSize: '12px' }}>Complex type (object/array)</div>
           )}
         </div>
       )
@@ -386,14 +391,14 @@ export default () => {
           cursor: isDisabled ? 'not-allowed' : 'pointer',
           position: 'relative',
           // Mobile-friendly touch targets
-          minHeight: '44px',
+          minHeight: '44px'
         }}
-        onMouseEnter={(e) => {
+        onMouseEnter={e => {
           if (!isDisabled && !isEditing) {
             e.currentTarget.style.backgroundColor = '#333'
           }
         }}
-        onMouseLeave={(e) => {
+        onMouseLeave={e => {
           if (!isDisabled && !isEditing) {
             e.currentTarget.style.backgroundColor = '#2a2a2a'
           }
@@ -406,7 +411,7 @@ export default () => {
             fontSize: '13px',
             color: isDisabled ? '#666' : '#fff',
             fontWeight: 500,
-            wordBreak: 'break-word',
+            wordBreak: 'break-word'
           }}
         >
           {titleCase(noCase(optionKey))}
@@ -425,10 +430,12 @@ export default () => {
             userSelect: 'none',
             // Mobile-friendly touch target
             minWidth: '60px',
-            textAlign: 'center',
+            textAlign: 'center'
           }}
-          onClick={(e) => { void handleValueClick(optionKey, value, e) }}
-          onTouchStart={(e) => {
+          onClick={e => {
+            void handleValueClick(optionKey, value, e)
+          }}
+          onTouchStart={e => {
             // Prevent double-tap zoom on mobile
             if (e.touches.length > 1) {
               e.preventDefault()
@@ -462,87 +469,84 @@ export default () => {
 
   return (
     <Screen title="All Settings" backdrop titleMarginTop={5}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        width: '100%',
-        maxHeight: 'calc(100vh - 100px)',
-        gap: '8px',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          width: '100%',
+          maxHeight: 'calc(100vh - 100px)',
+          gap: '8px'
+        }}
+      >
         {/* Search input */}
-        <div style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          backgroundColor: '#1a1a1a',
-          padding: '8px 0',
-        }}>
+        <div
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            backgroundColor: '#1a1a1a',
+            padding: '8px 0'
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Button
-              icon={pixelartIcons['link']}
-              onClick={handleCopySettingsUrl}
-              style={{ flexShrink: 0 }}
-              title="Copy URL with changed settings"
-            />
+            <Button icon={pixelartIcons['link']} onClick={handleCopySettingsUrl} style={{ flexShrink: 0 }} title="Copy URL with changed settings" />
             <PixelartIcon iconName={pixelartIcons['search']} styles={{ width: '16px', height: '16px', flexShrink: 0 }} />
             <Input
               ref={searchInputRef}
               placeholder="Search options..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               rootStyles={{
                 flex: 1,
-                minWidth: 0, // Allow flexbox to shrink properly on mobile
+                minWidth: 0 // Allow flexbox to shrink properly on mobile
               }}
             />
-            {searchTerm && (
-              <Button
-                icon={pixelartIcons['close']}
-                onClick={() => setSearchTerm('')}
-                style={{ width: '20px', flexShrink: 0 }}
-              />
-            )}
+            {searchTerm && <Button icon={pixelartIcons['close']} onClick={() => setSearchTerm('')} style={{ width: '20px', flexShrink: 0 }} />}
           </div>
           <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-            {filteredOptions.length} option{(filteredOptions.length === 1) ? '' : 's'} found
+            {filteredOptions.length} option{filteredOptions.length === 1 ? '' : 's'} found
           </div>
         </div>
 
         {/* Options list */}
-        <div style={{
-          overflowY: 'auto',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-          paddingRight: '4px',
-          // Mobile-friendly scrolling
-          WebkitOverflowScrolling: 'touch',
-        }}>
+        <div
+          style={{
+            overflowY: 'auto',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            paddingRight: '4px',
+            // Mobile-friendly scrolling
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
           {filteredOptions.length === 0 ? (
-            <div style={{
-              padding: '20px',
-              textAlign: 'center',
-              color: '#888',
-              fontSize: '14px',
-            }}>
+            <div
+              style={{
+                padding: '20px',
+                textAlign: 'center',
+                color: '#888',
+                fontSize: '14px'
+              }}
+            >
               No options found matching "{searchTerm}"
             </div>
           ) : (
-            filteredOptions.map(([key, value]) => (
-              <OptionRow key={key} optionKey={key} value={value} />
-            ))
+            filteredOptions.map(([key, value]) => <OptionRow key={key} optionKey={key} value={value} />)
           )}
         </div>
 
         {/* Close button */}
-        <div style={{
-          position: 'sticky',
-          bottom: 0,
-          paddingTop: '8px',
-          backgroundColor: '#1a1a1a',
-        }}>
+        <div
+          style={{
+            position: 'sticky',
+            bottom: 0,
+            paddingTop: '8px',
+            backgroundColor: '#1a1a1a'
+          }}
+        >
           <Button onClick={hideCurrentModal} style={{ width: '100%' }}>
             Close
           </Button>

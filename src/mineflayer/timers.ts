@@ -13,7 +13,7 @@ customEvents.on('mineflayerBotCreated', () => {
     }
   }
   maybeGoBackgroundKickPrevention()
-  subscribeKey(options, 'preventBackgroundTimeoutKick', (value) => {
+  subscribeKey(options, 'preventBackgroundTimeoutKick', value => {
     maybeGoBackgroundKickPrevention()
   })
 
@@ -30,27 +30,35 @@ customEvents.on('mineflayerBotCreated', () => {
         bot.lockRequested = false
       })
 
-      bot.wakeLock.addEventListener('release', () => {
-        bot.wakeLock = undefined
-      }, {
-        once: true,
-      })
+      bot.wakeLock.addEventListener(
+        'release',
+        () => {
+          bot.wakeLock = undefined
+        },
+        {
+          once: true
+        }
+      )
     }
 
     if (!options.preventSleep && bot.wakeLock) {
       void bot.wakeLock.release()
     }
   }
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      // we are back to the tab, request wake lock again
-      void requestWakeLock()
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.visibilityState === 'visible') {
+        // we are back to the tab, request wake lock again
+        void requestWakeLock()
+      }
+    },
+    {
+      signal: abortController.signal
     }
-  }, {
-    signal: abortController.signal,
-  })
+  )
   void requestWakeLock()
-  subscribeKey(options, 'preventSleep', (value) => {
+  subscribeKey(options, 'preventSleep', value => {
     void requestWakeLock()
   })
 

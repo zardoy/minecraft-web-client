@@ -8,13 +8,17 @@ export class LocalServer extends EventEmitter.EventEmitter {
   decipher = null
   clients = {}
 
-  constructor (public version, public customPackets, public hideErrors = false) {
+  constructor(
+    public version,
+    public customPackets,
+    public hideErrors = false
+  ) {
     super()
   }
 
-  listen () {
+  listen() {
     this.emit('connection', new CustomChannelClient(true, this.version))
   }
 
-  close () { }
+  close() {}
 }

@@ -1,7 +1,4 @@
-import {
-  RENDERER_DEFAULT_OPTIONS,
-  RENDERER_OPTIONS_META
-} from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
+import { RENDERER_DEFAULT_OPTIONS, RENDERER_OPTIONS_META } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 
 export const defaultOptions = {
   renderDistance: 3,
@@ -98,7 +95,7 @@ export const defaultOptions = {
   // advanced bot options
   autoRespawn: false,
   mutedSounds: [] as string[],
-  plugins: [] as Array<{ enabled: boolean, name: string, description: string, script: string }>,
+  plugins: [] as Array<{ enabled: boolean; name: string; description: string; script: string }>,
   /** Wether to popup sign editor on server action */
   autoSignEditor: true,
   wysiwygSignEditor: 'auto' as 'auto' | 'always' | 'never',
@@ -110,34 +107,22 @@ export const defaultOptions = {
   activeRenderer: 'auto' as 'auto' | string | null
 }
 
-function getDefaultTouchControlsPositions () {
+function getDefaultTouchControlsPositions() {
   return {
-    action: [
-      70,
-      76
-    ],
-    sneak: [
-      84,
-      76
-    ],
-    break: [
-      70,
-      57
-    ],
-    jump: [
-      84,
-      57
-    ],
+    action: [70, 76],
+    sneak: [84, 76],
+    break: [70, 57],
+    jump: [84, 57]
   } as Record<string, [number, number]>
 }
 
-function getTouchControlsSize () {
+function getTouchControlsSize() {
   return {
     joystick: 55,
     action: 36,
     break: 36,
     jump: 36,
-    sneak: 36,
+    sneak: 36
   }
 }
 
@@ -182,13 +167,11 @@ export const serverSafeSettings: Partial<Record<keyof typeof defaultOptions, tru
   disableBlockEntityTextures: true,
   neighborChunkUpdates: true,
   newVersionsLighting: true,
-  showCursorBlockInSpectator: true,
+  showCursorBlockInSpectator: true
 }
 export type OptionValueType = string | number | boolean | string[] | Record<string, any> | null
 
-export type OptionPossibleValues =
-  | string[]
-  | Array<[string, string]> // [value, label] tuples
+export type OptionPossibleValues = string[] | Array<[string, string]> // [value, label] tuples
 
 export type OptionMeta = {
   possibleValues?: OptionPossibleValues
@@ -205,9 +188,7 @@ export type OptionMeta = {
 export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta>> = {
   ...RENDERER_OPTIONS_META,
   activeRenderer: {
-    possibleValues: [
-      ['threejs', 'Three.js (stable)'],
-    ]
+    possibleValues: [['threejs', 'Three.js (stable)']]
   },
   serverResourcePacks: {
     possibleValues: ['prompt', 'always', 'never']
@@ -219,10 +200,16 @@ export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta
     possibleValues: ['auto', 'always', 'never']
   },
   touchMovementType: {
-    possibleValues: [['modern', 'Modern'], ['classic', 'Classic']]
+    possibleValues: [
+      ['modern', 'Modern'],
+      ['classic', 'Classic']
+    ]
   },
   touchInteractionType: {
-    possibleValues: [['classic', 'Classic'], ['buttons', 'Buttons']]
+    possibleValues: [
+      ['classic', 'Classic'],
+      ['buttons', 'Buttons']
+    ]
   },
   autoJump: {
     possibleValues: ['always', 'auto', 'never']

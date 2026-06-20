@@ -1,4 +1,3 @@
-
 .debug-left-side,
 .debug-right-side {
   padding-left: calc(env(safe-area-inset-left) / 2);
@@ -22,7 +21,8 @@
   width: 50%;
 }
 
-.debug-left-side p, .debug-right-side p {
+.debug-left-side p,
+.debug-right-side p {
   display: block;
   color: white;
   font-size: 10px;

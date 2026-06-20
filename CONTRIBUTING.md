@@ -2,15 +2,15 @@
 
 After forking the repository, run the following commands to get started:
 
-0. Ensure you have [Node.js](https://nodejs.org) installed. Enable corepack with `corepack enable` *(1).
+0. Ensure you have [Node.js](https://nodejs.org) installed. Enable corepack with `corepack enable` \*(1).
 1. Install dependencies: `pnpm i`
 2. Start the project in development mode: `pnpm start` or build the project for production: `pnpm build`
 3. Read the [Tasks Categories](#tasks-categories) and [Workflow](#workflow) sections below
 4. Let us know if you are working on something and be sure to open a PR if you got any changes. Happy coding!
 
-*(1): If you are getting `Cannot find matching keyid` update corepack to the latest version with `npm i -g corepack`.
+\*(1): If you are getting `Cannot find matching keyid` update corepack to the latest version with `npm i -g corepack`.
 
-*(2): If still something doesn't work ensure you have the right nodejs version with `node -v` (tested on 22.x)
+\*(2): If still something doesn't work ensure you have the right nodejs version with `node -v` (tested on 22.x)
 
 <!-- *(3): For GitHub codespaces (cloud ide): Run `pnpm i @rsbuild/core@1.2.4 @rsbuild/plugin-node-polyfill@1.3.0 @rsbuild/plugin-react@1.1.0 @rsbuild/plugin-typed-css-modules@1.0.2` command to avoid crashes because of limited ram -->
 
@@ -55,7 +55,7 @@ Start them with `pnpm test-unit`.
 
 ## Making protocol-related changes
 
-You can get a description of packets for the latest protocol version from <https://wiki.vg/Protocol> and for previous protocol versions from <https://wiki.vg/Protocol_version_numbers> (look for *Page* links that have *Protocol* in URL).
+You can get a description of packets for the latest protocol version from <https://wiki.vg/Protocol> and for previous protocol versions from <https://wiki.vg/Protocol_version_numbers> (look for _Page_ links that have _Protocol_ in URL).
 
 Also there are [src/generatedClientPackets.ts](src/generatedClientPackets.ts) and [src/generatedServerPackets.ts](src/generatedServerPackets.ts) files that have definitions of packets that come from the server and the client respectively. These files are generated from the protocol files. Protocol, blocks info and other data go from <https://github.com/prismarineJS/minecraft-data> repository.
 
@@ -136,7 +136,7 @@ Long Term Goals:
 - Make most adventure maps playable
 - Make a way to complete the game from the scratch (crafting, different dimensions, terrain generation, etc)
 - Make bedwars playable!
-Most of the tasks are straightforward to implement, just be sure to use a debugger ;). If you feel you are stuck, ask for help on Discord. Absolutely any tests / refactor suggestions are welcome!
+  Most of the tasks are straightforward to implement, just be sure to use a debugger ;). If you feel you are stuck, ask for help on Discord. Absolutely any tests / refactor suggestions are welcome!
 
 ## 4. Frontend
 
@@ -147,7 +147,7 @@ New React components, improve UI (including mobile support).
 1. Locate the problem on the public test server & make an easily reproducible environment (you can also use local packets replay server or your custom server setup). Dm me for details on public test server / replay server
 2. Debug the code, find an issue in the code, isolate the problem
 3. Develop, try to fix and test. Finally we should find a way to fix it. It's ideal to have an automatic test but it's not necessary for now
-3. Repeat step 1 to make sure the task is done and the problem is fixed (or the feature is implemented)
+4. Repeat step 1 to make sure the task is done and the problem is fixed (or the feature is implemented)
 
 ## Updating Dependencies
 
@@ -159,10 +159,10 @@ New React components, improve UI (including mobile support).
 2. Update PrismarineJS dependencies to the latest version: `minecraft-data` (be sure to replace the version twice in the package.json), `mineflayer`, `minecraft-protocol`, `prismarine-block`, `prismarine-chunk`, `prismarine-item`, ...
 
 3. If `minecraft-protocol` patch fails, do this:
-     1. Remove the patch from `patchedDependencies` in `package.json`
-     2. Run `pnpm patch minecraft-protocol`, open patch directory
-     3. Apply the patch manually in this directory: `patch -p1 < minecraft-protocol@<version>.patch`
-     4. Run the suggested command from `pnpm patch ...` (previous step) to update the patch
+   1. Remove the patch from `patchedDependencies` in `package.json`
+   2. Run `pnpm patch minecraft-protocol`, open patch directory
+   3. Apply the patch manually in this directory: `patch -p1 < minecraft-protocol@<version>.patch`
+   4. Run the suggested command from `pnpm patch ...` (previous step) to update the patch
 
 ### Would be useful to have
 

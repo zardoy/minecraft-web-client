@@ -5,7 +5,7 @@ import { options, watchValue } from './optionsStorage'
 import { useScale } from './react/UIProvider'
 
 export const currentScaling = proxy({
-  scale: 1,
+  scale: 1
 })
 window.currentScaling = currentScaling
 
@@ -15,7 +15,7 @@ const setScale = () => {
     { maxWidth: null, maxHeight: 390, scale: 1.5 }, // todo allow to set the scaling at 360-400 (dynamic scaling setting)
     { maxWidth: 620, maxHeight: null, scale: 1 },
 
-    { maxWidth: 620, minHeight: 240, scale: 1.4 },
+    { maxWidth: 620, minHeight: 240, scale: 1.4 }
   ]
 
   const { innerWidth, innerHeight } = window
@@ -30,10 +30,9 @@ const setScale = () => {
   currentScaling.scale = result
 }
 
-
 setScale()
 subscribeKey(options, 'guiScale', setScale)
-watchValue(currentScaling, (c) => {
+watchValue(currentScaling, c => {
   document.documentElement.style.setProperty('--guiScale', String(c.scale))
   document.documentElement.style.setProperty('--scale', String(c.scale))
 })

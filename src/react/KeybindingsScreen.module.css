@@ -1,89 +1,89 @@
 .container {
-    overflow-x: auto;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  overflow-x: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 @media (max-width: 590px) {
-    .container {
-        width: 90vw;
-    }
+  .container {
+    width: 90vw;
+  }
 }
 
 .group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .group-category {
-    font-size: 1rem;
-    text-align: center;
-    margin-top: 15px;
-    margin-bottom: 7px;
-    text-transform: capitalize;
+  font-size: 1rem;
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 7px;
+  text-transform: capitalize;
 }
 
 .actionBinds {
-    position: relative;
-    display: flex;
+  position: relative;
+  display: flex;
 }
 
 .warning-container {
-    flex-basis: 25%;
-    display: flex;
-    flex-direction: column;
-    height: inherit;
+  flex-basis: 25%;
+  display: flex;
+  flex-direction: column;
+  height: inherit;
 }
 
 .actionName {
-    flex-basis: 30%;
-    margin-right: 5px;
-    flex-wrap: wrap;
-    align-self: center;
-    font-size: 10px;
+  flex-basis: 30%;
+  margin-right: 5px;
+  flex-wrap: wrap;
+  align-self: center;
+  font-size: 10px;
 }
 
 .undo-keyboard,
 .undo-gamepad {
-    aspect-ratio: 1;
-    min-width: 20px;
+  aspect-ratio: 1;
+  min-width: 20px;
 }
 
 .button {
-    width: 100%;
-    font-size: 7px;
+  width: 100%;
+  font-size: 7px;
 }
 
 .margin-left {
-    margin-left: 25px;
+  margin-left: 25px;
 }
 
 .matched-bind {
-    border: 1px solid red;
-    border-bottom: 1px solid red;
+  border: 1px solid red;
+  border-bottom: 1px solid red;
 }
 
 .matched-bind-warning {
-    display: flex;
-    color: yellow;
-    font-family: inherit;
-    font-size: 5px;
-    width: fit-content;
+  display: flex;
+  color: yellow;
+  font-family: inherit;
+  font-size: 5px;
+  width: fit-content;
 }
 
 .matched-bind-warning a {
-    color: inherit;
+  color: inherit;
 }
 
 /* ~~~~ custom bindings styles */
 
 .chat-command {
-    font: inherit;
-    color: white;
-    display: block;
-    height: 100%;
-    flex-grow: 1;
+  font: inherit;
+  color: white;
+  display: block;
+  height: 100%;
+  flex-grow: 1;
 }

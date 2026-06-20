@@ -26,17 +26,23 @@
   width: 9px;
   height: 9px;
   background-size: 256px, 256px;
-  background-position: var(--bg-x) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    var(--bg-x) var(--bg-y),
+    var(--bg-x) var(--bg-y);
   background-image: var(--gui-icons);
   margin-left: -1px;
 }
 
 .food.full {
-  background-position: var(--offset) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    var(--offset) var(--bg-y),
+    var(--bg-x) var(--bg-y);
 }
 
 .food.half {
-  background-position: calc(var(--offset) - 9px) var(--bg-y), var(--bg-x) var(--bg-y);
+  background-position:
+    calc(var(--offset) - 9px) var(--bg-y),
+    var(--bg-x) var(--bg-y);
 }
 
 .foodbar.low .food {
@@ -60,9 +66,13 @@
 }
 
 @keyframes lowHungerAnim {
-  to { transform: translateY(1px); }
+  to {
+    transform: translateY(1px);
+  }
 }
 
 @keyframes updatedAnim {
-  to { --lightened: 1; }
+  to {
+    --lightened: 1;
+  }
 }

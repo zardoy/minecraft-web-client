@@ -23,12 +23,19 @@ module.exports.resolveSrv = function (hostname, _callback) {
         if (!globalThis.resolveDnsFallback) return
         globalThis.setLoadingMessage?.('Resolving SRV using fallback')
         const result = await globalThis.resolveDnsFallback(minecraftServerHostname)
-        callback(null, result ? [{
-          priority: 0,
-          weight: 0,
-          port: result.port,
-          name: result.host
-        }] : [])
+        callback(
+          null,
+          result
+            ? [
+                {
+                  priority: 0,
+                  weight: 0,
+                  port: result.port,
+                  name: result.host
+                }
+              ]
+            : []
+        )
       } catch (err) {
         callback(err)
       }

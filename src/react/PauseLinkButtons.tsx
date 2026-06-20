@@ -7,7 +7,7 @@ import Button from './Button'
 import { DiscordButton } from './DiscordButton'
 import styles from './PauseScreen.module.css'
 
-function PauseLinkButtonsInner () {
+function PauseLinkButtonsInner() {
   const { appConfig } = useSnapshot(miscUiState)
   const pauseLinksConfig = appConfig?.pauseLinks
 
@@ -15,13 +15,21 @@ function PauseLinkButtonsInner () {
 
   const renderButton = (button: Record<string, any>, style: React.CSSProperties, key: number) => {
     if (button.type === 'discord') {
-      return <DiscordButton key={key} style={style} text={button.text}/>
+      return <DiscordButton key={key} style={style} text={button.text} />
     }
     if (button.type === 'github') {
-      return <Button key={key} className="button" style={style} onClick={() => openGithub()}>{button.text ?? 'GitHub'}</Button>
+      return (
+        <Button key={key} className="button" style={style} onClick={() => openGithub()}>
+          {button.text ?? 'GitHub'}
+        </Button>
+      )
     }
     if (button.type === 'url' && button.text) {
-      return <Button key={key} className="button" style={style} onClick={() => openURL(button.url)}>{button.text}</Button>
+      return (
+        <Button key={key} className="button" style={style} onClick={() => openURL(button.url)}>
+          {button.text}
+        </Button>
+      )
     }
     return null
   }
@@ -29,7 +37,7 @@ function PauseLinkButtonsInner () {
   return (
     <>
       {pauseLinksConfig.map((row, i) => {
-        const style = { width: (204 / row.length - (row.length > 1 ? 4 : 0)) + 'px' }
+        const style = { width: 204 / row.length - (row.length > 1 ? 4 : 0) + 'px' }
         return (
           <div key={i} className={styles.row}>
             {row.map((button, k) => renderButton(button, style, k))}
@@ -41,10 +49,14 @@ function PauseLinkButtonsInner () {
 }
 
 export default () => {
-  return <ErrorBoundary renderError={(error) => {
-    console.error(error)
-    return null
-  }}>
-    <PauseLinkButtonsInner />
-  </ErrorBoundary>
+  return (
+    <ErrorBoundary
+      renderError={error => {
+        console.error(error)
+        return null
+      }}
+    >
+      <PauseLinkButtonsInner />
+    </ErrorBoundary>
+  )
 }

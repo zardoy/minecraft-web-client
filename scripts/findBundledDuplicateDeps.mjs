@@ -38,7 +38,7 @@ function parsePnpmFolder(folder) {
     return {
       name: `${scoped[1]}/${scoped[2]}`,
       version: scoped[3],
-      folder,
+      folder
     }
   }
 
@@ -131,7 +131,7 @@ function findDuplicates(byName) {
       name,
       versions,
       folders: [...new Set(allFolders)].sort(),
-      files: [...new Set(versions.flatMap(v => [...byVersion.get(v).files]))].sort(),
+      files: [...new Set(versions.flatMap(v => [...byVersion.get(v).files]))].sort()
     })
   }
 

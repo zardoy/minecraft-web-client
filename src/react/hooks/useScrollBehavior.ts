@@ -7,7 +7,7 @@ export const useScrollBehavior = (
     messages,
     opened
   }: {
-    messages: readonly any[],
+    messages: readonly any[]
     opened?: boolean
   }
 ) => {

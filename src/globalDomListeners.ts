@@ -3,7 +3,7 @@ import { isGameActive, activeModalStack } from './globalState'
 import { options } from './optionsStorage'
 import { isInRealGameSession } from './utils'
 
-window.addEventListener('unload', (e) => {
+window.addEventListener('unload', e => {
   if (!window.justReloaded) {
     sessionStorage.justReloaded = false
   }
@@ -17,7 +17,7 @@ document.addEventListener('blur', () => {
   void saveServer()
 })
 
-window.addEventListener('beforeunload', (event) => {
+window.addEventListener('beforeunload', event => {
   if (!window.justReloaded) {
     sessionStorage.justReloaded = false
   }
@@ -36,7 +36,7 @@ window.addEventListener('beforeunload', (event) => {
   return 'The game is running. Are you sure you want to close this page?'
 })
 
-window.addEventListener('contextmenu', (e) => {
+window.addEventListener('contextmenu', e => {
   const ALLOW_TAGS = ['INPUT', 'TEXTAREA', 'A']
   // allow if target is in ALLOW_TAGS or has selection text
   if (ALLOW_TAGS.includes((e.target as HTMLElement)?.tagName) || window.getSelection()?.toString()) {

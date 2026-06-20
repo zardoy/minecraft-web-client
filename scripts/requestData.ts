@@ -1,7 +1,7 @@
 import WebSocket from 'ws'
 
 function formatBytes(bytes: number) {
-  return `${(bytes).toFixed(2)} MB`
+  return `${bytes.toFixed(2)} MB`
 }
 
 function formatTime(ms: number) {
@@ -14,7 +14,7 @@ ws.on('open', () => {
   console.log('Connected to metrics server, waiting for metrics...')
 })
 
-ws.on('message', (data) => {
+ws.on('message', data => {
   try {
     const metrics = JSON.parse(data.toString())
     console.log('\nPerformance Metrics:')
@@ -22,7 +22,8 @@ ws.on('message', (data) => {
     console.log(`Load Time: ${formatTime(metrics.loadTime)}`)
     console.log(`Memory Usage: ${formatBytes(metrics.memoryUsage)}`)
     console.log(`Timestamp: ${new Date(metrics.timestamp).toLocaleString()}`)
-    if (!process.argv.includes('-f')) { // follow mode
+    if (!process.argv.includes('-f')) {
+      // follow mode
       process.exit(0)
     }
   } catch (error) {
@@ -30,7 +31,7 @@ ws.on('message', (data) => {
   }
 })
 
-ws.on('error', (error) => {
+ws.on('error', error => {
   console.error('WebSocket error:', error)
   process.exit(1)
 })

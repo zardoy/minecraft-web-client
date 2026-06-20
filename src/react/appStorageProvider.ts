@@ -56,16 +56,10 @@ type StorageData = {
   iframeConsents: string[] | undefined
 }
 
-const cookieStoreKeys: Array<keyof StorageData> = [
-  'customCommands',
-  'username',
-  'keybindings',
-  'changedSettings',
-  'serversList',
-]
+const cookieStoreKeys: Array<keyof StorageData> = ['customCommands', 'username', 'keybindings', 'changedSettings', 'serversList']
 
 const oldKeysAliases: Partial<Record<keyof StorageData, string>> = {
-  serversHistory: 'serverConnectionHistory',
+  serversHistory: 'serverConnectionHistory'
 }
 
 // Cookie storage functions
@@ -155,7 +149,7 @@ const detectStorageConflicts = (): StorageConflict[] => {
             key,
             localStorageValue: localData,
             localStorageTimestamp: localTimestamp,
-            cookieValue: (typeof cookieData === 'object' && cookieData !== null && 'data' in cookieData) ? cookieData.data : cookieData,
+            cookieValue: typeof cookieData === 'object' && cookieData !== null && 'data' in cookieData ? cookieData.data : cookieData,
             cookieTimestamp
           })
         }
@@ -170,10 +164,12 @@ const detectStorageConflicts = (): StorageConflict[] => {
 
 const showStorageConflictModal = () => {
   // Import showModal dynamically to avoid circular dependency
-  const showModal = (window as any).showModal || ((modal: any) => {
-    console.error('Modal system not available:', modal)
-    console.warn('Storage conflicts detected but modal system not available:', storageConflicts)
-  })
+  const showModal =
+    (window as any).showModal ||
+    ((modal: any) => {
+      console.error('Modal system not available:', modal)
+      console.warn('Storage conflicts detected but modal system not available:', storageConflicts)
+    })
 
   setTimeout(() => {
     showModal({ reactType: 'storage-conflict', conflicts: storageConflicts })
@@ -186,7 +182,7 @@ const migrateLegacyData = () => {
   if (proxies && selectedProxy) {
     appStorage.proxiesData = {
       proxies: JSON.parse(proxies),
-      selected: selectedProxy,
+      selected: selectedProxy
     }
   }
 
@@ -216,7 +212,7 @@ const defaultStorageData: StorageData = {
   serversList: undefined,
   modsAutoUpdateLastCheck: undefined,
   firstModsPageVisit: true,
-  iframeConsents: undefined,
+  iframeConsents: undefined
 }
 
 export const setStorageDataOnAppConfigLoad = (appConfig: AppConfig) => {
@@ -251,7 +247,7 @@ const shouldUseCookieStorage = () => {
 
   const isSecureCookiesAvailable = () => {
     // either https or localhost
-    return window.location.protocol === 'https:' || (window.location.hostname === 'localhost')
+    return window.location.protocol === 'https:' || window.location.hostname === 'localhost'
   }
   if (!isSecureCookiesAvailable()) {
     return false
@@ -342,11 +338,12 @@ const saveKey = (key: keyof StorageData) => {
   const prefixedKey = `${localStoragePrefix}${key}`
   const value = appStorage[key]
 
-  const dataToSave = value === undefined ? undefined : (
-    value && typeof value === 'object' && !Array.isArray(value)
-      ? { ...value, timestamp: Date.now() }
-      : { data: value, timestamp: Date.now() }
-  )
+  const dataToSave =
+    value === undefined
+      ? undefined
+      : value && typeof value === 'object' && !Array.isArray(value)
+        ? { ...value, timestamp: Date.now() }
+        : { data: value, timestamp: Date.now() }
 
   const serialized = dataToSave === undefined ? undefined : JSON.stringify(dataToSave)
 
@@ -380,7 +377,7 @@ const saveKey = (key: keyof StorageData) => {
   }
 }
 
-subscribe(appStorage, (ops) => {
+subscribe(appStorage, ops => {
   for (const op of ops) {
     const [type, path, value] = op
     const key = path[0]

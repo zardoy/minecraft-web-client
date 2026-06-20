@@ -330,6 +330,9 @@ importers:
       eslint:
         specifier: ^8.50.0
         version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@8.57.1)
       eslint-config-zardoy:
         specifier: ^0.2.17
         version: 0.2.17(eslint-plugin-react-hooks@5.2.0(eslint@8.57.1))(eslint-plugin-react@7.37.4(eslint@8.57.1))(eslint@8.57.1)(typescript@5.5.4)
@@ -369,6 +372,9 @@ importers:
       path-exists-cli:
         specifier: ^2.0.0
         version: 2.0.0
+      prettier:
+        specifier: ^3.8.4
+        version: 3.8.4
       process:
         specifier: github:PrismarineJS/node-process
         version: https://codeload.github.com/PrismarineJS/node-process/tar.gz/380d0b4f4c86f1b65b216c311bf00431f314e88e
@@ -4572,6 +4578,12 @@ packages:
     engines: {node: '>=6.0'}
     hasBin: true
 
+  eslint-config-prettier@10.1.8:
+    resolution: {integrity: sha512-82GZUjRS0p/jganf6q1rEO25VSoHH0hKPCTrgillPjdI/3bgBhAE1QzHrHTizjpRvy6pGAvKjDJtk2pF9NDq8w==}
+    hasBin: true
+    peerDependencies:
+      eslint: '>=7.0.0'
+
   eslint-config-prettier@8.10.0:
     resolution: {integrity: sha512-SM8AMJdeQqRYT9O9zguiruQZaN7+z+E4eAP9oiLNGKMtomwaB1E9dcgUD6ZAn/eQAb52USbvezbiljfZUhbJcg==}
     hasBin: true
@@ -6770,6 +6782,11 @@ packages:
   prettier@2.8.8:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
     engines: {node: '>=10.13.0'}
+    hasBin: true
+
+  prettier@3.8.4:
+    resolution: {integrity: sha512-N2MylSdi48+5N/6S5j+maeHbUSIzzZ5uOcX5Hm4QpV8Dkb1HFjfAKTKX6yNPJQD9AhcT3ifHNB66tWTTJDi11Q==}
+    engines: {node: '>=14'}
     hasBin: true
 
   pretty-bytes@5.6.0:
@@ -13905,6 +13922,10 @@ snapshots:
     optionalDependencies:
       source-map: 0.6.1
 
+  eslint-config-prettier@10.1.8(eslint@8.57.1):
+    dependencies:
+      eslint: 8.57.1
+
   eslint-config-prettier@8.10.0(eslint@8.57.1):
     dependencies:
       eslint: 8.57.1
@@ -16484,6 +16505,8 @@ snapshots:
     optional: true
 
   prettier@2.8.8: {}
+
+  prettier@3.8.4: {}
 
   pretty-bytes@5.6.0: {}
 

@@ -82,31 +82,31 @@ type AppQsParamsArrayTransformed = {
 }
 
 globalThis.process ??= {} as any
-const initialAppConfig = process?.env?.INLINED_APP_CONFIG as AppConfig ?? {}
+const initialAppConfig = (process?.env?.INLINED_APP_CONFIG as AppConfig) ?? {}
 
 export const appQueryParams = new Proxy<AppQsParams>({} as AppQsParams, {
-  get (target, property) {
+  get(target, property) {
     if (typeof property !== 'string') {
       return undefined
     }
     const qsParam = qsParams.get(property)
     if (qsParam) return qsParam
     return miscUiState.appConfig?.appParams?.[property]
-  },
+  }
 })
 
 export const appQueryParamsArray = new Proxy({} as AppQsParamsArrayTransformed, {
-  get (target, property) {
+  get(target, property) {
     if (typeof property !== 'string') {
       return null
     }
     const qsParam = qsParams.getAll(property)
     if (qsParam.length) return qsParam
     return miscUiState.appConfig?.appParams?.[property] ?? []
-  },
+  }
 })
 
-export function updateQsParam (name: keyof AppQsParams, value: string | undefined) {
+export function updateQsParam(name: keyof AppQsParams, value: string | undefined) {
   const url = new URL(window.location.href)
   if (value) {
     url.searchParams.set(name, value)
@@ -120,6 +120,5 @@ export function updateQsParam (name: keyof AppQsParams, value: string | undefine
 export const hasQueryParam = (param: keyof AppQsParams) => qsParams.has(param)
 
 // Helper function to get all query parameters as a URLSearchParams object
-export const getRawQueryParams = () => qsParams;
-
-(globalThis as any).debugQueryParams = Object.fromEntries(qsParams.entries())
+export const getRawQueryParams = () => qsParams
+;(globalThis as any).debugQueryParams = Object.fromEntries(qsParams.entries())

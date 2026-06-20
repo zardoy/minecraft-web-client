@@ -5,38 +5,38 @@ import { formatMessage, isAllowedChatCharacter, isStringAllowed } from './chatUt
 //@ts-expect-error
 globalThis.loadedData ??= mcData('1.20.1')
 
-const mapIncludeDefined = (props) => {
-  return (x) => {
+const mapIncludeDefined = props => {
+  return x => {
     return Object.fromEntries(Object.entries(x).filter(([k, v]) => v !== undefined && props.includes(k)))
   }
 }
 
 test('formatMessage', () => {
   const result = formatMessage({
-    'json': {
-      'translate': 'chat.type.announcement',
-      'with': [
+    json: {
+      translate: 'chat.type.announcement',
+      with: [
         {
-          'text': 'Server'
+          text: 'Server'
         },
         {
-          'text': '§cf'
+          text: '§cf'
         }
       ]
     },
-    'translate': 'chat.type.announcement',
-    'with': [
+    translate: 'chat.type.announcement',
+    with: [
       {
-        'json': {
-          'text': 'Server'
+        json: {
+          text: 'Server'
         },
-        'text': 'Server'
+        text: 'Server'
       },
       {
-        'json': {
-          'text': '§cf'
+        json: {
+          text: '§cf'
         },
-        'text': '§cf'
+        text: '§cf'
       }
     ]
   }).map(mapIncludeDefined(['text', 'color']))
@@ -76,9 +76,9 @@ test('isAllowedChatCharacter', () => {
     invalid: ['§']
   })
   expect(isStringAllowed('aツ')).toMatchObject({
-    valid: true,
+    valid: true
   })
   expect(isStringAllowed('a🟢')).toMatchObject({
-    valid: true,
+    valid: true
   })
 })

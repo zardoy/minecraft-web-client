@@ -3,21 +3,21 @@ import fs from 'fs'
 import os from 'os'
 
 const fns = {
-  async getAlias () {
+  async getAlias() {
     const aliasesRaw = process.env.ALIASES
     if (!aliasesRaw) throw new Error('No aliases found')
-    const aliases = aliasesRaw.split('\n').map((x) => x.trim().split('='))
+    const aliases = aliasesRaw.split('\n').map(x => x.trim().split('='))
     const githubActionsPull = process.env.PULL_URL?.split('/').at(-1)
     if (!githubActionsPull) throw new Error(`Not a pull request, got ${process.env.PULL_URL}`)
     const prNumber = githubActionsPull
-    const alias = aliases.find((x) => x[0] === prNumber)
+    const alias = aliases.find(x => x[0] === prNumber)
     if (alias) {
       // set github output
       setOutput('alias', alias[1])
     }
   },
   getReleasingAlias() {
-    const final = (ver) => `${ver}.mcraft.fun`
+    const final = ver => `${ver}.mcraft.fun`
     const releaseJson = JSON.parse(fs.readFileSync('./assets/release.json', 'utf8'))
     const tag = releaseJson.latestTag
     const [major, minor, patch] = tag.replace('v', '').split('.')
@@ -53,7 +53,7 @@ const fns = {
 
       try {
         const parsed = JSON.parse(codeContent)
-        
+
         // Extract deployAlwaysUpdate if present
         if (parsed.deployAlwaysUpdate) {
           if (Array.isArray(parsed.deployAlwaysUpdate)) {
@@ -79,11 +79,11 @@ const fns = {
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0])
-        
+
         if (parsed.deployAlwaysUpdate && Array.isArray(parsed.deployAlwaysUpdate)) {
           packages.push(...parsed.deployAlwaysUpdate.filter(pkg => typeof pkg === 'string'))
         }
-        
+
         if (parsed.config && typeof parsed.config === 'object' && !Array.isArray(parsed.config)) {
           configs.push(parsed.config)
         }
@@ -117,7 +117,7 @@ const fns = {
       // Merge all config objects (later ones override earlier ones)
       const mergedConfig = configs.reduce((acc, config) => ({ ...acc, ...config }), {})
       const configJson = JSON.stringify(mergedConfig)
-      
+
       // Output as JSON string for CONFIG_JSON env var (highest precedence)
       setOutput('configJson', configJson)
       console.log(`Config JSON available as CONFIG_JSON environment variable (highest precedence)`)
@@ -125,7 +125,7 @@ const fns = {
   }
 }
 
-function setOutput (key, value) {
+function setOutput(key, value) {
   // Temporary hack until core actions library catches up with github new recommendations
   const output = process.env['GITHUB_OUTPUT']
   fs.appendFileSync(output, `${key}=${value}${os.EOL}`)

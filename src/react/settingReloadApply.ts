@@ -1,11 +1,7 @@
 import { reloadChunksAction } from '../controls'
 import { OptionPossibleValues } from '../defaultOptions'
 import { reconnectReload } from './AppStatusProvider'
-import {
-  buildSettingValueChoices,
-  SettingReloadModalResult,
-  showSettingReloadModal,
-} from './SettingReloadModal'
+import { buildSettingValueChoices, SettingReloadModalResult, showSettingReloadModal } from './SettingReloadModal'
 
 export const applySettingReloadResult = (result: SettingReloadModalResult) => {
   if (result.reloadMode === 'chunks') {
@@ -25,7 +21,7 @@ export const promptAndApplyReloadSetting = async (args: {
 }): Promise<SettingReloadModalResult | undefined> => {
   const result = await showSettingReloadModal({
     ...args,
-    valueChoices: buildSettingValueChoices(args.currentValue, args.possibleValues),
+    valueChoices: buildSettingValueChoices(args.currentValue, args.possibleValues)
   })
   return result
 }
