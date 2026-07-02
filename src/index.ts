@@ -334,11 +334,20 @@ export async function connect (connectOptions: ConnectOptions) {
 
   let clientDataStream: Duplex | undefined
 
-  if (connectOptions.server && !connectOptions.viewerWsConnect && !parsedServer.isWebSocket) {
-    console.log(`using proxy ${proxy.host}:${proxy.port || location.port}`)
-    net['setProxy']({ hostname: proxy.host, port: proxy.port, headers: { Authorization: `Bearer ${new URLSearchParams(location.search).get('token') ?? ''}` }, artificialDelay: appQueryParams.addPing ? Number(appQueryParams.addPing) : undefined })
-  }
-
+  if (!connectOptions.ignoreQs || process.env.NODE_ENV === 'development') {
+  customEvents.once('gameLoaded', () => {
+    const commands = appQueryParamsArray.command ?? []
+    for (let command of commands) {
+      if (!command.startsWith('/')) command = `/${command}`
+      const builtinHandled = tryHandleBuiltinCommand(command)
+      if (!builtinHandled) {
+        if (bot && typeof bot.chat === 'function') {
+          bot.chat(command)
+        }
+      }
+    }
+  })
+}
   let updateDataAfterJoin = () => { }
   let localServer
   let localReplaySession: ReturnType<typeof startLocalReplayServer> | undefined
