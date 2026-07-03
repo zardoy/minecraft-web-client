@@ -124,9 +124,9 @@ export const contro = new ControMax({
 window.controMax = contro
 export type Command = CommandEventArgument<typeof contro['_commandsRaw']>['command']
 
--export const isCommandDisabled = (command: Command) => {
--  return miscUiState.appConfig?.disabledCommands?.includes(command)
--}
+export const isCommandDisabled = (command: Command) => {
+  return miscUiState.appConfig?.disabledCommands?.includes(command)
+}
 +export const isCommandDisabled = (command: Command) => {
 +  const disabled = miscUiState.appConfig?.disabledCommands ?? []
 +  if (!disabled || !disabled.length) return false
