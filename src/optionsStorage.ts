@@ -123,7 +123,7 @@ subscribe(options, (ops) => {
     // }
     const key = path[0] as string
     if (disabledSettings.value.has(key) || serverChangedSettings.value.has(key)) continue
-    appStorage.changedSettings[key] = options[key]
+    appStorage.changedSettings[key] = options[key as keyof AppOptions]
   }
 })
 
@@ -140,7 +140,7 @@ export const watchValue: WatchValue = (proxy, callback) => {
   const unsubscribes = [] as Array<() => void>
   for (const prop of watchedProps) {
     unsubscribes.push(
-      subscribeKey(proxy, prop, () => {
+      subscribeKey(proxy, prop as any, () => {
         callback(proxy, true)
       })
     )
@@ -167,7 +167,7 @@ watchValue(options, o => {
   document.body.style.setProperty('--touch-movement-buttons-position', (o.touchButtonsPosition * 2) + 'px')
 })
 
-export const useOptionValue = (setting, valueCallback) => {
+export const useOptionValue = (setting: any, valueCallback: (val: any) => void) => {
   valueCallback(setting)
   subscribe(setting, valueCallback)
 }
