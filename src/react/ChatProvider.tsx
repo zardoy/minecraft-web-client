@@ -153,8 +153,8 @@ const ChatProviderBase = () => {
       })
     })
   }, [])
-
-  const disabledReason = disconnectedCleanup ? 'You have been disconnected from the server on ' + new Date(disconnectedCleanup.date).toLocaleString() : undefined
+const isConnected = bot && bot.entity && !disconnectedCleanup?.wasConnected
+const disabledReason = !isConnected && disconnectedCleanup ? 'You have been disconnected from the server on ' + new Date(disconnectedCleanup.date).toLocaleString() : undefined
 
   return <>
     <Chat
