@@ -95,6 +95,9 @@ export const modalStackUpdateChecks = () => {
 }
 subscribe(activeModalStack, modalStackUpdateChecks)
 
+/** Chunks that received `update_light` before worldView finished the initial load. */
+const pendingUpdateLightRelight = new Set<string>()
+
 const connectAppWorldViewToBot = () => {
   const entitiesObjectData = new Map<string, number>()
   bot._client.prependListener('spawn_entity', (data) => {
@@ -182,6 +185,13 @@ const connectAppWorldViewToBot = () => {
   } satisfies Partial<BotEvents>
 
 
+  appViewer.worldView?.on('loadChunk', (data) => {
+    if (data.isLightUpdate) return
+    const key = `${data.x},${data.z}`
+    if (!pendingUpdateLightRelight.delete(key)) return
+    void appViewer.worldView?.loadChunk(new Vec3(data.x, 0, data.z), true, 'update_light-pending')
+  })
+
   bot._client.on('update_light', ({ chunkX, chunkZ }) => {
     const key = updateLightRemeshBlockKey(chunkX, chunkZ)
     const bx = chunkX * 16
@@ -190,6 +200,8 @@ const connectAppWorldViewToBot = () => {
     const loaded = !!appViewer.worldView?.loadedChunks[key]
     if (!waiting && loaded) {
       void appViewer.worldView?.loadChunk(new Vec3(bx, 0, bz), true, 'update_light')
+    } else if (!loaded) {
+      pendingUpdateLightRelight.add(key)
     }
   })
 
