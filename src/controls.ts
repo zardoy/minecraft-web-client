@@ -123,9 +123,32 @@ export const contro = new ControMax({
 })
 window.controMax = contro
 export type Command = CommandEventArgument<typeof contro['_commandsRaw']>['command']
-
 export const isCommandDisabled = (command: Command) => {
-  return miscUiState.appConfig?.disabledCommands?.includes(command)
+  const disabled = miscUiState.appConfig?.disabledCommands ?? []
+  if (!disabled || !disabled.length) return false
+  if (disabled.includes(command)) {
+    console.warn(`Command "${command}" blocked by appConfig.disabledCommands (exact match).`)
+    return true
+  }
+  // Support disabling groups/wildcards:
+  for (const d of disabled) {
+    if (!d) continue
+    // 'group.*' or 'group*' disables startsWith('group.')
+    if (d.endsWith('.*') && command.startsWith(d.slice(0, -2))) {
+      console.warn(`Command "${command}" blocked by appConfig.disabledCommands "${d}" (wildcard).`)
+      return true
+  }
+   if (d.endsWith('*') && command.startsWith(d.slice(0, -1))) {
+      console.warn(`Command "${command}" blocked by appConfig.disabledCommands "${d}" (wildcard).`)
+      return true
+    }
+    // If config contains 'general', treat it as disabling the 'general.*' group
+    if (!d.includes('.') && command.startsWith(d + '.')) {
+      console.warn(`Command "${command}" blocked by appConfig.disabledCommands "${d}" (group).`)
+      return true
+    }
+  }
+  return false
 }
 
 onControInit()
