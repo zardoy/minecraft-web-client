@@ -153,9 +153,9 @@ const ChatProviderBase = () => {
       })
     })
   }, [])
-const isConnected = bot && bot.entity && !disconnectedCleanup?.wasConnected
-const disabledReason = !isConnected && disconnectedCleanup ? 'You have been disconnected from the server on ' + new Date(disconnectedCleanup.date).toLocaleString() : undefined
-
+const disabledReason = disconnectedCleanup?.wasConnected === false 
+  ? 'You have been disconnected from the server on ' + new Date(disconnectedCleanup.date).toLocaleString() 
+  : undefined
   return <>
     <Chat
       chatVanillaRestrictions={chatVanillaRestrictions}
