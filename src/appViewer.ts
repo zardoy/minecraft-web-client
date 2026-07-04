@@ -100,6 +100,7 @@ const pendingUpdateLightRelight = new Set<string>()
 
 const connectAppWorldViewToBot = () => {
   const entitiesObjectData = new Map<string, number>()
+  const deadEntities = new Set<number>()
   bot._client.prependListener('spawn_entity', (data) => {
     if (data.objectData && data.entityId !== undefined) {
       entitiesObjectData.set(data.entityId, data.objectData)
@@ -115,6 +116,7 @@ const connectAppWorldViewToBot = () => {
       return
     }
     if (!e.name) return // mineflayer received update for not spawned entity
+    if (deadEntities.has(e.id)) return
     e.objectData = entitiesObjectData.get(e.id)
     appViewer.worldView?.emit(name as any, {
       ...e,
@@ -140,7 +142,14 @@ const connectAppWorldViewToBot = () => {
     entityMoved (e: any) {
       emitEntity(e, 'entityMoved')
     },
+    entityDead (e: any) {
+      if (e === bot.entity) return
+      if (deadEntities.has(e.id)) return
+      deadEntities.add(e.id)
+      appViewer.worldView?.emit('entity', { id: e.id, delete: true })
+    },
     entityGone (e: any) {
+      deadEntities.delete(e.id)
       appViewer.worldView?.emit('entity', { id: e.id, delete: true })
     },
     chunkColumnLoad (pos: Vec3) {
