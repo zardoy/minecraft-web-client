@@ -20,6 +20,7 @@ import { useTypingIndicatorText } from './useTypingIndicatorText'
 const TypingIndicatorOverlay = () => {
   const typingIndicatorText = useTypingIndicatorText()
   if (!typingIndicatorText) return null
+
   return <div style={{
     position: 'fixed',
     /* Above hotbar (~50px). Same vertical zone as chat messages (bottom: 40px) */
@@ -153,6 +154,7 @@ const ChatProviderBase = () => {
     })
   }, [])
   const disabledReason = disconnectedCleanup ?.wasConnected === false ? 'You have been disconnected from the server on ' + new Date(disconnectedCleanup.date).toLocaleString() : undefined
+  return <>
     <Chat
       chatVanillaRestrictions={chatVanillaRestrictions}
       debugChatScroll={debugChatScroll}
