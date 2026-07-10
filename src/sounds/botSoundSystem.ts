@@ -53,7 +53,8 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
           soundData.url,
           soundData.volume,
           Math.max(Math.min(pitch ?? 1, 2), 0.5),
-          soundData.timeout ?? options.remoteSoundsLoadTimeout
+          soundData.timeout ?? options.remoteSoundsLoadTimeout,
+          soundData.attenuationDistance
         )
       }
       if (getDistance(bot.entity.position, position) < 4 * 16) {
