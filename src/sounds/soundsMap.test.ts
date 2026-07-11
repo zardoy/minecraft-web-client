@@ -1,12 +1,11 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
 import fs from 'fs'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { DEFAULT_ATTENUATION_DISTANCE } from './soundAttenuation'
 import { parseSoundMapVariant } from './soundMapFormat'
+import { SoundMap } from './soundsMap'
 
 vi.mock('../basicSounds', () => ({ stopAllSounds: vi.fn() }))
 vi.mock('./musicSystem', () => ({ musicSystem: { stopMusic: vi.fn(), playMusic: vi.fn() } }))
-
-import { SoundMap } from './soundsMap'
 
 describe('parseSoundMapVariant', () => {
   it('parses legacy 3-field bundles with default attenuation distance', () => {
