@@ -76,6 +76,7 @@
     "flying-squid": "npm:@zardoy/flying-squid@^0.0.122",
     "framer-motion": "^12.9.2",
     "fs-extra": "^11.1.1",
+    "glob": "^10.4.5",
     "google-drive-browserfs": "github:zardoy/browserfs#google-drive",
     "jszip": "^3.10.1",
     "lil-gui": "^0.21.0",
@@ -116,7 +117,8 @@
     "valtio": "^1.11.1",
     "vec3": "^0.1.7",
     "wait-on": "^7.2.0",
-    "workbox-build": "^7.0.0"
+    "workbox-build": "^7.0.0",
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@rsbuild/core": "1.3.5",

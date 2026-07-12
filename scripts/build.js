@@ -1,7 +1,7 @@
 //@ts-check
 const fsExtra = require('fs-extra')
 const defaultLocalServerOptions = require('../src/defaultLocalServerOptions')
-const glob = require('glob')
+const { globSync } = require('glob')
 const fs = require('fs')
 const crypto = require('crypto')
 const path = require('path')
@@ -21,7 +21,7 @@ exports.copyFiles = (dev = false) => {
     if (!dev) {
         // copy glob
         const cwd = `${prismarineViewerBase}/public/textures/`
-        const files = glob.sync('*.png', { cwd: cwd, nodir: true, })
+        const files = globSync('*.png', { cwd: cwd, nodir: true, })
         for (const file of files) {
             const copyDest = path.join('dist/textures/', file)
             fs.mkdirSync(path.dirname(copyDest), { recursive: true, })
@@ -66,7 +66,7 @@ exports.getSwAdditionalEntries = () => {
     const output = []
     console.log('Generating sw additional entries...')
     for (const pattern of filesToCachePatterns) {
-        const files = glob.sync(pattern, { cwd: 'dist' })
+        const files = globSync(pattern, { cwd: 'dist' })
         for (const file of files) {
             const fullPath = path.join('dist', file)
             if (!fs.lstatSync(fullPath).isFile()) continue
