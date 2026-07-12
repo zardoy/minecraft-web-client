@@ -100,7 +100,12 @@ test('remote boat patch hidden for waterlogged full block at hull', () => {
 })
 
 test('buildEntityRenderHints marks local vehicle and water patch', () => {
-  const localBoat = { ...boatEntity, id: 1, position: new Vec3(1, 63, 2) }
+  const localBoat = {
+    ...boatEntity,
+    id: 1,
+    position: new Vec3(1, 63, 2),
+    passengers: [{ id: 7 }, { id: 8 }],
+  }
   const hints = buildEntityRenderHints(localBoat, {
     localVehicle: localBoat,
     localBoatStatus: BoatStatus.IN_WATER,
@@ -109,6 +114,7 @@ test('buildEntityRenderHints marks local vehicle and water patch', () => {
   })
   expect(hints.localVehicle).toBe(true)
   expect(hints.boatWaterPatchVisible).toBe(true)
+  expect(hints.boatPassengerIds).toEqual([7, 8])
 })
 
 test('buildEntityRenderHints keeps remote boat on ordinary tween policy inputs', () => {
@@ -121,4 +127,16 @@ test('buildEntityRenderHints keeps remote boat on ordinary tween policy inputs',
   })
   expect(hints.localVehicle).toBeUndefined()
   expect(hints.boatWaterPatchVisible).toBe(true)
+  expect(hints.boatPassengerIds).toEqual([])
+})
+
+test('buildEntityRenderHints sends an empty passenger list after boat detach', () => {
+  const remoteBoat = { ...boatEntity, id: 2, passengers: [] }
+  const hints = buildEntityRenderHints(remoteBoat, {
+    localVehicle: null,
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.boatPassengerIds).toEqual([])
 })

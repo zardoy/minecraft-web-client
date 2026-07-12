@@ -8,6 +8,7 @@ type BoatEntityLike = {
   position: Vec3
   width?: number
   height?: number
+  passengers?: Array<{ id?: number }>
 }
 
 type WorldLike = {
@@ -147,6 +148,7 @@ export function buildEntityRenderHints (
   const renderHints: {
     localVehicle?: boolean
     boatWaterPatchVisible?: boolean
+    boatPassengerIds?: number[]
   } = {}
   if (options.localVehicle && entity === options.localVehicle) {
     renderHints.localVehicle = true
@@ -154,6 +156,9 @@ export function buildEntityRenderHints (
   if (!isBoatEntityName(entity.name)) {
     return renderHints
   }
+  renderHints.boatPassengerIds = (entity.passengers ?? [])
+    .map(passenger => passenger.id)
+    .filter((id): id is number => typeof id === 'number' && Number.isInteger(id))
   if (renderHints.localVehicle) {
     renderHints.boatWaterPatchVisible = getLocalBoatWaterPatchVisible(options.localBoatStatus)
   } else {

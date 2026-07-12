@@ -137,6 +137,23 @@ const connectAppWorldViewToBot = () => {
     })
   }
 
+  const pendingPassengerVehicles = new Map<number, any>()
+  let passengerVehicleFlushScheduled = false
+  const queuePassengerVehicleRefresh = (vehicle: any) => {
+    if (!vehicle) return
+    pendingPassengerVehicles.set(vehicle.id, vehicle)
+    if (passengerVehicleFlushScheduled) return
+    passengerVehicleFlushScheduled = true
+    queueMicrotask(() => {
+      passengerVehicleFlushScheduled = false
+      const vehicles = [...pendingPassengerVehicles.values()]
+      pendingPassengerVehicles.clear()
+      for (const pendingVehicle of vehicles) {
+        emitEntity(pendingVehicle)
+      }
+    })
+  }
+
   const eventListeners = {
     entitySpawn (e: any) {
       if (e.name === 'item_frame' || e.name === 'glow_item_frame') {
@@ -152,6 +169,12 @@ const connectAppWorldViewToBot = () => {
     },
     entityMoved (e: any) {
       emitEntity(e, 'entityMoved')
+    },
+    entityAttach (_passenger: any, vehicle: any) {
+      queuePassengerVehicleRefresh(vehicle)
+    },
+    entityDetach (_passenger: any, vehicle: any) {
+      queuePassengerVehicleRefresh(vehicle)
     },
     entityDead (e: any) {
       if (e === bot.entity) return
