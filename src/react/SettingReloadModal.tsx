@@ -88,11 +88,11 @@ export const showSettingReloadModal = async (params: Omit<ModalParams, 'valueCho
   })
 }
 
-export const settingNeedsReloadPrompt = (requiresRestart?: boolean, requiresChunksReload?: boolean) => {
-  return !!(requiresRestart || requiresChunksReload)
+export const settingNeedsReloadPrompt = (requiresRestart?: boolean, requiresChunksReload?: boolean, requiresRestartWhenInGame?: boolean) => {
+  if (requiresRestart) return true
+  if (requiresChunksReload && miscUiState.gameLoaded) return true
+  return requiresRestartWhenInGame && miscUiState.gameLoaded
 }
-
-export const canPromptSettingReload = () => miscUiState.gameLoaded
 
 const SettingReloadModal = () => {
   const { params, selectedValueIndex, reloadMode } = useSnapshot(state)

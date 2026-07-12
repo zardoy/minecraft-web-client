@@ -9,9 +9,13 @@ import { onCameraMove, CameraMoveEvent } from '../cameraRotationControls'
 import { pointerLock, isInRealGameSession } from '../utils'
 import { videoCursorInteraction } from '../customChannels'
 import { handleMovementStickDelta, joystickPointer } from './TouchAreasControls'
+import { mapEventCoordinates } from './utils'
 
 /** after what time of holding the finger start breaking the block */
 const touchStartBreakingBlockMs = 500
+
+type JoystickOrigin = Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'> | null
+type UpdateJoystick = (e: Pick<PointerEvent, 'clientX' | 'clientY'>) => void
 
 function GameInteractionOverlayInner ({
   zIndex,
@@ -19,8 +23,8 @@ function GameInteractionOverlayInner ({
   updateJoystick
 }: {
   zIndex: number,
-  setJoystickOrigin: (e: PointerEvent | null) => void
-  updateJoystick: (e: PointerEvent) => void
+  setJoystickOrigin: (e: JoystickOrigin) => void
+  updateJoystick: UpdateJoystick
 }) {
   const overlayRef = useRef<HTMLDivElement>(null)
 
@@ -54,11 +58,16 @@ function GameInteractionOverlayInner ({
       if (screenTouches === 3) {
         // todo maybe mouse wheel click?
       }
+      const { clientX, clientY, sizeX } = mapEventCoordinates(e)
       const usingModernMovement = options.touchMovementType === 'modern'
       if (usingModernMovement) {
-        if (!joystickPointer.pointer && e.clientX < window.innerWidth / 2) {
+        if (!joystickPointer.pointer && clientX < sizeX / 2) {
           cameraControlEl.setPointerCapture(e.pointerId)
-          setJoystickOrigin(e)
+          setJoystickOrigin({
+            pointerId: e.pointerId,
+            clientX,
+            clientY
+          })
           return
         }
       }
@@ -68,10 +77,10 @@ function GameInteractionOverlayInner ({
       cameraControlEl.setPointerCapture(e.pointerId)
       capturedPointer.active = {
         id: e.pointerId,
-        x: e.clientX,
-        y: e.clientY,
-        sourceX: e.clientX,
-        sourceY: e.clientY,
+        x: clientX,
+        y: clientY,
+        sourceX: clientX,
+        sourceY: clientY,
         activateCameraMove: false,
         time: Date.now()
       }
@@ -96,8 +105,9 @@ function GameInteractionOverlayInner ({
         (e as any).pressure !== 1 &&
         (e.pointerType === 'touch' || e.pointerType === 'pen')
 
+      const { clientX, clientY } = mapEventCoordinates(e)
       if (e.pointerId === joystickPointer.pointer?.pointerId) {
-        updateJoystick(e)
+        updateJoystick({ clientX, clientY })
         if (supportsPressure && (e as any).pressure > 0.5) {
           bot.setControlState('sprint', true)
         }
@@ -113,9 +123,9 @@ function GameInteractionOverlayInner ({
         bot.setControlState('jump', (e as any).pressure > 0.5)
       }
 
-      // Adjust coordinates for scale
-      const currentX = e.clientX / scale
-      const currentY = e.clientY / scale
+      // Adjust coordinates for scale (logical axes when body.rotated)
+      const currentX = clientX / scale
+      const currentY = clientY / scale
       const sourceX = capturedPointer.active.sourceX / scale
       const sourceY = capturedPointer.active.sourceY / scale
       const lastX = capturedPointer.active.x / scale
@@ -138,8 +148,8 @@ function GameInteractionOverlayInner ({
         stopPropagation: () => e.stopPropagation()
       } as CameraMoveEvent)
 
-      capturedPointer.active.x = e.clientX
-      capturedPointer.active.y = e.clientY
+      capturedPointer.active.x = clientX
+      capturedPointer.active.y = clientY
     }
 
     const pointerUpHandler = (e: PointerEvent) => {
@@ -279,7 +289,7 @@ export default function GameInteractionOverlay ({ zIndex }: { zIndex: number }) 
   const modalStack = useSnapshot(activeModalStack)
   const { currentTouch } = useSnapshot(miscUiState)
 
-  const setJoystickOrigin = useRef((e: PointerEvent | null) => {
+  const setJoystickOrigin = useRef((e: JoystickOrigin) => {
     if (!e) {
       handleMovementStickDelta()
       joystickPointer.pointer = null
@@ -293,9 +303,9 @@ export default function GameInteractionOverlay ({ zIndex }: { zIndex: number }) 
     }
   }).current
 
-  const updateJoystick = useRef((e: PointerEvent) => {
+  const updateJoystick = useRef(((e) => {
     handleMovementStickDelta(e)
-  }).current
+  }) satisfies UpdateJoystick).current
 
   if (modalStack.length > 0 || !currentTouch) return null
   return <GameInteractionOverlayInner

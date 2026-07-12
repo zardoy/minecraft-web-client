@@ -205,6 +205,7 @@ const DebugOverlayBase = () => {
 
     <div className={`debug-right-side ${styles['debug-right-side']}`}>
       <p>Backend: {appViewer.backend?.displayName}</p>
+      <p>minecraft-renderer npm v{process.env.MINECRAFT_RENDERER_VERSION}</p>
       <p>Renderer: {rendererDevice}</p>
       <div className={styles.empty} />
       {cursorBlock ? (<>

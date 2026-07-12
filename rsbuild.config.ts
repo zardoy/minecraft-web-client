@@ -36,6 +36,8 @@ const buildingVersion = new Date().toISOString().split(':')[0]
 const buildTime = new Date()
 const buildDisplayDate = `${String(buildTime.getDate()).padStart(2, '0')}.${String(buildTime.getMonth() + 1).padStart(2, '0')}.${String(buildTime.getFullYear()).slice(-2)}`
 
+const minecraftRendererVersion = require('minecraft-renderer/package.json').version as string
+
 const dev = process.env.NODE_ENV === 'development'
 const disableServiceWorker = process.env.DISABLE_SERVICE_WORKER === 'true'
 
@@ -196,6 +198,7 @@ const appConfig = defineConfig({
             'process.env.ENABLE_COOKIE_STORAGE': JSON.stringify(process.env.ENABLE_COOKIE_STORAGE || true),
             'process.env.COOKIE_STORAGE_PREFIX': JSON.stringify(process.env.COOKIE_STORAGE_PREFIX || ''),
             'process.env.WS_PORT': JSON.stringify(enableMetrics ? 8081 : false),
+            'process.env.MINECRAFT_RENDERER_VERSION': JSON.stringify(minecraftRendererVersion),
         },
     },
     server: {
@@ -232,6 +235,7 @@ const appConfig = defineConfig({
                     fs.copyFileSync('./assets/config.html', './dist/config.html')
                     fs.copyFileSync('./assets/debug-inputs.html', './dist/debug-inputs.html')
                     fs.copyFileSync('./assets/loading-bg.jpg', './dist/loading-bg.jpg')
+                    fs.copyFileSync('./assets/mojangles.ttf', './dist/mojangles.ttf')
                     if (fs.existsSync('./assets/release.json')) {
                         fs.copyFileSync('./assets/release.json', './dist/release.json')
                     }

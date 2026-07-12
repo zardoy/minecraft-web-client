@@ -45,7 +45,6 @@ exports.getSwAdditionalEntries = () => {
     // need to be careful with this
     const filesToCachePatterns = [
         'index.html',
-        'background/**',
         // todo-low copy from assets
         '*.mp3',
         '*.ttf',

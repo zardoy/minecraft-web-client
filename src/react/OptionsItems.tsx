@@ -15,7 +15,6 @@ import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 import { showAllSettingsEditor } from './AllSettingsEditor'
 import { withInjectableUi } from './extendableSystem'
 import {
-  canPromptSettingReload,
   settingNeedsReloadPrompt,
 } from './SettingReloadModal'
 import { applySettingReloadResult, promptAndApplyReloadSetting } from './settingReloadApply'
@@ -29,6 +28,7 @@ type GeneralItem<T extends string | number | boolean> = {
   // description?: string
   enableWarning?: string
   requiresRestart?: boolean
+  requiresRestartWhenInGame?: boolean
   requiresChunksReload?: boolean
   disableIf?: [option: keyof typeof options, value: any]
 }
@@ -177,8 +177,8 @@ export const OptionButton = ({ item, onClick, valueText }: {
         if (!result) return
       }
 
-      const needsReloadPrompt = settingNeedsReloadPrompt(item.requiresRestart, item.requiresChunksReload)
-      if (item.id && needsReloadPrompt && canPromptSettingReload()) {
+      const needsReloadPrompt = settingNeedsReloadPrompt(item.requiresRestart, item.requiresChunksReload, item.requiresRestartWhenInGame)
+      if (item.id && needsReloadPrompt) {
         const reloadResult = await promptAndApplyReloadSetting({
           settingLabel: translate(item.text || item.id),
           currentValue: optionValue,

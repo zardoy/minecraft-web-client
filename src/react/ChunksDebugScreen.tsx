@@ -2,9 +2,12 @@ import { useState } from 'react'
 import { useUtilsEffect } from '@zardoy/react-util'
 import { Vec3 } from 'vec3'
 import { generateSpiralMatrix } from 'flying-squid/dist/utils'
+import { hideModal } from '../globalState'
 import { appViewer } from '../appViewer'
 import Screen from './Screen'
+import Button from './Button'
 import ChunksDebug, { ChunkDebug } from './ChunksDebug'
+import { pixelartIcons } from './PixelartIcon'
 import { useIsModalActive } from './utilsApp'
 import { useRendererChunksDebugState } from './useRendererChunksDebugState'
 
@@ -103,6 +106,12 @@ const Inner = () => {
     ...chunksWaitingOrder,
   ]
   return <Screen title={`Chunks Debug (avg: ${worldView!.lastChunkReceiveTimeAvg.toFixed(1)}ms)`}>
+    <Button
+      icon={pixelartIcons.close}
+      onClick={() => hideModal({ reactType: 'chunks-debug' })}
+      style={{ color: '#ff5d5d', position: 'fixed', top: 10, left: 20 }}
+      title="Close"
+    />
     <ChunksDebug
       chunks={allChunks}
       playerChunk={{

@@ -6,6 +6,7 @@ import { options } from '../optionsStorage'
 import PixelartIcon from './PixelartIcon'
 import Button from './Button'
 import Slider from './Slider'
+import { getGameViewportSize } from './utils'
 
 export type ButtonName = 'action' | 'sneak' | 'break' | 'jump'
 
@@ -172,8 +173,9 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
           const elem = e.currentTarget as HTMLElement
           const size = 32
           const scale = getCurrentAppScaling()
-          const xPerc = (e.clientX - (size * scale) / 2) / window.innerWidth * 100
-          const yPerc = (e.clientY - (size * scale) / 2) / window.innerHeight * 100
+          const { width, height } = getGameViewportSize()
+          const xPerc = (e.clientX - (size * scale) / 2) / width * 100
+          const yPerc = (e.clientY - (size * scale) / 2) / height * 100
           elem.style.left = `${xPerc}%`
           elem.style.top = `${yPerc}%`
           newButtonPositions[name] = [xPerc, yPerc]
@@ -237,10 +239,13 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
             ...(selectedButton === 'joystick' ? {
               border: '2px solid white',
             } : {}),
-          } : pointer ? {
-            left: `${pointer.x / window.innerWidth * 100}%`,
-            top: `${pointer.y / window.innerHeight * 100}%`
-          } : {}),
+          } : pointer ? (() => {
+            const { width, height } = getGameViewportSize()
+            return {
+              left: `${pointer.x / width * 100}%`,
+              top: `${pointer.y / height * 100}%`
+            }
+          })() : {}),
         }}
         onClick={() => {
           if (setupActive) {

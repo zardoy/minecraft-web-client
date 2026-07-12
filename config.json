@@ -46,11 +46,6 @@
   "defaultUsername": "mcrafter{0-9999}",
   "mobileButtons": [
     {
-      "action": "general.drop",
-      "actionHold": "general.dropStack",
-      "label": "Q"
-    },
-    {
       "action": "general.selectItem",
       "actionHold": "",
       "label": "S"

@@ -12,6 +12,7 @@ import { BotEvents } from 'mineflayer'
 import { activeModalStack, miscUiState } from './globalState'
 import { options } from './optionsStorage'
 import { watchOptionsAfterWorldViewInit } from './watchOptions'
+import { updateLightRemeshBlockKey } from './mineflayer/updateLightRemeshKey'
 
 // do not import this. Use global appViewer instead (without window prefix).
 export const appViewer = new AppViewer()
@@ -94,8 +95,12 @@ export const modalStackUpdateChecks = () => {
 }
 subscribe(activeModalStack, modalStackUpdateChecks)
 
+/** Chunks that received `update_light` before worldView finished the initial load. */
+const pendingUpdateLightRelight = new Set<string>()
+
 const connectAppWorldViewToBot = () => {
   const entitiesObjectData = new Map<string, number>()
+  const deadEntities = new Set<number>()
   bot._client.prependListener('spawn_entity', (data) => {
     if (data.objectData && data.entityId !== undefined) {
       entitiesObjectData.set(data.entityId, data.objectData)
@@ -111,6 +116,7 @@ const connectAppWorldViewToBot = () => {
       return
     }
     if (!e.name) return // mineflayer received update for not spawned entity
+    if (deadEntities.has(e.id)) return
     e.objectData = entitiesObjectData.get(e.id)
     appViewer.worldView?.emit(name as any, {
       ...e,
@@ -136,7 +142,14 @@ const connectAppWorldViewToBot = () => {
     entityMoved (e: any) {
       emitEntity(e, 'entityMoved')
     },
+    entityDead (e: any) {
+      if (e === bot.entity) return
+      if (deadEntities.has(e.id)) return
+      deadEntities.add(e.id)
+      appViewer.worldView?.emit('entity', { id: e.id, delete: true })
+    },
     entityGone (e: any) {
+      deadEntities.delete(e.id)
       appViewer.worldView?.emit('entity', { id: e.id, delete: true })
     },
     chunkColumnLoad (pos: Vec3) {
@@ -181,10 +194,23 @@ const connectAppWorldViewToBot = () => {
   } satisfies Partial<BotEvents>
 
 
+  appViewer.worldView?.on('loadChunk', (data) => {
+    if (data.isLightUpdate) return
+    const key = `${data.x},${data.z}`
+    if (!pendingUpdateLightRelight.delete(key)) return
+    void appViewer.worldView?.loadChunk(new Vec3(data.x, 0, data.z), true, 'update_light-pending')
+  })
+
   bot._client.on('update_light', ({ chunkX, chunkZ }) => {
-    const chunkPos = new Vec3(chunkX * 16, 0, chunkZ * 16)
-    if (!appViewer.worldView?.waitingSpiralChunksLoad[`${chunkX},${chunkZ}`] && appViewer.worldView?.loadedChunks[`${chunkX},${chunkZ}`]) {
-      void appViewer.worldView?.loadChunk(chunkPos, true, 'update_light')
+    const key = updateLightRemeshBlockKey(chunkX, chunkZ)
+    const bx = chunkX * 16
+    const bz = chunkZ * 16
+    const waiting = !!appViewer.worldView?.waitingSpiralChunksLoad[key]
+    const loaded = !!appViewer.worldView?.loadedChunks[key]
+    if (!waiting && loaded) {
+      void appViewer.worldView?.loadChunk(new Vec3(bx, 0, bz), true, 'update_light')
+    } else if (!loaded) {
+      pendingUpdateLightRelight.add(key)
     }
   })
 

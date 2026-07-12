@@ -14,7 +14,7 @@ import AppStatusProvider from './react/AppStatusProvider'
 import SelectOption from './react/SelectOption'
 import SettingReloadModal from './react/SettingReloadModal'
 import AutoFillLoginModal from './react/AutoFillLoginModal'
-import EnterFullscreenButton from './react/EnterFullscreenButton'
+import MobilePortraitButtons from './react/MobilePortraitButtons'
 import ChatProvider from './react/ChatProvider'
 import TitleProvider from './react/TitleProvider'
 import ScoreboardProvider from './react/ScoreboardProvider'
@@ -244,7 +244,7 @@ const AppBase = () => {
             <ControDebug />
             <div />
           </RobustPortal>
-          <EnterFullscreenButton />
+          <MobilePortraitButtons />
           <StorageConflictModal />
           <InGameUi />
           <RobustPortal to={document.querySelector('#ui-root')}>

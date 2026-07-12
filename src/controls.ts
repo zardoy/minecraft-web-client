@@ -32,6 +32,7 @@ import { tabListState } from './react/PlayerListOverlayProvider'
 import { type ActionType, type ActionHoldConfig, type CustomAction } from './appConfig'
 import { playerState } from './mineflayer/playerState'
 import { emulateMouseClick } from './app/gamepadCursor'
+import { isNextConsoleKeyboardTarget } from './loadDevConsole'
 
 export const customKeymaps = proxy(appStorage.keybindings)
 subscribe(customKeymaps, () => {
@@ -111,8 +112,8 @@ export const contro = new ControMax({
 }, {
   defaultControlOptions: controlOptions,
   target: document,
-  captureEvents () {
-    return true
+  captureEvents (e) {
+    return !isNextConsoleKeyboardTarget(e)
   },
   storeProvider: {
     load: () => customKeymaps,

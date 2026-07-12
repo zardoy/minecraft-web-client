@@ -1,9 +1,9 @@
 import { proxy, useSnapshot, subscribe } from 'valtio'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { applySkinToPlayerObject, createPlayerObject, PlayerObjectType } from 'minecraft-renderer/src/lib/createPlayerObject'
 import { currentScaling } from '../scaleInterface'
 import { activeModalStack } from '../globalState'
@@ -179,7 +179,6 @@ export const PlayerModelCanvas = ({
     camera.position.set(0, 0, 3)
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-    renderer.useLegacyLights = false
     renderer.outputColorSpace = THREE.LinearSRGBColorSpace
     renderer.setPixelRatio(window.devicePixelRatio || 1)
     renderer.setSize(width, height)
@@ -348,7 +347,7 @@ export default () => {
   const animationMixers = useRef<Map<string, THREE.AnimationMixer>>(new Map())
   const gltfClips = useRef<Map<string, THREE.AnimationClip[]>>(new Map())
   const activeActions = useRef<Map<string, THREE.AnimationAction>>(new Map())
-  const clockRef = useRef(new THREE.Clock())
+  const timerRef = useRef(new THREE.Timer())
   const mixersAnimatingRef = useRef(false)
   const rafIdRef = useRef<number | undefined>(undefined)
 
@@ -369,8 +368,9 @@ export default () => {
   const ensureMixerLoop = (render: () => void) => {
     if (mixersAnimatingRef.current) return
     mixersAnimatingRef.current = true
-    const tick = () => {
-      const delta = clockRef.current.getDelta()
+    const tick = (timestamp: number) => {
+      timerRef.current.update(timestamp)
+      const delta = timerRef.current.getDelta()
       updateAllMixers(delta)
       render()
       if (anyActionActive()) {
@@ -597,7 +597,6 @@ export default () => {
 
     // Setup renderer with pixel density awareness
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-    renderer.useLegacyLights = false
     renderer.outputColorSpace = THREE.LinearSRGBColorSpace
     let scale = window.devicePixelRatio || 1
     if (modelViewerState.model?.positioning.scaled) {
@@ -634,13 +633,14 @@ export default () => {
     // Setup animation/render strategy
     if (model.continiousRender) {
       // Continuous animation loop
-      const animate = () => {
+      const animate = (timestamp: number) => {
         requestAnimationFrame(animate)
-        const delta = clockRef.current.getDelta()
+        timerRef.current.update(timestamp)
+        const delta = timerRef.current.getDelta()
         updateAllMixers(delta)
         render()
       }
-      animate()
+      requestAnimationFrame(animate)
     } else {
       // Render only on camera movement
       controls.addEventListener('change', render)

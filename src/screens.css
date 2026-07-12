@@ -31,6 +31,10 @@
     height: calc(100dvh / var(--guiScale, 1));
     overflow: hidden;
 }
+body.rotated .fullscreen {
+    width: calc(100dvh / var(--guiScale, 1));
+    height: calc(100dvw / var(--guiScale, 1));
+}
 
 .screen-content {
     display: flex;

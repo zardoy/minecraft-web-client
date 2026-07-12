@@ -102,17 +102,18 @@ export const guiOptionsScheme: {
       }
     },
     {
-      gpuPreference: {
-        text: 'GPU Preference',
-        tooltip: 'You will need to reload the page for this to take effect.',
+      backgroundRendering: {
+        text: 'Background FPS limit',
+      },
+      menuBackgroundMode: {
+        text: 'Menu Background',
+      },
+      renderDebug: {
       },
     },
     {
       custom () {
-        return <Button label='Guide: Disable VSync' onClick={() => openURL('https://gist.github.com/zardoy/6e5ce377d2b4c1e322e660973da069cd')} inScreen />
-      },
-      backgroundRendering: {
-        text: 'Background FPS limit',
+        return <Category>World Settings</Category>
       },
       vanillaLook: {
         tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
@@ -120,30 +121,38 @@ export const guiOptionsScheme: {
       rendererWorldPerformance: {
         text: 'World Performance',
         tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
-        requiresRestart: true,
+        requiresRestartWhenInGame: true,
       },
-      menuBackgroundMode: {
-        text: 'Menu Background',
+      rendererMesher: {},
+    },
+    {
+      custom () {
+        return <Button label='Advanced...' onClick={() => openOptionsMenu('renderer-advanced')} inScreen />
+      },
+    },
+  ],
+  'renderer-advanced': [
+    {
+      custom () {
+        return <Category>Debug Performance</Category>
+      },
+      renderEntities: {},
+      disableBlockEntityTextures: {
+        text: 'No Block Entity Textures',
+        tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps',
       },
     },
     {
       custom () {
-        return <Category>Experimental</Category>
+        return <Category>Other Settings</Category>
       },
       dayCycleAndLighting: {
         text: 'Day Cycle',
       },
-      smoothLighting: {},
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
       },
-      rendererMesher: {},
-      rendererShaderCubeBlocks: {
-        text: 'Instanced Shader Cubes',
-        disableIf: ['rendererMesher', 'legacy-js'],
-      },
       starfieldRendering: {},
-      renderEntities: {},
       keepChunksDistance: {
         max: 5,
         unit: '',
@@ -152,23 +161,15 @@ export const guiOptionsScheme: {
       renderEars: {
         tooltip: 'Enable rendering Deadmau5 ears for all players if their skin contains textures for it',
       },
-      renderDebug: {
-      },
       rendererPerfDebugOverlay: {
         text: 'Performance Debug',
       },
-      disableBlockEntityTextures: {
-        tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps',
-      }
     },
     {
       custom () {
-        return <Category>Resource Packs</Category>
+        return <Button label='Guide: Disable VSync' onClick={() => openURL('https://gist.github.com/zardoy/6e5ce377d2b4c1e322e660973da069cd')} inScreen />
       },
-      serverResourcePacks: {
-        text: 'Download From Server',
-      }
-    }
+    },
   ],
   main: [
     {
@@ -181,10 +182,9 @@ export const guiOptionsScheme: {
     {
       custom () {
         const sp = miscUiState.singleplayer || !miscUiState.gameLoaded
-        const id = sp ? 'renderDistance' : 'multiplayerRenderDistance' // cant be changed when settings are open
         return <OptionSlider item={{
           type: 'slider',
-          id,
+          id: 'renderDistance',
           text: 'Render Distance',
           unit: '',
           max: sp ? 16 : 12,
@@ -454,6 +454,10 @@ export const guiOptionsScheme: {
       alwaysShowMobileControls: {
         text: 'Always Mobile Controls',
       },
+      autoDisplayRotation: {
+        text: 'Auto Landscape Rotation',
+        tooltip: 'On portrait screens, automatically rotate the game to landscape layout (same as the rotate button).',
+      },
       touchButtonsSize: {
         min: 40,
         disableIf: [
@@ -593,6 +597,8 @@ export const guiOptionsScheme: {
       },
     },
     {
+      serverResourcePacks: {
+      },
       saveLoginPassword: {
         tooltip: 'Controls whether to save login passwords for servers in this browser memory.',
       },
@@ -771,7 +777,7 @@ export const guiOptionsScheme: {
     },
   ],
 }
-export type OptionsGroupType = 'main' | 'render' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import' | 'inventory'
+export type OptionsGroupType = 'main' | 'render' | 'renderer-advanced' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import' | 'inventory'
 
 const Category = ({ children }) => <div style={{
   fontSize: 9,

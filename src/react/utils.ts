@@ -28,3 +28,24 @@ export const isSafari = ua.getBrowser().name === 'Safari' || isIos
 export const reactKeyForMessage = (message) => {
   return typeof message === 'string' ? message : JSON.stringify(message)
 }
+
+export const mapEventCoordinates = (e: { clientX: number, clientY: number }) => {
+  const isRotated = document.body.classList.contains('rotated')
+  const rect = document.body.getBoundingClientRect()
+
+  return {
+    clientX: isRotated ? e.clientY : e.clientX,
+    clientY: isRotated ? rect.width - e.clientX : e.clientY,
+    sizeX: isRotated ? rect.height : rect.width,
+    sizeY: isRotated ? rect.width : rect.height
+  }
+}
+
+export const getGameViewportSize = () => {
+  const canvas = document.querySelector('canvas#viewer-canvas')
+  if (!canvas) return { width: 0, height: 0 }
+  return {
+    width: canvas.clientWidth,
+    height: canvas.clientHeight
+  }
+}

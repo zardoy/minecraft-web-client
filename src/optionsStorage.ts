@@ -44,6 +44,16 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
     options.rendererWorldPerformance = 'low-energy'
     delete options.lowMemoryMode
   }
+  if (typeof options.multiplayerRenderDistance === 'number') {
+    const mp = options.multiplayerRenderDistance
+    options.renderDistance = Math.max(options.renderDistance!, mp)
+    delete options.multiplayerRenderDistance
+  }
+
+  // ensure options.renderDistance is finite
+  if (!Number.isFinite(options.renderDistance!) || (options.renderDistance ?? 0) < 1) {
+    options.renderDistance = defaultOptions.renderDistance
+  }
 
   migrateRendererOptions(options)
 

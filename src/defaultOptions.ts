@@ -5,7 +5,6 @@ import {
 
 export const defaultOptions = {
   renderDistance: 3,
-  multiplayerRenderDistance: 3,
   closeConfirmation: true,
   autoFullScreen: false,
   mouseRawInput: true,
@@ -74,6 +73,8 @@ export const defaultOptions = {
   singleplayerAutoSave: false,
   alwaysBackupWorldBeforeLoading: undefined as boolean | undefined | null,
   alwaysShowMobileControls: false,
+  /** Portrait viewport: apply `body.rotated` landscape layout without tapping the rotate button. */
+  autoDisplayRotation: false,
   excludeCommunicationDebugEvents: [] as string[],
   preventDevReloadWhilePlaying: false,
   localServerOptions: {

@@ -4,6 +4,8 @@ import { versionsMapToMajor, versionToMajor, versionToNumber } from 'minecraft-r
 
 import { stopAllSounds } from '../basicSounds'
 import { musicSystem } from './musicSystem'
+import { computeEffectiveVolume, DEFAULT_ATTENUATION_DISTANCE } from './soundAttenuation'
+import { parseSoundMapVariant, type SoundEntry } from './soundMapFormat'
 
 interface SoundMeta {
   format: string
@@ -25,17 +27,12 @@ interface BlockSoundMap {
   [blockName: string]: string
 }
 
-interface SoundEntry {
-  file: string
-  weight: number
-  volume: number
-}
-
 interface ResourcePackSoundEntry {
   name: string
   stream?: boolean
   volume?: number
   timeout?: number
+  attenuation_distance?: number
 }
 
 interface ResourcePackSound {
@@ -80,16 +77,7 @@ export class SoundMap {
     this.soundsPerName = {}
 
     for (const [id, soundsStr] of Object.entries(soundsMap)) {
-      const sounds = soundsStr.split(',').map(s => {
-        const [volume, name, weight] = s.split(';')
-        if (isNaN(Number(volume))) throw new Error('volume is not a number')
-        if (isNaN(Number(weight))) throw new TypeError('weight is not a number')
-        return {
-          file: name,
-          weight: Number(weight),
-          volume: Number(volume)
-        }
-      })
+      const sounds = soundsStr.split(',').map(s => parseSoundMapVariant(s))
 
       const [idPart, namePart] = id.split(';')
       this.soundsIdToName[idPart] = namePart
@@ -141,13 +129,16 @@ export class SoundMap {
     await scan(soundsBasePath)
   }
 
-  async getSoundUrl (soundKey: string, volume = 1): Promise<{ url: string; volume: number, timeout?: number } | undefined> {
+  async getSoundUrl (soundKey: string, volume = 1): Promise<{ url: string; volume: number; attenuationDistance: number; timeout?: number } | undefined> {
+    const effectiveVolume = (soundEntryVolume: number) => computeEffectiveVolume(soundEntryVolume, volume)
+
     // First check resource pack sounds.json
     if (this.activeResourcePackSoundsJson && soundKey in this.activeResourcePackSoundsJson) {
       const rpSound = this.activeResourcePackSoundsJson[soundKey]
       // Pick a random sound from the resource pack
       const sound = rpSound.sounds[Math.floor(Math.random() * rpSound.sounds.length)]
       const soundVolume = sound.volume ?? 1
+      const attenuationDistance = sound.attenuation_distance ?? DEFAULT_ATTENUATION_DISTANCE
 
       if (this.activeResourcePackBasePath) {
         const tryFormat = async (format: string) => {
@@ -155,7 +146,8 @@ export class SoundMap {
             if (sound.name.startsWith('http://') || sound.name.startsWith('https://')) {
               return {
                 url: sound.name,
-                volume: soundVolume * Math.max(Math.min(volume, 1), 0),
+                volume: effectiveVolume(soundVolume),
+                attenuationDistance,
                 timeout: sound.timeout
               }
             }
@@ -163,7 +155,8 @@ export class SoundMap {
             const fileData = await fs.promises.readFile(resourcePackPath)
             return {
               url: `data:audio/${format};base64,${fileData.toString('base64')}`,
-              volume: soundVolume * Math.max(Math.min(volume, 1), 0)
+              volume: effectiveVolume(soundVolume),
+              attenuationDistance
             }
           } catch (err) {
             return null
@@ -203,7 +196,8 @@ export class SoundMap {
 
     return {
       url,
-      volume: sound.volume * Math.max(Math.min(volume, 1), 0)
+      volume: effectiveVolume(sound.volume),
+      attenuationDistance: sound.attenuationDistance
     }
   }
 

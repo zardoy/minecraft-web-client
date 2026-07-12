@@ -15,7 +15,6 @@ import { isCypress } from './standaloneUtils'
 import { isSafari } from './react/utils'
 
 subscribeKey(options, 'renderDistance', reloadChunks)
-subscribeKey(options, 'multiplayerRenderDistance', reloadChunks)
 
 watchValue(options, o => {
   document.documentElement.style.setProperty('--chatScale', `${o.chatScale / 100}`)

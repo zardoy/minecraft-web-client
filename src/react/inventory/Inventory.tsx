@@ -67,7 +67,7 @@ export const Inventory = () => {
   useEffect(() => {
     if (!connector) return
     return () => {
-      connector.sendAction({ type: 'close' })
+      void connector.sendAction({ type: 'close' })
     }
   }, [connector])
 
@@ -139,7 +139,7 @@ export const Inventory = () => {
   const handleJeiItemRightClick = useCallback((item: JEIItem) => handleJeiItemGive(item, 64), [handleJeiItemGive])
 
   const handleClose = useCallback(() => {
-    connector?.sendAction({ type: 'close' })
+    void connector?.sendAction({ type: 'close' })
     hideCurrentModal()
   }, [connector])
 
