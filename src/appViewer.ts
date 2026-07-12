@@ -13,6 +13,7 @@ import { activeModalStack, miscUiState } from './globalState'
 import { options } from './optionsStorage'
 import { watchOptionsAfterWorldViewInit } from './watchOptions'
 import { updateLightRemeshBlockKey } from './mineflayer/updateLightRemeshKey'
+import { buildEntityRenderHints } from './boatRenderHints'
 
 // do not import this. Use global appViewer instead (without window prefix).
 export const appViewer = new AppViewer()
@@ -118,11 +119,21 @@ const connectAppWorldViewToBot = () => {
     if (!e.name) return // mineflayer received update for not spawned entity
     if (deadEntities.has(e.id)) return
     e.objectData = entitiesObjectData.get(e.id)
+    const renderHints = buildEntityRenderHints(e, {
+      localVehicle: bot.vehicle,
+      localBoatStatus: bot._boatPhysics?.getStatus?.() ?? null,
+      world: bot.world,
+      waterIds: {
+        waterId: bot.registry.blocksByName.water.id,
+        flowingWaterId: bot.registry.blocksByName.flowing_water?.id,
+      },
+    })
     appViewer.worldView?.emit(name as any, {
       ...e,
       pos: e.position,
       username: e.username,
       team: bot.teamMap[e.username] || bot.teamMap[e.uuid],
+      renderHints,
     })
   }
 
