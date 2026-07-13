@@ -82,6 +82,20 @@ export const onAppViewerConfigUpdate = () => {
   appViewer.inWorldRenderingConfig.skinTexturesProxy = miscUiState.appConfig?.skinTexturesProxy
 }
 
+const foregroundBlockingModalTypes = new Set([
+  'pause-screen',
+  'console',
+  'chunks-debug',
+  'renderer-debug',
+  'bed',
+])
+
+const shouldBlockForeground = (reactType: string) => {
+  if (reactType.startsWith('player_win:') || reactType === 'chat' || reactType === 'full-map' || reactType === 'app-status') return false
+  if (reactType.startsWith('options-')) return true
+  return foregroundBlockingModalTypes.has(reactType)
+}
+
 export const modalStackUpdateChecks = () => {
   if (!miscUiState.gameLoaded && !hasAppStatus()) {
     void initialMenuStart()
@@ -91,7 +105,8 @@ export const modalStackUpdateChecks = () => {
     appViewer.backend.setRendering(!hasAppStatus())
   }
 
-  appViewer.inWorldRenderingConfig.foreground = activeModalStack.length === 0
+  const hasBlockingForeground = activeModalStack.some(m => shouldBlockForeground(m.reactType))
+  appViewer.inWorldRenderingConfig.foreground = !hasBlockingForeground
 }
 subscribe(activeModalStack, modalStackUpdateChecks)
 
@@ -173,8 +188,10 @@ const connectAppWorldViewToBot = () => {
       appViewer.worldView?.unloadChunk(pos)
     },
     blockUpdate (oldBlock: any, newBlock: any) {
-      const stateId = newBlock.stateId ?? ((newBlock.type << 4) | newBlock.metadata)
-      appViewer.worldView?.emit('blockUpdate', { pos: oldBlock.position, stateId })
+      if (!newBlock) return
+      const stateId = newBlock.stateId ?? ((newBlock.type << 4) | (newBlock.metadata ?? 0))
+      if (isNaN(stateId)) return
+      appViewer.worldView?.setBlockStateId(oldBlock.position, stateId)
     },
     time () {
       appViewer.worldView?.emit('time', bot.time.timeOfDay)

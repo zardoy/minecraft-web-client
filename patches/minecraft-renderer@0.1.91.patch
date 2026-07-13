@@ -1,0 +1,15 @@
+diff --git a/src/lib/worldrendererCommon.ts b/src/lib/worldrendererCommon.ts
+index 65511b87c84e73859d96a2987edc845aff3052b4..eff0d9883426af3b45f6a5398bb87383a3a2fd57 100644
+--- a/src/lib/worldrendererCommon.ts
++++ b/src/lib/worldrendererCommon.ts
+@@ -54,7 +54,9 @@ export abstract class WorldRendererCommon<WorkerSend = any, WorkerReceive = any>
+     chunksRenderBelowEnabled: false,
+     chunksRenderDistanceOverride: undefined as number | undefined,
+     chunksRenderDistanceEnabled: false,
+-    disableEntities: false
++    disableEntities: false,
++    smartCull: true,
++    caveCullingDebug: false
+     // disableParticles: false
+   })
+ 

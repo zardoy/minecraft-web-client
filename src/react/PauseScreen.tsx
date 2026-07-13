@@ -145,13 +145,14 @@ export const saveToBrowserMemory = async () => {
 }
 
 const splitByCopySize = (files: string[], copySize = 15) => {
-  return files.reduce<string[][]>((acc, cur, i) => {
+  const result: string[][] = []
+  for (const [i, file] of files.entries()) {
     if (i % copySize === 0) {
-      acc.push([])
+      result.push([])
     }
-    acc.at(-1)!.push(cur)
-    return acc
-  }, [])
+    result.at(-1)!.push(file)
+  }
+  return result
 }
 
 export default () => {

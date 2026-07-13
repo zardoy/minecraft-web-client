@@ -118,6 +118,7 @@ export class SoundMap {
       for (const entry of entries) {
         const entryPath = path.join(dir, entry.name)
         if (entry.isDirectory()) {
+          // eslint-disable-next-line no-await-in-loop
           await scan(entryPath)
         } else if (entry.isFile() && entry.name.endsWith('.ogg')) {
           const relativePath = path.relative(soundsBasePath, entryPath)
