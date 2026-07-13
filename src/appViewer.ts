@@ -191,7 +191,7 @@ const connectAppWorldViewToBot = () => {
       if (!newBlock) return
       const stateId = newBlock.stateId ?? ((newBlock.type << 4) | (newBlock.metadata ?? 0))
       if (isNaN(stateId)) return
-      appViewer.worldView?.setBlockStateId(oldBlock.position, stateId)
+      appViewer.worldView?.emit('blockUpdate', { pos: oldBlock.position, stateId })
     },
     time () {
       appViewer.worldView?.emit('time', bot.time.timeOfDay)
