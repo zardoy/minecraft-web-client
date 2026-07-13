@@ -2,10 +2,9 @@ name: Deploy Minecraft Web Client to Pages
 
 on:
   push:
-    branches: ["main"] # Hoặc "master" tùy thuộc vào tên nhánh chính của bạn
-  workflow_dispatch:   # Cho phép bạn bấm nút chạy thủ công khi cần
+    branches: ["main"] 
+  workflow_dispatch:   
 
-# Thiết lập quyền hạn tối thiểu để Actions có thể ghi dữ liệu vào GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -28,18 +27,16 @@ jobs:
       - name: Cài đặt Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24 # Cập nhật lên Node 24 để đồng bộ với hệ thống mới của GitHub
 
       - name: Cài đặt pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9 # Phiên bản khuyến nghị cho dự án
+        # Loại bỏ dòng khai báo "version: 9" để hệ thống tự động đọc bản 10.32.1 từ package.json
 
       - name: Cài đặt các thư viện phụ thuộc
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile # Dùng lệnh này để tránh lỗi lệch cấu hình lockfile giữa các phiên bản
 
       - name: Biên dịch dự án (Build)
-        # Thay thế "minecraft-web-client" bằng tên chính xác kho lưu trữ của bạn nếu có đổi tên
         run: pnpm build --base=/minecraft-web-client/
 
       - name: Cấu hình GitHub Pages
@@ -48,7 +45,6 @@ jobs:
       - name: Tải lên sản phẩm đã build
         uses: actions/upload-pages-artifact@v3
         with:
-          # Thư mục chứa file sau khi build xong thường là 'dist' hoặc 'build'
           path: './dist' 
 
       - name: Phát hành lên GitHub Pages
