@@ -9,6 +9,7 @@ import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { options, watchValue } from './optionsStorage'
 import { gameAdditionalState, miscUiState } from './globalState'
 import { EntityStatus } from './mineflayer/entityStatus'
+import { getEntityMovementAnimation } from './entityMovementAnimation'
 
 
 const updateAutoJump = () => {
@@ -71,16 +72,13 @@ customEvents.on('gameLoaded', () => {
       const e = bot.entities[id]
       if (!e) continue
       const speed = info.avgVel
-      const WALKING_SPEED = 0.03
-      const SPRINTING_SPEED = 0.18
       const isCrouched = e === bot.entity ? gameAdditionalState.isSneaking : e['crouching']
-      const isWalking = Math.abs(speed.x) > WALKING_SPEED || Math.abs(speed.z) > WALKING_SPEED
-      const isSprinting = Math.abs(speed.x) > SPRINTING_SPEED || Math.abs(speed.z) > SPRINTING_SPEED
 
-      const newAnimation =
-        isCrouched ? (isWalking ? 'crouchWalking' : 'crouch')
-          : isWalking ? (isSprinting ? 'running' : 'walking')
-            : 'idle'
+      const newAnimation = getEntityMovementAnimation({
+        isMounted: e.vehicle != null,
+        isCrouched,
+        horizontalVelocity: speed,
+      })
       if (newAnimation !== playerPerAnimation[id]) {
         // Handle bot entity animation specially (for player entity in third person)
         if (e === bot.entity) {

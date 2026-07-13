@@ -143,7 +143,7 @@ test('buildEntityRenderHints sends an empty passenger list after boat detach', (
   expect(hints.passengerIds).toEqual([])
 })
 
-test('local minecart does not receive localVehicle hint', () => {
+test('local minecart receives localVehicle hint for camera-synced rendering', () => {
   const localMinecart = {
     name: 'minecart',
     id: 5,
@@ -158,9 +158,34 @@ test('local minecart does not receive localVehicle hint', () => {
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
-  expect(hints.localVehicle).toBeUndefined()
+  expect(hints.localVehicle).toBe(true)
   expect(hints.passengerLayout).toBe('minecart')
   expect(hints.passengerIds).toEqual([7])
+  expect(hints.boatWaterPatchVisible).toBeUndefined()
+})
+
+test('remote minecart does not receive localVehicle hint', () => {
+  const remoteMinecart = {
+    name: 'minecart',
+    id: 6,
+    position: new Vec3(0, 63, 0),
+    width: 0.98,
+    height: 0.7,
+    passengers: [{ id: 11 }],
+  }
+  const hints = buildEntityRenderHints(remoteMinecart, {
+    localVehicle: {
+      name: 'minecart',
+      id: 5,
+      position: new Vec3(1, 63, 2),
+      passengers: [{ id: 7 }],
+    },
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.localVehicle).toBeUndefined()
+  expect(hints.passengerLayout).toBe('minecart')
 })
 
 test('minecart receives ordered passengerIds', () => {

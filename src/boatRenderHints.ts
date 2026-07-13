@@ -74,7 +74,7 @@ function isWaterBlock (block: Block | null | undefined, ids: WaterIds): block is
 
 function isSourceWater (block: Block, ids: WaterIds): boolean {
   if (block.getProperties?.().waterlogged) return true
-  if (block.type !== ids.waterId) return true
+  if (block.type !== ids.waterId) return false
   return Number(block.getProperties?.().level ?? 0) === 0
 }
 
@@ -176,8 +176,10 @@ export function buildEntityRenderHints (
   },
 ): VehicleRenderHints {
   const renderHints: VehicleRenderHints = {}
-  const isLocalControlledBoat = options.localVehicle === entity && isBoatEntityName(entity.name)
-  if (isLocalControlledBoat) {
+  const isLocalVehicle = options.localVehicle === entity && (
+    isBoatEntityName(entity.name) || isRideableMinecartEntityName(entity.name)
+  )
+  if (isLocalVehicle) {
     renderHints.localVehicle = true
   }
 
