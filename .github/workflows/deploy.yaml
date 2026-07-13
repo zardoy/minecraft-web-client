@@ -1,0 +1,60 @@
+name: Deploy Minecraft Web Client to Pages via Bot Command
+
+on:
+  issue_comment:
+    types: [created] # Kích hoạt khi có bình luận mới được tạo ra
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: read # Cần thêm quyền đọc thông tin Pull Request
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # ĐIỀU KIỆN QUAN TRỌNG: Chỉ chạy nếu bình luận thuộc về một PR VÀ nội dung chứa chính xác từ khóa /develop
+    if: github.event.issue.pull_request && github.event.comment.body == '/develop'
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy thông tin nhánh của Pull Request
+        id: pr_branch
+        uses: xt0rted/pull-request-comment-branch@v2 # Action giúp tìm đúng nhánh (branch) đang yêu cầu kéo code
+
+      - name: Checkout mã nguồn từ nhánh PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr_branch.outputs.head_ref }} # Chuyển về đúng mã nguồn của nhánh đang tạo PR thay vì nhánh mặc định main
+
+      - name: Cài đặt Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Cài đặt pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Cài đặt các thư viện phụ thuộc
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Biên dịch dự án (Build)
+        run: pnpm build --base=/minecraft-web-client/
+
+      - name: Cấu hình GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Tải lên sản phẩm đã build
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist' 
+
+      - name: Phát hành lên GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
