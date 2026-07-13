@@ -81,22 +81,22 @@ export default ({
   const centerIndex = maxDistance
 
   // Process chunks to get only the last one for each position and within maxDistance
-  const processedChunks = chunks.reduce<Record<string, ProcessedChunk>>((acc, chunk) => {
+  const processedChunks: Record<string, ProcessedChunk> = {}
+  for (const chunk of chunks) {
     const relX = Math.floor((chunk.x - playerChunk.x) / 16)
     const relZ = Math.floor((chunk.z - playerChunk.z) / 16)
 
     // Skip chunks outside maxDistance
-    if (Math.abs(relX) > maxDistance || Math.abs(relZ) > maxDistance) return acc
+    if (Math.abs(relX) > maxDistance || Math.abs(relZ) > maxDistance) continue
 
     const key = `${chunk.x},${chunk.z}`
-    acc[key] = {
+    processedChunks[key] = {
       ...chunk,
       relX,
       relZ,
       displayLines: [`${relX},${relZ} (${chunk.x},${chunk.z})`, ...chunk.lines]
     }
-    return acc
-  }, {})
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>

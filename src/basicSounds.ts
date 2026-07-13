@@ -49,6 +49,7 @@ export async function loadSound (path: string, contents = path) {
 }
 window.loadSound = loadSound
 
+// eslint-disable-next-line max-params
 export const loadOrPlaySound = async (url, soundVolume = 1, loadTimeout = options.remoteSoundsLoadTimeout, loop = false, isMusic = false) => {
   const soundBuffer = sounds[url]
   if (!soundBuffer) {

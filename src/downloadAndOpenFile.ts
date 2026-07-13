@@ -23,6 +23,7 @@ const inner = async () => {
   return downloadAndOpenMapFromUrl(map, texturepack, mapDir, replayFileUrl)
 }
 
+// eslint-disable-next-line max-params
 export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, texturepackUrl: string | undefined, mapUrlDir: string[] | undefined, replayFileUrl: string | undefined, connectOptions?: Partial<ConnectOptions>) => {
   if (replayFileUrl) {
     setLoadingScreenStatus('Downloading replay file')
@@ -39,6 +40,7 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
+          // eslint-disable-next-line no-await-in-loop
           const { done, value } = await reader.read()
 
           if (done) {
@@ -113,6 +115,7 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
+        // eslint-disable-next-line no-await-in-loop
         const { done, value } = await reader.read()
 
         if (done) {

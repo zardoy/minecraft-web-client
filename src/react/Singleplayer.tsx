@@ -252,12 +252,12 @@ const SingleplayerBase = ({
             worldData
               ? (() => {
                 const filtered = worldData.filter(data => data.title.toLowerCase().includes(search.toLowerCase()))
-                const groups = filtered.reduce<Record<string, WorldProps[]>>((acc, world) => {
+                const groups: Record<string, WorldProps[]> = {}
+                for (const world of filtered) {
                   const group = world.group || ''
-                  if (!acc[group]) acc[group] = []
-                  acc[group].push(world)
-                  return acc
-                }, {})
+                  if (!groups[group]) groups[group] = []
+                  groups[group].push(world)
+                }
 
                 return Object.entries(groups).map(([groupName, worlds]) => (
                   <React.Fragment key={groupName}>

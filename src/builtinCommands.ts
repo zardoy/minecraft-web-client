@@ -18,15 +18,17 @@ async function addFolderToZip (folderPath, zip, relativePath) {
   const entries = await fs.promises.readdir(folderPath)
 
   for (const entry of entries) {
-    const entryPath = join(folderPath, entry)
+    // eslint-disable-next-line no-await-in-loop
     const stats = await fs.promises.stat(entryPath)
 
     const zipEntryPath = join(relativePath, entry)
 
     if (stats.isDirectory()) {
       const subZip = zip.folder(zipEntryPath)
+      // eslint-disable-next-line no-await-in-loop
       await addFolderToZip(entryPath, subZip, zipEntryPath)
     } else {
+      // eslint-disable-next-line no-await-in-loop
       const fileData = await fs.promises.readFile(entryPath)
       zip.file(entry, fileData)
     }

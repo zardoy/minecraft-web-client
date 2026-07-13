@@ -189,9 +189,8 @@ const connectAppWorldViewToBot = () => {
     },
     blockUpdate (oldBlock: any, newBlock: any) {
       if (!newBlock) return
-      if (newBlock.stateId == null && newBlock.type == null) return
       const stateId = newBlock.stateId ?? ((newBlock.type << 4) | (newBlock.metadata ?? 0))
-      if (stateId == null || isNaN(stateId)) return
+      if (isNaN(stateId)) return
       appViewer.worldView?.setBlockStateId(oldBlock.position, stateId)
     },
     time () {

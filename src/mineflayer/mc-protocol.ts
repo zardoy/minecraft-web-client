@@ -68,6 +68,7 @@ setInterval(() => {
 }, 1000)
 
 
+// eslint-disable-next-line max-params
 export const getServerInfo = async (ip: string, port?: number, preferredVersion = getVersionAutoSelect(), ping = false, progressReporter?: ProgressReporter, setProxyParams?: ProxyParams) => {
   await downloadAllMinecraftData()
   const isWebSocket = ip.startsWith('ws://') || ip.startsWith('wss://')

@@ -70,7 +70,8 @@ export const showNotification = (
   icon = '',
   action = undefined as (() => void) | undefined,
   autoHide = true,
-  id = ''
+  id = '',
+// eslint-disable-next-line max-params
 ) => {
   notificationProxy.message = message
   notificationProxy.subMessage = subMessage
