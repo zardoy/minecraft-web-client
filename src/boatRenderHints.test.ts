@@ -5,6 +5,7 @@ import {
   buildEntityRenderHints,
   getLocalBoatWaterPatchVisible,
   getRemoteBoatWaterPatchVisible,
+  isRideableMinecartEntityName,
 } from './boatRenderHints'
 
 const waterId = 123
@@ -139,4 +140,83 @@ test('buildEntityRenderHints sends an empty passenger list after boat detach', (
     waterIds: { waterId, flowingWaterId },
   })
   expect(hints.boatPassengerIds).toEqual([])
+  expect(hints.passengerIds).toEqual([])
+})
+
+test('local minecart does not receive localVehicle hint', () => {
+  const localMinecart = {
+    name: 'minecart',
+    id: 5,
+    position: new Vec3(1, 63, 2),
+    width: 0.98,
+    height: 0.7,
+    passengers: [{ id: 7 }],
+  }
+  const hints = buildEntityRenderHints(localMinecart, {
+    localVehicle: localMinecart,
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.localVehicle).toBeUndefined()
+  expect(hints.passengerLayout).toBe('minecart')
+  expect(hints.passengerIds).toEqual([7])
+})
+
+test('minecart receives ordered passengerIds', () => {
+  const minecart = {
+    name: 'chest_minecart',
+    id: 6,
+    position: new Vec3(0, 63, 0),
+    width: 0.98,
+    height: 0.7,
+    passengers: [{ id: 11 }, { id: 12 }],
+  }
+  const hints = buildEntityRenderHints(minecart, {
+    localVehicle: null,
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.passengerIds).toEqual([11, 12])
+  expect(hints.passengerLayout).toBe('minecart')
+  expect(hints.boatPassengerIds).toBeUndefined()
+})
+
+test('minecart detach creates empty passenger list', () => {
+  const minecart = {
+    name: 'minecart',
+    id: 7,
+    position: new Vec3(0, 63, 0),
+    passengers: [],
+  }
+  const hints = buildEntityRenderHints(minecart, {
+    localVehicle: null,
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.passengerIds).toEqual([])
+})
+
+test.each([
+  'minecart',
+  'chest_minecart',
+  'furnace_minecart',
+  'hopper_minecart',
+  'tnt_minecart',
+  'spawner_minecart',
+  'command_block_minecart',
+])('recognizes minecart variant %s', name => {
+  expect(isRideableMinecartEntityName(name)).toBe(true)
+  const hints = buildEntityRenderHints(
+    { name, position: new Vec3(0, 63, 0), passengers: [{ id: 1 }] },
+    {
+      localVehicle: null,
+      localBoatStatus: null,
+      world: makeWorld({}),
+      waterIds: { waterId, flowingWaterId },
+    },
+  )
+  expect(hints.passengerLayout).toBe('minecart')
 })

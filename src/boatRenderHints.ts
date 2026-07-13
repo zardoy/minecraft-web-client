@@ -3,7 +3,7 @@ import type { Block } from 'prismarine-block'
 import { isBoatEntityName } from 'minecraft-renderer/src/three/entity/boatModelRotation'
 import { BoatStatus } from '@nxg-org/mineflayer-physics-util'
 
-type BoatEntityLike = {
+type VehicleEntityLike = {
   name?: string
   position: Vec3
   width?: number
@@ -20,7 +20,37 @@ type WaterIds = {
   flowingWaterId?: number
 }
 
-function getEntityBB (entity: BoatEntityLike) {
+export type VehicleRenderHints = {
+  localVehicle?: boolean
+  passengerIds?: number[]
+  passengerLayout?: 'boat' | 'minecart'
+  boatWaterPatchVisible?: boolean
+  /** @deprecated Use passengerIds */
+  boatPassengerIds?: number[]
+}
+
+const RIDEABLE_MINECART_ENTITY_NAMES = new Set([
+  'minecart',
+  'chest_minecart',
+  'furnace_minecart',
+  'hopper_minecart',
+  'tnt_minecart',
+  'spawner_minecart',
+  'command_block_minecart',
+])
+
+export function isRideableMinecartEntityName (name?: string): boolean {
+  if (!name) return false
+  return RIDEABLE_MINECART_ENTITY_NAMES.has(name)
+}
+
+function collectPassengerIds (entity: VehicleEntityLike): number[] {
+  return (entity.passengers ?? [])
+    .map(passenger => passenger.id)
+    .filter((id): id is number => typeof id === 'number' && Number.isInteger(id))
+}
+
+function getEntityBB (entity: VehicleEntityLike) {
   const width = entity.width ?? 1.375
   const height = entity.height ?? 0.5625
   const halfWidth = width / 2
@@ -118,7 +148,7 @@ function isInWater (bb: ReturnType<typeof getEntityBB>, world: WorldLike, ids: W
 }
 
 export function getRemoteBoatWaterPatchVisible (
-  entity: BoatEntityLike,
+  entity: VehicleEntityLike,
   world: WorldLike,
   ids: WaterIds,
 ): boolean {
@@ -137,32 +167,38 @@ export function getLocalBoatWaterPatchVisible (status: BoatStatus | null | undef
 }
 
 export function buildEntityRenderHints (
-  entity: BoatEntityLike & { id?: number },
+  entity: VehicleEntityLike & { id?: number },
   options: {
-    localVehicle: BoatEntityLike | null | undefined
+    localVehicle: VehicleEntityLike | null | undefined
     localBoatStatus: BoatStatus | null | undefined
     world: WorldLike
     waterIds: WaterIds
   },
-) {
-  const renderHints: {
-    localVehicle?: boolean
-    boatWaterPatchVisible?: boolean
-    boatPassengerIds?: number[]
-  } = {}
-  if (options.localVehicle && entity === options.localVehicle) {
+): VehicleRenderHints {
+  const renderHints: VehicleRenderHints = {}
+  const isLocalControlledBoat = options.localVehicle === entity && isBoatEntityName(entity.name)
+  if (isLocalControlledBoat) {
     renderHints.localVehicle = true
   }
-  if (!isBoatEntityName(entity.name)) {
+
+  const passengerIds = collectPassengerIds(entity)
+
+  if (isBoatEntityName(entity.name)) {
+    renderHints.passengerIds = passengerIds
+    renderHints.boatPassengerIds = passengerIds
+    renderHints.passengerLayout = 'boat'
+    if (renderHints.localVehicle) {
+      renderHints.boatWaterPatchVisible = getLocalBoatWaterPatchVisible(options.localBoatStatus)
+    } else {
+      renderHints.boatWaterPatchVisible = getRemoteBoatWaterPatchVisible(entity, options.world, options.waterIds)
+    }
     return renderHints
   }
-  renderHints.boatPassengerIds = (entity.passengers ?? [])
-    .map(passenger => passenger.id)
-    .filter((id): id is number => typeof id === 'number' && Number.isInteger(id))
-  if (renderHints.localVehicle) {
-    renderHints.boatWaterPatchVisible = getLocalBoatWaterPatchVisible(options.localBoatStatus)
-  } else {
-    renderHints.boatWaterPatchVisible = getRemoteBoatWaterPatchVisible(entity, options.world, options.waterIds)
+
+  if (isRideableMinecartEntityName(entity.name)) {
+    renderHints.passengerIds = passengerIds
+    renderHints.passengerLayout = 'minecart'
   }
+
   return renderHints
 }

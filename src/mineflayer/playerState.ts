@@ -6,6 +6,7 @@ import { HandItemBlock } from 'minecraft-renderer/src/playerState/types'
 import { beforeRenderFrame } from '../beforeRenderFrame'
 import { gameAdditionalState } from '../globalState'
 import { options } from '../optionsStorage'
+import { getCameraMovementMode } from '../cameraMovementMode'
 
 const BASE_MOVEMENT_SPEED = 0.1
 const FOV_EFFECT_SCALE = 1
@@ -320,7 +321,9 @@ export class PlayerStateControllerMain {
     if (this.eyeHeightWatchInstalled) return
     this.eyeHeightWatchInstalled = true
     subscribeKey(this.reactive, 'eyeHeight', () => {
-      appViewer.backend?.updateCamera(bot.entity.position, bot.entity.yaw, bot.entity.pitch)
+      appViewer.backend?.updateCamera(bot.entity.position, bot.entity.yaw, bot.entity.pitch, {
+        movementMode: getCameraMovementMode(bot),
+      })
     })
   }
 
