@@ -28,6 +28,7 @@ export const formatLoadingScreenError = (source: string, err: unknown): string =
   return `${source}: ${formatErrorDetail(err)}`
 }
 
+// eslint-disable-next-line max-params
 export const setLoadingScreenStatus = function (status: string | undefined | null, isError = false, hideDots = false, fromFlyingSquid = false, minecraftJsonMessage?: Record<string, any>) {
   if (typeof status === 'string') status = window.translateText?.(status) ?? status
   // null can come from flying squid, should restore our last status

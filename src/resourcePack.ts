@@ -70,6 +70,7 @@ export const installTexturePackFromHandle = async () => {
   // await completeTexturePackInstall()
 }
 
+// eslint-disable-next-line max-params
 export const installResourcepackPack = async (file: File | ArrayBuffer, progressReporter: ProgressReporter, displayName = file['name'], name = 'default', isServer = false) => {
   console.time('processResourcePack')
   const installPath = isServer ? '/resourcepack/' : resourcepackPackBasePath + name

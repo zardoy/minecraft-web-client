@@ -134,10 +134,11 @@ function hideCurrentScreens () {
 
 const loadSingleplayer = (serverOverrides = {}, flattenedServerOverrides = {}, connectOptions?: Partial<ConnectOptions>) => {
   const serverSettingsQsRaw = appQueryParamsArray.serverSetting ?? []
-  const serverSettingsQs = serverSettingsQsRaw.map(x => x.split(':')).reduce<Record<string, string>>((acc, [key, value]) => {
-    acc[key] = JSON.parse(value)
-    return acc
-  }, {})
+  const serverSettingsQs: Record<string, string> = {}
+  for (const x of serverSettingsQsRaw) {
+    const [key, value] = x.split(':')
+    serverSettingsQs[key] = JSON.parse(value)
+  }
   void connect({
     singleplayer: true,
     username: options.localUsername,

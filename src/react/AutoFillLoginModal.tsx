@@ -159,6 +159,7 @@ const measureIframeFormLayout = (
   captionEl: HTMLElement,
   buttonEl: HTMLElement,
   scale = 1,
+// eslint-disable-next-line max-params
 ): IframeFormLayout => {
   const rootRect = root.getBoundingClientRect()
   const buttonRect = buttonEl.getBoundingClientRect()
@@ -236,6 +237,7 @@ const mountIframeAuthForm = (
   identifier: string,
   prefilledPassword: string,
   submitLabel: string,
+// eslint-disable-next-line max-params
 ) => {
   iframe.src = 'about:blank'
   iframe.style.width = `${layout.iframeWidth}px`

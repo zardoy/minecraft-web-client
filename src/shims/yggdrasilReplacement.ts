@@ -1,5 +1,6 @@
 export const server = ({ host: sessionServer }) => {
   return {
+    // eslint-disable-next-line max-params
     async join (accessToken, sessionSelectedProfileId, serverId, sharedSecret, publicKey, cb) {
       try {
         const result = await fetch(`${sessionServer}`, {
