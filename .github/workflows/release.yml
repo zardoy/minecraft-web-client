@@ -74,8 +74,9 @@ jobs:
       - name: Set deployment alias
         run: |
           for alias in $(echo ${{ steps.alias.outputs.alias }} | tr "," "\n"); do
-            vercel alias set ${{ steps.deploy.outputs.stdout }} $alias --token=${{ secrets.VERCEL_TOKEN }} --scope=zaro
+            vercel alias set ${{ steps.deploy.outputs.stdout }} $alias --token=${{ secrets.VERCEL_TOKEN }}
           done
+
 
       - name: Build single-file version - minecraft.html
         run: pnpm build-single-file && mv dist/single/index.html minecraft.html
