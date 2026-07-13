@@ -5,6 +5,7 @@ import {
   buildEntityRenderHints,
   getLocalBoatWaterPatchVisible,
   getRemoteBoatWaterPatchVisible,
+  isRideableHorseEntityName,
   isRideableMinecartEntityName,
 } from './boatRenderHints'
 
@@ -16,10 +17,10 @@ const airId = 0
 type StubBlock = {
   type: number
   name: string
-  getProperties: () => Record<string, unknown>
+  getProperties: () => Record<string, string | number | boolean>
 }
 
-function makeBlock (type: number, props: Record<string, unknown> = {}): StubBlock {
+function makeBlock (type: number, props: Record<string, string | number | boolean> = {}): StubBlock {
   return {
     type,
     name: type === waterId ? 'water' : type === flowingWaterId ? 'flowing_water' : type === stoneId ? 'stone' : 'air',
@@ -30,11 +31,11 @@ function makeBlock (type: number, props: Record<string, unknown> = {}): StubBloc
 function makeWorld (blocks: Record<string, number | StubBlock | null>) {
   return {
     getBlock (pos: Vec3) {
-      const key = `${pos.x | 0},${pos.y | 0},${pos.z | 0}`
+      const key = `${Math.trunc(pos.x)},${Math.trunc(pos.y)},${Math.trunc(pos.z)}`
       const entry = blocks[key]
       if (entry === null) return null
       if (typeof entry === 'object') return entry
-      if (entry == null) return makeBlock(airId)
+      if (entry === undefined) return makeBlock(airId)
       return makeBlock(entry)
     },
   }
@@ -244,4 +245,64 @@ test.each([
     },
   )
   expect(hints.passengerLayout).toBe('minecart')
+})
+
+test.each([
+  'horse',
+  'donkey',
+  'mule',
+  'skeleton_horse',
+  'zombie_horse',
+])('recognizes horse variant %s', name => {
+  expect(isRideableHorseEntityName(name)).toBe(true)
+})
+
+test('local horse sets passengerLayout horse', () => {
+  const horse = {
+    name: 'horse',
+    id: 5,
+    position: new Vec3(0, 64, 0),
+    passengers: [{ id: 1 }],
+  }
+  const hints = buildEntityRenderHints(horse, {
+    localVehicle: horse,
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.localVehicle).toBe(true)
+  expect(hints.passengerLayout).toBe('horse')
+  expect(hints.passengerIds).toEqual([1])
+})
+
+test('remote horse omits localVehicle flag', () => {
+  const horse = {
+    name: 'horse',
+    position: new Vec3(0, 64, 0),
+    passengers: [{ id: 2 }],
+  }
+  const hints = buildEntityRenderHints(horse, {
+    localVehicle: null,
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.localVehicle).toBeUndefined()
+  expect(hints.passengerLayout).toBe('horse')
+})
+
+test('empty horse passenger list still reports horse layout', () => {
+  const horse = {
+    name: 'horse',
+    position: new Vec3(0, 64, 0),
+    passengers: [],
+  }
+  const hints = buildEntityRenderHints(horse, {
+    localVehicle: null,
+    localBoatStatus: null,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.passengerIds).toEqual([])
+  expect(hints.passengerLayout).toBe('horse')
 })

@@ -4,6 +4,7 @@ import { isBoatEntityName } from 'minecraft-renderer/src/three/entity/boatModelR
 import { BoatStatus } from '@nxg-org/mineflayer-physics-util'
 
 type VehicleEntityLike = {
+  id?: number
   name?: string
   position: Vec3
   width?: number
@@ -11,8 +12,10 @@ type VehicleEntityLike = {
   passengers?: Array<{ id?: number }>
 }
 
+type BlockLike = Pick<Block, 'type' | 'getProperties'>
+
 type WorldLike = {
-  getBlock: (pos: Vec3) => Block | null
+  getBlock: (pos: Vec3) => BlockLike | null
 }
 
 type WaterIds = {
@@ -23,7 +26,7 @@ type WaterIds = {
 export type VehicleRenderHints = {
   localVehicle?: boolean
   passengerIds?: number[]
-  passengerLayout?: 'boat' | 'minecart'
+  passengerLayout?: 'boat' | 'minecart' | 'horse'
   boatWaterPatchVisible?: boolean
   /** @deprecated Use passengerIds */
   boatPassengerIds?: number[]
@@ -38,6 +41,19 @@ const RIDEABLE_MINECART_ENTITY_NAMES = new Set([
   'spawner_minecart',
   'command_block_minecart',
 ])
+
+const RIDEABLE_HORSE_ENTITY_NAMES = new Set([
+  'horse',
+  'donkey',
+  'mule',
+  'skeleton_horse',
+  'zombie_horse',
+])
+
+export function isRideableHorseEntityName (name?: string): boolean {
+  if (!name) return false
+  return RIDEABLE_HORSE_ENTITY_NAMES.has(name)
+}
 
 export function isRideableMinecartEntityName (name?: string): boolean {
   if (!name) return false
@@ -65,20 +81,20 @@ function getEntityBB (entity: VehicleEntityLike) {
   }
 }
 
-function isWaterBlock (block: Block | null | undefined, ids: WaterIds): block is Block {
+function isWaterBlock (block: BlockLike | null | undefined, ids: WaterIds): block is BlockLike {
   if (!block) return false
   if (block.type === ids.waterId) return true
-  if (ids.flowingWaterId != null && block.type === ids.flowingWaterId) return true
+  if (ids.flowingWaterId !== null && ids.flowingWaterId !== undefined && block.type === ids.flowingWaterId) return true
   return !!block.getProperties?.().waterlogged
 }
 
-function isSourceWater (block: Block, ids: WaterIds): boolean {
+function isSourceWater (block: BlockLike, ids: WaterIds): boolean {
   if (block.getProperties?.().waterlogged) return true
   if (block.type !== ids.waterId) return false
   return Number(block.getProperties?.().level ?? 0) === 0
 }
 
-function getFluidHeight (block: Block, world: WorldLike, pos: Vec3, ids: WaterIds): number {
+function getFluidHeight (block: BlockLike, world: WorldLike, pos: Vec3, ids: WaterIds): number {
   const above = world.getBlock(pos.offset(0, 1, 0))
   if (above && isWaterBlock(above, ids) && (above.type === block.type || above.getProperties?.().waterlogged)) {
     return 1
@@ -105,7 +121,7 @@ function isUnderwater (bb: ReturnType<typeof getEntityBB>, world: WorldLike, ids
     for (cursor.x = minX; cursor.x < maxX; cursor.x++) {
       for (cursor.z = minZ; cursor.z < maxZ; cursor.z++) {
         const block = world.getBlock(cursor)
-        if (block == null) return null
+        if (block === null) return null
         if (!isWaterBlock(block, ids)) continue
         const fluidHeight = cursor.y + getFluidHeight(block, world, cursor, ids)
         if (topY < fluidHeight) {
@@ -118,7 +134,7 @@ function isUnderwater (bb: ReturnType<typeof getEntityBB>, world: WorldLike, ids
     }
   }
 
-  return foundSource ? true : false
+  return foundSource
 }
 
 function isInWater (bb: ReturnType<typeof getEntityBB>, world: WorldLike, ids: WaterIds): boolean | null {
@@ -134,7 +150,7 @@ function isInWater (bb: ReturnType<typeof getEntityBB>, world: WorldLike, ids: W
     for (cursor.y = minY; cursor.y < maxY; cursor.y++) {
       for (cursor.z = minZ; cursor.z < maxZ; cursor.z++) {
         const block = world.getBlock(cursor)
-        if (block == null) return null
+        if (block === null) return null
         if (!isWaterBlock(block, ids)) continue
         const fluidHeight = cursor.y + getFluidHeight(block, world, cursor, ids)
         if (bb.minY < fluidHeight) {
@@ -155,10 +171,10 @@ export function getRemoteBoatWaterPatchVisible (
   if (!isBoatEntityName(entity.name)) return false
   const bb = getEntityBB(entity)
   const underwater = isUnderwater(bb, world, ids)
-  if (underwater == null) return false
+  if (underwater === null) return false
   if (underwater) return false
   const inWater = isInWater(bb, world, ids)
-  if (inWater == null) return false
+  if (inWater === null) return false
   return inWater
 }
 
@@ -167,7 +183,7 @@ export function getLocalBoatWaterPatchVisible (status: BoatStatus | null | undef
 }
 
 export function buildEntityRenderHints (
-  entity: VehicleEntityLike & { id?: number },
+  entity: VehicleEntityLike,
   options: {
     localVehicle: VehicleEntityLike | null | undefined
     localBoatStatus: BoatStatus | null | undefined
@@ -177,7 +193,9 @@ export function buildEntityRenderHints (
 ): VehicleRenderHints {
   const renderHints: VehicleRenderHints = {}
   const isLocalVehicle = options.localVehicle === entity && (
-    isBoatEntityName(entity.name) || isRideableMinecartEntityName(entity.name)
+    isBoatEntityName(entity.name) ||
+    isRideableMinecartEntityName(entity.name) ||
+    isRideableHorseEntityName(entity.name)
   )
   if (isLocalVehicle) {
     renderHints.localVehicle = true
@@ -200,6 +218,11 @@ export function buildEntityRenderHints (
   if (isRideableMinecartEntityName(entity.name)) {
     renderHints.passengerIds = passengerIds
     renderHints.passengerLayout = 'minecart'
+  }
+
+  if (isRideableHorseEntityName(entity.name)) {
+    renderHints.passengerIds = passengerIds
+    renderHints.passengerLayout = 'horse'
   }
 
   return renderHints

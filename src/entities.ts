@@ -10,6 +10,7 @@ import { options, watchValue } from './optionsStorage'
 import { gameAdditionalState, miscUiState } from './globalState'
 import { EntityStatus } from './mineflayer/entityStatus'
 import { getEntityMovementAnimation } from './entityMovementAnimation'
+import { isRideableHorseEntityName } from './boatRenderHints'
 
 
 const updateAutoJump = () => {
@@ -75,7 +76,8 @@ customEvents.on('gameLoaded', () => {
       const isCrouched = e === bot.entity ? gameAdditionalState.isSneaking : e['crouching']
 
       const newAnimation = getEntityMovementAnimation({
-        isMounted: e.vehicle != null,
+        isMounted: e.vehicle !== null && e.vehicle !== undefined,
+        isHorseMounted: e.vehicle !== null && e.vehicle !== undefined && isRideableHorseEntityName(e.vehicle.name),
         isCrouched,
         horizontalVelocity: speed,
       })

@@ -9,4 +9,5 @@ test('minecart vehicle selects server-vehicle camera mode', () => {
 test('walking player uses local-player camera mode', () => {
   expect(getCameraMovementMode({ vehicle: null })).toBe('local-player')
   expect(getCameraMovementMode({ vehicle: { name: 'boat' } })).toBe('local-player')
+  expect(getCameraMovementMode({ vehicle: { name: 'horse' } })).toBe('local-player')
 })

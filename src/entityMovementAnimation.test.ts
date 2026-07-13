@@ -5,6 +5,15 @@ const walkingVelocity = { x: 0.05, z: 0 }
 const sprintingVelocity = { x: 0.25, z: 0 }
 const highVehicleVelocity = { x: 1.5, z: 0.8 }
 
+test('mounted horse player uses riding animation', () => {
+  expect(getEntityMovementAnimation({
+    isMounted: true,
+    isHorseMounted: true,
+    isCrouched: false,
+    horizontalVelocity: highVehicleVelocity,
+  })).toBe('riding')
+})
+
 test('mounted player with high vehicle speed uses idle', () => {
   expect(getEntityMovementAnimation({
     isMounted: true,
