@@ -833,7 +833,7 @@ const registerChunkCacheChannel = () => {
         // Serialize the packet data for caching
         const serialized = serializeMapChunkPacket(packetData)
         await chunkPacketCache.set(packetData.x, packetData.z, serialized, pending.hash)
-        notifyChunkCached(packetData.x, packetData.z, pending.hash)
+        notifyChunkCachedIfResident(packetData.x, packetData.z, pending.hash)
         console.debug(`Cached map_chunk for ${chunkKey} with hash ${pending.hash}`)
       } catch (error) {
         console.warn(`Failed to cache chunk ${chunkKey}:`, error)
@@ -845,7 +845,7 @@ const registerChunkCacheChannel = () => {
         const serialized = serializeMapChunkPacket(packetData)
         const hash = chunkPacketCache.computePacketHash(serialized)
         await chunkPacketCache.set(packetData.x, packetData.z, serialized, hash)
-        if (serverSupportsChannel) notifyChunkCached(packetData.x, packetData.z, hash)
+        if (serverSupportsChannel) notifyChunkCachedIfResident(packetData.x, packetData.z, hash)
       } catch (error) {
         // Silently fail - caching is optional
       }
@@ -877,6 +877,12 @@ const registerChunkCacheChannel = () => {
 
   function notifyChunkCached (x: number, z: number, hash: string): void {
     sendChunkClaim(x, z, hash)
+  }
+
+  function notifyChunkCachedIfResident (x: number, z: number, hash: string): void {
+    if (chunkPacketCache.getFromMemory(x, z)?.hash === hash) {
+      notifyChunkCached(x, z, hash)
+    }
   }
 
   /**

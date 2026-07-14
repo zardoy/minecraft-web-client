@@ -316,3 +316,23 @@ test('ChunkPacketCache rejects failed disk writes and does not publish metadata'
 
   expect(await cache.getCachedChunksInfo()).toEqual([])
 })
+
+
+test('ChunkPacketCache preserves set-invalidate-set ordering in memory and disk', async () => {
+  const cacheDir = await createTempDir()
+  const cache = new ChunkPacketCache()
+  bindChunkCacheToDir(cache, cacheDir)
+  await cache.setServerInfo('test-server', true)
+
+  const first = cache.set(6, 7, makePacket(1), 'old00001')
+  const invalidate = cache.invalidate(6, 7)
+  const latest = cache.set(6, 7, makePacket(2), 'new00002')
+  await Promise.all([first, invalidate, latest])
+  await cache.flush()
+
+  expect(cache.getFromMemory(6, 7)?.hash).toBe('new00002')
+  const reloaded = new ChunkPacketCache()
+  bindChunkCacheToDir(reloaded, cacheDir)
+  await reloaded.setServerInfo('test-server', true)
+  expect((await reloaded.get(6, 7))?.hash).toBe('new00002')
+})

@@ -319,32 +319,34 @@ class ChunkPacketCache {
       serverAddress: this.serverAddress
     }
 
-    // Always add to memory cache
-    this.addToMemoryCache(memKey, cached)
-
-    // Persist to disk only when server supports channel. Per-chunk queues
-    // preserve packet order, and temp+rename prevents partial files.
-    if (this.serverSupportsChannel) {
-      await this.enqueueChunkWrite(memKey, async () => {
-        try {
-          await mkdirRecursive(this.getServerDir())
-          const chunkPath = this.getChunkPath(x, z)
-          const temporaryPath = `${chunkPath}.tmp`
-          await fs.promises.writeFile(temporaryPath, Buffer.from(packetData))
-          await fs.promises.rename(temporaryPath, chunkPath)
-          this.metadata.chunks[chunkKey] = {
-            hash: computedHash,
-            lastAccessed: now,
-            byteLength: packetData.byteLength
-          }
-          await this.evictOldEntries()
-          this.scheduleSaveMetadata()
-        } catch (error) {
-          console.warn(`Failed to save chunk ${chunkKey} to disk:`, error)
-          throw error
-        }
-      })
+    if (!this.serverSupportsChannel) {
+      this.addToMemoryCache(memKey, cached)
+      return
     }
+
+    // Persistent writes and their memory state share one per-chunk queue, so
+    // set/invalidate/set ordering is identical in RAM and on disk.
+    await this.enqueueChunkWrite(memKey, async () => {
+      this.addToMemoryCache(memKey, cached)
+      try {
+        await mkdirRecursive(this.getServerDir())
+        const chunkPath = this.getChunkPath(x, z)
+        const temporaryPath = `${chunkPath}.tmp`
+        await fs.promises.writeFile(temporaryPath, Buffer.from(packetData))
+        await fs.promises.rename(temporaryPath, chunkPath)
+        this.metadata.chunks[chunkKey] = {
+          hash: computedHash,
+          lastAccessed: now,
+          byteLength: packetData.byteLength
+        }
+        await this.evictOldEntries()
+        this.scheduleSaveMetadata()
+      } catch (error) {
+        if (this.memoryCache.get(memKey) === cached) this.removeMemoryEntry(memKey)
+        console.warn(`Failed to save chunk ${chunkKey} to disk:`, error)
+        throw error
+      }
+    })
   }
 
   /**
@@ -363,19 +365,18 @@ class ChunkPacketCache {
     const memKey = this.getMemoryCacheKey(x, z)
     const chunkKey = `${x},${z}`
 
-    await this.writeQueues.get(memKey)?.catch(() => {})
-    this.removeMemoryEntry(memKey)
-    delete this.metadata.chunks[chunkKey]
-    this.scheduleSaveMetadata()
+    await this.enqueueChunkWrite(memKey, async () => {
+      this.removeMemoryEntry(memKey)
+      delete this.metadata.chunks[chunkKey]
+      this.scheduleSaveMetadata()
 
-    try {
-      const chunkPath = this.getChunkPath(x, z)
-      if (await existsViaStats(chunkPath)) {
-        await fs.promises.unlink(chunkPath)
+      try {
+        const chunkPath = this.getChunkPath(x, z)
+        if (await existsViaStats(chunkPath)) await fs.promises.unlink(chunkPath)
+      } catch (error) {
+        console.warn(`Failed to delete chunk ${chunkKey} from disk:`, error)
       }
-    } catch (error) {
-      console.warn(`Failed to delete chunk ${chunkKey} from disk:`, error)
-    }
+    })
   }
 
   /**
