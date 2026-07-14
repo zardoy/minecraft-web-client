@@ -113,8 +113,8 @@ test('ChunkPacketCache computePacketHash is deterministic and content-dependent'
 
   expect(cache.computePacketHash(dataA)).toBe(cache.computePacketHash(dataA))
   expect(cache.computePacketHash(dataA)).not.toBe(cache.computePacketHash(dataB))
-  // 8-char hex
-  expect(cache.computePacketHash(dataA)).toMatch(/^[\da-f]{8}$/)
+  // 16-char composite hex token (forward + reverse FNV-1a)
+  expect(cache.computePacketHash(dataA)).toMatch(/^[\da-f]{16}$/)
 })
 
 // ─── hasValidCache ────────────────────────────────────────────────────────────
@@ -258,4 +258,46 @@ test('ChunkPacketCache clear removes all entries', async () => {
   expect(await cache.get(0, 0)).toBeNull()
   expect(await cache.get(1, 1)).toBeNull()
   expect(cache.getStats().diskSize).toBe(0)
+})
+
+// ─── synchronous replay and write ordering ───────────────────────────────────
+
+test('ChunkPacketCache exposes only memory-resident entries synchronously', async () => {
+  const cacheDir = await createTempDir()
+  const firstCache = new ChunkPacketCache()
+  bindChunkCacheToDir(firstCache, cacheDir)
+  await firstCache.setServerInfo('test-server', true)
+  await firstCache.set(4, 5, makePacket(9, 8, 7), 'sync0001')
+  await firstCache.flush()
+
+  const reloadedCache = new ChunkPacketCache()
+  bindChunkCacheToDir(reloadedCache, cacheDir)
+  await reloadedCache.setServerInfo('test-server', true)
+  expect(reloadedCache.getFromMemory(4, 5)).toBeNull()
+
+  await reloadedCache.get(4, 5)
+  expect(reloadedCache.getFromMemory(4, 5)?.hash).toBe('sync0001')
+})
+
+test('ChunkPacketCache serializes concurrent writes to the same chunk', async () => {
+  const cacheDir = await createTempDir()
+  const cache = new ChunkPacketCache()
+  bindChunkCacheToDir(cache, cacheDir)
+  await cache.setServerInfo('test-server', true)
+
+  const first = makePacket(1, 1, 1)
+  const second = makePacket(2, 2, 2)
+  await Promise.all([
+    cache.set(8, -3, first, 'first001'),
+    cache.set(8, -3, second, 'second02')
+  ])
+  await cache.flush()
+
+  const reloadedCache = new ChunkPacketCache()
+  bindChunkCacheToDir(reloadedCache, cacheDir)
+  await reloadedCache.setServerInfo('test-server', true)
+  const loaded = await reloadedCache.get(8, -3)
+  expect(loaded?.hash).toBe('second02')
+  expect([...new Uint8Array(loaded!.packetData)]).toEqual([2, 2, 2])
+  expect((await fs.promises.readdir(cacheDir)).some(file => file.includes('.tmp'))).toBe(false)
 })

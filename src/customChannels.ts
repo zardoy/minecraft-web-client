@@ -10,7 +10,7 @@ import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
 import { chunkPacketCache } from './chunkPacketCache'
 import { consumeReplayedChunkPacket, createReplayedChunkPacketTracker, emitReplayedMapChunk } from './chunkCacheReplay'
-import { deserializeMapChunkPacket, serializeMapChunkPacket } from './chunkPacketHash'
+import { computeSerializedPacketHash, deserializeMapChunkPacket, serializeMapChunkPacket } from './chunkPacketHash'
 
 const isWebSocketServer = (server: string | undefined) => {
   if (!server) return false
@@ -773,51 +773,33 @@ const registerChunkCacheChannel = () => {
     }
   })
 
-  // Listen for server responses on our channel
-  bot._client.on(CHANNEL_NAME as any, async (data: { x: number; z: number; cacheHit: boolean; hash: string }) => {
-    // If we receive data on this channel, server definitely supports it
-    if (!serverSupportsChannel) {
-      serverSupportsChannel = true
-      await updateCacheServerState(true)
-    }
-    await cacheStatePromise
-
+  // Listen for server responses on our channel. This handler is deliberately
+  // synchronous: advertised entries are preloaded into memory before the
+  // handshake, so replay cannot be overtaken by later Minecraft packets.
+  bot._client.on(CHANNEL_NAME as any, (data: { x: number; z: number; cacheHit: boolean; hash: string }) => {
     const chunkKey = `${data.x},${data.z}`
 
     if (data.cacheHit) {
-      // Server confirmed cache hit - use our cached map_chunk data
-      console.debug(`Cache hit for chunk ${chunkKey}`)
+      const cached = chunkPacketCache.getFromMemory(data.x, data.z)
+      try {
+        if (!cached) throw new Error('advertised chunk is no longer memory-resident')
+        if (!data.hash || cached.hash !== data.hash) throw new Error('cached metadata hash mismatch')
+        if (computeSerializedPacketHash(cached.packetData) !== data.hash) throw new Error('cached packet hash mismatch')
 
-      const cached = await chunkPacketCache.get(data.x, data.z)
-      if (cached) {
-        // Emit the cached map_chunk packet as if we received it from server
-        // This simulates receiving the packet without network transfer
-        try {
-          // The packet data needs to be deserialized and emitted
-          // We emit it through the client's packet handling
-          const packetBuffer = Buffer.from(cached.packetData)
-          const deserialized = deserializeMapChunkPacket(packetBuffer)
-          // Validate deserialized packet has required fields
-          if (deserialized.x === undefined || deserialized.z === undefined) {
-            throw new Error('Invalid deserialized packet: missing x or z coordinates')
-          }
-          // Preserve the packet-event shape expected by downstream validators/listeners.
-          emitReplayedMapChunk(bot._client, replayedChunkPackets, deserialized, packetBuffer)
-          console.debug(`Emitted cached map_chunk for ${chunkKey}`)
-        } catch (error) {
-          console.warn(`Cache corrupt for ${chunkKey}:`, error)
-          // Invalidate and request fresh chunk from server
-          await chunkPacketCache.invalidate(data.x, data.z)
-          requestChunkResend(data.x, data.z)
+        const packetBuffer = Buffer.from(cached.packetData)
+        const deserialized = deserializeMapChunkPacket(packetBuffer)
+        if (deserialized.x !== data.x || deserialized.z !== data.z) {
+          throw new Error('cached packet coordinates do not match the requested chunk')
         }
-      } else {
-        // Cache miss despite server thinking we have it - request resend
-        console.warn(`Cache miss for ${chunkKey} - requesting resend`)
-        await chunkPacketCache.invalidate(data.x, data.z)
+        emitReplayedMapChunk(bot._client, replayedChunkPackets, deserialized, packetBuffer)
+        console.debug(`Emitted cached map_chunk for ${chunkKey}`)
+      } catch (error) {
+        console.warn(`Cache invalid for ${chunkKey}:`, error)
+        void chunkPacketCache.invalidate(data.x, data.z)
         requestChunkResend(data.x, data.z)
       }
     } else if (data.hash) {
-      // Server will send map_chunk next - store hash for caching with timestamp
+      // Set this synchronously before the following ordered map_chunk arrives.
       pendingChunkHashes.set(chunkKey, { hash: data.hash, timestamp: Date.now() })
       console.debug(`Expecting map_chunk for ${chunkKey} with hash ${data.hash}`)
     }
@@ -843,6 +825,7 @@ const registerChunkCacheChannel = () => {
         // Serialize the packet data for caching
         const serialized = serializeMapChunkPacket(packetData)
         await chunkPacketCache.set(packetData.x, packetData.z, serialized, pending.hash)
+        notifyChunkCached(packetData.x, packetData.z, pending.hash)
         console.debug(`Cached map_chunk for ${chunkKey} with hash ${pending.hash}`)
       } catch (error) {
         console.warn(`Failed to cache chunk ${chunkKey}:`, error)
@@ -854,6 +837,7 @@ const registerChunkCacheChannel = () => {
         const serialized = serializeMapChunkPacket(packetData)
         const hash = chunkPacketCache.computePacketHash(serialized)
         await chunkPacketCache.set(packetData.x, packetData.z, serialized, hash)
+        if (serverSupportsChannel) notifyChunkCached(packetData.x, packetData.z, hash)
       } catch (error) {
         // Silently fail - caching is optional
       }
@@ -878,24 +862,50 @@ const registerChunkCacheChannel = () => {
     }
   }
 
+  function notifyChunkCached (x: number, z: number, hash: string): void {
+    try {
+      bot._client.writeChannel(CLIENT_CHANNEL, {
+        chunksJson: JSON.stringify([{ x, z, hash }])
+      })
+    } catch (error) {
+      console.warn(`Failed to confirm cached chunk ${x},${z}:`, error)
+    }
+  }
+
   /**
-   * Send list of all cached chunks to server on login
+   * Preload and validate the most-recent persisted entries before advertising
+   * them. Keeping the advertised set below the memory-cache ceiling makes hit
+   * replay synchronous and preserves Minecraft packet order.
    */
   async function sendCachedChunksList (): Promise<void> {
+    const MAX_ADVERTISED_CHUNKS = 400
     try {
       await cacheStatePromise
-      const cachedChunks = await chunkPacketCache.getCachedChunksInfo()
+      const candidates = (await chunkPacketCache.getCachedChunksInfo()).slice(0, MAX_ADVERTISED_CHUNKS)
+      const cachedChunks: Array<{ x: number; z: number; hash: string }> = []
 
-      if (cachedChunks.length === 0) {
-        console.debug('No cached chunks to send to server')
-        return
+      for (let start = 0; start < candidates.length; start += 8) {
+        const batch = candidates.slice(start, start + 8)
+        const validated = await Promise.all(batch.map(async info => {
+          const cached = await chunkPacketCache.get(info.x, info.z)
+          try {
+            if (!cached || cached.hash !== info.hash) throw new Error('metadata/file mismatch')
+            if (computeSerializedPacketHash(cached.packetData) !== info.hash) throw new Error('packet hash mismatch')
+            const packet = deserializeMapChunkPacket(Buffer.from(cached.packetData))
+            if (packet.x !== info.x || packet.z !== info.z) throw new Error('packet coordinate mismatch')
+            return info
+          } catch {
+            await chunkPacketCache.invalidate(info.x, info.z)
+            return null
+          }
+        }))
+        cachedChunks.push(...validated.filter((entry): entry is { x: number; z: number; hash: string } => entry !== null))
       }
 
-      // Send as JSON array
-      const chunksJson = JSON.stringify(cachedChunks)
-
-      bot._client.writeChannel(CLIENT_CHANNEL, { chunksJson })
-      console.debug(`Sent ${cachedChunks.length} cached chunk hashes to server`)
+      // Even an empty list is required: it is the explicit capability
+      // handshake that enables hashing/suppression on the proxy.
+      bot._client.writeChannel(CLIENT_CHANNEL, { chunksJson: JSON.stringify(cachedChunks) })
+      console.debug(`Advertised ${cachedChunks.length} validated cached chunks to server`)
     } catch (error) {
       console.warn('Failed to send cached chunks list:', error)
     }

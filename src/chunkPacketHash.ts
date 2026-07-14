@@ -77,14 +77,21 @@ export function deserializeMapChunkPacket (buffer: Buffer): any {
 
 export function computeSerializedPacketHash (packetData: ArrayBuffer): string {
   const data = new Uint8Array(packetData)
-  let hash = 2_166_136_261
+  let forward = 2_166_136_261
+  let reverse = 2_166_136_261
 
   for (const byte of data) {
-    hash ^= byte
-    hash = Math.imul(hash, 16_777_619)
+    forward ^= byte
+    forward = Math.imul(forward, 16_777_619)
+  }
+  for (let index = data.length - 1; index >= 0; index--) {
+    reverse ^= data[index]
+    reverse = Math.imul(reverse, 16_777_619)
   }
 
-  return (hash >>> 0).toString(16).padStart(8, '0')
+  return [forward, reverse]
+    .map(hash => (hash >>> 0).toString(16).padStart(8, '0'))
+    .join('')
 }
 
 export function computeMapChunkPacketHash (packet: any): string {

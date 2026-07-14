@@ -30,6 +30,8 @@ import { computeSerializedPacketHash } from './chunkPacketHash'
 
 const CACHE_BASE = '/data/chunk-cache'
 const MAX_CACHE_SIZE = 1000 // Max chunks per server
+const MAX_MEMORY_CACHE_BYTES = 64 * 1024 * 1024
+const MAX_DISK_CACHE_BYTES = 256 * 1024 * 1024
 const METADATA_FILE = 'metadata.json'
 
 export interface CachedChunkPacket {
@@ -49,6 +51,7 @@ export interface CachedChunkInfo {
 interface ChunkMetadata {
   hash: string
   lastAccessed: number
+  byteLength?: number // absent in metadata written by pre-quota versions
 }
 
 interface ServerMetadata {
@@ -57,11 +60,13 @@ interface ServerMetadata {
 
 class ChunkPacketCache {
   private readonly memoryCache = new Map<string, CachedChunkPacket>()
+  private memoryCacheBytes = 0
   private serverAddress = 'unknown'
   private serverSupportsChannel = false
   private metadata: ServerMetadata = { chunks: {} }
   private metadataDirty = false
   private saveMetadataTimeout: ReturnType<typeof setTimeout> | null = null
+  private readonly writeQueues = new Map<string, Promise<void>>()
 
   /**
    * Initialize the cache system
@@ -79,8 +84,14 @@ class ChunkPacketCache {
    * Get sanitized server directory name
    */
   private getServerDir (): string {
-    const sanitized = sanitize(this.serverAddress.replaceAll(/[/:]/g, '_'))
-    return join(CACHE_BASE, sanitized || 'unknown')
+    const sanitized = sanitize(this.serverAddress.replaceAll(/[/:]/g, '_')) || 'unknown'
+    const addressBytes = new TextEncoder().encode(this.serverAddress)
+    let scopeHash = 2_166_136_261
+    for (const byte of addressBytes) {
+      scopeHash ^= byte
+      scopeHash = Math.imul(scopeHash, 16_777_619)
+    }
+    return join(CACHE_BASE, `${sanitized}-${(scopeHash >>> 0).toString(16).padStart(8, '0')}`)
   }
 
   /**
@@ -112,6 +123,7 @@ class ChunkPacketCache {
     this.serverAddress = serverAddress
     this.serverSupportsChannel = supportsChannel
     this.memoryCache.clear()
+    this.memoryCacheBytes = 0
     this.metadata = { chunks: {} }
 
     console.debug(`Chunk packet cache: server=${serverAddress}, supportsChannel=${supportsChannel}`)
@@ -158,14 +170,18 @@ class ChunkPacketCache {
   private async saveMetadata (): Promise<void> {
     if (!this.metadataDirty) return
 
+    const serialized = JSON.stringify(this.metadata, null, 2)
+    // Clear before I/O: a mutation while this write is pending will set the
+    // flag again and cannot be accidentally erased by the older save.
+    this.metadataDirty = false
     try {
       await mkdirRecursive(this.getServerDir())
-      await fs.promises.writeFile(
-        this.getMetadataPath(),
-        JSON.stringify(this.metadata, null, 2)
-      )
-      this.metadataDirty = false
+      const metadataPath = this.getMetadataPath()
+      const temporaryPath = `${metadataPath}.tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`
+      await fs.promises.writeFile(temporaryPath, serialized)
+      await fs.promises.rename(temporaryPath, metadataPath)
     } catch (error) {
+      this.metadataDirty = true
       console.warn('Failed to save chunk cache metadata:', error)
     }
   }
@@ -191,7 +207,10 @@ class ChunkPacketCache {
   async getCachedChunksInfo (): Promise<CachedChunkInfo[]> {
     const result: CachedChunkInfo[] = []
 
-    for (const [chunkKey, meta] of Object.entries(this.metadata.chunks)) {
+    const entries = Object.entries(this.metadata.chunks)
+      .sort((a, b) => b[1].lastAccessed - a[1].lastAccessed)
+
+    for (const [chunkKey, meta] of entries) {
       const [x, z] = chunkKey.split(',').map(Number)
       if (!Number.isNaN(x) && !Number.isNaN(z)) {
         result.push({ x, z, hash: meta.hash })
@@ -199,6 +218,23 @@ class ChunkPacketCache {
     }
 
     return result
+  }
+
+  /** Return a cache entry synchronously only when it is already memory-resident. */
+  getFromMemory (x: number, z: number): { packetData: ArrayBuffer; hash: string } | null {
+    const memKey = this.getMemoryCacheKey(x, z)
+    const chunkKey = `${x},${z}`
+    const cached = this.memoryCache.get(memKey)
+    if (!cached) return null
+
+    cached.lastAccessed = Date.now()
+    this.metadata.chunks[chunkKey] = {
+      hash: cached.hash,
+      lastAccessed: cached.lastAccessed,
+      byteLength: cached.packetData.byteLength
+    }
+    this.scheduleSaveMetadata()
+    return { packetData: cached.packetData, hash: cached.hash }
   }
 
   /**
@@ -209,16 +245,8 @@ class ChunkPacketCache {
     const chunkKey = `${x},${z}`
 
     // Check memory cache first
-    const memCached = this.memoryCache.get(memKey)
-    if (memCached) {
-      memCached.lastAccessed = Date.now()
-      this.metadata.chunks[chunkKey] = {
-        hash: memCached.hash,
-        lastAccessed: memCached.lastAccessed
-      }
-      this.scheduleSaveMetadata()
-      return { packetData: memCached.packetData, hash: memCached.hash }
-    }
+    const memCached = this.getFromMemory(x, z)
+    if (memCached) return memCached
 
     // Check if we have metadata for this chunk
     const meta = this.metadata.chunks[chunkKey]
@@ -234,8 +262,9 @@ class ChunkPacketCache {
         const uint8 = new Uint8Array(data)
         const packetData = uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength)
 
-        // Update last accessed
+        // Update last accessed and migrate pre-quota metadata lazily.
         meta.lastAccessed = Date.now()
+        meta.byteLength = packetData.byteLength
         this.scheduleSaveMetadata()
 
         // Add to memory cache
@@ -280,24 +309,27 @@ class ChunkPacketCache {
     // Always add to memory cache
     this.addToMemoryCache(memKey, cached)
 
-    // Persist to disk only when server supports channel
+    // Persist to disk only when server supports channel. Per-chunk queues
+    // preserve packet order, and temp+rename prevents partial files.
     if (this.serverSupportsChannel) {
-      // Update metadata only when persistence is enabled
-      this.metadata.chunks[chunkKey] = {
-        hash: computedHash,
-        lastAccessed: now
-      }
-      try {
-        await mkdirRecursive(this.getServerDir())
-        await fs.promises.writeFile(
-          this.getChunkPath(x, z),
-          Buffer.from(packetData)
-        )
-        await this.evictOldEntries()
-        this.scheduleSaveMetadata()
-      } catch (error) {
-        console.warn(`Failed to save chunk ${chunkKey} to disk:`, error)
-      }
+      await this.enqueueChunkWrite(memKey, async () => {
+        try {
+          await mkdirRecursive(this.getServerDir())
+          const chunkPath = this.getChunkPath(x, z)
+          const temporaryPath = `${chunkPath}.tmp`
+          await fs.promises.writeFile(temporaryPath, Buffer.from(packetData))
+          await fs.promises.rename(temporaryPath, chunkPath)
+          this.metadata.chunks[chunkKey] = {
+            hash: computedHash,
+            lastAccessed: now,
+            byteLength: packetData.byteLength
+          }
+          await this.evictOldEntries()
+          this.scheduleSaveMetadata()
+        } catch (error) {
+          console.warn(`Failed to save chunk ${chunkKey} to disk:`, error)
+        }
+      })
     }
   }
 
@@ -317,7 +349,8 @@ class ChunkPacketCache {
     const memKey = this.getMemoryCacheKey(x, z)
     const chunkKey = `${x},${z}`
 
-    this.memoryCache.delete(memKey)
+    await this.writeQueues.get(memKey)?.catch(() => {})
+    this.removeMemoryEntry(memKey)
     delete this.metadata.chunks[chunkKey]
     this.scheduleSaveMetadata()
 
@@ -335,7 +368,9 @@ class ChunkPacketCache {
    * Clear all cached packets for current server
    */
   async clear (): Promise<void> {
+    await Promise.allSettled(this.writeQueues.values())
     this.memoryCache.clear()
+    this.memoryCacheBytes = 0
 
     // Clear metadata
     this.metadata = { chunks: {} }
@@ -355,56 +390,68 @@ class ChunkPacketCache {
     }
   }
 
+  private async enqueueChunkWrite (key: string, task: () => Promise<void>): Promise<void> {
+    const previous = this.writeQueues.get(key) ?? Promise.resolve()
+    const next = previous.catch(() => {}).then(task)
+    this.writeQueues.set(key, next)
+    void next.finally(() => {
+      if (this.writeQueues.get(key) === next) this.writeQueues.delete(key)
+    })
+    return next
+  }
+
   private addToMemoryCache (key: string, entry: CachedChunkPacket): void {
+    this.removeMemoryEntry(key)
     this.memoryCache.set(key, entry)
+    this.memoryCacheBytes += entry.packetData.byteLength
 
-    // Evict oldest entries if memory cache is full
-    if (this.memoryCache.size > MAX_CACHE_SIZE / 2) {
+    // Evict oldest entries until both count and byte ceilings are met.
+    if (this.memoryCache.size > MAX_CACHE_SIZE / 2 || this.memoryCacheBytes > MAX_MEMORY_CACHE_BYTES) {
       const entries = [...this.memoryCache.entries()]
-      entries.sort((a, b) => a[1].lastAccessed - b[1].lastAccessed)
-
-      const toRemove = Math.floor(entries.length * 0.2)
-      for (let i = 0; i < toRemove; i++) {
-        this.memoryCache.delete(entries[i][0])
+        .sort((a, b) => a[1].lastAccessed - b[1].lastAccessed)
+      for (const [entryKey] of entries) {
+        if (this.memoryCache.size <= MAX_CACHE_SIZE / 2 && this.memoryCacheBytes <= MAX_MEMORY_CACHE_BYTES) break
+        this.removeMemoryEntry(entryKey)
       }
     }
+  }
+
+  private removeMemoryEntry (key: string): void {
+    const existing = this.memoryCache.get(key)
+    if (!existing) return
+    this.memoryCacheBytes -= existing.packetData.byteLength
+    this.memoryCache.delete(key)
   }
 
   /**
    * Evict old entries when cache exceeds max size
    */
   private async evictOldEntries (): Promise<void> {
-    const chunkCount = Object.keys(this.metadata.chunks).length
-    if (chunkCount <= MAX_CACHE_SIZE) return
-
-    // Sort by lastAccessed and remove oldest
     const entries = Object.entries(this.metadata.chunks)
       .sort((a, b) => a[1].lastAccessed - b[1].lastAccessed)
+    let chunkCount = entries.length
+    let totalBytes = entries.reduce((sum, [, meta]) => sum + (meta.byteLength ?? 0), 0)
+    if (chunkCount <= MAX_CACHE_SIZE && totalBytes <= MAX_DISK_CACHE_BYTES) return
 
-    const toDelete = chunkCount - MAX_CACHE_SIZE + Math.floor(MAX_CACHE_SIZE * 0.1)
-
-    await Promise.all(entries.slice(0, toDelete).map(async ([chunkKey]) => {
+    let evicted = 0
+    for (const [chunkKey, meta] of entries) {
+      if (chunkCount <= MAX_CACHE_SIZE && totalBytes <= MAX_DISK_CACHE_BYTES) break
       const [x, z] = chunkKey.split(',').map(Number)
-
-      // Remove from memory cache
-      const memKey = this.getMemoryCacheKey(x, z)
-      this.memoryCache.delete(memKey)
-
-      // Remove from metadata
+      this.removeMemoryEntry(this.getMemoryCacheKey(x, z))
       delete this.metadata.chunks[chunkKey]
+      chunkCount--
+      totalBytes -= meta.byteLength ?? 0
+      evicted++
 
-      // Delete file
       try {
         const chunkPath = this.getChunkPath(x, z)
-        if (await existsViaStats(chunkPath)) {
-          await fs.promises.unlink(chunkPath)
-        }
-      } catch (error) {
-        // Ignore deletion errors
+        if (await existsViaStats(chunkPath)) await fs.promises.unlink(chunkPath)
+      } catch {
+        // Ignore deletion errors; metadata eviction still prevents reuse.
       }
-    }))
+    }
 
-    console.debug(`Evicted ${toDelete} old chunks from cache`)
+    console.debug(`Evicted ${evicted} old chunks from cache`)
   }
 
   /**
@@ -423,6 +470,7 @@ class ChunkPacketCache {
    * Flush any pending metadata saves
    */
   async flush (): Promise<void> {
+    await Promise.allSettled(this.writeQueues.values())
     if (this.saveMetadataTimeout) {
       clearTimeout(this.saveMetadataTimeout)
       this.saveMetadataTimeout = null

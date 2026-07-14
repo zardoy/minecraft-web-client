@@ -12,7 +12,7 @@ const samplePacket = () => ({
 })
 
 test('map_chunk hash matches the proxy protocol parity vector', () => {
-  expect(computeMapChunkPacketHash(samplePacket())).toBe('826a82a5')
+  expect(computeMapChunkPacketHash(samplePacket())).toBe('826a82a5a2e544fd')
 })
 
 test('map_chunk serialization round-trips binary and undefined fields', () => {
