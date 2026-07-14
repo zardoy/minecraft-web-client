@@ -122,6 +122,7 @@ const connectAppWorldViewToBot = () => {
     const renderHints = buildEntityRenderHints(e, {
       localVehicle: bot.vehicle,
       localBoatStatus: bot._boatPhysics?.getStatus?.() ?? null,
+      horseControllerActive: Boolean(bot._horsePhysics?.getCtx?.()),
       world: bot.world,
       waterIds: {
         waterId: bot.registry.blocksByName.water.id,

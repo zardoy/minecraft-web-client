@@ -111,6 +111,7 @@ test('buildEntityRenderHints marks local vehicle and water patch', () => {
   const hints = buildEntityRenderHints(localBoat, {
     localVehicle: localBoat,
     localBoatStatus: BoatStatus.IN_WATER,
+    horseControllerActive: false,
     world: makeWorld({ '0,62,0': makeBlock(waterId, { level: 7 }) }),
     waterIds: { waterId, flowingWaterId },
   })
@@ -124,6 +125,7 @@ test('buildEntityRenderHints keeps remote boat on ordinary tween policy inputs',
   const hints = buildEntityRenderHints(remoteBoat, {
     localVehicle: { ...boatEntity, id: 1 },
     localBoatStatus: BoatStatus.IN_WATER,
+    horseControllerActive: false,
     world: makeWorld({ '0,62,0': makeBlock(waterId, { level: 7 }) }),
     waterIds: { waterId, flowingWaterId },
   })
@@ -137,6 +139,7 @@ test('buildEntityRenderHints sends an empty passenger list after boat detach', (
   const hints = buildEntityRenderHints(remoteBoat, {
     localVehicle: null,
     localBoatStatus: null,
+    horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
@@ -156,6 +159,7 @@ test('local minecart receives localVehicle hint for camera-synced rendering', ()
   const hints = buildEntityRenderHints(localMinecart, {
     localVehicle: localMinecart,
     localBoatStatus: null,
+    horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
@@ -182,6 +186,7 @@ test('remote minecart does not receive localVehicle hint', () => {
       passengers: [{ id: 7 }],
     },
     localBoatStatus: null,
+    horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
@@ -201,6 +206,7 @@ test('minecart receives ordered passengerIds', () => {
   const hints = buildEntityRenderHints(minecart, {
     localVehicle: null,
     localBoatStatus: null,
+    horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
@@ -219,6 +225,7 @@ test('minecart detach creates empty passenger list', () => {
   const hints = buildEntityRenderHints(minecart, {
     localVehicle: null,
     localBoatStatus: null,
+    horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
@@ -240,6 +247,7 @@ test.each([
     {
       localVehicle: null,
       localBoatStatus: null,
+      horseControllerActive: false,
       world: makeWorld({}),
       waterIds: { waterId, flowingWaterId },
     },
@@ -267,15 +275,35 @@ test('local horse sets passengerLayout horse', () => {
   const hints = buildEntityRenderHints(horse, {
     localVehicle: horse,
     localBoatStatus: null,
+    horseControllerActive: true,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
   expect(hints.localVehicle).toBe(true)
   expect(hints.passengerLayout).toBe('horse')
   expect(hints.passengerIds).toEqual([1])
+  expect(hints.localVehicleVerticalCameraLock).toBe('horse')
 })
 
-test('remote horse omits localVehicle flag', () => {
+test('local horse without active controller omits vertical camera lock', () => {
+  const horse = {
+    name: 'horse',
+    id: 5,
+    position: new Vec3(0, 64, 0),
+    passengers: [{ id: 1 }],
+  }
+  const hints = buildEntityRenderHints(horse, {
+    localVehicle: horse,
+    localBoatStatus: null,
+    horseControllerActive: false,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.localVehicle).toBe(true)
+  expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
+})
+
+test('remote horse omits localVehicle and vertical camera lock', () => {
   const horse = {
     name: 'horse',
     position: new Vec3(0, 64, 0),
@@ -284,11 +312,47 @@ test('remote horse omits localVehicle flag', () => {
   const hints = buildEntityRenderHints(horse, {
     localVehicle: null,
     localBoatStatus: null,
+    horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
   expect(hints.localVehicle).toBeUndefined()
+  expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
   expect(hints.passengerLayout).toBe('horse')
+})
+
+test('local boat does not set horse vertical camera lock', () => {
+  const localBoat = {
+    ...boatEntity,
+    id: 1,
+    position: new Vec3(1, 63, 2),
+    passengers: [{ id: 7 }],
+  }
+  const hints = buildEntityRenderHints(localBoat, {
+    localVehicle: localBoat,
+    localBoatStatus: BoatStatus.IN_WATER,
+    horseControllerActive: true,
+    world: makeWorld({ '0,62,0': makeBlock(waterId, { level: 7 }) }),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
+})
+
+test('local minecart does not set horse vertical camera lock', () => {
+  const localMinecart = {
+    name: 'minecart',
+    id: 5,
+    position: new Vec3(1, 63, 2),
+    passengers: [{ id: 7 }],
+  }
+  const hints = buildEntityRenderHints(localMinecart, {
+    localVehicle: localMinecart,
+    localBoatStatus: null,
+    horseControllerActive: true,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+  })
+  expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
 })
 
 test('empty horse passenger list still reports horse layout', () => {
@@ -300,6 +364,7 @@ test('empty horse passenger list still reports horse layout', () => {
   const hints = buildEntityRenderHints(horse, {
     localVehicle: null,
     localBoatStatus: null,
+    horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
   })
