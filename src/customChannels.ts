@@ -726,6 +726,10 @@ const registerChunkCacheChannel = () => {
 
   // Track whether server supports the channel (detected via custom_payload)
   let serverSupportsChannel = false
+  let initialClaimsSent = false
+  const unsubscribeMemoryEviction = chunkPacketCache.onMemoryEvicted(({ x, z }) => {
+    if (serverSupportsChannel && initialClaimsSent) sendChunkClaim(x, z, '')
+  })
 
   // Periodic cleanup of stale pending hashes
   const cleanupInterval = setInterval(() => {
@@ -742,6 +746,7 @@ const registerChunkCacheChannel = () => {
   // (combining interval cleanup and pending hashes clear)
   bot.once('end', () => {
     clearInterval(cleanupInterval)
+    unsubscribeMemoryEviction()
     pendingChunkHashes.clear()
     void chunkPacketCache.flush()
   })
@@ -792,6 +797,9 @@ const registerChunkCacheChannel = () => {
           throw new Error('cached packet coordinates do not match the requested chunk')
         }
         emitReplayedMapChunk(bot._client, replayedChunkPackets, deserialized, packetBuffer)
+        // ACK successful synchronous replay so the proxy can release its
+        // guaranteed recovery copy.
+        notifyChunkCached(data.x, data.z, data.hash)
         console.debug(`Emitted cached map_chunk for ${chunkKey}`)
       } catch (error) {
         console.warn(`Cache invalid for ${chunkKey}:`, error)
@@ -854,22 +862,21 @@ const registerChunkCacheChannel = () => {
     console.debug(`Requesting resend for chunk ${x},${z}`)
     // Send an empty cache entry for this chunk to force server to resend
     // The server will see we don't have this chunk and send it fresh
-    try {
-      const resendRequest = JSON.stringify([{ x, z, hash: '' }])
-      bot._client.writeChannel(CLIENT_CHANNEL, { chunksJson: resendRequest })
-    } catch (error) {
-      console.warn(`Failed to request chunk resend for ${x},${z}:`, error)
-    }
+    sendChunkClaim(x, z, '')
   }
 
-  function notifyChunkCached (x: number, z: number, hash: string): void {
+  function sendChunkClaim (x: number, z: number, hash: string): void {
     try {
       bot._client.writeChannel(CLIENT_CHANNEL, {
         chunksJson: JSON.stringify([{ x, z, hash }])
       })
     } catch (error) {
-      console.warn(`Failed to confirm cached chunk ${x},${z}:`, error)
+      console.warn(`Failed to send chunk claim for ${x},${z}:`, error)
     }
+  }
+
+  function notifyChunkCached (x: number, z: number, hash: string): void {
+    sendChunkClaim(x, z, hash)
   }
 
   /**
@@ -912,6 +919,7 @@ const registerChunkCacheChannel = () => {
       // Even an empty list is required: it is the explicit capability
       // handshake that enables hashing/suppression on the proxy.
       bot._client.writeChannel(CLIENT_CHANNEL, { chunksJson: JSON.stringify(residentChunks) })
+      initialClaimsSent = true
       console.debug(`Advertised ${residentChunks.length} validated cached chunks to server`)
     } catch (error) {
       console.warn('Failed to send cached chunks list:', error)

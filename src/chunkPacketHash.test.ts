@@ -1,3 +1,4 @@
+import { createDeserializer, createSerializer, states } from 'minecraft-protocol'
 import { expect, test } from 'vitest'
 import { computeMapChunkPacketHash, deserializeMapChunkPacket, serializeMapChunkPacket } from './chunkPacketHash'
 
@@ -23,4 +24,24 @@ test('map_chunk serialization round-trips binary and undefined fields', () => {
   expect(roundTripped.chunkData).toEqual(packet.chunkData)
   expect(roundTripped.heightmaps).toEqual(packet.heightmaps)
   expect(roundTripped.biomes).toBeUndefined()
+})
+
+
+test('real 1.17.1 map_chunk wire cycle matches the proxy parity vector', () => {
+  const serializer = createSerializer({ state: states.PLAY, version: '1.17.1', isServer: true, customPackets: {} })
+  const deserializer = createDeserializer({ state: states.PLAY, version: '1.17.1', customPackets: {} })
+  const wire = serializer.createPacketBuffer({
+    name: 'map_chunk',
+    params: {
+      x: 12,
+      z: -4,
+      bitMap: [[0, 1]],
+      heightmaps: { type: 'compound', name: '', value: {} },
+      biomes: [1],
+      chunkData: Buffer.alloc(0),
+      blockEntities: []
+    }
+  })
+  const parsed = deserializer.parsePacketBuffer(wire).data.params
+  expect(computeMapChunkPacketHash(parsed)).toBe('12f0e4d389ce4983')
 })
