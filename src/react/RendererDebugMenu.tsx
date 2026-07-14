@@ -38,7 +38,7 @@ const RendererDebugMenu = ({ worldRenderer }: { worldRenderer: WorldRendererComm
       />
       <Button
         label={smartCull === false ? 'Enable Smart Cull' : 'Disable Smart Cull'}
-        onClick={() => { reactiveDebugParams.smartCull = smartCull === false ? true : false }}
+        onClick={() => { reactiveDebugParams.smartCull = smartCull === false }}
         overlayColor={smartCull === false ? 'orange' : undefined}
       />
       <Button
