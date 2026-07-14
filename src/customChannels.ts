@@ -10,6 +10,7 @@ import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
 import { chunkPacketCache, CachedChunkInfo } from './chunkPacketCache'
 import { consumeReplayedChunkPacket, createReplayedChunkPacketTracker, emitReplayedMapChunk } from './chunkCacheReplay'
+import { deserializeMapChunkPacket, serializeMapChunkPacket } from './chunkPacketHash'
 
 const isWebSocketServer = (server: string | undefined) => {
   if (!server) return false
@@ -899,109 +900,6 @@ const registerChunkCacheChannel = () => {
       console.warn('Failed to send cached chunks list:', error)
     }
   }
-}
-
-/**
- * Serialize a map_chunk packet to ArrayBuffer for caching
- * Handles all version-specific fields by serializing the entire packet
- */
-function serializeMapChunkPacket (packet: any): ArrayBuffer {
-  const json = JSON.stringify(serializeBinaryValue(packet))
-  const encoder = new TextEncoder()
-  const encoded = encoder.encode(json)
-  // Ensure proper ArrayBuffer bounds (TextEncoder always returns offset 0, but be safe)
-  return encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength)
-}
-
-/**
- * Deserialize a cached map_chunk packet from ArrayBuffer
- * Reconstructs buffer and typed array fields
- */
-function deserializeMapChunkPacket (buffer: Buffer): any {
-  const decoder = new TextDecoder()
-  const json = decoder.decode(buffer)
-  return deserializeBinaryValue(JSON.parse(json))
-}
-
-function serializeBinaryValue (value: any, seen = new WeakSet<object>()): any {
-  if (value === undefined) return { __type: 'undefined' }
-  if (value === null || typeof value !== 'object') return value
-
-  if (Buffer.isBuffer(value)) {
-    return { __type: 'buffer', data: [...value] }
-  }
-
-  if (value instanceof ArrayBuffer) {
-    return { __type: 'buffer', data: [...new Uint8Array(value)] }
-  }
-
-  if (ArrayBuffer.isView(value)) {
-    if (value instanceof DataView) {
-      return { __type: 'buffer', data: [...new Uint8Array(value.buffer, value.byteOffset, value.byteLength)] }
-    }
-
-    return {
-      __type: 'typedArray',
-      arrayType: value.constructor.name,
-      data: [...value as any]
-    }
-  }
-
-  if (seen.has(value)) {
-    throw new Error('Cannot serialize cyclic map_chunk packet data')
-  }
-
-  seen.add(value)
-  try {
-    if (Array.isArray(value)) {
-      return value.map(entry => serializeBinaryValue(entry, seen))
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, serializeBinaryValue(entry, seen)])
-    )
-  } finally {
-    seen.delete(value)
-  }
-}
-
-function deserializeBinaryValue (value: any): any {
-  if (value === null || typeof value !== 'object') return value
-
-  if (value.__type === 'undefined') return undefined
-  if (value.__type === 'buffer') return Buffer.from(value.data)
-  if (value.__type === 'typedArray') {
-    const TypedArrayConstructor = getTypedArrayConstructor(value.arrayType)
-    return new TypedArrayConstructor(value.data)
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(entry => deserializeBinaryValue(entry))
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [key, deserializeBinaryValue(entry)])
-  )
-}
-
-/**
- * Get the typed array constructor by name
- */
-function getTypedArrayConstructor (name: string): any {
-  const constructors: Record<string, any> = {
-    Int8Array,
-    Uint8Array,
-    Uint8ClampedArray,
-    Int16Array,
-    Uint16Array,
-    Int32Array,
-    Uint32Array,
-    Float32Array,
-    Float64Array,
-    BigInt64Array,
-    BigUint64Array
-  }
-  return constructors[name] || Uint8Array
 }
 
 function getCurrentTopDomain (): string {

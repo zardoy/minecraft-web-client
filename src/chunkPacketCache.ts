@@ -26,6 +26,7 @@ import fs from 'fs'
 import { join } from 'path'
 import sanitize from 'sanitize-filename'
 import { mkdirRecursive, existsViaStats } from './browserfs'
+import { computeSerializedPacketHash } from './chunkPacketHash'
 
 const CACHE_BASE = '/data/chunk-cache'
 const MAX_CACHE_SIZE = 1000 // Max chunks per server
@@ -181,16 +182,7 @@ class ChunkPacketCache {
    * This hash algorithm should be reproducible in Java for server-side implementation
    */
   computePacketHash (packetData: ArrayBuffer): string {
-    const data = new Uint8Array(packetData)
-    let hash = 2_166_136_261 // FNV offset basis (32-bit)
-
-    for (const byte of data) {
-      hash ^= byte
-      hash = Math.imul(hash, 16_777_619) // FNV prime
-    }
-
-    // Convert to unsigned 32-bit and then to hex (8 chars)
-    return (hash >>> 0).toString(16).padStart(8, '0')
+    return computeSerializedPacketHash(packetData)
   }
 
   /**
