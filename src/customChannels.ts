@@ -8,7 +8,7 @@ import { registerIframeChannels } from './core/iframeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
-import { chunkPacketCache, CachedChunkInfo } from './chunkPacketCache'
+import { chunkPacketCache } from './chunkPacketCache'
 import { consumeReplayedChunkPacket, createReplayedChunkPacketTracker, emitReplayedMapChunk } from './chunkCacheReplay'
 import { deserializeMapChunkPacket, serializeMapChunkPacket } from './chunkPacketHash'
 
