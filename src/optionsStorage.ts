@@ -1,6 +1,7 @@
 import { proxy, subscribe } from 'valtio/vanilla'
 import { subscribeKey } from 'valtio/utils'
 import { omitObj } from '@zardoy/utils'
+import { migrateRendererOptions } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 import { appQueryParams, appQueryParamsArray } from './appParams'
 import type { AppConfig } from './appConfig'
 import { appStorage } from './react/appStorageProvider'
@@ -26,12 +27,12 @@ export const serverChangedSettings = proxy({
 })
 
 const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
-  if (options.highPerformanceGpu) {
-    options.gpuPreference = 'high-performance'
-    delete options.highPerformanceGpu
-  }
   if (Object.keys(options.touchControlsPositions ?? {}).length === 0) {
     options.touchControlsPositions = defaultOptions.touchControlsPositions
+  }
+  if (options.jeiEnabled) {
+    options.inventoryJeiEnabled = options.jeiEnabled
+    delete options.jeiEnabled
   }
   if (options.touchControlsPositions?.jump === undefined) {
     options.touchControlsPositions!.jump = defaultOptions.touchControlsPositions.jump
@@ -39,20 +40,24 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
   if (options.touchControlsType === 'joystick-buttons') {
     options.touchInteractionType = 'buttons'
   }
+  if (options.lowMemoryMode) {
+    options.rendererWorldPerformance = 'low-energy'
+    delete options.lowMemoryMode
+  }
+  if (typeof options.multiplayerRenderDistance === 'number') {
+    const mp = options.multiplayerRenderDistance
+    options.renderDistance = Math.max(options.renderDistance!, mp)
+    delete options.multiplayerRenderDistance
+  }
+
+  // ensure options.renderDistance is finite
+  if (!Number.isFinite(options.renderDistance!) || (options.renderDistance ?? 0) < 1) {
+    options.renderDistance = defaultOptions.renderDistance
+  }
+
+  migrateRendererOptions(options)
 
   return options
-}
-const migrateOptionsLocalStorage = () => {
-  if (Object.keys(appStorage['options'] ?? {}).length) {
-    for (const key of Object.keys(appStorage['options'])) {
-      if (!(key in defaultOptions)) continue // drop unknown options
-      const defaultValue = defaultOptions[key]
-      if (JSON.stringify(defaultValue) !== JSON.stringify(appStorage['options'][key])) {
-        appStorage.changedSettings[key] = appStorage['options'][key]
-      }
-    }
-    delete appStorage['options']
-  }
 }
 
 export type AppOptions = typeof defaultOptions
@@ -78,7 +83,6 @@ export const getChangedSettings = () => {
   )
 }
 
-migrateOptionsLocalStorage()
 export const options: AppOptions = proxy({
   ...defaultOptions,
   ...initialAppConfig.defaultSettings,
@@ -90,6 +94,17 @@ window.options = window.settings = options
 
 export const resetOptions = () => {
   Object.assign(options, defaultOptions)
+  appStorage.changedSettings = {}
+}
+
+export const resetSelectedOptions = (keys: Iterable<string>) => {
+  for (const key of keys) {
+    if (!(key in defaultOptions)) continue
+    if (disabledSettings.value.has(key) || serverChangedSettings.value.has(key)) continue
+    const defaultValue = defaultOptions[key as keyof typeof defaultOptions]
+    options[key as any] = defaultValue
+    delete appStorage.changedSettings[key]
+  }
 }
 
 Object.defineProperty(window, 'debugChangedOptions', {

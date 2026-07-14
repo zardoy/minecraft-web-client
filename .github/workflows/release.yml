@@ -35,11 +35,6 @@ jobs:
         env:
           CONFIG_JSON_SOURCE: BUNDLED
           LOCAL_CONFIG_FILE: config.mcraft-only.json
-      - name: Copy playground files
-        run: |
-          mkdir -p .vercel/output/static/playground
-          pnpm build-playground
-          cp -r renderer/dist/* .vercel/output/static/playground/
 
       # publish to github
       - run: cp vercel.json .vercel/output/static/vercel.json

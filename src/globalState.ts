@@ -94,9 +94,13 @@ export const openOptionsMenu = (group: OptionsGroupType) => {
   showModal({ reactType: `options-${group}` })
 }
 
-subscribe(activeModalStack, () => {
+const syncModalStackBody = () => {
   document.body.style.setProperty('--has-modals-z', activeModalStack.length ? '-1' : null)
-})
+  document.body.classList.toggle('has-open-modals', activeModalStack.length > 0)
+}
+
+subscribe(activeModalStack, syncModalStackBody)
+syncModalStackBody()
 
 // ---
 
@@ -135,6 +139,10 @@ export const miscUiState = proxy({
   displaySearchInput: false,
   displayFullmap: false,
   fullscreen: false,
+  /** User opted in to portrait→landscape CSS rotation (`body.rotated`). */
+  displayRotationEnabled: false,
+  /** `innerWidth < innerHeight` — used to show the rotate button on mobile. */
+  viewportPortrait: false,
   disconnectedCleanup: null as { callback: () => void, date: number, wasConnected: boolean } | null
 })
 

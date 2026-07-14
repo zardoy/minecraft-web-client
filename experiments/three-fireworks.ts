@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js'
-import { FireworksManager } from '../renderer/viewer/three/fireworks'
+import { FireworksManager } from 'minecraft-renderer/src/three/fireworks'
 
 // Create scene, camera and renderer
 const scene = new THREE.Scene()

@@ -1,4 +1,4 @@
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import nbt from 'prismarine-nbt'
 import { useEffect, useState } from 'react'
 import { useSnapshot } from 'valtio'

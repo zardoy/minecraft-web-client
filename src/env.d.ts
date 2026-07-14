@@ -10,7 +10,12 @@ declare namespace NodeJS {
     DISABLE_SERVICE_WORKER?: 'true' | 'false'
     CONFIG_JSON_SOURCE?: 'BUNDLED' | 'REMOTE'
     LOCAL_CONFIG_FILE?: string
+    CONFIG_JSON?: string
     BUILD_VERSION?: string
+    /** Resolved from installed minecraft-renderer package.json at build time. */
+    MINECRAFT_RENDERER_VERSION?: string
+    /** Set at compile time: DD.MM.YY (local date when the config ran). */
+    BUILD_DISPLAY_DATE?: string
 
     // Build internals
     GITHUB_REPOSITORY?: string

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js'
-import { createWaypointSprite, WAYPOINT_CONFIG } from '../renderer/viewer/three/waypointSprite'
+import { createWaypointSprite, WAYPOINT_CONFIG } from 'minecraft-renderer/src/three/waypointSprite'
 
 // Create scene, camera and renderer
 const scene = new THREE.Scene()

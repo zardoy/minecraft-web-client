@@ -1,6 +1,6 @@
 import PItem from 'prismarine-item'
 import * as THREE from 'three'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { options, serverChangedSettings } from './optionsStorage'
 import { jeiCustomCategories } from './inventoryWindows'
 import { registerIdeChannels } from './core/ideChannels'
@@ -8,7 +8,6 @@ import { registerIframeChannels } from './core/iframeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
-import { chunkGeometryCache } from './chunkGeometryCache'
 import { chunkPacketCache, CachedChunkInfo } from './chunkPacketCache'
 import { consumeReplayedChunkPacket, createReplayedChunkPacketTracker, emitReplayedMapChunk } from './chunkCacheReplay'
 
@@ -67,12 +66,25 @@ const registerConnectMetadataChannel = () => {
   ]
 
   bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
+
+  // Send client metadata to server
   bot._client.writeChannel(CHANNEL_NAME, {
     metadata: JSON.stringify({
       version: process.env.RELEASE_TAG,
       build: process.env.BUILD_VERSION,
       ...window.serverMetadataConnect,
     })
+  })
+
+  // Listen for server metadata
+  bot._client.on(CHANNEL_NAME as any, (data) => {
+    try {
+      const metadata = JSON.parse(data.metadata)
+      window.serverMetadata = metadata
+      console.debug('Received server metadata:', metadata)
+    } catch (error) {
+      console.warn('Failed to parse server metadata:', error)
+    }
   })
 }
 
@@ -672,18 +684,12 @@ const registerChunkCacheChannel = () => {
 
   // Get server address for cache scoping
   const serverAddress = lastConnectOptions.value?.server || 'unknown'
-  const cacheInitPromise = Promise.all([
-    chunkGeometryCache.init(),
-    chunkPacketCache.init()
-  ])
+  const cacheInitPromise = chunkPacketCache.init()
   let cacheStatePromise = Promise.resolve()
   const updateCacheServerState = async (supportsChannel: boolean) => {
     cacheStatePromise = cacheStatePromise.then(async () => {
       await cacheInitPromise
-      await Promise.all([
-        chunkPacketCache.setServerInfo(serverAddress, supportsChannel),
-        chunkGeometryCache.setServerSupportsChannel(supportsChannel, serverAddress)
-      ])
+      await chunkPacketCache.setServerInfo(serverAddress, supportsChannel)
     })
     return cacheStatePromise
   }
@@ -736,7 +742,6 @@ const registerChunkCacheChannel = () => {
   bot.once('end', () => {
     clearInterval(cleanupInterval)
     pendingChunkHashes.clear()
-    void chunkGeometryCache.flush()
     void chunkPacketCache.flush()
   })
 

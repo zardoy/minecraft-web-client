@@ -52,19 +52,28 @@ jobs:
         with:
           node-version: 22
           cache: "pnpm"
+      - name: Get PR body for issue_comment events
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        id: pr-body
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            core.setOutput('body', pr.body || '');
+      - name: Parse PR config
+        id: pr-config
+        run: node scripts/githubActions.mjs parsePrConfig
+        env:
+          PR_BODY: ${{ github.event.pull_request.body || steps.pr-body.outputs.body }}
       - name: Update deployAlwaysUpdate packages
+        if: steps.pr-config.outputs.packages != ''
         run: |
-          if [ -f package.json ]; then
-            PACKAGES=$(node -e "const pkg = require('./package.json'); if (pkg.deployAlwaysUpdate) console.log(pkg.deployAlwaysUpdate.join(' '))")
-            if [ ! -z "$PACKAGES" ]; then
-              echo "Updating packages: $PACKAGES"
-              pnpm up -L $PACKAGES
-            else
-              echo "No deployAlwaysUpdate packages found in package.json"
-            fi
-          else
-            echo "package.json not found"
-          fi
+          echo "Updating packages: ${{ steps.pr-config.outputs.packages }}"
+          pnpm up -L ${{ steps.pr-config.outputs.packages }}
       - name: Install Global Dependencies
         run: pnpm add -g vercel
       - name: Pull Vercel Environment Information
@@ -79,6 +88,7 @@ jobs:
         env:
           CONFIG_JSON_SOURCE: BUNDLED
           LOCAL_CONFIG_FILE: config.mcraft-only.json
+          CONFIG_JSON: ${{ steps.pr-config.outputs.configJson }}
       - name: Write pr redirect index.html
         run: |
           mkdir -p .vercel/output/static/pr
@@ -98,8 +108,7 @@ jobs:
           allow-repeats: true
           message: |
             Deployed to Vercel Preview: ${{ steps.deploy.outputs.stdout }}
-            [Playground](${{ steps.deploy.outputs.stdout }}/playground/)
-            [Storybook](${{ steps.deploy.outputs.stdout }}/storybook/)
+            [DEPLOY LINK](${{ steps.deploy.outputs.stdout }}/)
       # - run: git checkout next scripts/githubActions.mjs
       - name: Set deployment alias
         if: ${{ steps.alias.outputs.alias != '' && steps.alias.outputs.alias != 'mcraft.fun' && steps.alias.outputs.alias != 's.mcraft.fun' }}

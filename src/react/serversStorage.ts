@@ -1,8 +1,10 @@
 import { appQueryParams } from '../appParams'
 import { miscUiState } from '../globalState'
 import { lastConnectOptions } from '../appStatus'
+import { options } from '../optionsStorage'
 import { BaseServerInfo } from './AddServerOrConnect'
 import { appStorage, StoreServerItem } from './appStorageProvider'
+import { hideNotification, notificationProxy, showNotification } from './NotificationProvider'
 
 const serversListQs = appQueryParams.serversList
 
@@ -85,6 +87,19 @@ export const setNewServersList = (serversList: StoreServerItem[], force = false)
   appStorage.serversList = serversList
 }
 
+export const clearServerPassword = (): void => {
+  const index = getServerIndex()
+  if (index === undefined) return
+  const username = bot?.username
+  if (!username) return
+  updateLoadedServerData((server) => {
+    if (server.autoLogin) {
+      delete server.autoLogin[username]
+    }
+    return { ...server }
+  })
+}
+
 export const updateAuthenticatedAccountData = (callback: (data: AuthenticatedAccount[]) => AuthenticatedAccount[]) => {
   const accounts = appStorage.authenticatedAccounts
   const newAccounts = callback(accounts)
@@ -93,4 +108,47 @@ export const updateAuthenticatedAccountData = (callback: (data: AuthenticatedAcc
 
 export function getServerConnectionHistory (): ServerConnectionHistory[] {
   return appStorage.serversHistory ?? []
+}
+
+export const saveServerPassword = (
+  password: string,
+  opts?: { silent?: boolean }
+): void => {
+  if (!opts?.silent && options.saveLoginPassword === 'never') return
+
+  const doSave = () => {
+    let hadPassword = false
+    updateLoadedServerData((server) => {
+      server.autoLogin ??= {}
+      hadPassword = !!server.autoLogin[bot.username]
+      server.autoLogin[bot.username] = password
+      return { ...server }
+    })
+    if (opts?.silent) return
+    if (options.saveLoginPassword === 'always') {
+      const msg = hadPassword ? 'Password updated in browser for auto-login' : 'Password saved in browser for auto-login'
+      showNotification(msg, undefined, false, undefined)
+    } else {
+      hideNotification()
+    }
+  }
+
+  if (opts?.silent) {
+    doSave()
+    return
+  }
+
+  if (options.saveLoginPassword === 'prompt') {
+    showNotification('Click here to save your password in browser for auto-login', undefined, false, undefined, doSave)
+  } else {
+    doSave()
+  }
+  notificationProxy.id = 'auto-login'
+  const listener = () => {
+    hideNotification()
+  }
+  bot.on('kicked', listener)
+  setTimeout(() => {
+    bot.removeListener('kicked', listener)
+  }, 2000)
 }

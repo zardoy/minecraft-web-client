@@ -3,7 +3,7 @@ import fs from 'fs'
 import * as nbt from 'prismarine-nbt'
 import RegionFile from 'prismarine-provider-anvil/src/region'
 import { versions } from 'minecraft-data'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { openWorldDirectory, openWorldZip } from './browserfs'
 import { isGameActive } from './globalState'
 import { showNotification } from './react/NotificationProvider'
@@ -13,8 +13,30 @@ const parseNbt = promisify(nbt.parse)
 const simplifyNbt = nbt.simplify
 window.nbt = nbt
 
-// Supported image types for skybox
 const VALID_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp']
+
+const SKIN_TEXTURE_WIDTHS = new Set([64, 128, 256, 512])
+
+/** Minecraft skin sheets: WxW or Wx(W/2) at standard power-of-two widths. */
+const isLikelySkinImageSize = (width: number, height: number) => {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return false
+  if (!SKIN_TEXTURE_WIDTHS.has(width)) return false
+  return height === width || height === width / 2
+}
+
+const readImageDimensions = async (file: File) => {
+  const bitmap = await createImageBitmap(file)
+  const { width, height } = bitmap
+  bitmap.close()
+  return { width, height }
+}
+
+const fileToDataUrl = async (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(reader.result as string)
+  reader.onerror = reject
+  reader.readAsDataURL(file)
+})
 
 // todo display drop zone
 for (const event of ['drag', 'dragstart', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop']) {
@@ -49,20 +71,38 @@ window.addEventListener('drop', async e => {
 })
 
 async function handleDroppedFile (file: File) {
-  // Check for image files first when game is active
-  if (isGameActive(false) && VALID_IMAGE_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext))) {
+  if (VALID_IMAGE_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext))) {
     try {
-      // Convert image to base64
-      const reader = new FileReader()
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = reject
-      })
-      reader.readAsDataURL(file)
-      const base64Image = await base64Promise
+      const { width, height } = await readImageDimensions(file)
+      const base64Image = await fileToDataUrl(file)
+      const methods = getThreeJsRendererMethods()
 
-      // Get ThreeJS backend methods and update skybox
-      const setSkyboxImage = getThreeJsRendererMethods()?.setSkyboxImage
+      if (isLikelySkinImageSize(width, height)) {
+        if (!isGameActive(false) || !bot?.entity) {
+          showNotification('Skin preview needs an active world', 'Join a game and drop the skin image again.')
+          return
+        }
+        const applySkin = methods?.applyTemporaryPlayerSkinOverride
+        if (!applySkin) {
+          showNotification('Cannot apply skin — renderer does not support it')
+          return
+        }
+        await applySkin(
+          base64Image,
+          bot.entity.id,
+          bot.username,
+          bot.player?.uuid ?? bot.entity.uuid
+        )
+        showNotification(
+          'Skin temporarily applied',
+          'Hand and third-person model updated until reconnect or a server skin change.'
+        )
+        return
+      }
+
+      if (!isGameActive(false)) return
+
+      const setSkyboxImage = methods?.setSkyboxImage
       if (setSkyboxImage) {
         await setSkyboxImage(base64Image)
         showNotification('Skybox updated successfully')
@@ -71,8 +111,8 @@ async function handleDroppedFile (file: File) {
       }
       return
     } catch (err) {
-      console.error('Failed to update skybox:', err)
-      showNotification('Failed to update skybox', 'error')
+      console.error('Failed to handle dropped image:', err)
+      showNotification('Failed to use dropped image', String((err as Error).message ?? err), true)
       return
     }
   }

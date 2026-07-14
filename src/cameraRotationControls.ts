@@ -1,3 +1,4 @@
+import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { contro } from './controls'
 import { activeModalStack, isGameActive, miscUiState, showModal } from './globalState'
 import { options } from './optionsStorage'
@@ -18,7 +19,7 @@ export function onCameraMove (e: MouseEvent | CameraMoveEvent) {
   if (!isGameActive(true)) return
   if (e.type === 'mousemove' && !document.pointerLockElement) return
   e.stopPropagation?.()
-  if (appViewer.playerState.utils.isSpectatingEntity()) return
+  if (getPlayerStateUtils(appViewer.playerState.reactive).isSpectatingEntity()) return
   const now = performance.now()
   // todo: limit camera movement for now to avoid unexpected jumps
   if (now - lastMouseMove < 4 && !options.preciseMouseInput) return

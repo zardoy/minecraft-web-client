@@ -2,7 +2,7 @@
   z-index: -2;
   position: fixed;
   left: 50%;
-  bottom: calc(var(--safe-area-inset-bottom) + 25px);
+  bottom: calc(var(--safe-area-inset-bottom));
   transform: translate(-50%);
   width: 182px;
   height: 5px;

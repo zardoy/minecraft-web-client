@@ -4,7 +4,7 @@
   z-index: -2;
   flex-direction: row;
   left: calc(50% - 91px);
-  bottom: calc(var(--safe-area-inset-bottom) + 40px);
+  bottom: calc(var(--safe-area-inset-bottom) + 16px);
   --offset: calc(-1 * 25px);
   --bg-x: calc(-1 * 16px);
   --bg-y: calc(-1 * 9px);

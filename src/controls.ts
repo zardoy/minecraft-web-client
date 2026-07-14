@@ -7,7 +7,8 @@ import { ControMax } from 'contro-max/build/controMax'
 import { CommandEventArgument, SchemaCommandInput } from 'contro-max/build/types'
 import { stringStartsWith } from 'contro-max/build/stringUtils'
 import { GameMode } from 'mineflayer'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
+import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { isGameActive, showModal, gameAdditionalState, activeModalStack, hideCurrentModal, miscUiState, hideModal, hideAllModals } from './globalState'
 import { goFullscreen, isInRealGameSession, pointerLock, reloadChunks } from './utils'
 import { options } from './optionsStorage'
@@ -31,6 +32,7 @@ import { tabListState } from './react/PlayerListOverlayProvider'
 import { type ActionType, type ActionHoldConfig, type CustomAction } from './appConfig'
 import { playerState } from './mineflayer/playerState'
 import { emulateMouseClick } from './app/gamepadCursor'
+import { isNextConsoleKeyboardTarget } from './loadDevConsole'
 
 export const customKeymaps = proxy(appStorage.keybindings)
 subscribe(customKeymaps, () => {
@@ -78,6 +80,7 @@ export const contro = new ControMax({
       zoom: ['KeyC'],
       viewerConsole: ['Backquote'],
       togglePerspective: ['F5', 'Up'],
+      takeScreenshot: ['F2'],
     },
     ui: {
       toggleFullscreen: ['F11'],
@@ -109,8 +112,8 @@ export const contro = new ControMax({
 }, {
   defaultControlOptions: controlOptions,
   target: document,
-  captureEvents () {
-    return true
+  captureEvents (e) {
+    return !isNextConsoleKeyboardTarget(e)
   },
   storeProvider: {
     load: () => customKeymaps,
@@ -143,7 +146,23 @@ const setSprinting = (state: boolean) => {
 }
 
 const isSpectatingEntity = () => {
-  return appViewer.playerState.utils.isSpectatingEntity()
+  return getPlayerStateUtils(playerState.reactive).isSpectatingEntity()
+}
+
+let lastScreenshotAt = 0
+const screenshotRepeatCooldownMs = 500
+
+export const takeScreenshotAction = () => {
+  const now = Date.now()
+  if (now - lastScreenshotAt < screenshotRepeatCooldownMs) return
+  lastScreenshotAt = now
+  const canvas = document.getElementById('viewer-canvas') as HTMLCanvasElement | null
+  if (!canvas) return
+  const link = document.createElement('a')
+  link.href = canvas.toDataURL('image/png')
+  const date = new Date()
+  link.download = `screenshot ${date.toLocaleString().replaceAll('.', '-').replace(',', '')}.png`
+  link.click()
 }
 
 contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
@@ -489,6 +508,13 @@ const isCommandAvailableAfterDisconnect = (command: Command) => {
 contro.on('trigger', ({ command }) => {
   if (isCommandDisabled(command)) return
 
+  if (command === 'general.takeScreenshot') {
+    if (isGameActive(true)) {
+      takeScreenshotAction()
+    }
+    return
+  }
+
   const willContinue = !isGameActive(true)
   alwaysPressedHandledCommand(command)
   if (willContinue && !isCommandAvailableAfterDisconnect(command)) return
@@ -634,10 +660,11 @@ export const f3Keybinds: Array<{
   {
     key: 'KeyA',
     action () {
-      //@ts-expect-error
-      const loadedChunks = Object.entries(worldView.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
+      const wv = appViewer.worldView
+      if (!wv) return
+      const loadedChunks = Object.entries(wv.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
       for (const [x, z] of loadedChunks) {
-        worldView!.unloadChunk({ x, z })
+        wv.unloadChunk({ x, z })
       }
       // for (const child of viewer.scene.children) {
       //   if (child.name === 'chunk') { // should not happen
@@ -762,6 +789,7 @@ document.addEventListener('keydown', (e) => {
   if (contro.pressedKeys.has('F3')) {
     const keybind = f3Keybinds.find((v) => v.key === e.code)
     if (keybind && (keybind.enabled?.() ?? true)) {
+      e.preventDefault() // F4 etc. have browser defaults (e.g. F4 focuses URL bar)
       void keybind.action()
       e.stopPropagation()
     }
@@ -866,18 +894,6 @@ window.addEventListener('keydown', (e) => {
   } else {
     document.dispatchEvent(new Event('pointerlockchange'))
   }
-})
-
-window.addEventListener('keydown', (e) => {
-  if (e.code !== 'F2' || e.repeat || !isGameActive(true)) return
-  e.preventDefault()
-  const canvas = document.getElementById('viewer-canvas') as HTMLCanvasElement
-  if (!canvas) return
-  const link = document.createElement('a')
-  link.href = canvas.toDataURL('image/png')
-  const date = new Date()
-  link.download = `screenshot ${date.toLocaleString().replaceAll('.', '-').replace(',', '')}.png`
-  link.click()
 })
 
 window.addEventListener('keydown', (e) => {

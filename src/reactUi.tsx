@@ -12,7 +12,9 @@ import SingleplayerProvider from './react/SingleplayerProvider'
 import CreateWorldProvider from './react/CreateWorldProvider'
 import AppStatusProvider from './react/AppStatusProvider'
 import SelectOption from './react/SelectOption'
-import EnterFullscreenButton from './react/EnterFullscreenButton'
+import SettingReloadModal from './react/SettingReloadModal'
+import AutoFillLoginModal from './react/AutoFillLoginModal'
+import MobilePortraitButtons from './react/MobilePortraitButtons'
 import ChatProvider from './react/ChatProvider'
 import TitleProvider from './react/TitleProvider'
 import ScoreboardProvider from './react/ScoreboardProvider'
@@ -75,6 +77,7 @@ import AllSettingsEditor from './react/AllSettingsEditor'
 import { isPlayground, urlParams } from './playgroundIntegration'
 import { withInjectableUi } from './react/extendableSystem'
 import { hadReactUiRegistered } from './clientMods'
+import { Inventory } from './react/inventory/Inventory'
 
 const isFirefox = ua.getBrowser().name === 'Firefox'
 if (isFirefox) {
@@ -204,6 +207,7 @@ const InGameUi = () => {
     <PerComponentErrorBoundary>
       <SignEditorProvider />
       <DisplayQr />
+      <Inventory />
     </PerComponentErrorBoundary>
     <RobustPortal to={document.body}>
       {displayFullmap && <MinimapProvider adapter={adapter} displayMode='fullmapOnly' />}
@@ -240,7 +244,7 @@ const AppBase = () => {
             <ControDebug />
             <div />
           </RobustPortal>
-          <EnterFullscreenButton />
+          <MobilePortraitButtons />
           <StorageConflictModal />
           <InGameUi />
           <RobustPortal to={document.querySelector('#ui-root')}>
@@ -259,6 +263,8 @@ const AppBase = () => {
             <NotificationProvider />
             <ModsPage />
             <SelectOption />
+            <SettingReloadModal />
+            <AutoFillLoginModal />
             <CreditsAboutModal />
             <AllSettingsEditor />
             <NoModalFoundProvider />

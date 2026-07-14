@@ -67,9 +67,18 @@ const ButtonBase = (({ label, icon, children, inScreen, rootRef, type = 'button'
     args.className = `${args.className ?? ''} settings-text-container-long`
   }
 
-  if (icon) {
+  if (icon && (style.width === null || style.width === undefined)) {
     style.width = 20
   }
+
+  const iconOnly = Boolean(icon && !label && !children && !postLabel)
+  const iconWidth = typeof style.width === 'number' ? style.width : 20
+  const iconStyles = iconOnly ? {
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    fontSize: Math.round(14 * (iconWidth / 20)),
+  } as React.CSSProperties : undefined
 
   const tryToTranslate = (maybeText: any) => {
     if (noTranslate) return maybeText
@@ -99,7 +108,7 @@ const ButtonBase = (({ label, icon, children, inScreen, rootRef, type = 'button'
       onClick={onClick}
       type={type}
     >
-      {icon && <PixelartIcon className={buttonCss.icon} iconName={icon} />}
+      {icon && <PixelartIcon className={buttonCss.icon} iconName={icon} styles={iconStyles} />}
       {label}
       {postLabel}
       {children}

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import itemsAtlas from 'mc-assets/dist/itemsAtlasLegacy.png'
-import { createItemMeshFromCanvas, createItemMesh } from '../renderer/viewer/three/itemMesh'
+import { createItemMeshFromCanvas, createItemMesh } from 'minecraft-renderer/src/three/itemMesh'
 
 // Create scene, camera and renderer
 const scene = new THREE.Scene()

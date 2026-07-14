@@ -1,5 +1,5 @@
 import { useFloating, arrow, FloatingArrow, offset as offsetMiddleware, Placement, autoPlacement } from '@floating-ui/react'
-import { openURL } from 'renderer/viewer/lib/simpleUtils'
+import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import { CSSProperties, useState } from 'react'
 import Button from './Button'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
@@ -7,7 +7,7 @@ import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 export const DiscordButton = ({ text, style }: { text?: string, style?: Record<string, any> }) => {
   const links: DropdownButtonItem[] = [
     {
-      text: 'Pro Enthusiasts Server (ask for invite)',
+      text: 'Support Official Server (mcraft.fun)',
       clickHandler: () => openURL('https://discord.mcraft.fun')
     },
     {

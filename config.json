@@ -18,20 +18,20 @@
       "ip": "wss://ws.fuchsmc.net"
     },
     {
-      "ip": "wss://play3.mcraft.fun"
+      "ip": "wss://play2.mcraft.fun",
+      "description": "Mirror for play.mcraft.fun"
+    },
+    {
+      "ip": "wss://play3.mcraft.fun",
+      "description": "Mirror for play.mcraft.fun"
     },
     {
       "ip": "wss://play-creative.mcraft.fun",
       "description": "Might be available soon, stay tuned!"
-    },
-    {
-      "ip": "kaboom.pw",
-      "version": "1.20.3",
-      "description": "Very nice a polite server. Must try for everyone!"
     }
   ],
   "rightSideText": "A Minecraft client clone in the browser!",
-  "splashText": "Thanks for testing my chaos!",
+  "splashText": "Mind the bugs and have fun!",
   "splashTextFallback": "Welcome!",
   "pauseLinks": [
     [
@@ -45,11 +45,6 @@
   ],
   "defaultUsername": "mcrafter{0-9999}",
   "mobileButtons": [
-    {
-      "action": "general.drop",
-      "actionHold": "general.dropStack",
-      "label": "Q"
-    },
     {
       "action": "general.selectItem",
       "actionHold": "",

@@ -1,4 +1,4 @@
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 
 type IdMap = Record<string, number>
 

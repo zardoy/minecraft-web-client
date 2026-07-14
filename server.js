@@ -62,8 +62,23 @@ if (isProd) {
   app.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+    // wasm-pack/instantiateStreaming requires the correct mime type
+    if (req.path.endsWith('.wasm')) {
+      res.setHeader('Content-Type', 'application/wasm')
+    }
     next()
   })
+
+  // Serve minecraft-renderer wasm mesher artifacts from the installed package.
+  // (Needed when using file: dependency, where these assets may not be in the web-client dist root)
+  try {
+    const rendererPkg = require.resolve('minecraft-renderer/package.json')
+    const rendererDir = path.dirname(rendererPkg)
+    app.get('/wasm_mesher.js', (req, res) => res.sendFile(path.join(rendererDir, 'public/wasm_mesher.js')))
+    app.get('/wasm_mesher_bg.wasm', (req, res) => res.sendFile(path.join(rendererDir, 'public/wasm_mesher_bg.wasm')))
+  } catch (err) {
+    console.warn('Failed to locate minecraft-renderer package for wasm mesher assets', err)
+  }
 
   // First serve from the override directory (volume mount)
   app.use(express.static(path.join(__dirname, './public')))

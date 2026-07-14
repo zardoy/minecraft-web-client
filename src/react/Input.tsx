@@ -1,5 +1,5 @@
 import React, { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
-import { isMobile } from 'renderer/viewer/lib/simpleUtils'
+import { isMobile } from 'minecraft-renderer/src/lib/simpleUtils'
 import styles from './input.module.css'
 import { withInjectableUi } from './extendableSystem'
 

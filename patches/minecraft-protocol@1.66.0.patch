@@ -1,0 +1,239 @@
+diff --git a/src/client/chat.js b/src/client/chat.js
+index 0021870994fc59a82f0ac8aba0a65a8be43ef2f4..a53fceb843105ea2a1d88722b3fc7c3b43cb102a 100644
+--- a/src/client/chat.js
++++ b/src/client/chat.js
+@@ -116,7 +116,7 @@ module.exports = function (client, options) {
+     for (const player of packet.data) {
+       if (player.chatSession) {
+         client._players[player.uuid] = {
+-          publicKey: crypto.createPublicKey({ key: player.chatSession.publicKey.keyBytes, format: 'der', type: 'spki' }),
++          // publicKey: crypto.createPublicKey({ key: player.chatSession.publicKey.keyBytes, format: 'der', type: 'spki' }),
+           publicKeyDER: player.chatSession.publicKey.keyBytes,
+           sessionUuid: player.chatSession.uuid
+         }
+@@ -126,7 +126,7 @@ module.exports = function (client, options) {
+ 
+       if (player.crypto) {
+         client._players[player.uuid] = {
+-          publicKey: crypto.createPublicKey({ key: player.crypto.publicKey, format: 'der', type: 'spki' }),
++          // publicKey: crypto.createPublicKey({ key: player.crypto.publicKey, format: 'der', type: 'spki' }),
+           publicKeyDER: player.crypto.publicKey,
+           signature: player.crypto.signature,
+           displayName: player.displayName || player.name
+@@ -196,7 +196,7 @@ module.exports = function (client, options) {
+     if (mcData.supportFeature('useChatSessions')) {
+       const tsDelta = BigInt(Date.now()) - packet.timestamp
+       const expired = !packet.timestamp || tsDelta > messageExpireTime || tsDelta < 0
+-      const verified = !packet.unsignedChatContent && updateAndValidateSession(packet.senderUuid, packet.plainMessage, packet.signature, packet.index, packet.previousMessages, packet.salt, packet.timestamp) && !expired
++      const verified = false && !packet.unsignedChatContent && updateAndValidateSession(packet.senderUuid, packet.plainMessage, packet.signature, packet.index, packet.previousMessages, packet.salt, packet.timestamp) && !expired
+       if (verified) client._signatureCache.push(packet.signature)
+       client.emit('playerChat', {
+         globalIndex: packet.globalIndex,
+@@ -362,7 +362,7 @@ module.exports = function (client, options) {
+     }
+   }
+ 
+-  client._signedChat = (message, options = {}) => {
++  client._signedChat = async (message, options = {}) => {
+     options.timestamp = options.timestamp || BigInt(Date.now())
+     options.salt = options.salt || 1n
+ 
+@@ -407,7 +407,7 @@ module.exports = function (client, options) {
+         message,
+         timestamp: options.timestamp,
+         salt: options.salt,
+-        signature: (client.profileKeys && client._session) ? client.signMessage(message, options.timestamp, options.salt, undefined, acknowledgements) : undefined,
++        signature: (client.profileKeys && client._session) ? await client.signMessage(message, options.timestamp, options.salt, undefined, acknowledgements) : undefined,
+         offset: client._lastSeenMessages.pending,
+         checksum: computeChatChecksum(client._lastSeenMessages), // 1.21.5+
+         acknowledged
+@@ -422,7 +422,7 @@ module.exports = function (client, options) {
+         message,
+         timestamp: options.timestamp,
+         salt: options.salt,
+-        signature: client.profileKeys ? client.signMessage(message, options.timestamp, options.salt, options.preview) : Buffer.alloc(0),
++        signature: client.profileKeys ? await client.signMessage(message, options.timestamp, options.salt, options.preview) : Buffer.alloc(0),
+         signedPreview: options.didPreview,
+         previousMessages: client._lastSeenMessages.map((e) => ({
+           messageSender: e.sender,
+diff --git a/src/client/encrypt.js b/src/client/encrypt.js
+index 63cc2bd9615100bd2fd63dfe14c094aa6b8cd1c9..36df57d1196af9761d920fa285ac48f85410eaef 100644
+--- a/src/client/encrypt.js
++++ b/src/client/encrypt.js
+@@ -25,7 +25,11 @@ module.exports = function (client, options) {
+         if (packet.serverId !== '-') {
+           debug('This server appears to be an online server and you are providing no password, the authentication will probably fail')
+         }
+-        sendEncryptionKeyResponse()
++        client.end('This server appears to be an online server and you are providing no authentication. Try authenticating first.')
++        // sendEncryptionKeyResponse()
++        // client.once('set_compression', () => {
++        //   clearTimeout(loginTimeout)
++        // })
+       }
+ 
+       function onJoinServerResponse (err) {
+diff --git a/src/client/play.js b/src/client/play.js
+index 71ad739f118306b741908817851b0322db6f17e5..881abc9faf4dcf85127935b320e1a83786894330 100644
+--- a/src/client/play.js
++++ b/src/client/play.js
+@@ -31,11 +31,37 @@ module.exports = function (client, options) {
+ 
+   client.once('success', onLogin)
+ 
++  function pickLocale () {
++    const locales = [
++      ['en_US', 0.60],
++      ['en_GB', 0.10],
++      ['de_DE', 0.12],
++      ['id_ID', 0.10],
++      ['fr_FR', 0.04],
++      ['es_ES', 0.04]
++    ]
++    const roll = Math.random()
++    let cumulative = 0
++    for (const [locale, weight] of locales) {
++      cumulative += weight
++      if (roll < cumulative) return locale
++    }
++    return 'en_US'
++  }
++
+   function onLogin (packet) {
+     const mcData = require('minecraft-data')(client.version)
+     client.uuid = packet.uuid
+     client.username = packet.username
+ 
++    const resolvedProfile = {
++      locale: options.clientProfile?.locale ?? pickLocale(),
++      viewDistance: options.clientProfile?.viewDistance ?? 10,
++      mainHand: options.clientProfile?.mainHand !== undefined
++        ? options.clientProfile.mainHand
++        : (Math.random() < 0.75 ? 1 : 0)
++    }
++
+     if (mcData.supportFeature('hasConfigurationState')) {
+       client.write('login_acknowledged', {})
+       enterConfigState(onReady)
+@@ -53,6 +79,21 @@ module.exports = function (client, options) {
+         client.write('configuration_acknowledged', {})
+       }
+       client.state = states.CONFIGURATION
++
++      // Send client information immediately on entering config phase.
++      // Some servers *cough cough hypixel* require this before they will proceed past
++      // configuration state. Without it, you get the socketClosed error.
++      client.write('settings', {
++        locale: resolvedProfile.locale,
++        viewDistance: resolvedProfile.viewDistance,
++        chatFlags: 0,
++        chatColors: true,
++        skinParts: 127,
++        mainHand: resolvedProfile.mainHand,
++        enableTextFiltering: false,
++        enableServerListing: true
++      })
++
+       client.once('select_known_packs', () => {
+         client.write('select_known_packs', { packs: [] })
+       })
+diff --git a/src/client/pluginChannels.js b/src/client/pluginChannels.js
+index 671eb452f31e6b5fcd57d715f1009d010160c65f..7f69f511c8fb97d431ec5125c851b49be8e2ab76 100644
+--- a/src/client/pluginChannels.js
++++ b/src/client/pluginChannels.js
+@@ -57,7 +57,7 @@ module.exports = function (client, options) {
+         try {
+           packet.data = proto.parsePacketBuffer(channel, packet.data).data
+         } catch (error) {
+-          client.emit('error', error)
++          client.emit('error', error, { customPayload: packet })
+           return
+         }
+       }
+diff --git a/src/client.js b/src/client.js
+index e369e77d055ba919e8f9da7b8e8b5dc879c74cf4..5395c9ac988d00a782d4ba98a73dc9d2e3fee666 100644
+--- a/src/client.js
++++ b/src/client.js
+@@ -75,7 +75,35 @@ class Client extends EventEmitter {
+       }
+       const deserializerDirection = this.isServer ? 'toServer' : 'toClient'
+       e.field = [this.protocolState, deserializerDirection].concat(parts).join('.')
+-      e.message = e.buffer ? `Parse error for ${e.field} (${e.buffer?.length} bytes, ${e.buffer?.toString('hex').slice(0, 6)}...) : ${e.message}` : `Parse error for ${e.field}: ${e.message}`
++      e.message = e.buffer
++        ? `Parse error for ${e.field} (${e.buffer?.length} bytes, ${e.buffer?.toString('hex').slice(0, 6)}...) : ${e.message}`
++        : `Parse error for ${e.field}: ${e.message}`
++
++      // Non-fatal play-state parse error — e.g. Hypixel sending NBT tag IDs outside
++      // the standard 0-20 range (tag 71 = custom component data introduced in 1.21.4+).
++      // The deserializer stream is destroyed by Node.js on error, so we tear it down
++      // fully, rebuild it via setSerializer, and re-pipe it into the chain so packet
++      // processing continues normally. We emit 'warning' instead of 'error' so nothing
++      // upstream treats this as a fatal connection failure.
++      if (this.protocolState === states.PLAY) {
++        console.warn(`[minecraft-protocol] Non-fatal parse error (connection kept alive): ${e.message}`)
++        this.deserializer.removeAllListeners()
++        if (!this.compressor) {
++          this.splitter.unpipe(this.deserializer)
++        } else {
++          this.decompressor.unpipe(this.deserializer)
++        }
++        this.setSerializer(states.PLAY)
++        if (!this.compressor) {
++          this.splitter.pipe(this.deserializer)
++        } else {
++          this.decompressor.pipe(this.deserializer)
++        }
++        this.emit('warning', e)
++        return
++      }
++
++      // All other parse errors are still fatal — re-pipe attempt then propagate.
+       if (!this.compressor) { this.splitter.pipe(this.deserializer) } else { this.decompressor.pipe(this.deserializer) }
+       this.emit('error', e)
+     })
+@@ -111,7 +139,13 @@ class Client extends EventEmitter {
+           this._hasBundlePacket = false
+         }
+       } else {
+-        emitPacket(parsed)
++        try {
++          emitPacket(parsed)
++        } catch (err) {
++          console.log('Client incorrectly handled packet ' + parsed.metadata.name)
++          console.error(err)
++          // todo investigate why it doesn't close the stream even if unhandled there
++        }
+       }
+     })
+   }
+@@ -169,7 +203,10 @@ class Client extends EventEmitter {
+     }
+ 
+     const onFatalError = (err) => {
+-      this.emit('error', err)
++      // todo find out what is trying to write after client disconnect
++      if (err.code !== 'ECONNABORTED') {
++        this.emit('error', err)
++      }
+       endSocket()
+     }
+ 
+@@ -198,6 +235,10 @@ class Client extends EventEmitter {
+     serializer -> framer -> socket -> splitter -> deserializer */
+     if (this.serializer) {
+       this.serializer.end()
++      setTimeout(() => {
++        this.socket?.end()
++        this.socket?.emit('end')
++      }, 2000) // allow the serializer to finish writing
+     } else {
+       if (this.socket) this.socket.end()
+     }
+@@ -243,6 +284,7 @@ class Client extends EventEmitter {
+       debug('writing packet ' + this.state + '.' + name)
+       debug(params)
+     }
++    this.emit('writePacket', name, params)
+     this.serializer.write({ name, params })
+   }
+ 

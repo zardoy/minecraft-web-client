@@ -2,7 +2,7 @@
 
 import { fromFormattedString, TextComponent } from '@xmcl/text-component'
 import type { IndexedData } from 'minecraft-data'
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 
 export interface MessageFormatOptions {
   doShadow?: boolean

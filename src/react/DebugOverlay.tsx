@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { Entity } from 'prismarine-entity'
 import { useSnapshot } from 'valtio'
 import type { Block } from 'prismarine-block'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
+import { BlockStateModelInfo } from 'minecraft-renderer/src/mesher-shared/shared'
 import { miscUiState } from '../globalState'
 import { getFixedFilesize } from '../downloadAndOpenFile'
 import { options } from '../optionsStorage'
-import { BlockStateModelInfo } from '../../renderer/viewer/lib/mesher/shared'
 import styles from './DebugOverlay.module.css'
 import { withInjectableUi } from './extendableSystem'
 
@@ -200,11 +200,12 @@ const DebugOverlayBase = () => {
       <p>Biome: minecraft:{loadedData.biomesArray[biomeId]?.name ?? 'unknown biome'}</p>
       <p>Day: {day} Time: {timeOfDay}</p>
       <div className={styles.empty} />
-      {Object.entries(appViewer.backend?.getDebugOverlay?.().left ?? {}).map(([name, value]) => <p key={name}>{name}: {value}</p>)}
+      {Object.entries(appViewer.backend?.getDebugOverlay?.()['left'] ?? {}).map(([name, value]) => <p key={name}>{name}: {value}</p>)}
     </div>
 
     <div className={`debug-right-side ${styles['debug-right-side']}`}>
       <p>Backend: {appViewer.backend?.displayName}</p>
+      <p>minecraft-renderer npm v{process.env.MINECRAFT_RENDERER_VERSION}</p>
       <p>Renderer: {rendererDevice}</p>
       <div className={styles.empty} />
       {cursorBlock ? (<>
@@ -270,7 +271,7 @@ const DebugOverlayBase = () => {
           </>
         )
       })()}
-      {Object.entries(appViewer.backend?.getDebugOverlay?.().right ?? {}).map(([name, value]) => <p key={name}>{name}: {value}</p>)}
+      {Object.entries(appViewer.backend?.getDebugOverlay?.()?.['right'] ?? {}).map(([name, value]) => <p key={name}>{name}: {value}</p>)}
     </div>
   </>
 }

@@ -7,6 +7,7 @@ import './devtools'
 import './entities'
 import customChannels from './customChannels'
 import './globalDomListeners'
+import './displayRotation'
 import './mineflayer/maps'
 import './mineflayer/cameraShake'
 import './shims/patchShims'
@@ -54,7 +55,7 @@ import {
 } from './globalState'
 
 import { parseServerAddress } from './parseServerAddress'
-import { setLoadingScreenStatus, lastConnectOptions } from './appStatus'
+import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
 import { isCypress } from './standaloneUtils'
 
 import { startLocalServer, unsupportedLocalServerFeatures } from './createLocalServer'
@@ -67,7 +68,6 @@ import { registerServiceWorker } from './serviceWorker'
 import { appStatusState, quickDevReconnect } from './react/AppStatusProvider'
 
 import { fsState } from './loadSave'
-import { watchFov } from './rendererUtils'
 import { loadInMemorySave } from './react/SingleplayerProvider'
 
 import { possiblyHandleStateVariable } from './googledrive'
@@ -80,6 +80,7 @@ import { ConnectOptions, getVersionAutoSelect, downloadOtherGameData, downloadAl
 import { ref, subscribe } from 'valtio'
 import { signInMessageState } from './react/SignInMessageProvider'
 import { findServerPassword, updateAuthenticatedAccountData, updateLoadedServerData, updateServerConnectionHistory } from './react/serversStorage'
+import { monitorLoginAttempt } from './core/authModal'
 import { mainMenuState } from './react/MainMenuRenderApp'
 import './mobileShim'
 import { parseFormattedMessagePacket } from './botUtils'
@@ -92,6 +93,7 @@ import { states } from 'minecraft-protocol'
 import { initMotionTracking } from './react/uiMotion'
 import { UserError } from './mineflayer/userError'
 import { startLocalReplayServer } from './packetsReplay/replayPackets'
+import { preloadMesherWorkerScript } from './core/mesherWorkerPreload'
 import { createFullScreenProgressReporter, createWrappedProgressReporter, ProgressReporter } from './core/progressReporter'
 import { registerOpenBenchmarkListener } from './benchmark'
 import { tryHandleBuiltinCommand } from './builtinCommands'
@@ -104,7 +106,6 @@ import { appLoadBackend } from './appViewerLoad'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
 
 window.debug = debug
-window.beforeRenderFrame = []
 
 // ACTUAL CODE
 
@@ -112,13 +113,12 @@ if (!isPlayground) {
   void appLoadBackend()
 }
 if (isPlayground) {
-  void import('renderer/playground/playground')
+  void import('minecraft-renderer/src/playground/playground')
 }
 
 void registerServiceWorker().then(() => {
   mainMenuState.serviceWorkerLoaded = true
 })
-watchFov()
 initCollisionShapes()
 initializePacketsReplay()
 onAppLoad()
@@ -144,7 +144,9 @@ const loadSingleplayer = (serverOverrides = {}, flattenedServerOverrides = {}, c
     serverOverrides,
     serverOverridesFlat: {
       ...flattenedServerOverrides,
-      ...serverSettingsQs
+      ...serverSettingsQs,
+      chunkTemplate: appQueryParams.chunkTemplate,
+      blockMap: appQueryParams.chunkTemplateBlockMap
     },
     ...connectOptions
   })
@@ -200,7 +202,7 @@ export async function connect (connectOptions: ConnectOptions) {
     updateServerConnectionHistory(parsedServer.host, connectOptions.botVersion)
   }
 
-  const { renderDistance: renderDistanceSingleplayer, multiplayerRenderDistance } = options
+  const { renderDistance } = options
 
   const parsedServer = parseServerAddress(connectOptions.server)
   const server = { host: parsedServer.host, port: parsedServer.port }
@@ -281,9 +283,12 @@ export async function connect (connectOptions: ConnectOptions) {
       appStatusState.descriptionHint = `Last Server Packet: ${lastPacket}`
     }
   }
-  const handleError = (err) => {
-    console.error(err)
+  const handleError = (err: unknown, source: string) => {
+    console.error(`[${source}]`, err)
     if (err === 'ResizeObserver loop completed with undelivered notifications.') {
+      return
+    }
+    if (String(err).includes('sourceMappingURL')) {
       return
     }
     if (isCypress()) throw err
@@ -295,7 +300,7 @@ export async function connect (connectOptions: ConnectOptions) {
       hideModal(modal)
     }
 
-    setLoadingScreenStatus(`Error encountered. ${err}`, true)
+    setLoadingScreenStatus(formatLoadingScreenError(source, err), true)
     appStatusState.showReconnect = true
     onPossibleErrorDisconnect()
     handleSessionEnd()
@@ -313,12 +318,16 @@ export async function connect (connectOptions: ConnectOptions) {
       // ignore issues caused by chrome extension
       return
     }
-    handleError(e.reason)
+    handleError(e.reason, 'Unhandled promise rejection')
   }, {
     signal: errorAbortController.signal
   })
   window.addEventListener('error', (e) => {
-    handleError(e.message)
+    const statusAtError = appStatusState.status
+    setTimeout(() => {
+      if (appStatusState.status !== statusAtError || miscUiState.gameLoaded) return
+      handleError(e.error ?? e.message, 'Uncaught window error')
+    }, 10_000)
   }, {
     signal: errorAbortController.signal
   })
@@ -330,12 +339,13 @@ export async function connect (connectOptions: ConnectOptions) {
     net['setProxy']({ hostname: proxy.host, port: proxy.port, headers: { Authorization: `Bearer ${new URLSearchParams(location.search).get('token') ?? ''}` }, artificialDelay: appQueryParams.addPing ? Number(appQueryParams.addPing) : undefined })
   }
 
-  const renderDistance = singleplayer ? renderDistanceSingleplayer : multiplayerRenderDistance
   let updateDataAfterJoin = () => { }
   let localServer
   let localReplaySession: ReturnType<typeof startLocalReplayServer> | undefined
   let lastKnownKickReason = undefined as string | undefined
   try {
+    await progress.executeWithMessage('Loading mesher', 'preload-mesher', preloadMesherWorkerScript)
+
     const serverOptions = defaultsDeep({}, connectOptions.serverOverrides ?? {}, options.localServerOptions, defaultServerOptions)
     Object.assign(serverOptions, connectOptions.serverOverridesFlat ?? {})
 
@@ -625,11 +635,12 @@ export async function connect (connectOptions: ConnectOptions) {
       // "mapDownloader-saveInternal": false, // do not save into memory, todo must be implemeneted as we do really care of ram
     }) as unknown as typeof __type_bot
     window.bot = bot
-
     if (connectOptions.viewerWsConnect) {
       void onBotCreatedViewerHandler()
     }
+    // Keep synchronous — no await before emit
     customEvents.emit('mineflayerBotCreated')
+
     if (singleplayer || p2pMultiplayer || localReplaySession) {
       if (singleplayer || p2pMultiplayer) {
         // in case of p2pMultiplayer there is still flying-squid on the host side
@@ -649,32 +660,34 @@ export async function connect (connectOptions: ConnectOptions) {
       bot._client.emit('connect')
     } else {
       const setupConnectHandlers = () => {
-        Socket.prototype['handleStringMessage'] = function (message: string) {
+        bot._client.socket['handleStringMessage'] = function (message: string) {
           if (message.startsWith('proxy-message') || message.startsWith('proxy-command:')) { // for future
             return false
           }
           if (message.startsWith('proxy-shutdown:')) {
+            console.log('Got current connection proxy shutdown message', message)
             lastKnownKickReason = message.slice('proxy-shutdown:'.length)
             return false
           }
           return true
         }
+        const closeUnknownReason = () => {
+          if (!bot || ended) return
+          bot.emit('end', lastKnownKickReason ?? 'WebSocket connection closed with unknown reason')
+        }
+
         bot._client.socket.on('connect', () => {
           console.log('Proxy WebSocket connection established')
           //@ts-expect-error
           bot._client.socket._ws.addEventListener('close', () => {
             console.log('WebSocket connection closed')
             setTimeout(() => {
-              if (bot) {
-                bot.emit('end', 'WebSocket connection closed with unknown reason')
-              }
+              closeUnknownReason()
             }, 1000)
           })
           bot._client.socket.on('close', () => {
             setTimeout(() => {
-              if (bot) {
-                bot.emit('end', 'WebSocket connection closed with unknown reason')
-              }
+              closeUnknownReason()
             })
           })
         })
@@ -693,7 +706,7 @@ export async function connect (connectOptions: ConnectOptions) {
 
     }
   } catch (err) {
-    handleError(err)
+    handleError(err, 'Connection setup error')
   }
   if (!bot) return
 
@@ -703,7 +716,7 @@ export async function connect (connectOptions: ConnectOptions) {
   //   loadingScreen.maybeRecoverable = false
   // })
 
-  bot.on('error', handleError)
+  bot.on('error', (err) => handleError(err, 'Mineflayer error'))
 
   bot.on('kicked', (kickReason) => {
     console.log('You were kicked!', kickReason)
@@ -767,7 +780,7 @@ export async function connect (connectOptions: ConnectOptions) {
           resolve()
           unsub()
         } else {
-          const perc = Math.round(appViewer.rendererState.world.chunksLoaded.size / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
+          const perc = Math.round(Object.keys(appViewer.rendererState.world.chunksLoaded).length / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
           progress?.reportProgress('chunks', perc / 100)
         }
       })
@@ -820,15 +833,20 @@ export async function connect (connectOptions: ConnectOptions) {
       if (password) {
         setTimeout(() => {
           bot.chat(`/login ${password}`)
+          monitorLoginAttempt({
+            password,
+            mode: 'login',
+            source: 'manual',
+            preSaved: true
+          })
         }, 500)
       }
 
 
       console.log('bot spawned - starting viewer')
       await appViewer.startWorld(bot.world, renderDistance)
-      appViewer.worldView!.listenToBot(bot)
       if (appViewer.backend) {
-        void appViewer.worldView!.init(bot.entity.position)
+        void appViewer.worldView!.init(bot.entity.position, bot)
       }
 
       initMotionTracking()
@@ -907,7 +925,7 @@ export async function connect (connectOptions: ConnectOptions) {
       setLoadingScreenStatus(undefined)
       hideCurrentScreens()
     } catch (err) {
-      handleError(err)
+      handleError(err, 'World load error')
     }
     lastConnectOptions.hadWorldLoaded = true
   }

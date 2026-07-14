@@ -20,7 +20,7 @@ export default () => {
         <div className={styles.contentWrapper}>
           <small className={styles.subtitle}><i>What if Minecraft was an online game?</i></small>
           <p className={styles.paragraph}>
-            Hey! You are on the safest modern Minecraft clone rewritten in JavaScript. A huge amount of work has gone into this project to make it fast and complete, and many features would not be possible without these awesome people and projects:
+            Hey! You are on the safest modern Minecraft clone rewritten in JavaScript. A huge amount of work has been put into this project to make it fast and complete, and many features would not be possible without these awesome people and projects:
           </p>
           <ul className={styles.list}>
             <li className={styles.listItem}>- Everyone who provided awesome mods for the game</li>
@@ -34,7 +34,7 @@ export default () => {
 
           <h3 className={styles.sectionTitle}>Current contributors:</h3>
           <ul className={styles.list}>
-            <li className={styles.listItem}>- <span className={styles.link}><a className={styles.link} href="http://github.com/Valery-a" target="_blank" rel="noopener noreferrer">Valery-a</a></span> - 3D Renderer Engine Developer & Maintainer</li>
+            <li className={styles.listItem}>- <span className={styles.link}><a className={styles.link} href="http://github.com/sandexzx" target="_blank" rel="noopener noreferrer">sandexzx</a></span> - 3D Renderer Engine Developer & Maintainer</li>
             <li className={styles.listItem}>- And many more community contributors!</li>
           </ul>
 

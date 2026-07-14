@@ -1,4 +1,4 @@
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 
 export default () => {
   let i = 0

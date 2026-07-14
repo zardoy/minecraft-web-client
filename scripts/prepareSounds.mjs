@@ -236,7 +236,7 @@ const writeSoundsMap = async () => {
       if (isNaN(minWeight)) debugger
       for (const sound of sounds) {
         if (sound.weight && isNaN(sound.weight)) debugger
-        outputUseSoundLine.push(`${sound.volume ?? 1};${sound.name};${sound.weight ?? minWeight}`)
+        outputUseSoundLine.push(`${sound.volume ?? 1};${sound.name};${sound.weight ?? minWeight};${sound.attenuation_distance ?? 16}`)
       }
       const id = mappingJson.sounds.findIndex(x => x === name)
       if (id === -1) {

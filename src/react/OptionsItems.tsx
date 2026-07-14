@@ -2,18 +2,22 @@ import { useSnapshot } from 'valtio'
 import { noCase } from 'change-case'
 import { titleCase } from 'title-case'
 import { useMemo } from 'react'
-import { disabledSettings, options, qsOptions } from '../optionsStorage'
+import { defaultOptions, disabledSettings, options } from '../optionsStorage'
+import type { OptionPossibleValues } from '../defaultOptions'
 import { hideAllModals, miscUiState } from '../globalState'
-import { reloadChunksAction } from '../controls'
 import { optionsMeta } from '../defaultOptions'
+import { appStorage } from './appStorageProvider'
 import Button from './Button'
 import Slider from './Slider'
 import Screen from './Screen'
 import { showOptionsModal } from './SelectOption'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
-import { reconnectReload } from './AppStatusProvider'
 import { showAllSettingsEditor } from './AllSettingsEditor'
 import { withInjectableUi } from './extendableSystem'
+import {
+  settingNeedsReloadPrompt,
+} from './SettingReloadModal'
+import { applySettingReloadResult, promptAndApplyReloadSetting } from './settingReloadApply'
 
 type GeneralItem<T extends string | number | boolean> = {
   id?: string
@@ -24,6 +28,7 @@ type GeneralItem<T extends string | number | boolean> = {
   // description?: string
   enableWarning?: string
   requiresRestart?: boolean
+  requiresRestartWhenInGame?: boolean
   requiresChunksReload?: boolean
   disableIf?: [option: keyof typeof options, value: any]
 }
@@ -61,7 +66,22 @@ const useCommonComponentsProps = (item: OptionMeta) => {
   }
 }
 
-const ignoreReloadWarningsCache = new Set<string>()
+const isSettingChanged = (settingId: string) => {
+  return settingId in appStorage.changedSettings &&
+    JSON.stringify(appStorage.changedSettings[settingId]) !== JSON.stringify(defaultOptions[settingId])
+}
+
+const ChangedIndicator = () => (
+  <div style={{
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 3,
+    height: 3,
+    backgroundColor: 'rgb(77 160 255)',
+    pointerEvents: 'none',
+  }} />
+)
 
 // Helper functions for option value extraction
 const getOptionValue = (arrItem: string | [string, string]) => {
@@ -80,15 +100,44 @@ const getOptionLabel = (arrItem: string | [string, string]) => {
   }
 }
 
-export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
+const getNextOptionValue = (
+  itemId: keyof typeof options,
+  optionValue: unknown,
+  possibleValues: OptionPossibleValues | undefined,
+  event: React.MouseEvent
+) => {
+  if (possibleValues && possibleValues.length >= 4) {
+    return null
+  }
+  if (possibleValues && possibleValues.length > 1) {
+    const currentIndex = possibleValues.findIndex((value) => {
+      const val = getOptionValue(value)
+      return String(val) === String(optionValue)
+    })
+    if (currentIndex === -1) {
+      return getOptionValue(possibleValues[0])
+    }
+    const nextIndex = event.shiftKey
+      ? (currentIndex - 1 + possibleValues.length) % possibleValues.length
+      : (currentIndex + 1) % possibleValues.length
+    return getOptionValue(possibleValues[nextIndex])
+  }
+  if (possibleValues && possibleValues.length === 1) {
+    return getOptionValue(possibleValues[0])
+  }
+  return !options[itemId]
+}
+
+export const OptionButton = ({ item, onClick, valueText }: {
   item: Extract<OptionMeta, { type: 'toggle' }>,
   onClick?: () => void,
   valueText?: string,
-  cacheKey?: string,
 }) => {
   const { disabledBecauseOfSetting } = useCommonComponentsProps(item)
+  useSnapshot(appStorage)
 
   const optionValue = useSnapshot(options)[item.id!]
+  const isChanged = isSettingChanged(item.id!)
 
   // Get values from optionsMeta if available
   const meta = item.id ? optionsMeta[item.id as keyof typeof optionsMeta] : undefined
@@ -127,6 +176,24 @@ export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
         const result = await showOptionsModal(item.enableWarning, ['Enable'])
         if (!result) return
       }
+
+      const needsReloadPrompt = settingNeedsReloadPrompt(item.requiresRestart, item.requiresChunksReload, item.requiresRestartWhenInGame)
+      if (item.id && needsReloadPrompt) {
+        const reloadResult = await promptAndApplyReloadSetting({
+          settingLabel: translate(item.text || item.id),
+          currentValue: optionValue,
+          possibleValues,
+          requiresRestart: item.requiresRestart,
+          requiresChunksReload: item.requiresChunksReload,
+          tooltip: item.tooltip,
+        })
+        if (!reloadResult) return
+        options[item.id] = reloadResult.value as never
+        applySettingReloadResult(reloadResult)
+        onClick?.()
+        return
+      }
+
       onClick?.()
       if (item.id) {
         // Use showOptionsModal only if there are 4 or more options
@@ -142,54 +209,21 @@ export const OptionButton = ({ item, onClick, valueText, cacheKey }: {
               options[item.id] = getOptionValue(possibleValues[selectedIndex])
             }
           }
-        } else if (possibleValues && possibleValues.length > 1) {
-          // For 2-3 options, use old click/shift+click cycling logic
-          const currentIndex = possibleValues.findIndex((value) => {
-            const val = getOptionValue(value)
-            return String(val) === String(optionValue)
-          })
-          if (currentIndex === -1) {
-            options[item.id] = getOptionValue(possibleValues[0])
-          } else {
-            const nextIndex = event.shiftKey
-              ? (currentIndex - 1 + possibleValues.length) % possibleValues.length
-              : (currentIndex + 1) % possibleValues.length
-            options[item.id] = getOptionValue(possibleValues[nextIndex])
-          }
         } else {
-          // Boolean toggle or single value
-          options[item.id] = !options[item.id]
-        }
-      }
-
-      const toCacheKey = cacheKey ?? item.id ?? ''
-      if (toCacheKey && !ignoreReloadWarningsCache.has(toCacheKey)) {
-        ignoreReloadWarningsCache.add(toCacheKey)
-
-        if (item.requiresRestart) {
-          const result = await showOptionsModal(translate('The option requires a restart to take effect'), ['Restart', 'I will do it later'], {
-            cancel: false,
-          })
-          if (result) {
-            reconnectReload()
-          }
-        }
-        if (item.requiresChunksReload) {
-          const result = await showOptionsModal(translate('The option requires a chunks reload to take effect'), ['Reload', 'I will do it later'], {
-            cancel: false,
-          })
-          if (result) {
-            reloadChunksAction()
+          const nextValue = getNextOptionValue(item.id as keyof typeof options, optionValue, possibleValues, event)
+          if (nextValue !== null) {
+            options[item.id] = nextValue as never
           }
         }
       }
     }}
     title={disabledReason ? `${disabledReason} | ${item.tooltip}` : item.tooltip}
     disabled={disabledBecauseOfSetting || !!item.disabledReason || isLocked(item)}
-    style={{
-      width: 150,
-    }}
-  />
+    inScreen
+    style={isChanged ? { position: 'relative', width: 150 } : { width: 150 }}
+  >
+    {isChanged && <ChangedIndicator />}
+  </Button>
 }
 
 export const OptionSlider = ({
@@ -202,8 +236,10 @@ export const OptionSlider = ({
   valueOverride?: number
 }) => {
   const { disabledBecauseOfSetting } = useCommonComponentsProps(item)
+  useSnapshot(appStorage)
 
   const optionValue = useSnapshot(options)[item.id!]
+  const isChanged = isSettingChanged(item.id!)
 
   const valueDisplay = useMemo(() => {
     if (item.valueText) return item.valueText(optionValue)
@@ -211,21 +247,24 @@ export const OptionSlider = ({
   }, [optionValue])
 
   return (
-    <Slider
-      label={item.text!}
-      value={valueOverride ?? options[item.id!]}
-      data-setting={item.id}
-      disabledReason={isLocked(item) ? 'qs' : disabledBecauseOfSetting ? `Disabled because ${item.disableIf![0]} is ${item.disableIf![1]}` : item.disabledReason}
-      min={item.min}
-      max={item.max}
-      unit={item.unit}
-      valueDisplay={valueDisplay}
-      updateOnDragEnd={item.delayApply}
-      updateValue={(value) => {
-        options[item.id!] = value
-        onChange?.(value)
-      }}
-    />
+    <div style={isChanged ? { position: 'relative' } : undefined}>
+      <Slider
+        label={item.text!}
+        value={valueOverride ?? options[item.id!]}
+        data-setting={item.id}
+        disabledReason={isLocked(item) ? 'qs' : disabledBecauseOfSetting ? `Disabled because ${item.disableIf![0]} is ${item.disableIf![1]}` : item.disabledReason}
+        min={item.min}
+        max={item.max}
+        unit={item.unit}
+        valueDisplay={valueDisplay}
+        updateOnDragEnd={item.delayApply}
+        updateValue={(value) => {
+          options[item.id!] = value
+          onChange?.(value)
+        }}
+      />
+      {isChanged && <ChangedIndicator />}
+    </div>
   )
 }
 
@@ -236,7 +275,11 @@ const OptionElement = ({ item }: { item: Extract<OptionMeta, { type: 'element' }
 const RenderOption = ({ item }: { item: OptionMeta & { custom?: () => React.ReactNode } }) => {
   const { gameLoaded } = useSnapshot(miscUiState)
   if (item.id) {
-    item.text ??= titleCase(noCase(item.id))
+    const storedMeta = optionsMeta[item.id as keyof typeof optionsMeta]
+    item.text ??= storedMeta?.text ?? titleCase(noCase(item.id))
+    item.tooltip ??= storedMeta?.tooltip
+    item.requiresRestart ??= storedMeta?.requiresRestart
+    item.requiresChunksReload ??= storedMeta?.requiresChunksReload
   }
   if (item.disabledDuringGame && gameLoaded) {
     item.disabledReason = 'Cannot be changed during game'

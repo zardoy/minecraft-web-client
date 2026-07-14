@@ -61,6 +61,8 @@ export const setNotificationProgress = (id: string, newProps: {
   }
 }
 
+window.setNotificationProgress = setNotificationProgress
+
 export const showNotification = (
   message: string,
   subMessage = '',
