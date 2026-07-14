@@ -228,12 +228,14 @@ class ChunkPacketCache {
     if (!cached) return null
 
     cached.lastAccessed = Date.now()
-    this.metadata.chunks[chunkKey] = {
-      hash: cached.hash,
-      lastAccessed: cached.lastAccessed,
-      byteLength: cached.packetData.byteLength
+    if (this.serverSupportsChannel) {
+      this.metadata.chunks[chunkKey] = {
+        hash: cached.hash,
+        lastAccessed: cached.lastAccessed,
+        byteLength: cached.packetData.byteLength
+      }
+      this.scheduleSaveMetadata()
     }
-    this.scheduleSaveMetadata()
     return { packetData: cached.packetData, hash: cached.hash }
   }
 
@@ -328,6 +330,7 @@ class ChunkPacketCache {
           this.scheduleSaveMetadata()
         } catch (error) {
           console.warn(`Failed to save chunk ${chunkKey} to disk:`, error)
+          throw error
         }
       })
     }
@@ -394,9 +397,10 @@ class ChunkPacketCache {
     const previous = this.writeQueues.get(key) ?? Promise.resolve()
     const next = previous.catch(() => {}).then(task)
     this.writeQueues.set(key, next)
-    void next.finally(() => {
+    const cleanup = () => {
       if (this.writeQueues.get(key) === next) this.writeQueues.delete(key)
-    })
+    }
+    void next.then(cleanup, cleanup)
     return next
   }
 

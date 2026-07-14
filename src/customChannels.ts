@@ -902,10 +902,17 @@ const registerChunkCacheChannel = () => {
         cachedChunks.push(...validated.filter((entry): entry is { x: number; z: number; hash: string } => entry !== null))
       }
 
+      // Byte-based memory eviction may remove early entries while later batches
+      // load, so advertise only chunks still synchronously replayable now.
+      const residentChunks = cachedChunks.filter(info => {
+        const cached = chunkPacketCache.getFromMemory(info.x, info.z)
+        return cached?.hash === info.hash
+      })
+
       // Even an empty list is required: it is the explicit capability
       // handshake that enables hashing/suppression on the proxy.
-      bot._client.writeChannel(CLIENT_CHANNEL, { chunksJson: JSON.stringify(cachedChunks) })
-      console.debug(`Advertised ${cachedChunks.length} validated cached chunks to server`)
+      bot._client.writeChannel(CLIENT_CHANNEL, { chunksJson: JSON.stringify(residentChunks) })
+      console.debug(`Advertised ${residentChunks.length} validated cached chunks to server`)
     } catch (error) {
       console.warn('Failed to send cached chunks list:', error)
     }

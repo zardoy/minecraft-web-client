@@ -82,8 +82,9 @@ test('ChunkPacketCache stores in memory when channel is not supported', async ()
   const hit = await cache.get(3, -5)
   expect(hit).not.toBeNull()
   expect(hit?.hash).toBe('deadbeef')
+  await cache.flush()
 
-  // No disk files written — readdir returns [] because the dir was never created
+  // No packet or metadata files are written in memory-only mode.
   const files = await fs.promises.readdir(cacheDir).catch(() => [])
   expect(files).toHaveLength(0)
 })
@@ -300,4 +301,18 @@ test('ChunkPacketCache serializes concurrent writes to the same chunk', async ()
   expect(loaded?.hash).toBe('second02')
   expect([...new Uint8Array(loaded!.packetData)]).toEqual([2, 2, 2])
   expect((await fs.promises.readdir(cacheDir)).some(file => file.includes('.tmp'))).toBe(false)
+})
+
+
+test('ChunkPacketCache rejects failed disk writes and does not publish metadata', async () => {
+  const cacheDir = await createTempDir()
+  const cache = new ChunkPacketCache()
+  bindChunkCacheToDir(cache, cacheDir)
+  await cache.setServerInfo('test-server', true)
+
+  const rename = vi.spyOn(fs.promises, 'rename').mockRejectedValueOnce(new Error('disk full'))
+  await expect(cache.set(1, 2, makePacket(3, 4), 'writefail')).rejects.toThrow('disk full')
+  rename.mockRestore()
+
+  expect(await cache.getCachedChunksInfo()).toEqual([])
 })
