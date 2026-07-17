@@ -4,6 +4,7 @@ import { BoatStatus } from '@nxg-org/mineflayer-physics-util'
 import {
   buildEntityRenderHints,
   getLocalBoatWaterPatchVisible,
+  getRemoteBoatPaddleState,
   getRemoteBoatWaterPatchVisible,
   isRideableHorseEntityName,
   isRideableMinecartEntityName,
@@ -114,6 +115,7 @@ test('buildEntityRenderHints marks local vehicle and water patch', () => {
     horseControllerActive: false,
     world: makeWorld({ '0,62,0': makeBlock(waterId, { level: 7 }) }),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicle).toBe(true)
   expect(hints.boatWaterPatchVisible).toBe(true)
@@ -128,6 +130,7 @@ test('buildEntityRenderHints keeps remote boat on ordinary tween policy inputs',
     horseControllerActive: false,
     world: makeWorld({ '0,62,0': makeBlock(waterId, { level: 7 }) }),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicle).toBeUndefined()
   expect(hints.boatWaterPatchVisible).toBe(true)
@@ -142,6 +145,7 @@ test('buildEntityRenderHints sends an empty passenger list after boat detach', (
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.boatPassengerIds).toEqual([])
   expect(hints.passengerIds).toEqual([])
@@ -162,6 +166,7 @@ test('local minecart receives localVehicle hint for camera-synced rendering', ()
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicle).toBe(true)
   expect(hints.passengerLayout).toBe('minecart')
@@ -189,6 +194,7 @@ test('remote minecart does not receive localVehicle hint', () => {
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicle).toBeUndefined()
   expect(hints.passengerLayout).toBe('minecart')
@@ -209,6 +215,7 @@ test('minecart receives ordered passengerIds', () => {
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.passengerIds).toEqual([11, 12])
   expect(hints.passengerLayout).toBe('minecart')
@@ -228,6 +235,7 @@ test('minecart detach creates empty passenger list', () => {
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.passengerIds).toEqual([])
 })
@@ -250,6 +258,7 @@ test.each([
       horseControllerActive: false,
       world: makeWorld({}),
       waterIds: { waterId, flowingWaterId },
+      version: '1.17.1',
     },
   )
   expect(hints.passengerLayout).toBe('minecart')
@@ -278,6 +287,7 @@ test('local horse sets passengerLayout horse', () => {
     horseControllerActive: true,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicle).toBe(true)
   expect(hints.passengerLayout).toBe('horse')
@@ -298,6 +308,7 @@ test('local horse without active controller omits vertical camera lock', () => {
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicle).toBe(true)
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
@@ -315,6 +326,7 @@ test('remote horse omits localVehicle and vertical camera lock', () => {
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicle).toBeUndefined()
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
@@ -334,6 +346,7 @@ test('local boat does not set horse vertical camera lock', () => {
     horseControllerActive: true,
     world: makeWorld({ '0,62,0': makeBlock(waterId, { level: 7 }) }),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
 })
@@ -351,6 +364,7 @@ test('local minecart does not set horse vertical camera lock', () => {
     horseControllerActive: true,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
 })
@@ -367,7 +381,152 @@ test('empty horse passenger list still reports horse layout', () => {
     horseControllerActive: false,
     world: makeWorld({}),
     waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
   })
   expect(hints.passengerIds).toEqual([])
   expect(hints.passengerLayout).toBe('horse')
+})
+
+test('local boat paddle hints pass through physics state unchanged', () => {
+  const localBoat = {
+    ...boatEntity,
+    id: 1,
+    passengers: [{ id: 7 }],
+  }
+  const hints = buildEntityRenderHints(localBoat, {
+    localVehicle: localBoat,
+    localBoatStatus: BoatStatus.IN_WATER,
+    localBoatPaddleState: { leftPaddle: true, rightPaddle: false },
+    horseControllerActive: false,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
+  })
+  expect(hints.boatPaddleLeft).toBe(true)
+  expect(hints.boatPaddleRight).toBe(false)
+})
+
+test('local boat paddle hints default to false when physics state is null', () => {
+  const localBoat = {
+    ...boatEntity,
+    id: 1,
+    passengers: [{ id: 7 }],
+  }
+  const hints = buildEntityRenderHints(localBoat, {
+    localVehicle: localBoat,
+    localBoatStatus: null,
+    localBoatPaddleState: null,
+    horseControllerActive: false,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
+  })
+  expect(hints.boatPaddleLeft).toBe(false)
+  expect(hints.boatPaddleRight).toBe(false)
+})
+
+test('remote boat paddle hints resolve 1.17.1 metadata indices 12 and 13', () => {
+  const remoteBoat = {
+    ...boatEntity,
+    id: 2,
+    passengers: [{ id: 9 }],
+    metadata: [false, false, false, false, false, false, false, false, false, false, false, false, true, false],
+  }
+  const hints = buildEntityRenderHints(remoteBoat, {
+    localVehicle: null,
+    localBoatStatus: null,
+    horseControllerActive: false,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
+  })
+  expect(hints.boatPaddleLeft).toBe(true)
+  expect(hints.boatPaddleRight).toBe(false)
+})
+
+test('remote boat paddle hints prefer named metadata keys when supplied', () => {
+  const remoteBoat = {
+    ...boatEntity,
+    id: 2,
+    passengers: [{ id: 9 }],
+    metadata: [false, false, true, false],
+  }
+  const hints = buildEntityRenderHints(remoteBoat, {
+    localVehicle: null,
+    localBoatStatus: null,
+    horseControllerActive: false,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+    version: '1.19.4',
+    entityMetadataKeys: ['shared_flags', 'air_supply', 'paddle_left', 'paddle_right'],
+  })
+  expect(hints.boatPaddleLeft).toBe(true)
+  expect(hints.boatPaddleRight).toBe(false)
+})
+
+test('remote boat without passengers forces paddle hints false', () => {
+  const remoteBoat = {
+    ...boatEntity,
+    id: 2,
+    passengers: [],
+    metadata: [false, false, false, false, false, false, false, false, false, false, false, false, true, true],
+  }
+  const hints = buildEntityRenderHints(remoteBoat, {
+    localVehicle: null,
+    localBoatStatus: null,
+    horseControllerActive: false,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
+  })
+  expect(hints.boatPaddleLeft).toBe(false)
+  expect(hints.boatPaddleRight).toBe(false)
+})
+
+test('remote boat never receives local physics paddle state', () => {
+  const remoteBoat = {
+    ...boatEntity,
+    id: 2,
+    passengers: [{ id: 9 }],
+    metadata: [false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+  }
+  const hints = buildEntityRenderHints(remoteBoat, {
+    localVehicle: { ...boatEntity, id: 1 },
+    localBoatStatus: BoatStatus.IN_WATER,
+    localBoatPaddleState: { leftPaddle: true, rightPaddle: true },
+    horseControllerActive: false,
+    world: makeWorld({}),
+    waterIds: { waterId, flowingWaterId },
+    version: '1.17.1',
+  })
+  expect(hints.boatPaddleLeft).toBe(false)
+  expect(hints.boatPaddleRight).toBe(false)
+})
+
+test('getRemoteBoatPaddleState resolves all four boolean combinations on 1.17.1', () => {
+  const entity = {
+    ...boatEntity,
+    passengers: [{ id: 1 }],
+    metadata: [false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+  }
+  expect(getRemoteBoatPaddleState(entity, '1.17.1').leftPaddle).toBe(false)
+  expect(getRemoteBoatPaddleState(entity, '1.17.1').rightPaddle).toBe(false)
+
+  entity.metadata[12] = true
+  expect(getRemoteBoatPaddleState(entity, '1.17.1')).toEqual({ leftPaddle: true, rightPaddle: false })
+
+  entity.metadata[13] = true
+  expect(getRemoteBoatPaddleState(entity, '1.17.1')).toEqual({ leftPaddle: true, rightPaddle: true })
+
+  entity.metadata[12] = false
+  expect(getRemoteBoatPaddleState(entity, '1.17.1')).toEqual({ leftPaddle: false, rightPaddle: true })
+})
+
+test('getRemoteBoatPaddleState ignores truthy non-boolean metadata', () => {
+  const entity = {
+    ...boatEntity,
+    passengers: [{ id: 1 }],
+    metadata: [false, false, false, false, false, false, false, false, false, false, false, false, 1, 'true'],
+  }
+  expect(getRemoteBoatPaddleState(entity, '1.17.1')).toEqual({ leftPaddle: false, rightPaddle: false })
 })

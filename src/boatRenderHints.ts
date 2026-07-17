@@ -29,8 +29,15 @@ export type VehicleRenderHints = {
   passengerIds?: number[]
   passengerLayout?: 'boat' | 'minecart' | 'horse'
   boatWaterPatchVisible?: boolean
+  boatPaddleLeft?: boolean
+  boatPaddleRight?: boolean
   /** @deprecated Use passengerIds */
   boatPassengerIds?: number[]
+}
+
+export type BoatPaddleState = {
+  leftPaddle: boolean
+  rightPaddle: boolean
 }
 
 const RIDEABLE_MINECART_ENTITY_NAMES = new Set([
@@ -183,14 +190,79 @@ export function getLocalBoatWaterPatchVisible (status: BoatStatus | null | undef
   return status === BoatStatus.IN_WATER
 }
 
+type EntityWithMetadata = VehicleEntityLike & {
+  metadata?: unknown[]
+}
+
+export function getRemoteBoatPaddleState (
+  entity: EntityWithMetadata,
+  version: string,
+  metadataKeys?: string[],
+): BoatPaddleState {
+  const passengerIds = collectPassengerIds(entity)
+  if (passengerIds.length === 0) {
+    return { leftPaddle: false, rightPaddle: false }
+  }
+
+  let leftIndex = -1
+  let rightIndex = -1
+
+  if (metadataKeys?.includes('paddle_left') && metadataKeys?.includes('paddle_right')) {
+    leftIndex = metadataKeys.indexOf('paddle_left')
+    rightIndex = metadataKeys.indexOf('paddle_right')
+  } else if (version === '1.17' || version === '1.17.1') {
+    leftIndex = 12
+    rightIndex = 13
+  } else {
+    return { leftPaddle: false, rightPaddle: false }
+  }
+
+  const metadata = entity.metadata
+  if (!Array.isArray(metadata)) {
+    return { leftPaddle: false, rightPaddle: false }
+  }
+
+  return {
+    leftPaddle: metadata[leftIndex] === true,
+    rightPaddle: metadata[rightIndex] === true,
+  }
+}
+
+function resolveBoatPaddleHints (
+  entity: EntityWithMetadata,
+  isLocalVehicle: boolean,
+  options: {
+    localBoatPaddleState?: BoatPaddleState | null
+    version: string
+    entityMetadataKeys?: string[]
+  },
+): Pick<VehicleRenderHints, 'boatPaddleLeft' | 'boatPaddleRight'> {
+  if (isLocalVehicle) {
+    const state = options.localBoatPaddleState
+    return {
+      boatPaddleLeft: state?.leftPaddle === true,
+      boatPaddleRight: state?.rightPaddle === true,
+    }
+  }
+
+  const remote = getRemoteBoatPaddleState(entity, options.version, options.entityMetadataKeys)
+  return {
+    boatPaddleLeft: remote.leftPaddle,
+    boatPaddleRight: remote.rightPaddle,
+  }
+}
+
 export function buildEntityRenderHints (
   entity: VehicleEntityLike,
   options: {
     localVehicle: VehicleEntityLike | null | undefined
     localBoatStatus: BoatStatus | null | undefined
+    localBoatPaddleState?: BoatPaddleState | null
     horseControllerActive: boolean
     world: WorldLike
     waterIds: WaterIds
+    version: string
+    entityMetadataKeys?: string[]
   },
 ): VehicleRenderHints {
   const renderHints: VehicleRenderHints = {}
@@ -209,6 +281,7 @@ export function buildEntityRenderHints (
     renderHints.passengerIds = passengerIds
     renderHints.boatPassengerIds = passengerIds
     renderHints.passengerLayout = 'boat'
+    Object.assign(renderHints, resolveBoatPaddleHints(entity, renderHints.localVehicle === true, options))
     if (renderHints.localVehicle) {
       renderHints.boatWaterPatchVisible = getLocalBoatWaterPatchVisible(options.localBoatStatus)
     } else {
