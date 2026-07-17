@@ -2,14 +2,12 @@ export type EntityMovementAnimation = 'idle' | 'walking' | 'running' | 'crouch' 
 
 export type EntityMovementAnimationInput = {
   isMounted: boolean
-  isHorseMounted?: boolean
   isCrouched: boolean
   horizontalVelocity: { x: number; z: number }
 }
 
 export function getEntityMovementAnimation (input: EntityMovementAnimationInput): EntityMovementAnimation {
-  if (input.isHorseMounted) return 'riding'
-  if (input.isMounted) return 'idle'
+  if (input.isMounted) return 'riding'
 
   const WALKING_SPEED = 0.03
   const SPRINTING_SPEED = 0.18

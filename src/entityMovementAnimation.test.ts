@@ -5,29 +5,28 @@ const walkingVelocity = { x: 0.05, z: 0 }
 const sprintingVelocity = { x: 0.25, z: 0 }
 const highVehicleVelocity = { x: 1.5, z: 0.8 }
 
-test('mounted horse player uses riding animation', () => {
+test('mounted player with zero speed uses riding', () => {
   expect(getEntityMovementAnimation({
     isMounted: true,
-    isHorseMounted: true,
+    isCrouched: false,
+    horizontalVelocity: { x: 0, z: 0 },
+  })).toBe('riding')
+})
+
+test('mounted player with high vehicle speed uses riding', () => {
+  expect(getEntityMovementAnimation({
+    isMounted: true,
     isCrouched: false,
     horizontalVelocity: highVehicleVelocity,
   })).toBe('riding')
 })
 
-test('mounted player with high vehicle speed uses idle', () => {
+test('mounted crouched player uses riding', () => {
   expect(getEntityMovementAnimation({
     isMounted: true,
-    isCrouched: false,
-    horizontalVelocity: highVehicleVelocity,
-  })).toBe('idle')
-})
-
-test('mounted player with zero speed uses idle', () => {
-  expect(getEntityMovementAnimation({
-    isMounted: true,
-    isCrouched: false,
-    horizontalVelocity: { x: 0, z: 0 },
-  })).toBe('idle')
+    isCrouched: true,
+    horizontalVelocity: walkingVelocity,
+  })).toBe('riding')
 })
 
 test('unmounted walking speed uses walking', () => {
