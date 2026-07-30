@@ -8,6 +8,9 @@ import { registerIframeChannels } from './core/iframeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
+import { chunkPacketCache } from './chunkPacketCache'
+import { consumeReplayedChunkPacket, createReplayedChunkPacketTracker, emitReplayedMapChunk } from './chunkCacheReplay'
+import { computeSerializedPacketHash, deserializeMapChunkPacket, serializeMapChunkPacket } from './chunkPacketHash'
 
 const isWebSocketServer = (server: string | undefined) => {
   if (!server) return false
@@ -35,6 +38,7 @@ export default () => {
       registerIframeChannels()
       registerServerSettingsChannel()
       registerTypingIndicatorChannel()
+      registerChunkCacheChannel()
     })
   })
 }
@@ -661,6 +665,272 @@ const registerTypingIndicatorChannel = () => {
       gameAdditionalState.typingUsers = gameAdditionalState.typingUsers.filter(user => user.username !== username)
     }
   })
+}
+
+/**
+ * Register chunk-cache channel for server-side chunk caching protocol
+ *
+ * Protocol flow:
+ * 1. On login, client sends all cached chunks {x, z, hash} to server via "cached-chunks" message
+ * 2. For each chunk the client needs:
+ *    - If server has same hash: sends {x, z, cacheHit: true} - client uses cached map_chunk data
+ *    - If server has different/no hash: sends {x, z, hash: "..."} then the actual map_chunk packet
+ * 3. Client caches new map_chunk packets with their hash for future sessions
+ *
+ * This saves network bandwidth by not re-sending unchanged chunk data.
+ */
+const registerChunkCacheChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:chunk-cache'
+  const CLIENT_CHANNEL = 'minecraft-web-client:chunk-cache-client'
+
+  // Get server address for cache scoping
+  const serverAddress = lastConnectOptions.value?.server || 'unknown'
+  const cacheInitPromise = chunkPacketCache.init()
+  let cacheStatePromise = Promise.resolve()
+  const updateCacheServerState = async (supportsChannel: boolean) => {
+    cacheStatePromise = cacheStatePromise.then(async () => {
+      await cacheInitPromise
+      await chunkPacketCache.setServerInfo(serverAddress, supportsChannel)
+    })
+    return cacheStatePromise
+  }
+
+  // Packet structure for server -> client messages
+  // Server sends either:
+  // - {x, z, cacheHit: true, hash: ""} for cache hits
+  // - {x, z, cacheHit: false, hash: "..."} before sending map_chunk
+  const serverToClientStructure = [
+    'container',
+    [
+      { name: 'x', type: 'i32' },
+      { name: 'z', type: 'i32' },
+      { name: 'cacheHit', type: 'bool' },
+      { name: 'hash', type: ['pstring', { countType: 'i16' }] }
+    ]
+  ]
+
+  // Packet structure for client -> server messages (cached chunks list)
+  // Client sends: {chunksJson: "[{x, z, hash}, ...]"}
+  const clientToServerStructure = [
+    'container',
+    [
+      { name: 'chunksJson', type: ['pstring', { countType: 'i32' }] }
+    ]
+  ]
+
+  // Track pending chunk hashes from server (for chunks we'll receive via map_chunk)
+  // Stores {hash, timestamp} to enable TTL-based cleanup
+  const pendingChunkHashes = new Map<string, { hash: string; timestamp: number }>()
+  const replayedChunkPackets = createReplayedChunkPacketTracker()
+  const PENDING_HASH_TTL = 30_000 // 30 seconds TTL for pending hashes
+
+  // Track whether server supports the channel (detected via custom_payload)
+  let serverSupportsChannel = false
+  let initialClaimsSent = false
+  const unsubscribeMemoryEviction = chunkPacketCache.onMemoryEvicted(({ x, z }) => {
+    if (serverSupportsChannel && initialClaimsSent) sendChunkClaim(x, z, '')
+  })
+
+  // Periodic cleanup of stale pending hashes
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now()
+    for (const [key, value] of pendingChunkHashes) {
+      if (now - value.timestamp > PENDING_HASH_TTL) {
+        pendingChunkHashes.delete(key)
+        console.debug(`Expired pending hash for chunk ${key}`)
+      }
+    }
+  }, 10_000) // Check every 10 seconds
+
+  // Single cleanup handler on disconnect to prevent memory leaks
+  // (combining interval cleanup and pending hashes clear)
+  bot.once('end', () => {
+    clearInterval(cleanupInterval)
+    unsubscribeMemoryEviction()
+    pendingChunkHashes.clear()
+    void chunkPacketCache.flush()
+  })
+
+  // Initialize caches with server support = false by default
+  void updateCacheServerState(false)
+
+  // Register the channel on client side
+  bot._client.registerChannel(CHANNEL_NAME, serverToClientStructure, true)
+  bot._client.registerChannel(CLIENT_CHANNEL, clientToServerStructure, true)
+
+  // Listen for server channel registration via custom_payload
+  // When server registers our channel, we know it supports chunk caching
+  bot._client.on('custom_payload' as any, async (packet: { channel: string; data: Buffer }) => {
+    // Check for minecraft:register (1.13+) or REGISTER (pre-1.13) packets
+    if (packet.channel === 'minecraft:register' || packet.channel === 'REGISTER') {
+      // Parse null-separated channel names from the data
+      const channelNames = packet.data.toString('utf8').split('\0').filter(Boolean)
+
+      if (channelNames.includes(CHANNEL_NAME)) {
+        // Server supports our channel!
+        if (!serverSupportsChannel) {
+          serverSupportsChannel = true
+          console.debug(`Server registered ${CHANNEL_NAME} channel - enabling chunk caching`)
+          await updateCacheServerState(true)
+          await sendCachedChunksList()
+        }
+      }
+    }
+  })
+
+  // Listen for server responses on our channel. This handler is deliberately
+  // synchronous: advertised entries are preloaded into memory before the
+  // handshake, so replay cannot be overtaken by later Minecraft packets.
+  bot._client.on(CHANNEL_NAME as any, (data: { x: number; z: number; cacheHit: boolean; hash: string }) => {
+    const chunkKey = `${data.x},${data.z}`
+
+    if (data.cacheHit) {
+      const cached = chunkPacketCache.getFromMemory(data.x, data.z)
+      try {
+        if (!cached) throw new Error('advertised chunk is no longer memory-resident')
+        if (!data.hash || cached.hash !== data.hash) throw new Error('cached metadata hash mismatch')
+        if (computeSerializedPacketHash(cached.packetData) !== data.hash) throw new Error('cached packet hash mismatch')
+
+        const packetBuffer = Buffer.from(cached.packetData)
+        const deserialized = deserializeMapChunkPacket(packetBuffer)
+        if (deserialized.x !== data.x || deserialized.z !== data.z) {
+          throw new Error('cached packet coordinates do not match the requested chunk')
+        }
+        emitReplayedMapChunk(bot._client, replayedChunkPackets, deserialized, packetBuffer)
+        // ACK successful synchronous replay so the proxy can release its
+        // guaranteed recovery copy.
+        notifyChunkCached(data.x, data.z, data.hash)
+        console.debug(`Emitted cached map_chunk for ${chunkKey}`)
+      } catch (error) {
+        console.warn(`Cache invalid for ${chunkKey}:`, error)
+        void chunkPacketCache.invalidate(data.x, data.z)
+        requestChunkResend(data.x, data.z)
+      }
+    } else if (data.hash) {
+      // Set this synchronously before the following ordered map_chunk arrives.
+      pendingChunkHashes.set(chunkKey, { hash: data.hash, timestamp: Date.now() })
+      console.debug(`Expecting map_chunk for ${chunkKey} with hash ${data.hash}`)
+    }
+  })
+
+  // Intercept map_chunk packets to cache them
+  bot._client.on('packet', async (packetData: any, meta: { name: string }) => {
+    if (meta.name !== 'map_chunk') return
+    await cacheStatePromise
+
+    if (consumeReplayedChunkPacket(replayedChunkPackets, packetData)) {
+      return
+    }
+
+    const chunkKey = `${packetData.x},${packetData.z}`
+    const pending = pendingChunkHashes.get(chunkKey)
+
+    if (pending) {
+      // We have a hash from the server - cache this chunk
+      pendingChunkHashes.delete(chunkKey)
+
+      try {
+        // Serialize the packet data for caching
+        const serialized = serializeMapChunkPacket(packetData)
+        await chunkPacketCache.set(packetData.x, packetData.z, serialized, pending.hash)
+        notifyChunkCachedIfResident(packetData.x, packetData.z, pending.hash)
+        console.debug(`Cached map_chunk for ${chunkKey} with hash ${pending.hash}`)
+      } catch (error) {
+        console.warn(`Failed to cache chunk ${chunkKey}:`, error)
+      }
+    } else {
+      // No pending hash - server doesn't support caching for this chunk
+      // or this is a chunk update, compute hash and cache anyway for next session
+      try {
+        const serialized = serializeMapChunkPacket(packetData)
+        const hash = chunkPacketCache.computePacketHash(serialized)
+        await chunkPacketCache.set(packetData.x, packetData.z, serialized, hash)
+        if (serverSupportsChannel) notifyChunkCachedIfResident(packetData.x, packetData.z, hash)
+      } catch (error) {
+        // Silently fail - caching is optional
+      }
+    }
+  })
+
+  console.debug(`Registered ${CHANNEL_NAME} channel - waiting for server registration`)
+
+  /**
+   * Request the server to resend a chunk when cache recovery fails
+   * Sends an updated cache list without the failed chunk
+   */
+  function requestChunkResend (x: number, z: number): void {
+    console.debug(`Requesting resend for chunk ${x},${z}`)
+    // Send an empty cache entry for this chunk to force server to resend
+    // The server will see we don't have this chunk and send it fresh
+    sendChunkClaim(x, z, '')
+  }
+
+  function sendChunkClaim (x: number, z: number, hash: string): void {
+    try {
+      bot._client.writeChannel(CLIENT_CHANNEL, {
+        chunksJson: JSON.stringify([{ x, z, hash }])
+      })
+    } catch (error) {
+      console.warn(`Failed to send chunk claim for ${x},${z}:`, error)
+    }
+  }
+
+  function notifyChunkCached (x: number, z: number, hash: string): void {
+    sendChunkClaim(x, z, hash)
+  }
+
+  function notifyChunkCachedIfResident (x: number, z: number, hash: string): void {
+    if (chunkPacketCache.getFromMemory(x, z)?.hash === hash) {
+      notifyChunkCached(x, z, hash)
+    }
+  }
+
+  /**
+   * Preload and validate the most-recent persisted entries before advertising
+   * them. Keeping the advertised set below the memory-cache ceiling makes hit
+   * replay synchronous and preserves Minecraft packet order.
+   */
+  async function sendCachedChunksList (): Promise<void> {
+    const MAX_ADVERTISED_CHUNKS = 400
+    try {
+      await cacheStatePromise
+      const candidates = (await chunkPacketCache.getCachedChunksInfo()).slice(0, MAX_ADVERTISED_CHUNKS)
+      const cachedChunks: Array<{ x: number; z: number; hash: string }> = []
+
+      for (let start = 0; start < candidates.length; start += 8) {
+        const batch = candidates.slice(start, start + 8)
+        const validated = await Promise.all(batch.map(async info => {
+          const cached = await chunkPacketCache.get(info.x, info.z)
+          try {
+            if (!cached || cached.hash !== info.hash) throw new Error('metadata/file mismatch')
+            if (computeSerializedPacketHash(cached.packetData) !== info.hash) throw new Error('packet hash mismatch')
+            const packet = deserializeMapChunkPacket(Buffer.from(cached.packetData))
+            if (packet.x !== info.x || packet.z !== info.z) throw new Error('packet coordinate mismatch')
+            return info
+          } catch {
+            await chunkPacketCache.invalidate(info.x, info.z)
+            return null
+          }
+        }))
+        cachedChunks.push(...validated.filter((entry): entry is { x: number; z: number; hash: string } => entry !== null))
+      }
+
+      // Byte-based memory eviction may remove early entries while later batches
+      // load, so advertise only chunks still synchronously replayable now.
+      const residentChunks = cachedChunks.filter(info => {
+        const cached = chunkPacketCache.getFromMemory(info.x, info.z)
+        return cached?.hash === info.hash
+      })
+
+      // Even an empty list is required: it is the explicit capability
+      // handshake that enables hashing/suppression on the proxy.
+      bot._client.writeChannel(CLIENT_CHANNEL, { chunksJson: JSON.stringify(residentChunks) })
+      initialClaimsSent = true
+      console.debug(`Advertised ${residentChunks.length} validated cached chunks to server`)
+    } catch (error) {
+      console.warn('Failed to send cached chunks list:', error)
+    }
+  }
 }
 
 function getCurrentTopDomain (): string {
