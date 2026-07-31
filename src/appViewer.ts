@@ -108,7 +108,7 @@ const connectAppWorldViewToBot = () => {
     }
   })
 
-  const emitEntity = (e, name = 'entity') => {
+  const emitEntity = (e, name = 'entity', eventMetadata = {}) => {
     if (!e) return
     if (e === bot.entity) {
       if (name === 'entity') {
@@ -134,6 +134,7 @@ const connectAppWorldViewToBot = () => {
     })
     appViewer.worldView?.emit(name as any, {
       ...e,
+      ...eventMetadata,
       pos: e.position,
       username: e.username,
       team: bot.teamMap[e.username] || bot.teamMap[e.uuid],
@@ -171,8 +172,8 @@ const connectAppWorldViewToBot = () => {
     entityEquip (e: any) {
       emitEntity(e)
     },
-    entityMoved (e: any) {
-      emitEntity(e, 'entityMoved')
+    entityMoved (e: any, eventMetadata: Record<string, unknown> = {}) {
+      emitEntity(e, 'entityMoved', eventMetadata)
     },
     entityAttach (_passenger: any, vehicle: any) {
       queuePassengerVehicleRefresh(vehicle)
