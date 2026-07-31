@@ -293,6 +293,7 @@ test('local horse sets passengerLayout horse', () => {
   expect(hints.passengerLayout).toBe('horse')
   expect(hints.passengerIds).toEqual([1])
   expect(hints.localVehicleVerticalCameraLock).toBe('horse')
+  expect(hints.localVehicleYawLock).toBe('horse')
 })
 
 test('local horse without active controller omits vertical camera lock', () => {
@@ -312,6 +313,7 @@ test('local horse without active controller omits vertical camera lock', () => {
   })
   expect(hints.localVehicle).toBe(true)
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
+  expect(hints.localVehicleYawLock).toBeUndefined()
 })
 
 test('remote horse omits localVehicle and vertical camera lock', () => {
@@ -330,6 +332,7 @@ test('remote horse omits localVehicle and vertical camera lock', () => {
   })
   expect(hints.localVehicle).toBeUndefined()
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
+  expect(hints.localVehicleYawLock).toBeUndefined()
   expect(hints.passengerLayout).toBe('horse')
 })
 
@@ -349,6 +352,7 @@ test('local boat does not set horse vertical camera lock', () => {
     version: '1.17.1',
   })
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
+  expect(hints.localVehicleYawLock).toBeUndefined()
 })
 
 test('local minecart does not set horse vertical camera lock', () => {
@@ -367,6 +371,7 @@ test('local minecart does not set horse vertical camera lock', () => {
     version: '1.17.1',
   })
   expect(hints.localVehicleVerticalCameraLock).toBeUndefined()
+  expect(hints.localVehicleYawLock).toBeUndefined()
 })
 
 test('empty horse passenger list still reports horse layout', () => {

@@ -26,6 +26,7 @@ type WaterIds = {
 export type VehicleRenderHints = {
   localVehicle?: boolean
   localVehicleVerticalCameraLock?: 'horse'
+  localVehicleYawLock?: 'horse'
   passengerIds?: number[]
   passengerLayout?: 'boat' | 'minecart' | 'horse'
   boatWaterPatchVisible?: boolean
@@ -300,6 +301,7 @@ export function buildEntityRenderHints (
     renderHints.passengerLayout = 'horse'
     if (renderHints.localVehicle === true && options.horseControllerActive) {
       renderHints.localVehicleVerticalCameraLock = 'horse'
+      renderHints.localVehicleYawLock = 'horse'
     }
   }
 
