@@ -4,14 +4,15 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import path from 'path'
 import fs from 'fs'
 
+const physicsUtilSrcRoot = path.join(__dirname, 'node_modules/@nxg-org/mineflayer-physics-util/src')
+
 export const appAndRendererSharedConfig = () => defineConfig({
     dev: {
         progressBar: true,
         writeToDisk: true,
         watchFiles: {
             paths: [
-                // path.join(__dirname, './dist/webgpuRendererWorker.js'),
-                // path.join(__dirname, './dist/mesher.js'),
+                ...(fs.existsSync(physicsUtilSrcRoot) ? [physicsUtilSrcRoot] : []),
             ]
         },
     },
@@ -23,6 +24,15 @@ export const appAndRendererSharedConfig = () => defineConfig({
     },
     source: {
         alias: {
+            // GitHub install has src/ but no dist/; shim fixes type-only re-exports for rspack
+            ...(fs.existsSync(physicsUtilSrcRoot) ? {
+                '@nxg-org/mineflayer-physics-util': path.join(__dirname, './scripts/mineflayerPhysicsUtilEntry.ts'),
+                // physics-util src lists these as devDeps; resolve from project root when bundling its src
+                '@nxg-org/mineflayer-util-plugin': path.join(__dirname, 'node_modules/@nxg-org/mineflayer-util-plugin'),
+                'prismarine-entity': path.join(__dirname, 'node_modules/prismarine-entity'),
+                'prismarine-nbt': path.join(__dirname, 'node_modules/prismarine-nbt'),
+                'vec3': path.join(__dirname, 'node_modules/vec3'),
+            } : {}),
             fs: path.join(__dirname, `./src/shims/fs.js`),
             http: 'http-browserify',
             stream: 'stream-browserify',
@@ -74,7 +84,7 @@ export const appAndRendererSharedConfig = () => defineConfig({
     },
 })
 
-export const rspackViewerConfig = (config, { appendPlugins, addRules, rspack }: ModifyRspackConfigUtils) => {
+export const rspackViewerConfig = (config: any, { appendPlugins, addRules, rspack }: ModifyRspackConfigUtils) => {
     appendPlugins(new rspack.NormalModuleReplacementPlugin(/data|prismarine-physics/, (resource) => {
         let absolute: string
         const request = resource.request.replaceAll('\\', '/')
