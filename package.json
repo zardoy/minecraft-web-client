@@ -16,7 +16,7 @@
     "test:cypress": "cypress run",
     "test:benchmark": "PERFORMANCE_TEST=true cypress run",
     "test:cypress:open": "cypress open",
-    "test-unit": "vitest",
+    "test-unit": "vitest run",
     "test:e2e": "start-test http-get://localhost:8080 test:cypress",
     "prod-start": "node server.js --prod",
     "test-mc-server": "tsx cypress/minecraft-server.mjs",
