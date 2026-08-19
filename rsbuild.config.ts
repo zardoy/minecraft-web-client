@@ -199,6 +199,7 @@ const appConfig = defineConfig({
             'process.env.COOKIE_STORAGE_PREFIX': JSON.stringify(process.env.COOKIE_STORAGE_PREFIX || ''),
             'process.env.WS_PORT': JSON.stringify(enableMetrics ? 8081 : false),
             'process.env.MINECRAFT_RENDERER_VERSION': JSON.stringify(minecraftRendererVersion),
+            'process.env.BOAT_PHYS_DEBUG': JSON.stringify(process.env.BOAT_PHYS_DEBUG),
         },
     },
     server: {

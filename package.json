@@ -48,7 +48,7 @@
     "@dimaka/interface": "0.0.3-alpha.0",
     "@floating-ui/react": "^0.26.1",
     "@monaco-editor/react": "^4.7.0",
-    "@nxg-org/mineflayer-auto-jump": "^0.7.18",
+    "@nxg-org/mineflayer-auto-jump": "^0.8.0",
     "@nxg-org/mineflayer-tracker": "1.3.0",
     "@react-oauth/google": "^0.12.1",
     "@stylistic/eslint-plugin": "^2.6.1",
@@ -76,6 +76,7 @@
     "flying-squid": "npm:@zardoy/flying-squid@^0.0.122",
     "framer-motion": "^12.9.2",
     "fs-extra": "^11.1.1",
+    "glob": "^10.4.5",
     "google-drive-browserfs": "github:zardoy/browserfs#google-drive",
     "jszip": "^3.10.1",
     "lil-gui": "^0.21.0",
@@ -84,7 +85,7 @@
     "minecraft-data": "0.0.0",
     "minecraft-inventory": "^0.1.47",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
-    "minecraft-renderer": "^0.1.91",
+    "minecraft-renderer": "^0.1.96",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
     "mojangson": "^2.0.4",
     "net-browserify": "github:zardoy/prismarinejs-net-browserify",
@@ -116,7 +117,8 @@
     "valtio": "^1.11.1",
     "vec3": "^0.1.7",
     "wait-on": "^7.2.0",
-    "workbox-build": "^7.0.0"
+    "workbox-build": "^7.0.0",
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@rsbuild/core": "1.3.5",
@@ -192,7 +194,7 @@
   "pnpm": {
     "overrides": {
       "mineflayer": "github:zardoy/mineflayer#gen-the-master",
-      "@nxg-org/mineflayer-physics-util": "1.8.19",
+      "@nxg-org/mineflayer-physics-util": "https://github.com/zardoy/mineflayer-physics-utils",
       "buffer": "^6.0.3",
       "vec3": "0.1.10",
       "three": "0.184.0",

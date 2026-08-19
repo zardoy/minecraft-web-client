@@ -8,11 +8,12 @@ import {
   type MenuBackgroundOptions
 } from 'minecraft-renderer/src'
 import { generateGuiAtlas } from 'minecraft-renderer/src/lib/guiRenderer'
-import { BotEvents } from 'mineflayer'
+import { BotEvents, type EntityMovedMetadata } from 'mineflayer'
 import { activeModalStack, miscUiState } from './globalState'
 import { options } from './optionsStorage'
 import { watchOptionsAfterWorldViewInit } from './watchOptions'
 import { updateLightRemeshBlockKey } from './mineflayer/updateLightRemeshKey'
+import { buildEntityRenderHints } from './boatRenderHints'
 
 // do not import this. Use global appViewer instead (without window prefix).
 export const appViewer = new AppViewer()
@@ -107,7 +108,7 @@ const connectAppWorldViewToBot = () => {
     }
   })
 
-  const emitEntity = (e, name = 'entity') => {
+  const emitEntity = (e, name = 'entity', eventMetadata = {}) => {
     if (!e) return
     if (e === bot.entity) {
       if (name === 'entity') {
@@ -118,11 +119,43 @@ const connectAppWorldViewToBot = () => {
     if (!e.name) return // mineflayer received update for not spawned entity
     if (deadEntities.has(e.id)) return
     e.objectData = entitiesObjectData.get(e.id)
+    const renderHints = buildEntityRenderHints(e, {
+      localVehicle: bot.vehicle,
+      localBoatStatus: bot._boatPhysics?.getStatus?.() ?? null,
+      localBoatPaddleState: bot._boatPhysics?.getPaddleState?.() ?? null,
+      horseControllerActive: Boolean(bot._horsePhysics?.getCtx?.()),
+      world: bot.world,
+      waterIds: {
+        waterId: bot.registry.blocksByName.water.id,
+        flowingWaterId: bot.registry.blocksByName.flowing_water?.id,
+      },
+      version: bot.version,
+      entityMetadataKeys: bot.registry.entitiesByName[e.name]?.metadataKeys,
+    })
     appViewer.worldView?.emit(name as any, {
       ...e,
+      ...eventMetadata,
       pos: e.position,
       username: e.username,
       team: bot.teamMap[e.username] || bot.teamMap[e.uuid],
+      renderHints,
+    })
+  }
+
+  const pendingPassengerVehicles = new Map<number, any>()
+  let passengerVehicleFlushScheduled = false
+  const queuePassengerVehicleRefresh = (vehicle: any) => {
+    if (!vehicle) return
+    pendingPassengerVehicles.set(vehicle.id, vehicle)
+    if (passengerVehicleFlushScheduled) return
+    passengerVehicleFlushScheduled = true
+    queueMicrotask(() => {
+      passengerVehicleFlushScheduled = false
+      const vehicles = [...pendingPassengerVehicles.values()]
+      pendingPassengerVehicles.clear()
+      for (const pendingVehicle of vehicles) {
+        emitEntity(pendingVehicle)
+      }
     })
   }
 
@@ -139,8 +172,14 @@ const connectAppWorldViewToBot = () => {
     entityEquip (e: any) {
       emitEntity(e)
     },
-    entityMoved (e: any) {
-      emitEntity(e, 'entityMoved')
+    entityMoved (e: any, eventMetadata: EntityMovedMetadata = {}) {
+      emitEntity(e, 'entityMoved', eventMetadata)
+    },
+    entityAttach (_passenger: any, vehicle: any) {
+      queuePassengerVehicleRefresh(vehicle)
+    },
+    entityDetach (_passenger: any, vehicle: any) {
+      queuePassengerVehicleRefresh(vehicle)
     },
     entityDead (e: any) {
       if (e === bot.entity) return

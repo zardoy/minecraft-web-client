@@ -119,9 +119,6 @@ function GameInteractionOverlayInner ({
       e.stopPropagation()
 
       const allowedJitter = 1.1
-      if (supportsPressure) {
-        bot.setControlState('jump', (e as any).pressure > 0.5)
-      }
 
       // Adjust coordinates for scale (logical axes when body.rotated)
       const currentX = clientX / scale

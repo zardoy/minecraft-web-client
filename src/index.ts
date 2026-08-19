@@ -103,6 +103,7 @@ import { getCurrentProxy, getCurrentUsername } from './react/ServersList'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { isPlayground } from './playgroundIntegration'
 import { appLoadBackend } from './appViewerLoad'
+import { getCameraMovementMode, shouldSnapCameraOnMount } from './cameraMovementMode'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
 
 window.debug = debug
@@ -852,13 +853,21 @@ export async function connect (connectOptions: ConnectOptions) {
       initMotionTracking()
 
       // Bot position callback
-      const botPosition = () => {
+      const botPosition = (instant = false) => {
         appViewer.lastCamUpdate = Date.now()
-        // this might cause lag, but not sure
-        appViewer.backend?.updateCamera(bot.entity.position, bot.entity.yaw, bot.entity.pitch)
+        appViewer.backend?.updateCamera(
+          bot.entity.position,
+          bot.entity.yaw,
+          bot.entity.pitch,
+          { movementMode: getCameraMovementMode(bot), instant },
+        )
         void appViewer.worldView?.updatePosition(bot.entity.position)
       }
-      bot.on('move', botPosition)
+      bot.on('move', () => botPosition())
+      bot.on('forcedMove', () => botPosition(true))
+      bot.on('mount', () => {
+        if (shouldSnapCameraOnMount(bot.vehicle?.name)) botPosition(true)
+      })
       botPosition()
 
       progress.setMessage('Setting callbacks')

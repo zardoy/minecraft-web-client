@@ -9,6 +9,11 @@ import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { options, watchValue } from './optionsStorage'
 import { gameAdditionalState, miscUiState } from './globalState'
 import { EntityStatus } from './mineflayer/entityStatus'
+import {
+  applyEntityMovementAnimation,
+  clearLocalPlayerAnimationCache,
+  processMovementAnimations,
+} from './entityMovementAnimationPipeline'
 
 
 const updateAutoJump = () => {
@@ -62,35 +67,59 @@ customEvents.on('gameLoaded', () => {
   }
 
   let lastCall = 0
+
+  const applyLocalPlayerAnimation = (force = false) => {
+    if (!bot.entity) return
+    const rendererMethods = getThreeJsRendererMethods()
+    applyEntityMovementAnimation({
+      entity: bot.entity,
+      horizontalVelocity: bot.entity.velocity,
+      rendererEntityId: 'player_entity',
+      mountedVehicle: bot.vehicle,
+      force,
+      isLocalPlayer: true,
+      isLocalPlayerSneaking: gameAdditionalState.isSneaking,
+      playerPerAnimation,
+      playEntityAnimation (rendererEntityId, animation) {
+        void rendererMethods?.playEntityAnimation(rendererEntityId, animation)
+      },
+      rendererAvailable: rendererMethods !== undefined && rendererMethods !== null,
+    })
+  }
+
   bot.on('physicsTick', () => {
     // throttle, tps: 6
     if (Date.now() - lastCall < 166) return
     lastCall = Date.now()
-    for (const [id, { tracking, info }] of Object.entries(bot.tracker.trackingData)) {
-      if (!tracking) continue
-      const e = bot.entities[id]
-      if (!e) continue
-      const speed = info.avgVel
-      const WALKING_SPEED = 0.03
-      const SPRINTING_SPEED = 0.18
-      const isCrouched = e === bot.entity ? gameAdditionalState.isSneaking : e['crouching']
-      const isWalking = Math.abs(speed.x) > WALKING_SPEED || Math.abs(speed.z) > WALKING_SPEED
-      const isSprinting = Math.abs(speed.x) > SPRINTING_SPEED || Math.abs(speed.z) > SPRINTING_SPEED
 
-      const newAnimation =
-        isCrouched ? (isWalking ? 'crouchWalking' : 'crouch')
-          : isWalking ? (isSprinting ? 'running' : 'walking')
-            : 'idle'
-      if (newAnimation !== playerPerAnimation[id]) {
-        // Handle bot entity animation specially (for player entity in third person)
-        if (e === bot.entity) {
-          getThreeJsRendererMethods()?.playEntityAnimation('player_entity', newAnimation)
-        } else {
-          getThreeJsRendererMethods()?.playEntityAnimation(e.id, newAnimation)
-        }
-        playerPerAnimation[id] = newAnimation
-      }
-    }
+    const rendererMethods = getThreeJsRendererMethods()
+    processMovementAnimations({
+      localPlayerEntity: bot.entity ?? null,
+      localPlayerVehicle: bot.vehicle ?? null,
+      isLocalPlayerSneaking: gameAdditionalState.isSneaking,
+      trackingData: bot.tracker.trackingData,
+      getEntityById: (id) => bot.entities[id],
+      playerPerAnimation,
+      playEntityAnimation (rendererEntityId, animation) {
+        void rendererMethods?.playEntityAnimation(rendererEntityId, animation)
+      },
+      rendererAvailable: rendererMethods !== undefined && rendererMethods !== null,
+    })
+  })
+
+  bot.on('mount', () => {
+    applyLocalPlayerAnimation()
+  })
+
+  bot.on('dismount', () => {
+    applyLocalPlayerAnimation()
+  })
+
+  bot.on('respawn', () => {
+    clearLocalPlayerAnimationCache(playerPerAnimation)
+    queueMicrotask(() => {
+      applyLocalPlayerAnimation(true)
+    })
   })
 
   bot.on('entitySwingArm', (e) => {

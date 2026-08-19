@@ -14,7 +14,7 @@ export default () => {
 
 const RendererDebugMenu = ({ worldRenderer }: { worldRenderer: WorldRendererCommon }) => {
   const { reactiveDebugParams } = worldRenderer
-  const { chunksRenderAboveEnabled, chunksRenderBelowEnabled, chunksRenderDistanceEnabled, chunksRenderAboveOverride, chunksRenderBelowOverride, chunksRenderDistanceOverride, stopRendering, disableEntities } = useSnapshot(reactiveDebugParams)
+  const { chunksRenderAboveEnabled, chunksRenderBelowEnabled, chunksRenderDistanceEnabled, chunksRenderAboveOverride, chunksRenderBelowOverride, chunksRenderDistanceOverride, stopRendering, disableEntities, caveCullingDebug, smartCull } = useSnapshot(reactiveDebugParams)
 
   const { rendererPerfDebugOverlay } = useSnapshot(options)
 
@@ -35,6 +35,16 @@ const RendererDebugMenu = ({ worldRenderer }: { worldRenderer: WorldRendererComm
         label={disableEntities ? 'Enable Entities' : 'Disable Entities'}
         onClick={() => { reactiveDebugParams.disableEntities = !reactiveDebugParams.disableEntities }}
         overlayColor={disableEntities ? 'red' : undefined}
+      />
+      <Button
+        label={smartCull ? 'Disable Smart Cull' : 'Enable Smart Cull'}
+        onClick={() => { reactiveDebugParams.smartCull = !smartCull }}
+        overlayColor={smartCull ? undefined : 'orange'}
+      />
+      <Button
+        label={caveCullingDebug ? 'Hide Cave Cull Debug' : 'Show Cave Cull Debug'}
+        onClick={() => { reactiveDebugParams.caveCullingDebug = !reactiveDebugParams.caveCullingDebug }}
+        overlayColor={caveCullingDebug ? 'cyan' : undefined}
       />
     </div>
 

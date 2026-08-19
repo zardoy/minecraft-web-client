@@ -6,6 +6,8 @@ import { HandItemBlock } from 'minecraft-renderer/src/playerState/types'
 import { beforeRenderFrame } from '../beforeRenderFrame'
 import { gameAdditionalState } from '../globalState'
 import { options } from '../optionsStorage'
+import { getCameraMovementMode } from '../cameraMovementMode'
+import { updateMountedBobState, updateMountedMovementState } from '../mountedPlayerState'
 
 const BASE_MOVEMENT_SPEED = 0.1
 const FOV_EFFECT_SCALE = 1
@@ -222,32 +224,22 @@ export class PlayerStateControllerMain {
 
     const { velocity } = bot.entity
     const isOnGround = bot.entity.onGround
-    const VELOCITY_THRESHOLD = 0.01
-    const SPRINTING_VELOCITY = 0.15
-    const OFF_GROUND_THRESHOLD = 0 // ms before switching to SNEAKING when off ground
 
     const now = performance.now()
     const deltaTime = now - this.lastUpdateTime
     this.lastUpdateTime = now
 
-    // this.lastVelocity = velocity
-
-    // Update time off ground
-    if (isOnGround) {
-      this.timeOffGround = 0
-    } else {
-      this.timeOffGround += deltaTime
-    }
-
-    if (gameAdditionalState.isSneaking || gameAdditionalState.isFlying || (this.timeOffGround > OFF_GROUND_THRESHOLD)) {
-      this.reactive.movementState = 'SNEAKING'
-    } else if (Math.abs(velocity.x) > VELOCITY_THRESHOLD || Math.abs(velocity.z) > VELOCITY_THRESHOLD) {
-      this.reactive.movementState = Math.abs(velocity.x) > SPRINTING_VELOCITY || Math.abs(velocity.z) > SPRINTING_VELOCITY
-        ? 'SPRINTING'
-        : 'WALKING'
-    } else {
-      this.reactive.movementState = 'NOT_MOVING'
-    }
+    const next = updateMountedMovementState({
+      mounted: Boolean(bot.vehicle),
+      velocity,
+      onGround: isOnGround,
+      isSneaking: gameAdditionalState.isSneaking,
+      isFlying: gameAdditionalState.isFlying,
+      timeOffGround: this.timeOffGround,
+      deltaTime,
+    })
+    this.timeOffGround = next.timeOffGround
+    this.reactive.movementState = next.movementState
   }
 
   private updateWalkDistAndBob () {
@@ -255,20 +247,19 @@ export class PlayerStateControllerMain {
 
     const { velocity } = bot.entity
     const horizontalDist = Math.hypot(velocity.x, velocity.z)
-
-    // Save previous values for interpolation
-    this.reactive.prevWalkDist = this.reactive.walkDist
-    this.reactive.prevBob = this.reactive.bob
-
-    // Accumulate walk distance with dampening factor
-    this.reactive.walkDist += horizontalDist * 0.6
-
-    // Smooth bob amplitude — vanilla: onGround && !isDeadOrDying && !isSwimming
-    // isSwimming = sprinting + in water (not just touching water)
-    const isSwimming = bot.controlState.sprint && this.reactive.inWater
-    const isDeadOrDying = (bot.entity.health ?? 20) <= 0
-    const bobTarget = (bot.entity.onGround && !isDeadOrDying && !isSwimming) ? Math.min(0.1, horizontalDist) : 0
-    this.reactive.bob += (bobTarget - this.reactive.bob) * 0.4
+    const next = updateMountedBobState({
+      mounted: Boolean(bot.vehicle),
+      walkDist: this.reactive.walkDist,
+      bob: this.reactive.bob,
+      horizontalDist,
+      onGround: bot.entity.onGround,
+      isDeadOrDying: (bot.entity.health ?? 20) <= 0,
+      isSwimming: bot.controlState.sprint && this.reactive.inWater,
+    })
+    this.reactive.prevWalkDist = next.prevWalkDist
+    this.reactive.prevBob = next.prevBob
+    this.reactive.walkDist = next.walkDist
+    this.reactive.bob = next.bob
   }
 
   // #region Held Item State
@@ -320,7 +311,9 @@ export class PlayerStateControllerMain {
     if (this.eyeHeightWatchInstalled) return
     this.eyeHeightWatchInstalled = true
     subscribeKey(this.reactive, 'eyeHeight', () => {
-      appViewer.backend?.updateCamera(bot.entity.position, bot.entity.yaw, bot.entity.pitch)
+      appViewer.backend?.updateCamera(bot.entity.position, bot.entity.yaw, bot.entity.pitch, {
+        movementMode: getCameraMovementMode(bot),
+      })
     })
   }
 
