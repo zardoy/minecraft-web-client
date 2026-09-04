@@ -31,6 +31,8 @@ import { switchGameMode } from './packetsReplay/replayPackets'
 import { tabListState } from './react/PlayerListOverlayProvider'
 import { type ActionType, type ActionHoldConfig, type CustomAction } from './appConfig'
 import { playerState } from './mineflayer/playerState'
+import { setTalking, toggleTalking } from './voice/voiceChat'
+import { voiceChatStatus } from './react/VoiceMicrophone'
 import { emulateMouseClick } from './app/gamepadCursor'
 import { isNextConsoleKeyboardTarget } from './loadDevConsole'
 
@@ -93,6 +95,8 @@ export const contro = new ControMax({
     },
     communication: {
       toggleMicrophone: ['KeyM'],
+      pushToTalk: ['Backquote'],
+      voiceMenu: ['KeyV'],
     },
     advanced: {
       lockUrl: [null],
@@ -318,6 +322,18 @@ const setSneaking = (state: boolean) => {
 }
 
 const onTriggerOrReleased = (command: Command, pressed: boolean) => {
+  // push-to-talk must keep working while a modal is open, so it is handled
+  // before the isGameActive() gate (otherwise releasing the key in a menu
+  // would leave the mic stuck open)
+  if (command === 'communication.pushToTalk') {
+    if (options.voiceOpenMic) {
+      if (pressed) toggleTalking() // ignore the release edge; only the press toggles
+    } else {
+      setTalking(pressed)
+    }
+    return
+  }
+
   // always allow release!
   if (!bot || !isGameActive(false)) return
 
@@ -458,6 +474,14 @@ const alwaysPressedHandledCommand = (command: Command) => {
   }
   if (command === 'communication.toggleMicrophone') {
     toggleMicrophoneMuted?.()
+  }
+  if (command === 'communication.voiceMenu') {
+    if (!voiceChatStatus.active) return
+    if (activeModalStack.at(-1)?.reactType === 'voice-chat-menu') {
+      hideModal()
+    } else {
+      showModal({ reactType: 'voice-chat-menu' })
+    }
   }
 }
 

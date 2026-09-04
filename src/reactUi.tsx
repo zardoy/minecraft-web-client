@@ -47,6 +47,8 @@ import SignInMessageProvider from './react/SignInMessageProvider'
 import BookProvider from './react/BookProvider'
 import { options } from './optionsStorage'
 import BossBarOverlayProvider from './react/BossBarOverlayProvider'
+import VoiceChatConsentProvider from './react/VoiceChatConsentProvider'
+import VoiceChatMenuProvider from './react/VoiceChatMenuProvider'
 import ModsPage from './react/ModsPage'
 import DebugEdges from './react/DebugEdges'
 import GameInteractionOverlay from './react/GameInteractionOverlay'
@@ -253,6 +255,8 @@ const AppBase = () => {
             <CreateWorldProvider />
             <AppStatusProvider />
             <KeybindingsScreenProvider />
+            <VoiceChatConsentProvider />
+            <VoiceChatMenuProvider />
             <ServersListProvider />
             <OptionsRenderApp />
             <MainMenuRenderApp />

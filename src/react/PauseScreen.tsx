@@ -25,6 +25,7 @@ import { collectFilesToCopy, fileExistsAsyncOptimized, mkdirRecursive, uniqueFil
 import { appQueryParams } from '../appParams'
 import { downloadPacketsReplay, packetsRecordingState } from '../packetsReplay/packetsReplayLegacy'
 import { options } from '../optionsStorage'
+import { joinVoiceChat, leaveVoiceChat } from '../voice/voiceChat'
 import { useIsModalActive } from './utilsApp'
 import { showOptionsModal } from './SelectOption'
 import Button from './Button'
@@ -37,6 +38,7 @@ import NetworkStatus from './NetworkStatus'
 import PauseLinkButtons from './PauseLinkButtons'
 import { pixelartIcons } from './PixelartIcon'
 import LoadingTimer from './LoadingTimer'
+import { voiceChatStatus } from './VoiceMicrophone'
 
 const waitForPotentialRender = async () => {
   return new Promise<void>(resolve => {
@@ -164,6 +166,7 @@ export default () => {
   const { active: packetsReplaceActive, hasRecordedPackets: packetsReplaceHasRecordedPackets } = useSnapshot(packetsRecordingState)
   const { displayRecordButton: displayPacketsButtons } = useSnapshot(options)
   const { appConfig } = useSnapshot(miscUiState)
+  const { active: voiceActive, serverSupportsVoice, isJoining: voiceJoining } = useSnapshot(voiceChatStatus)
 
   const handlePointerLockChange = () => {
     if (!pointerLock.hasPointerLock && activeModalStack.length === 0) {
@@ -262,10 +265,29 @@ export default () => {
         <NetworkStatus />
       </div>
     </ErrorBoundary>
+    {serverSupportsVoice && (
+      <div style={{ position: 'fixed', top: '5px', right: 'calc(env(safe-area-inset-right) + 5px)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <Button
+          title="Voice Chat Settings"
+          icon={pixelartIcons.sliders}
+          onClick={() => showModal({ reactType: 'voice-chat-menu' })}
+        />
+      </div>
+    )}
     <div className={styles.pause_container}>
       <Button className="button" style={{ width: '204px' }} onClick={onReturnPress}>Back to Game</Button>
       <PauseLinkButtons />
       <Button className="button" style={{ width: '204px' }} onClick={() => openOptionsMenu('main')}>Options...</Button>
+      {serverSupportsVoice && (
+        <Button
+          className="button"
+          style={{ width: '204px' }}
+          disabled={voiceJoining}
+          onClick={() => (voiceActive ? leaveVoiceChat() : joinVoiceChat())}
+        >
+          {voiceJoining ? 'Joining…' : voiceActive ? 'Leave Voice Chat' : 'Join Voice Chat'}
+        </Button>
+      )}
       {singleplayer ? (
         <div className={styles.row}>
           <Button className="button" style={{ width: '170px' }} onClick={async () => clickJoinLinkButton()}>
