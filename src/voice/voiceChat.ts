@@ -45,6 +45,10 @@ export const voiceNearbyPlayers = proxy([] as NearbyPlayer[])
 
 let room: Room | undefined
 let localTrack: LocalAudioTrack | undefined
+/** In-flight first-talk mic capture, so overlapping PTT presses share one getUserMedia. */
+let localTrackPromise: Promise<LocalAudioTrack | undefined> | undefined
+/** Latest push-to-talk intent; applied after the mic track is ready. */
+let wantTalking = false
 let spatializer: VoiceSpatializer | undefined
 let currentConfig: VoiceConfig | undefined
 let nearbyIdentities = new Set<string>()
@@ -190,15 +194,66 @@ export const applyNearbyPlayers = (players: NearbyPlayer[], forceMuted: string[]
 
 export const isVoiceConnected = () => room?.state === ConnectionState.Connected
 
-/** Push-to-talk. Unmutes the already-published mic track. */
+const micCaptureOptions = () => ({
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  deviceId: options.voiceInputDeviceId || undefined
+})
+
+/**
+ * Capture and publish the local mic the first time the user actually talks.
+ * Join stays listen-only so getUserMedia is not prompted just to hear others.
+ */
+const ensureLocalMicTrack = async (): Promise<LocalAudioTrack | undefined> => {
+  if (localTrack) return localTrack
+  if (localTrackPromise) return localTrackPromise
+  if (!room || room.state !== ConnectionState.Connected) return undefined
+
+  const connectedRoom = room
+  localTrackPromise = (async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(`Microphone unavailable: this page must be served over HTTPS (or http://localhost) to speak. Current origin: ${location.origin}`)
+      }
+      const track = await createLocalAudioTrack(micCaptureOptions())
+      if (room !== connectedRoom || connectedRoom.state !== ConnectionState.Connected) {
+        track.stop()
+        return undefined
+      }
+      await connectedRoom.localParticipant.publishTrack(track)
+      if (!wantTalking) await track.mute()
+      localTrack = track
+      return track
+    } catch (error) {
+      console.error('[voice] failed to enable microphone', error)
+      showNotification('Microphone access failed', String(error), true)
+      return undefined
+    } finally {
+      localTrackPromise = undefined
+    }
+  })()
+  return localTrackPromise
+}
+
+/** Push-to-talk. Requests the mic on first press, then unmutes the published track. */
 export const setTalking = (talking: boolean) => {
-  if (!localTrack) return
-  if (talking) {
-    void localTrack.unmute()
-  } else {
-    void localTrack.mute()
+  wantTalking = talking
+  if (!talking) {
+    if (localTrack) void localTrack.mute()
+    voiceChatStatus.muted = true
+    return
   }
-  voiceChatStatus.muted = !talking
+  if (!room || room.state !== ConnectionState.Connected) return
+  void ensureLocalMicTrack().then(track => {
+    if (!track) {
+      voiceChatStatus.muted = true
+      return
+    }
+    if (wantTalking) void track.unmute()
+    else void track.mute()
+    voiceChatStatus.muted = !wantTalking
+  })
 }
 
 /** Open-mic mode: the keybind toggles instead of holding. */
@@ -270,22 +325,7 @@ export const connectVoice = async (config: VoiceConfig) => {
     // covers the case where the other player got here first.
     applySubscriptionState()
 
-    if (!navigator.mediaDevices?.getUserMedia) {
-      // Most commonly: page served over an insecure origin (plain http on a
-      // non-localhost host) — getUserMedia is only exposed in secure contexts.
-      throw new Error(`Microphone unavailable: this page must be served over HTTPS (or http://localhost) to use voice chat. Current origin: ${location.origin}`)
-    }
-
-    localTrack = await createLocalAudioTrack({
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-      deviceId: options.voiceInputDeviceId || undefined
-    })
-    await room.localParticipant.publishTrack(localTrack)
-    // Push-to-talk: start silent
-    await localTrack.mute()
-
+    // Mic is captured later, on first push-to-talk, so joining can be listen-only.
     clearJoinTimeout()
     voiceChatStatus.isJoining = false
     voiceChatStatus.active = true
@@ -308,6 +348,8 @@ export const connectVoice = async (config: VoiceConfig) => {
 
 /** Internal teardown, shared by the error path and the public disconnect. Does not touch `active`. */
 const cleanupConnection = async () => {
+  wantTalking = false
+  localTrackPromise = undefined
   if (localTrack) {
     localTrack.stop()
     localTrack = undefined
@@ -346,12 +388,7 @@ export const setInputDevice = async (deviceId: string) => {
   const wasMuted = localTrack.isMuted
   await room.localParticipant.unpublishTrack(localTrack)
   localTrack.stop()
-  localTrack = await createLocalAudioTrack({
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-    deviceId
-  })
+  localTrack = await createLocalAudioTrack(micCaptureOptions())
   await room.localParticipant.publishTrack(localTrack)
   if (wasMuted) await localTrack.mute()
 }
