@@ -129,9 +129,7 @@ if (appQueryParams.testCrashApp === '2') throw new Error('test')
 
 function hideCurrentScreens () {
   const appStatus = activeModalStack.find(x => x.reactType === 'app-status')
-  const keepOpen = activeModalStack.filter(x =>
-    x === appStatus || x.reactType === 'voice-chat-consent'
-  )
+  const keepOpen = activeModalStack.filter(x => x === appStatus || x.reactType === 'voice-chat-consent')
   activeModalStacks['main-menu'] = activeModalStack.filter(x => !keepOpen.includes(x))
   insertActiveModalStack('', keepOpen)
 }
