@@ -56,8 +56,29 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
   }
 
   migrateRendererOptions(options)
+  upgradeNewVersionsLightingDefault(options)
 
   return options
+}
+
+const NEW_VERSIONS_LIGHTING_DEFAULT_MIGRATION_KEY = 'migratedNewVersionsLightingDefault'
+
+function upgradeNewVersionsLightingDefault(saved: Record<string, any>) {
+  let alreadyMigrated = false
+  try {
+    alreadyMigrated = localStorage.getItem(NEW_VERSIONS_LIGHTING_DEFAULT_MIGRATION_KEY) === '1'
+  } catch {
+    alreadyMigrated = false
+  }
+  if (!alreadyMigrated && saved.newVersionsLighting === false) {
+    delete saved.newVersionsLighting
+  }
+  if (alreadyMigrated) return
+  try {
+    localStorage.setItem(NEW_VERSIONS_LIGHTING_DEFAULT_MIGRATION_KEY, '1')
+  } catch {
+    // private mode: next load may upgrade again; that is safe
+  }
 }
 
 export type AppOptions = typeof defaultOptions

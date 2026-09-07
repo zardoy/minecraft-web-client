@@ -193,7 +193,6 @@ export const serverSafeSettings: Partial<Record<keyof typeof defaultOptions, tru
   loadPlayerSkins: true,
   disableBlockEntityTextures: true,
   neighborChunkUpdates: true,
-  newVersionsLighting: true,
   showCursorBlockInSpectator: true,
 }
 export type OptionValueType = string | number | boolean | string[] | Record<string, any> | null
