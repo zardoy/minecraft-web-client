@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="darkreader-lock">
+    <script>
+      window.startLoad = Date.now()
+      // g663 fix: forbid change of string prototype
+      Object.defineProperty(String.prototype, 'format', {
+        writable: false,
+        configurable: false
+      });
+      Object.defineProperty(String.prototype, 'replaceAll', {
+        writable: false,
+        configurable: false
+      });
+    </script>
+    <script>
+      // NextConsole: mount on <html>, not <body> — body.rotated uses transform and breaks fixed UI.
+      (function () {
+        var root = document.createElement('div')
+        root.id = 'next-console-root'
+        document.documentElement.appendChild(root)
+      })()
+    </script>
+    <!-- // #region initial loader -->
+    <script async>
+      const loadingDiv = /* html */ `
+      <div class="initial-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10001; transition: opacity 0.3s ease-in-out; opacity: 1;">
+        <div class="initial-loader-background" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: -1; background-image: url('./loading-bg.jpg');"></div>
+        <div class="initial-loader-content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1;">
+          <div class="initial-loader-loading-title">Loading...</div>
+          <div class="initial-loader-loading-subtitle">A true Minecraft client in your browser!</div>
+        </div>
+        <div class="initial-loader-error" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; z-index: 2;">
+          <h1 class="initial-loader-error-title">Failed to load</h1>
+          <p class="initial-loader-error-subtitle error-subtitle">Check your connection and refresh the page</p>
+          <p class="initial-loader-error-advanced advanced-info"></p>
+          <p class="initial-loader-ios-warning ios-warning">Only iOS 15+ is supported due to performance optimizations</p>
+        </div>
+      </div>
+`
+      const insertLoadingDiv = () => {
+          const loadingDivElem = document.createElement('div')
+          loadingDivElem.innerHTML = loadingDiv
+          const loader = loadingDivElem.querySelector('.initial-loader')
+          if (loader) {
+            loader.addEventListener('transitionend', (e) => {
+              if (e.target === loader && !loader.dataset.error) {
+                loader.remove()
+              }
+            })
+          }
+          if (!window.pageLoaded) {
+            document.documentElement.appendChild(loadingDivElem)
+          }
+
+          // iOS version detection
+          const getIOSVersion = () => {
+            const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+            return match ? parseInt(match[1], 10) : null;
+          }
+
+          // load error handling
+          const onError = (errorOrMessage, log = false) => {
+            let message = errorOrMessage instanceof Error ? (errorOrMessage.stack ?? errorOrMessage.message) : errorOrMessage
+            if (log) console.log(message)
+            if (typeof message !== 'string') message = String(message)
+            const loader = document.querySelector('.initial-loader')
+            if (!loader || loader.dataset.error) return
+
+            const errorDiv = loader.querySelector('.initial-loader-error')
+            const contentDiv = loader.querySelector('.initial-loader-content')
+            if (contentDiv) contentDiv.style.display = 'none'
+            if (errorDiv) errorDiv.style.display = 'flex'
+            loader.dataset.error = '1'
+
+            const [errorMessage, ...errorStack] = message.split('\n')
+            const subtitle = errorDiv?.querySelector('.error-subtitle')
+            const advancedInfo = errorDiv?.querySelector('.advanced-info')
+            if (subtitle) subtitle.textContent = errorMessage || 'An unexpected error occurred'
+            if (advancedInfo) advancedInfo.textContent = errorStack.join('\n')
+
+            const iosVersion = getIOSVersion()
+            if (iosVersion !== null && iosVersion < 15) {
+              const iosWarning = errorDiv?.querySelector('.ios-warning')
+              if (iosWarning) iosWarning.style.display = 'block'
+            }
+
+            if (window.navigator.maxTouchPoints > 1) window.location.hash = '#dev'
+            if (window.navigator.serviceWorker && loader.style.opacity !== '0') {
+              window.navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(registration => registration.unregister())
+              })
+            }
+            window.lastError = errorOrMessage instanceof Error ? errorOrMessage : new Error(errorOrMessage)
+          }
+          window.addEventListener('unhandledrejection', (e) => onError(e.reason, true))
+          window.addEventListener('error', (e) => onError(e.error ?? e.message))
+        }
+        insertLoadingDiv()
+        document.addEventListener('DOMContentLoaded', () => {
+          // move loading div to the end of body
+          const loadingDivElem = document.querySelector('.initial-loader');
+          const newContainer = document.body; // replace with your new container
+          if (loadingDivElem) newContainer.appendChild(loadingDivElem);
+        })
+    </script>
+    <script type="module" async>
+      const parseLastErrorStack = () => {
+        if (window.location.hash === '#dev') {
+          // NextConsole: loaded once from src/loadDevConsole.ts (avoid double init with devReload)
+          Promise.all([import('https://cdn.skypack.dev/stacktrace-gps'), import('https://cdn.skypack.dev/error-stack-parser')]).then(async ([{ default: StackTraceGPS }, { default: ErrorStackParser }]) => {
+            if (!window.lastError) return
+
+            let stackFrames = [];
+            if (window.lastError instanceof Error) {
+              stackFrames = ErrorStackParser.parse(window.lastError);
+            }
+            console.log('stackFrames', stackFrames)
+            const gps = new StackTraceGPS()
+            const mappedFrames = await Promise.all(
+              stackFrames.map(frame => gps.pinpoint(frame))
+            );
+            console.log('mappedFrames', mappedFrames)
+
+            const stackTrace = mappedFrames
+              .map(frame => `at ${frame.functionName} (${frame.fileName}:${frame.lineNumber}:${frame.columnNumber})`)
+              .join('\n');
+            console.log('stackTrace', stackTrace)
+          })
+        }
+      }
+      parseLastErrorStack()
+      window.addEventListener('hashchange', (e) => {
+        setTimeout(() => {
+          parseLastErrorStack()
+        })
+      })
+    </script>
+    <style>
+      @font-face {
+        font-family: mojangles;
+        src: url('./mojangles.ttf');
+      }
+      html {
+        background: black;
+      }
+      .initial-loader {
+        --font-size: 20px;
+        overflow: hidden;
+      }
+      .initial-loader-background {
+        filter: brightness(0.5) blur(6px);
+        transform: scale(1.04);
+      }
+      .initial-loader-loading-title {
+        color: white;
+        font-family: mojangles, monospace;
+        font-weight: 500;
+        font-size: calc(var(--font-size) * 1.2);
+        text-align: center;
+        text-shadow: 2px 2px #000000;
+      }
+      .initial-loader-loading-subtitle {
+        color: rgb(176, 176, 176);
+        font-family: mojangles, monospace;
+        font-weight: 500;
+        font-size: var(--font-size);
+        margin-top: 8px;
+        text-align: center;
+        text-shadow: 2px 2px #000000;
+      }
+      .initial-loader-error-title {
+        color: #ff6b6b;
+        font-family: mojangles, monospace;
+        font-weight: 500;
+        font-size: 24px;
+        text-align: center;
+        text-shadow: 2px 2px #000000;
+        margin: 0 0 12px;
+      }
+      .initial-loader-error-subtitle {
+        color: white;
+        font-family: mojangles, monospace;
+        font-weight: 500;
+        font-size: 12px;
+        text-align: center;
+        text-shadow: 2px 2px #000000;
+        margin: 0;
+        max-width: min(560px, 90vw);
+        word-break: break-word;
+      }
+      .initial-loader-error-advanced {
+        color: #808080;
+        font-family: mojangles, monospace;
+        font-weight: 500;
+        font-size: 10px;
+        text-align: center;
+        margin: 14px 0 0;
+        max-width: min(560px, 90vw);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .initial-loader-ios-warning {
+        color: rgb(255, 100, 100);
+        font-family: mojangles, monospace;
+        font-size: calc(var(--font-size) * 0.6);
+        margin-top: 10px;
+        text-align: center;
+        display: none;
+      }
+      @media screen and (min-width: 550px) {
+        .initial-loader {
+          --font-size: 30px;
+        }
+      }
+      @media screen and (min-width: 950px) {
+        .initial-loader {
+          --font-size: 50px;
+        }
+      }
+    </style>
+    <!-- // #endregion -->
+    <!-- <script type="module">
+      window.loadPluginScript = async ({ pluginName, script }) => {
+        window.loadedPlugins[pluginName] = await import(script)
+      }
+    </script> -->
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="514b5fce-6944-4ca3-a463-ce12d77b5ae0"></script>
+    <title>Minecraft Web Client</title>
+    <!-- <link rel="canonical" href="https://mcraft.fun"> -->
+    <meta name="description" content="Minecraft Java Edition Client in Browser — Full Multiplayer Support, Server Connect, Offline Play — Join real Minecraft servers">
+    <meta name="keywords" content="Play, Minecraft, Online, Web, Java, Server, Single player, Javascript, PrismarineJS, Voxel, WebGL, Three.js">
+    <meta name="date" content="2024-07-11" scheme="YYYY-MM-DD">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#349474">
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'>
+    <meta property="og:title" content="Minecraft Web Client" />
+    <meta property="og:type" content="website" />
+    <meta name="format-detection" content="telephone=no">
+  <meta charset="UTF-8"><link href="./static/css/819.92543042.css" rel="stylesheet"><link href="./static/css/index.fa72615c.css" rel="stylesheet"><link rel="manifest" crossorigin="anonymous" href="manifest.json"><link rel="favicon" href="favicon.png"><link rel="icon" type="image/png" href="favicon.png"><meta property="og:image" content="favicon.png"></head>
+  <body>
+    <div id="react-root"></div>
+    <div id="ui-root"></div>
+    <!-- inject script -->
+  <script defer src="./static/js/lib-polyfill.3b2a8d42.js"></script><script defer src="./static/js/lib-react.2ae75c39.js"></script><script defer src="./static/js/819.0bc44434.js"></script><script defer src="./static/js/index.d80b26ee.js"></script></body>
+</html>

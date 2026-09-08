@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure client</title>
+    <script>
+        function removeSettings() {
+            if (confirm('Are you sure you want to RESET ALL SETTINGS?')) {
+                localStorage.setItem('options', '{}');
+                location.reload();
+            }
+        }
+
+        function removeAllData() {
+            localStorage.removeItem('serversList')
+            localStorage.removeItem('serversHistory')
+            localStorage.removeItem('authenticatedAccounts')
+            localStorage.removeItem('modsAutoUpdateLastCheck')
+            localStorage.removeItem('firstModsPageVisit')
+            localStorage.removeItem('proxiesData')
+            localStorage.removeItem('keybindings')
+            localStorage.removeItem('username')
+            localStorage.removeItem('customCommands')
+            localStorage.removeItem('options')
+        }
+    </script>
+</head>
+<body>
+    <div style="display: flex;gap: 10px;">
+        <button onclick="removeSettings()">Reset all settings</button>
+        <button onclick="removeAllData()">Remove all user data (but not mods or worlds)</button>
+        <!-- <button>Remove all user data (worlds, resourcepacks)</button> -->
+        <!-- <button>Remove all mods</button> -->
+        <!-- <button>Remove all mod repositories</button> -->
+    </div>
+    <input />
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+    "name": "Minecraft Web Client",
+    "short_name": "Minecraft Web Client",
+    "scope": "./",
+    "start_url": "./",
+    "icons": [
+        {
+            "src": "favicon.png",
+            "sizes": "720x720"
+        }
+    ],
+    "background_color": "#349474",
+    "theme_color": "#349474",
+    "lang": "en-US",
+    "orientation": "landscape",
+    "display": "standalone"
+}

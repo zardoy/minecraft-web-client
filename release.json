@@ -1,0 +1,5 @@
+{
+  "latestTag": "v2.3.0",
+  "changelog": "\n\n## [vv2.3.0](releases/tag/vv2.3.0) - 2026-09-08\n<!-- bump-type:minor -->\n### New Features\n\n- Official voice-chat integration (likekit Voice Chat is enabled on play.mcraft.fun) [`f1c8a0c`](/commit/f1c8a0c0af55eff26febe9c577dbeb61f3a13811)\n### Bug Fixes\n\n- joining to voice chat is listen-only until mic key is pressed (request permission there) [`da4ffe3`](/commit/da4ffe3e1cf01ff0320ad9e9dd6d2f93522ebc71)",
+  "previousTag": "v2.2.0"
+}
