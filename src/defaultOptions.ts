@@ -107,7 +107,19 @@ export const defaultOptions = {
   displayBossBars: true,
   disabledUiParts: [] as string[],
   neighborChunkUpdates: true,
-  activeRenderer: 'auto' as 'auto' | string | null
+  activeRenderer: 'auto' as 'auto' | string | null,
+
+  // voice chat
+  /** Whether to join voice chat when a server offers it. */
+  voiceChatEnabled: true,
+  /** Set once the user has answered the first-time voice chat prompt. */
+  voiceChatConsented: false,
+  voiceMasterVolume: 1,
+  voiceInputDeviceId: '' as string,
+  /** Per-player mute/volume, keyed by voice identity (player UUID). */
+  voicePlayerSettings: {} as Record<string, { volume: number, muted: boolean }>,
+  /** Not exposed in any settings UI yet. False: hold the keybind to talk. True: pressing it toggles the mic on/off. */
+  voiceOpenMic: false,
 }
 
 function getDefaultTouchControlsPositions () {

@@ -129,8 +129,9 @@ if (appQueryParams.testCrashApp === '2') throw new Error('test')
 
 function hideCurrentScreens () {
   const appStatus = activeModalStack.find(x => x.reactType === 'app-status')
-  activeModalStacks['main-menu'] = activeModalStack.filter(x => x !== appStatus)
-  insertActiveModalStack('', appStatus ? [appStatus] : [])
+  const keepOpen = activeModalStack.filter(x => x === appStatus || x.reactType === 'voice-chat-consent')
+  activeModalStacks['main-menu'] = activeModalStack.filter(x => !keepOpen.includes(x))
+  insertActiveModalStack('', keepOpen)
 }
 
 const loadSingleplayer = (serverOverrides = {}, flattenedServerOverrides = {}, connectOptions?: Partial<ConnectOptions>) => {

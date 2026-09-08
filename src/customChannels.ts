@@ -8,6 +8,7 @@ import { registerIframeChannels } from './core/iframeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
+import { applyNearbyPlayers, onVoiceAvailable, onVoiceConfig, setVoiceServerSender, disconnectVoice } from './voice/voiceChat'
 
 const isWebSocketServer = (server: string | undefined) => {
   if (!server) return false
@@ -35,6 +36,7 @@ export default () => {
       registerIframeChannels()
       registerServerSettingsChannel()
       registerTypingIndicatorChannel()
+      registerVoiceChatChannel()
     })
   })
 }
@@ -661,6 +663,58 @@ const registerTypingIndicatorChannel = () => {
       gameAdditionalState.typingUsers = gameAdditionalState.typingUsers.filter(user => user.username !== username)
     }
   })
+}
+
+const registerVoiceChatChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:voice-chat'
+  const packetStructure = [
+    'container',
+    [
+      { name: 'action', type: ['pstring', { countType: 'i16' }] },
+      { name: 'json', type: ['pstring', { countType: 'i16' }] }
+    ]
+  ]
+
+  bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
+
+  setVoiceServerSender((action, payload) => {
+    bot._client.writeChannel(CHANNEL_NAME, { action, json: JSON.stringify(payload) })
+  })
+
+  bot._client.on(CHANNEL_NAME as any, (data) => {
+    console.log('got voice chat', data)
+    let payload: any = {}
+    try {
+      payload = data.json ? JSON.parse(data.json) : {}
+    } catch (error) {
+      console.warn('Failed to parse voice-chat payload:', error)
+      return
+    }
+
+    switch (data.action) {
+      case 'available': {
+        onVoiceAvailable()
+        break
+      }
+      case 'config': {
+        onVoiceConfig(payload)
+        break
+      }
+      case 'nearby': {
+        applyNearbyPlayers(payload.players ?? [], payload.forceMuted ?? [])
+        break
+      }
+      default: {
+        console.log('Unknown voice-chat action:', data.action)
+      }
+    }
+  })
+
+  bot.once('end', () => {
+    void disconnectVoice()
+  })
+
+  console.log(`registered custom channel ${CHANNEL_NAME} channel`)
 }
 
 function getCurrentTopDomain (): string {
