@@ -38,6 +38,7 @@ export const defaultOptions = {
   debugLogNotFrequentPackets: false,
   unimplementedContainers: false,
   ...RENDERER_DEFAULT_OPTIONS,
+  rendererSmartCull: false as boolean,
   enabledResourcepack: null as string | null,
   useVersionsTextures: 'latest',
   serverResourcePacks: 'prompt' as 'prompt' | 'always' | 'never',
@@ -216,6 +217,10 @@ export type OptionMeta = {
 
 export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta>> = {
   ...RENDERER_OPTIONS_META,
+  rendererSmartCull: {
+    text: 'Smart cull',
+    tooltip: 'Occlusion-based section culling for better performance in caves and enclosed spaces',
+  },
   activeRenderer: {
     possibleValues: [
       ['threejs', 'Three.js (stable)'],
