@@ -17,6 +17,7 @@ import sharp from 'sharp'
 import supportedVersions from './src/supportedVersions.mjs'
 import { startWsServer } from './scripts/wsServer'
 import { applyWatermarkPackagesToConfig } from './scripts/watermarkLockfilePins'
+import { copyMesherArtifacts } from './scripts/copyMesherWorkers'
 
 const SINGLE_FILE_BUILD = process.env.SINGLE_FILE_BUILD === 'true'
 
@@ -250,22 +251,21 @@ const appConfig = defineConfig({
                     // childProcess.execSync('./scripts/prepareSounds.mjs', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genMcDataTypes.ts', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genPixelartTypes.ts', { stdio: 'inherit' })
-                    // copy mesher worker
-                    if (fs.existsSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm')) {
-                        fs.copyFileSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm', './dist/wasm_mesher_bg.wasm')
-                    } else {
-                        console.warn('wasm_mesher_bg.wasm not found')
-                    }
-                    if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesherWasm.js')) {
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', './dist/mesherWasm.js')
-                    }
-                    if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesher.js')) {
-                        // copy mesher
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js', './dist/mesher.js')
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js.map', './dist/mesher.js.map')
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/threeWorker.js', './dist/threeWorker.js')
-                    } else {
+                    const rendererRoot = path.dirname(require.resolve('minecraft-renderer/package.json'))
+                    const copiedMesher = await copyMesherArtifacts({
+                        mesherDistDir: path.join(rendererRoot, 'dist'),
+                        outDir: './dist',
+                        wasmPath: path.join(rendererRoot, 'src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm'),
+                    })
+                    const copiedBase = copiedMesher.map(file => path.basename(file))
+                    if (!copiedBase.includes('mesher.js')) {
                         throw new Error('mesher.js not found')
+                    }
+                    if (!copiedBase.includes('lightOwnerWorker.js')) {
+                        throw new Error('lightOwnerWorker.js not found')
+                    }
+                    if (!copiedBase.includes('wasm_mesher_bg.wasm')) {
+                        console.warn('wasm_mesher_bg.wasm not found')
                     }
                     fs.writeFileSync('./dist/version.txt', buildingVersion, 'utf-8')
 
@@ -278,7 +278,7 @@ const appConfig = defineConfig({
                 }
                 if (!dev) {
                     build.onBeforeBuild(async () => {
-                        prep()
+                        await prep()
                     })
                     build.onAfterBuild(async () => {
                         if (fs.readdirSync('./assets/customTextures').length > 0) {
