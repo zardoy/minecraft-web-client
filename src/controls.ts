@@ -31,6 +31,7 @@ import { switchGameMode } from './packetsReplay/replayPackets'
 import { tabListState } from './react/PlayerListOverlayProvider'
 import { type ActionType, type ActionHoldConfig, type CustomAction } from './appConfig'
 import { playerState } from './mineflayer/playerState'
+import { shouldBlockSprint, shouldSlowWhileUsing } from './mineflayer/movementWhileUsing'
 import { setTalking, toggleTalking } from './voice/voiceChat'
 import { voiceChatStatus } from './react/VoiceMicrophone'
 import { emulateMouseClick } from './app/gamepadCursor'
@@ -144,10 +145,138 @@ subscribe(miscUiState, updateDoPreventDefault)
 subscribe(activeModalStack, updateDoPreventDefault)
 updateDoPreventDefault()
 
+type MovementControl = 'forward' | 'back' | 'left' | 'right'
+const movementControls = ['forward', 'back', 'left', 'right'] as const satisfies readonly MovementControl[]
+const movementPulsePeriodTicks = 5
+const movementPulseIntervalMs = 50
+const desiredMovementState: Record<MovementControl, boolean> = {
+  forward: false,
+  back: false,
+  left: false,
+  right: false,
+}
+let movementPulsePhase = 0
+let movementPulseTimer: number | undefined
+let movementGuardsBot: typeof bot | undefined
+let removeMovementUseSubscription: (() => void) | undefined
+
+const forceSprintOff = () => {
+  if (!bot) return
+  bot.setControlState('sprint', false)
+  gameAdditionalState.isSprinting = false
+}
+
 const setSprinting = (state: boolean) => {
+  if (state && shouldBlockSprint(playerState.reactive?.itemUseSession)) {
+    forceSprintOff()
+    return
+  }
   bot.setControlState('sprint', state)
   gameAdditionalState.isSprinting = state
 }
+
+const applyMovementControls = () => {
+  if (!bot) return
+
+  const slowInput = shouldSlowWhileUsing(playerState.reactive?.itemUseSession, Boolean(bot.vehicle))
+  const suppressInput = slowInput && movementPulsePhase !== 0
+  for (const key of movementControls) {
+    const nextState = desiredMovementState[key] && !suppressInput
+    if (nextState === Boolean(bot.controlState[key])) continue
+    bot.setControlState(key, nextState)
+  }
+}
+
+const refreshMovementControls = () => {
+  if (!bot) return
+
+  const slowInput = shouldSlowWhileUsing(playerState.reactive?.itemUseSession, Boolean(bot.vehicle))
+  const hasMovementInput = movementControls.some(key => desiredMovementState[key])
+  if (slowInput && hasMovementInput) {
+    if (!movementPulseTimer) {
+      // Mineflayer exposes boolean control states, not LocalPlayer's analog
+      // impulses. One enabled tick followed by four suppressed ticks is the
+      // closest input-stage equivalent to vanilla's * 0.2.
+      movementPulsePhase = 0
+      movementPulseTimer = window.setInterval(() => {
+        const stillSlow = shouldSlowWhileUsing(playerState.reactive?.itemUseSession, Boolean(bot.vehicle))
+        const stillMoving = movementControls.some(key => desiredMovementState[key])
+        if (!stillSlow || !stillMoving) {
+          if (movementPulseTimer) clearInterval(movementPulseTimer)
+          movementPulseTimer = undefined
+          movementPulsePhase = 0
+          applyMovementControls()
+          return
+        }
+        movementPulsePhase = (movementPulsePhase + 1) % movementPulsePeriodTicks
+        applyMovementControls()
+      }, movementPulseIntervalMs)
+    }
+  } else {
+    if (movementPulseTimer) {
+      clearInterval(movementPulseTimer)
+      movementPulseTimer = undefined
+    }
+    movementPulsePhase = 0
+  }
+  applyMovementControls()
+}
+
+const setupMovementUseGuards = () => {
+  if (!bot || movementGuardsBot === bot) return
+
+  removeMovementUseSubscription?.()
+  removeMovementUseSubscription = undefined
+  movementGuardsBot = bot
+  movementControls.forEach(key => {
+    desiredMovementState[key] = false
+  })
+  if (movementPulseTimer) {
+    clearInterval(movementPulseTimer)
+    movementPulseTimer = undefined
+  }
+  movementPulsePhase = 0
+
+  const originalSetControlState = bot.setControlState.bind(bot)
+  bot.setControlState = (control, state) => {
+    if (control === 'sprint' && state && shouldBlockSprint(playerState.reactive?.itemUseSession)) {
+      originalSetControlState('sprint', false)
+      gameAdditionalState.isSprinting = false
+      return
+    }
+    originalSetControlState(control, state)
+    if (control === 'sprint') {
+      gameAdditionalState.isSprinting = state
+    }
+  }
+
+  if (playerState.reactive) {
+    removeMovementUseSubscription = subscribe(playerState.reactive, (ops) => {
+      if (!ops.some(([, path]) => path[0] === 'itemUseSession')) return
+      if (shouldBlockSprint(playerState.reactive?.itemUseSession)) {
+        forceSprintOff()
+      }
+      refreshMovementControls()
+    }, true)
+  }
+
+  if (shouldBlockSprint(playerState.reactive?.itemUseSession)) {
+    forceSprintOff()
+  }
+  refreshMovementControls()
+}
+
+customEvents.on('mineflayerBotCreated', () => {
+  bot.once('inject_allowed', () => {
+    // viewerConnector installs its own setControlState wrapper at inject time;
+    // install this outer guard after that wrapper so pressure/mobile callers
+    // cannot send a sprint=true request around the using-item check.
+    setTimeout(setupMovementUseGuards, 0)
+  })
+})
+customEvents.on('gameLoaded', () => {
+  setTimeout(setupMovementUseGuards, 0)
+})
 
 const isSpectatingEntity = () => {
   return getPlayerStateUtils(playerState.reactive).isSpectatingEntity()
@@ -197,29 +326,27 @@ contro.on('movementUpdate', ({ vector, soleVector, gamepadIndex }) => {
     ['x', 1, 'right'],
   ] as const
 
-  const newState: Partial<typeof bot.controlState> = {}
+  const newState: Partial<Record<MovementControl, boolean>> = {}
   for (const [coord, v] of Object.entries(vector)) {
     if (v === undefined || Math.abs(v) < 0.3) continue
-    // todo use raw values eg for slow movement
+    // ControMax supplies analog vectors, but mineflayer's controlState is
+    // boolean-only; retain direction here and apply the using-item pulse below.
     const mappedValue = v < 0 ? -1 : 1
-    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-    const foundAction = coordToAction.find(([c, mapV]) => c === coord && mapV === mappedValue)?.[2]!
+    const foundAction = coordToAction.find(([c, mapV]) => c === coord && mapV === mappedValue)?.[2]
+    if (!foundAction) continue
     newState[foundAction] = true
   }
 
-  for (const key of ['forward', 'back', 'left', 'right'] as const) {
-    if (!!(newState[key]) === !!(bot.controlState[key])) continue
+  for (const key of movementControls) {
     const action = !!newState[key]
     if (action && !isGameActive(true)) continue
-    bot.setControlState(key, action)
-
-    if (key === 'forward') {
+    desiredMovementState[key] = action
+    if (key === 'forward' && !action) {
       // todo workaround: need to refactor
-      if (!action) {
-        setSprinting(false)
-      }
+      setSprinting(false)
     }
   }
+  refreshMovementControls()
 })
 
 let lastCommandTrigger = null as { command: string, time: number } | null
@@ -242,6 +369,10 @@ subscribe(activeModalStack, () => {
     for (const key of contro.pressedKeys) {
       contro.pressedKeyOrButtonChanged({ code: key }, false)
     }
+    for (const key of movementControls) {
+      desiredMovementState[key] = false
+    }
+    refreshMovementControls()
   }
 })
 

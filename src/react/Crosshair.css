@@ -24,3 +24,7 @@
   background: lightgray;
   pointer-events: none;
 }
+
+.crosshair-indicator-pending {
+  opacity: 0.55;
+}
