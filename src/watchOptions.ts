@@ -50,7 +50,7 @@ export const watchOptionsAfterViewerInit = () => {
     applyRendererEnableLighting(
       appViewer,
       options.newVersionsLighting,
-      typeof bot === 'undefined' || !bot ? false : bot.supportFeature('blockStateId')
+      bot.supportFeature('blockStateId')
     )
   })
 
