@@ -262,7 +262,7 @@ const appConfig = defineConfig({
                         throw new Error('mesher.js not found')
                     }
                     if (!copiedBase.includes('lightOwnerWorker.js')) {
-                        throw new Error('lightOwnerWorker.js not found')
+                        throw new Error('lightOwnerWorker.js not found: rebuild/install minecraft-renderer with zardoy/minecraft-renderer#96 before building this client')
                     }
                     if (!copiedBase.includes('wasm_mesher_bg.wasm')) {
                         console.warn('wasm_mesher_bg.wasm not found')

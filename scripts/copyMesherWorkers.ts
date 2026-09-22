@@ -16,7 +16,7 @@ const EXTRA_DIST_FILES = ['threeWorker.js', 'threeWorker.js.map'] as const
  * Mesher/owner scripts come from `MESHER_DIST_FILES` (single source of truth).
  * `threeWorker.js` and the wasm binary live outside that list.
  */
-export async function copyMesherArtifacts(opts: CopyMesherArtifactsOptions): Promise<string[]> {
+export async function copyMesherArtifacts (opts: CopyMesherArtifactsOptions): Promise<string[]> {
   const cwd = opts.cwd ?? process.cwd()
   const outDir = path.resolve(cwd, opts.outDir)
   await mkdir(outDir, { recursive: true })
