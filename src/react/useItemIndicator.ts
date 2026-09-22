@@ -67,7 +67,11 @@ export function useUseIndicatorVisual (
   }, [display, session?.status, session?.id])
 
   const visual = computeUseIndicatorProgress(session, nowMs, clockRef.current)
-  clockRef.current = visual.clock
+
+  useEffect(() => {
+    clockRef.current = visual.clock
+  }, [visual.clock])
+
   return {
     display,
     progress: visual.progress,
