@@ -53,10 +53,10 @@ export default (bot: Bot) => {
   domListeners(bot)
   cursorBlockDisplay(bot)
 
-  otherListeners()
+  otherListeners(bot)
 }
 
-const otherListeners = () => {
+const otherListeners = (bot: Bot) => {
   bot.on('startDigging', (block) => {
     customEvents.emit('digStart')
   })
@@ -75,11 +75,16 @@ const otherListeners = () => {
 
   bot.on('startUsingItem', (item, slot, isOffhand, duration) => {
     customEvents.emit('activateItem', item, isOffhand ? 45 : bot.quickBarSlot, isOffhand)
-    playerState.startUsingItem()
+    playerState.startUsingItem(item, isOffhand ? 1 : 0)
   })
 
-  bot.on('stopUsingItem', () => {
-    playerState.stopUsingItem()
+  bot.on('stopUsingItem', (item, slot, isOffhand) => {
+    playerState.stopUsingItem(item, isOffhand ? 1 : 0)
+  })
+
+  bot._client.on('entity_status', (data) => {
+    if (data.entityId !== bot.entity?.id || data.entityStatus !== 9) return
+    playerState.completeUse()
   })
 }
 
