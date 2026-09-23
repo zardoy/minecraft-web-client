@@ -151,6 +151,11 @@ export const guiOptionsScheme: {
       },
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
+        tooltip: 'Block and sky lighting for 1.13+. Off renders the world fullbright.',
+      },
+      entityLighting: {
+        text: 'Entity Lighting',
+        tooltip: 'Light entities from block and sky light. Requires world lighting to be enabled; off keeps entities fullbright.',
       },
       starfieldRendering: {},
       keepChunksDistance: {
