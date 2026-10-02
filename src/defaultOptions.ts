@@ -73,6 +73,8 @@ export const defaultOptions = {
   singleplayerAutoSave: false,
   alwaysBackupWorldBeforeLoading: undefined as boolean | undefined | null,
   alwaysShowMobileControls: false,
+  /** Never enable touch controls, even if the device reports a touchscreen (e.g. laptops with mouse & keyboard). */
+  forceDisableTouchControls: false,
   /** Portrait viewport: apply `body.rotated` landscape layout without tapping the rotate button. */
   autoDisplayRotation: false,
   excludeCommunicationDebugEvents: [] as string[],
