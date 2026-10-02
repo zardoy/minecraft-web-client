@@ -2,12 +2,65 @@ import { getInitialPlayerState, getPlayerStateUtils, PlayerStateReactive, Player
 import { states } from 'minecraft-protocol'
 import { subscribe } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { HandItemBlock } from 'minecraft-renderer/src/playerState/types'
+import { HandItemBlock, UseItemAction, UseItemParticleEffect, UseItemSession, UseItemSnapshot } from 'minecraft-renderer/src/playerState/types'
 import { beforeRenderFrame } from '../beforeRenderFrame'
 import { gameAdditionalState } from '../globalState'
 import { options } from '../optionsStorage'
 import { getCameraMovementMode } from '../cameraMovementMode'
 import { updateMountedBobState, updateMountedMovementState } from '../mountedPlayerState'
+
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
+import { buildUseEffectBoundaries, getCrossedUseEffectBoundaries, getUseEffectDescriptor, type UseEffectPhase } from './useItemEffects'
+import { canUseItemAtHunger } from './useHungerGate'
+
+type UseEffectRecord = {
+  boundaries: Set<number>
+  fired: Set<number>
+}
+
+const FAST_FOOD_ITEM_NAMES: Record<string, true> = {
+  dried_kelp: true,
+}
+
+type UseItemHand = 0 | 1
+type UseItemEventItem = { name?: string | null } | null | undefined
+
+const DRINK_ITEM_NAMES: Record<string, true> = {
+  honey_bottle: true,
+  milk_bucket: true,
+  potion: true,
+}
+
+const getUseItemSnapshot = (name: string): UseItemSnapshot => {
+  let action: UseItemAction = 'NONE'
+  let durationTicks = 0
+  let particleEffect: UseItemParticleEffect = 'none'
+
+  if (name === 'bow') {
+    action = 'BOW'
+    durationTicks = 20
+  } else if (name === 'crossbow') {
+    action = 'CROSSBOW'
+    durationTicks = 20
+  } else if (name === 'shield') {
+    action = 'SHIELD'
+  } else if (DRINK_ITEM_NAMES[name]) {
+    action = 'DRINK'
+    durationTicks = name === 'honey_bottle' ? 40 : 32
+    particleEffect = 'drink'
+  } else if (typeof loadedData !== 'undefined' && loadedData?.foodsArray?.some(food => food.name === name)) {
+    action = 'EAT'
+    durationTicks = name === 'dried_kelp' ? 16 : 32
+    particleEffect = 'food'
+  }
+
+  return {
+    name,
+    durationTicks,
+    action,
+    particleEffect,
+  }
+}
 
 const BASE_MOVEMENT_SPEED = 0.1
 const FOV_EFFECT_SCALE = 1
@@ -42,7 +95,9 @@ const updateFovMultiplier = () => {
   }
 
   const heldItem = playerState.reactive.heldItemMain
-  if (heldItem?.name === 'bow' && playerState.reactive.itemUsageTicks > 0) {
+  const usingBow = playerState.reactive.itemUseSession?.action === 'BOW'
+    || (heldItem?.name === 'bow' && playerState.reactive.itemUsageTicks > 0)
+  if (usingBow && playerState.reactive.itemUsageTicks > 0) {
     let usageProgress = playerState.reactive.itemUsageTicks / 20
     if (usageProgress > 1) {
       usageProgress = 1
@@ -78,8 +133,16 @@ export class PlayerStateControllerMain {
   private lastUpdateTime = performance.now()
 
   // Held item state
-  private isUsingItem = false
+  private nextUseSessionId = 0
+  private activeUseSlot: number | null = null
+  private useEffectRecords = new Map<number, UseEffectRecord>()
   private eyeHeightWatchInstalled = false
+
+  /** Vanilla isUsingItem: still using until cancel or event-9, including remaining=0. */
+  private get isUsingItem (): boolean {
+    const status = this.reactive?.itemUseSession?.status
+    return status === 'active' || status === 'awaitingCompletion'
+  }
   ready = false
 
   reactive: PlayerStateReactive
@@ -97,7 +160,7 @@ export class PlayerStateControllerMain {
    */
   private attachBotSession () {
     this.ready = false
-    this.isUsingItem = false
+    if (this.reactive) this.resetUseSession()
     this.timeOffGround = 0
     this.lastUpdateTime = performance.now()
 
@@ -114,6 +177,7 @@ export class PlayerStateControllerMain {
 
     bot.once('inject_allowed', onInjectAllowed)
     bot.once('end', () => {
+      this.resetUseSession()
       this.ready = false
     })
 
@@ -141,6 +205,9 @@ export class PlayerStateControllerMain {
     Object.assign(this.reactive, fresh)
     this.reactive.perspective = options.defaultPerspective
     this.onBotCreatedOrGameJoined()
+    bot.on('death', () => this.resetUseSession())
+    bot.on('respawn', () => this.resetUseSession())
+    bot.on('kicked', () => this.resetUseSession())
 
     const handleDimensionData = (data) => {
       let hasSkyLight = 1
@@ -166,16 +233,16 @@ export class PlayerStateControllerMain {
     })
 
     // Movement tracking
-    bot.on('move', () => {
-      this.updateMovementState()
-    })
-
     // Item tracking
-    bot.on('heldItemChanged', () => {
-      return this.updateHeldItem(false)
+    bot.on('heldItemChanged', (item) => {
+      this.updateHeldItem(false)
+      this.cancelUseForHeldItem(0, item?.name)
     })
     bot.inventory.on('updateSlot', (index) => {
-      if (index === 45) this.updateHeldItem(true)
+      if (index === 45) {
+        this.updateHeldItem(true)
+        this.cancelUseForHeldItem(1, bot.inventory.slots[45]?.name)
+      }
     })
     const updateSneakingOrFlying = () => {
       this.updateMovementState()
@@ -185,7 +252,7 @@ export class PlayerStateControllerMain {
     }
     updateSneakingOrFlying()
     bot.on('physicsTick', () => {
-      if (this.isUsingItem) this.reactive.itemUsageTicks++
+      this.advanceUse()
       updateSneakingOrFlying()
       this.updateWalkDistAndBob()
     })
@@ -202,11 +269,13 @@ export class PlayerStateControllerMain {
     this.updateHeldItem(true)
 
     bot.on('game', () => {
+      this.resetUseSession()
       this.reactive.gameMode = bot.game.gameMode
     })
     this.reactive.gameMode = bot.game?.gameMode
 
     customEvents.on('gameLoaded', () => {
+      this.resetUseSession()
       this.reactive.team = bot.teamMap[bot.username] as any
     })
 
@@ -292,15 +361,201 @@ export class PlayerStateControllerMain {
     // this.events.emit('heldItemChanged', item, isLeftHand)
   }
 
-  startUsingItem () {
-    if (this.isUsingItem) return
-    this.isUsingItem = true
-    this.reactive.itemUsageTicks = 0
+  private publishItemUsageTicks (session = this.reactive?.itemUseSession) {
+    const usageContinues = session?.status === 'active' || session?.status === 'awaitingCompletion'
+    this.reactive.itemUsageTicks = usageContinues && session
+      ? Math.min(session.elapsedTicks, session.durationTicks)
+      : 0
+  }
+  private dropUseEffectRecord (sessionId: number) {
+    this.useEffectRecords.delete(sessionId)
   }
 
-  stopUsingItem () {
-    this.isUsingItem = false
-    this.reactive.itemUsageTicks = 0
+  private emitUseEffect (session: UseItemSession, phase: UseEffectPhase) {
+    const descriptor = getUseEffectDescriptor(session.action, session.itemSnapshot.name, phase)
+    if (descriptor.particleCount > 0) {
+      const position = bot.entity?.position
+      if (position) {
+        const renderer = getThreeJsRendererMethods()
+        if (renderer?.spawnItemParticles) {
+          // LivingEntity.spawnItemParticles uses eye-relative item particles;
+          // pass the same eye-height anchor while keeping the session snapshot
+          // as the texture identity after depletion/replacement.
+          void renderer.spawnItemParticles(
+            position.x,
+            position.y + (this.reactive?.eyeHeight ?? STANDING_EYE_HEIGHT),
+            position.z,
+            session.itemSnapshot.name,
+            descriptor.particleCount
+          )
+        }
+      }
+    }
+
+    // Player.playSound (1.17.1) calls level.playSound(this, ...). On the server that
+    // argument is the except-player, so sound_effect is not sent to the eater.
+    // On the client it is the local player, so ClientLevel plays it locally.
+    // Re-enter botSoundSystem via soundEffectHeard; particles stay client-only.
+    const position = bot.entity?.position
+    if (descriptor.sound && position) {
+      bot.emit('soundEffectHeard', descriptor.sound, position, 0.5, 1)
+    }
+    if (descriptor.burp && position) {
+      bot.emit('soundEffectHeard', 'entity.player.burp', position, 0.5, 1)
+    }
+  }
+
+  private fireCrossedUseEffects (session: UseItemSession, previousElapsedTicks: number, nextElapsedTicks: number) {
+    const record = this.useEffectRecords.get(session.id)
+    if (!record) return
+
+    // Catch up every missed boundary in descending remaining-tick order;
+    // repeated calls with the same elapsed value return no new boundaries.
+    for (const remaining of getCrossedUseEffectBoundaries(
+      previousElapsedTicks,
+      nextElapsedTicks,
+      session.durationTicks,
+      record.boundaries,
+      record.fired
+    )) {
+      record.fired.add(remaining)
+      this.emitUseEffect(session, 'periodic')
+    }
+  }
+
+
+  private cancelUseForHeldItem (hand: UseItemHand, name?: string) {
+    const session = this.reactive?.itemUseSession
+    if (!session || (session.status !== 'active' && session.status !== 'awaitingCompletion') || session.hand !== hand) return
+    const slot = hand === 1 ? 45 : bot.quickBarSlot
+    if (this.activeUseSlot !== null && slot !== this.activeUseSlot) {
+      this.cancelUse(undefined, hand)
+      return
+    }
+    if (name && name !== session.itemSnapshot.name) this.cancelUse(undefined, hand)
+  }
+
+  private matchesUseEvent (session: UseItemSession, item: UseItemEventItem, hand?: UseItemHand) {
+    return (hand === undefined || session.hand === hand)
+      && (!item?.name || item.name === session.itemSnapshot.name)
+  }
+
+  beginUse (item?: UseItemEventItem, hand: UseItemHand = 0): UseItemSession | undefined {
+    if (!this.reactive) return undefined
+
+    const current = this.reactive.itemUseSession
+    // Vanilla startUsingItem requires !isUsingItem(); awaitingCompletion is still using.
+    if (this.isUsingItem) return current
+
+    const heldItem = hand === 1 ? bot.inventory.slots[45] : bot.heldItem
+    const name = item?.name ?? heldItem?.name
+    if (!name) return undefined
+
+    const itemSnapshot = getUseItemSnapshot(name)
+    // Mineflayer's game plugin exposes gameMode but does not populate a bot
+    // abilities.invulnerable field, so creative is the available vanilla equivalent.
+    if (!canUseItemAtHunger(itemSnapshot.action, name, bot.food ?? undefined, {
+      isCreative: bot.game?.gameMode === 'creative',
+    })) return undefined
+
+    this.activeUseSlot = hand === 1 ? 45 : bot.quickBarSlot
+
+    const session: UseItemSession = {
+      id: ++this.nextUseSessionId,
+      itemSnapshot,
+      hand,
+      action: itemSnapshot.action,
+      durationTicks: itemSnapshot.durationTicks,
+      elapsedTicks: 0,
+      status: 'active',
+    }
+    this.useEffectRecords.set(session.id, {
+      boundaries: buildUseEffectBoundaries(session.durationTicks, FAST_FOOD_ITEM_NAMES[name] === true),
+      fired: new Set<number>(),
+    })
+    this.reactive.itemUseSession = session
+    this.publishItemUsageTicks(session)
+    return session
+  }
+
+  advanceUse (): UseItemSession | undefined {
+    const session = this.reactive?.itemUseSession
+    if (!session || session.status !== 'active') return session
+
+    if (session.durationTicks > 0) {
+      const previousElapsedTicks = session.elapsedTicks
+      const nextElapsedTicks = Math.min(session.durationTicks, previousElapsedTicks + 1)
+      session.elapsedTicks = nextElapsedTicks
+      this.fireCrossedUseEffects(session, previousElapsedTicks, nextElapsedTicks)
+      if (session.elapsedTicks >= session.durationTicks && (session.action === 'EAT' || session.action === 'DRINK')) {
+        session.status = 'awaitingCompletion'
+      }
+    }
+    this.publishItemUsageTicks(session)
+    return session
+  }
+
+  cancelUse (item?: UseItemEventItem, hand?: UseItemHand): UseItemSession | undefined {
+    const session = this.reactive?.itemUseSession
+    if (!session || !this.matchesUseEvent(session, item, hand)) return session
+    if (session.status === 'completed' || session.status === 'cancelled') return session
+
+    this.dropUseEffectRecord(session.id)
+    session.status = 'cancelled'
+    this.activeUseSlot = null
+    this.publishItemUsageTicks(session)
+    return session
+  }
+
+  completeUse (): UseItemSession | undefined {
+    const session = this.reactive?.itemUseSession
+    if (!session) return session
+    if (session.status === 'cancelled' || session.status === 'completed') {
+      this.dropUseEffectRecord(session.id)
+      return session
+    }
+    if (session.status !== 'active' && session.status !== 'awaitingCompletion') return session
+    if (session.action !== 'EAT' && session.action !== 'DRINK') return session
+
+    session.status = 'completed'
+    this.activeUseSlot = null
+    this.publishItemUsageTicks(session)
+    this.emitUseEffect(session, 'finish')
+    this.dropUseEffectRecord(session.id)
+    return session
+  }
+
+  resetUseSession () {
+    this.activeUseSlot = null
+    this.useEffectRecords.clear()
+    if (this.reactive) {
+      this.reactive.itemUseSession = undefined
+      this.reactive.itemUsageTicks = 0
+    }
+  }
+
+  startUsingItem (item?: UseItemEventItem, hand: UseItemHand = 0) {
+    return this.beginUse(item, hand)
+  }
+
+  stopUsingItem (item?: UseItemEventItem, hand?: UseItemHand) {
+    const session = this.reactive?.itemUseSession
+    if (!session || !this.matchesUseEvent(session, item, hand)) return session
+    if (session.status === 'active') {
+      if ((session.action === 'EAT' || session.action === 'DRINK')
+        && session.durationTicks > 0
+        && session.elapsedTicks >= session.durationTicks) {
+        session.status = 'awaitingCompletion'
+      } else {
+        session.status = 'cancelled'
+      }
+    } else if (session.status === 'awaitingCompletion' && session.action !== 'EAT' && session.action !== 'DRINK') {
+      session.status = 'cancelled'
+    }
+    if (session.status === 'cancelled') this.dropUseEffectRecord(session.id)
+    this.activeUseSlot = null
+    this.publishItemUsageTicks(session)
+    return session
   }
 
   getItemUsageTicks (): number {
