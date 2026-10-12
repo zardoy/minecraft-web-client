@@ -1,39 +1,132 @@
 import { Duplex } from 'stream'
-import { Peer, DataConnection } from 'peerjs'
+import { joinRoom, getRelaySockets } from '@trystero-p2p/ws-relay'
+import type { Room, TurnServerConfig } from '@trystero-p2p/ws-relay'
 import Client from 'minecraft-protocol/src/client'
-import { resolveTimeout } from './utils'
 import { setLoadingScreenStatus } from './appStatus'
 import { miscUiState } from './globalState'
 
+/** Trystero app id, rooms are namespaced by it so we never clash with other apps using the same relay */
+const TRYSTERO_APP_ID = 'prismarine-web-client'
+const DEFAULT_RELAY = 'wss://p2p.mcraft.fun'
+const GUEST_CONNECT_TIMEOUT = 20_000
+
 class CustomDuplex extends Duplex {
-  constructor (options, public writeAction) {
+  constructor (options, public writeAction: (chunk: Buffer) => Promise<void> | void) {
     super(options)
   }
 
   _read () { }
 
   _write (chunk, encoding, callback) {
-    this.writeAction(chunk)
-    callback()
+    // wait for the send to finish so chunks can't be reordered and backpressure works
+    Promise.resolve(this.writeAction(chunk)).then(() => callback(), (err) => callback(err))
   }
 }
 
-let peerInstance: Peer | undefined
+type RolePayload = { host: boolean }
 
-let overridePeerJsServer = null as string | null
+type HostSession = {
+  room: Room
+  roomId: string
+  /** relay override that is baked into the join link */
+  relayOverride?: string
+}
+
+let hostSession: HostSession | undefined
+
+const normalizeRelayUrl = (url: string) => {
+  url = url.trim()
+  if (/^https?:\/\//.test(url)) return url.replace(/^http/, 'ws')
+  if (!/^wss?:\/\//.test(url)) return `${location.protocol === 'http:' ? 'ws' : 'wss'}://${url}`
+  return url
+}
+
+const getRelayUrls = (override?: string) => {
+  if (override) return [normalizeRelayUrl(override)]
+  const { p2pRelayServer, p2pRelayServerFallback } = miscUiState.appConfig ?? {}
+  const urls = [p2pRelayServer || DEFAULT_RELAY, p2pRelayServerFallback]
+    .filter(Boolean)
+    .map(url => normalizeRelayUrl(url!))
+  return [...new Set(urls)]
+}
+
+let turnCache: { servers: TurnServerConfig[], expiresAt: number } | undefined
+
+/**
+ * TURN fallback for peers that can't connect directly (restrictive NATs, VPNs doing their own NAT: STUN works
+ * but the connection hangs). Config list wins, otherwise short-lived credentials are fetched from the relay.
+ * Never blocks or fails the connection: without TURN we just fall back to Trystero's default STUN-only setup.
+ */
+const getTurnConfig = async (relayUrls: string[]): Promise<TurnServerConfig[] | undefined> => {
+  const configured = miscUiState.appConfig?.p2pTurnServers
+  if (configured?.length) return configured
+  if (turnCache && turnCache.expiresAt > Date.now()) return turnCache.servers
+  try {
+    const url = new URL(relayUrls[0].replace(/^ws/, 'http'))
+    url.pathname = `${url.pathname.replace(/\/$/, '')}/turn-credentials`
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) })
+    if (!res.ok) return undefined
+    const { iceServers } = await res.json() as { iceServers?: TurnServerConfig[] }
+    if (!iceServers?.length) return undefined
+    // credentials are valid for 1h, refresh a bit earlier
+    turnCache = { servers: iceServers, expiresAt: Date.now() + 45 * 60_000 }
+    return iceServers
+  } catch (err) {
+    console.warn('Failed to get TURN credentials, using STUN only', err)
+    return undefined
+  }
+}
+
+const joinP2pRoom = async (roomId: string, relayOverride?: string, onJoinError?: (error: string) => void) => {
+  const urls = getRelayUrls(relayOverride)
+  const room = joinRoom({
+    appId: TRYSTERO_APP_ID,
+    relayConfig: { urls },
+    turnConfig: await getTurnConfig(urls),
+  }, roomId, {
+    onJoinError (info) {
+      console.error('p2p handshake error', info)
+      onJoinError?.(info.error)
+    }
+  })
+  return room
+}
+
+/** Trystero doesn't expose relay connection failures, so we check sockets by hand */
+const isRelayConnected = () => {
+  const sockets = getRelaySockets() as Record<string, WebSocket | undefined>
+  return Object.values(sockets).some(socket => socket?.readyState === WebSocket.OPEN)
+}
+
+const waitForRelay = async (timeout: number) => {
+  const start = Date.now()
+  while (Date.now() - start < timeout) {
+    if (isRelayConnected()) return true
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise(resolve => {
+      setTimeout(resolve, 200)
+    })
+  }
+  return false
+}
+
+const makeRoomId = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(12))
+  return `mc-${[...bytes].map(b => b.toString(36).padStart(2, '0')).join('')}`
+}
+
+const toBuffer = (data: unknown) => Buffer.from(data as ArrayBuffer)
+// copy: Buffers are views into a shared pool and trystero expects a standalone buffer
+const toWire = (chunk: Uint8Array) => new Uint8Array(chunk)
 
 export const getJoinLink = () => {
-  if (!peerInstance) return
+  if (!hostSession) return
   const url = new URL(window.location.href)
-  for (const key of url.searchParams.keys()) {
-    url.searchParams.delete(key)
-  }
-  url.searchParams.set('connectPeer', peerInstance.id)
+  url.search = ''
+  url.searchParams.set('connectPeer', hostSession.roomId)
   url.searchParams.set('peerVersion', localServer!.options.version)
-  const host = (overridePeerJsServer ?? miscUiState.appConfig?.peerJsServer) ?? undefined
-  if (host) {
-    // TODO! use miscUiState.appConfig.peerJsServer
-    url.searchParams.set('server', host)
+  if (hostSession.relayOverride) {
+    url.searchParams.set('server', hostSession.relayOverride)
   }
   return url.toString()
 }
@@ -50,180 +143,148 @@ const copyJoinLink = async () => {
 
 export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy = true) => {
   if (!localServer) return
-  if (peerInstance) {
+  if (hostSession) {
     if (doCopy) await copyJoinLink()
     return 'Already opened to wan. Join link copied'
   }
+  if (miscUiState.wanOpening) return 'Already opening, wait...'
   miscUiState.wanOpening = true
-  const host = (overridePeerJsServer ?? miscUiState.appConfig?.peerJsServer) || undefined
-  const params = host ? parseUrl(host) : undefined
-  const peer = new Peer({
-    debug: 3,
-    secure: true,
-    ...params
+  const roomId = makeRoomId()
+  let handshakeError: string | undefined
+  const room = await joinP2pRoom(roomId, undefined, (error) => {
+    handshakeError = error
   })
-  peerInstance = peer
-  peer.on('connection', (connection) => {
-    console.log('connection')
-    const serverDuplex = new CustomDuplex({}, async (data) => connection.send(data))
+  const session: HostSession = { room, roomId }
+  hostSession = session
+
+  const roleAction = room.makeAction<RolePayload>('role')
+  const dataAction = room.makeAction<Uint8Array>('mc')
+  const connections = new Map<string, { serverDuplex: CustomDuplex, client: Client }>()
+
+  const acceptGuest = (peerId: string) => {
+    if (connections.has(peerId)) return
+    console.log('p2p guest connected', peerId)
+    const serverDuplex = new CustomDuplex({}, async (data) => dataAction.send(toWire(data), { target: peerId }))
     const client = new Client(true, localServer.options.version, undefined)
     client.setSocket(serverDuplex)
+    connections.set(peerId, { serverDuplex, client })
     localServer._server.emit('connection', client)
 
-    connection.on('data', (data: any) => {
-      serverDuplex.push(Buffer.from(data))
-    })
     // our side disconnect
     const endConnection = () => {
-      console.log('connection.close')
       serverDuplex.end()
-      connection.close()
     }
     serverDuplex.on('end', endConnection)
     serverDuplex.on('force-close', endConnection)
-    client.on('end', endConnection)
-
-    const disconnected = () => {
-      serverDuplex.end()
-      client.end()
-    }
-    connection.on('iceStateChanged', (state) => {
-      console.log('iceStateChanged', state)
-      if (state === 'disconnected') {
-        disconnected()
-      }
+    client.on('end', () => {
+      connections.delete(peerId)
+      endConnection()
     })
-    connection.on('close', disconnected)
-    connection.on('error', disconnected)
-  })
-  const fallbackServer = miscUiState.appConfig?.peerJsServerFallback
-  const hasFallback = fallbackServer && peer.options.host !== fallbackServer
-  let hadErrorReported = false
-  peer.on('error', (error) => {
-    console.error('peerJS error', error)
-    if (error.type === 'server-error' && hasFallback) {
-      return
-    }
-    hadErrorReported = true
-    writeText(error.message || JSON.stringify(error))
-  })
-  let timeout
-  const destroy = () => {
-    clearTimeout(timeout)
-    timeout = undefined
-    peer.destroy()
-    peerInstance = undefined
   }
 
-  const result = await new Promise<string>(resolve => {
-    peer.on('open', async () => {
-      await copyJoinLink()
-      resolve('Copied join link to clipboard')
-    })
-    timeout = setTimeout(async () => {
-      if (!hadErrorReported && timeout !== undefined) {
-        if (hasFallback && overridePeerJsServer === null) {
-          destroy()
-          overridePeerJsServer = fallbackServer
-          console.log('Trying fallback server due to timeout', fallbackServer)
-          resolve((await openToWanAndCopyJoinLink(writeText, doCopy))!)
-        } else {
-          writeText('timeout')
-          resolve('Failed to open to wan (timeout)')
-        }
-      }
-    }, 6000)
-
-    // fallback
-    peer.on('error', async (error) => {
-      if (!peer.open) {
-        if (hasFallback) {
-          destroy()
-
-          overridePeerJsServer = fallbackServer
-          console.log('Trying fallback server', fallbackServer)
-          resolve((await openToWanAndCopyJoinLink(writeText, doCopy))!)
-        }
-      }
-    })
-  })
-  if (peerInstance && !peerInstance.open) {
-    destroy()
+  roleAction.onMessage = (role, { peerId }) => {
+    if (!role.host) acceptGuest(peerId)
   }
+  dataAction.onMessage = (data, { peerId }) => {
+    connections.get(peerId)?.serverDuplex.push(toBuffer(data))
+  }
+  room.onPeerJoin = (peerId) => {
+    // let the peer know who is the host (guests also see each other, they must not mix us up)
+    void roleAction.send({ host: true }, { target: peerId })
+  }
+  room.onPeerLeave = (peerId) => {
+    console.log('p2p guest left', peerId)
+    const connection = connections.get(peerId)
+    if (!connection) return
+    connections.delete(peerId)
+    connection.serverDuplex.end()
+    connection.client.end()
+  }
+
+  const relayConnected = await waitForRelay(6000)
+  if (!relayConnected) {
+    writeText(handshakeError ?? `Can't reach signaling server (${getRelayUrls().join(', ')})`)
+    closeWan()
+    miscUiState.wanOpening = false
+    return 'Failed to open to wan (timeout)'
+  }
+  await copyJoinLink()
   miscUiState.wanOpening = false
-  return result
-}
-
-const parseUrl = (url: string) => {
-  // peerJS does this internally for some reason: const url = new URL(`${protocol}://${host}:${port}${path}${key}/${method}`)
-  if (!url.startsWith('http')) url = `${location.protocol}//${url}`
-  const urlObj = new URL(url)
-  const key = urlObj.searchParams.get('key')
-  return {
-    host: urlObj.hostname,
-    path: urlObj.pathname,
-    protocol: urlObj.protocol.slice(0, -1),
-    ...urlObj.port ? { port: +urlObj.port } : {},
-    ...key ? { key } : {},
-  }
+  return 'Copied join link to clipboard'
 }
 
 export const closeWan = () => {
-  peerInstance?.destroy()
-  peerInstance = undefined
+  if (hostSession) {
+    void hostSession.room.leave()
+    hostSession = undefined
+  }
   miscUiState.wanOpened = false
   return 'Closed WAN'
 }
 
 export type ConnectPeerOptions = {
+  /** override signaling (relay) server */
   server?: string
 }
 
-export const connectToPeer = async (peerId: string, options: ConnectPeerOptions = {}) => {
-  setLoadingScreenStatus('Connecting to peer server')
-  // todo destroy connection on error
-  // TODO! use miscUiState.appConfig.peerJsServer
-  const host = options.server
-  const params = host ? parseUrl(host) : undefined
-  const peer = new Peer({
-    debug: 3,
-    ...params
+export const connectToPeer = async (roomId: string, options: ConnectPeerOptions = {}) => {
+  setLoadingScreenStatus('Connecting to signaling server')
+  let handshakeError: string | undefined
+  const room = await joinP2pRoom(roomId, options.server, (error) => {
+    handshakeError = error
   })
-  await resolveTimeout(new Promise(resolve => {
-    peer.once('open', resolve)
-  }))
-  setLoadingScreenStatus('Connecting to the peer')
-  const connection = peer.connect(peerId, {
-    serialization: 'raw',
-  })
-  await resolveTimeout(new Promise<void>((resolve, reject) => {
-    connection.once('error', (error) => {
-      console.log(error.type, error.name)
-      console.log(error)
-      reject(error.message)
-    })
-    connection.once('open', resolve)
-  }))
+  const roleAction = room.makeAction<RolePayload>('role')
+  const dataAction = room.makeAction<Uint8Array>('mc')
 
-  const clientDuplex = new CustomDuplex({}, (data) => {
-    // todo debug until play state
-    // console.debug('sending', data.toString())
-    void connection.send(data)
+  let hostId: string | undefined
+  const hostFound = new Promise<string>(resolve => {
+    roleAction.onMessage = (role, { peerId }) => {
+      if (role.host && !hostId) {
+        hostId = peerId
+        resolve(peerId)
+      }
+    }
   })
-  connection.on('data', (data: any) => {
-    console.debug('received', Buffer.from(data).toString())
-    clientDuplex.push(Buffer.from(data))
+  room.onPeerJoin = (peerId) => {
+    // announce ourselves as a guest, the host will accept us
+    void roleAction.send({ host: false }, { target: peerId })
+  }
+
+  const fail = async (message: string): Promise<never> => {
+    await room.leave()
+    throw new Error(message)
+  }
+
+  if (!await waitForRelay(10_000)) {
+    return fail(`Can't reach signaling server (${getRelayUrls(options.server).join(', ')})`)
+  }
+  setLoadingScreenStatus('Looking for the host')
+  let timeoutId
+  const timedOut = new Promise<undefined>(resolve => {
+    timeoutId = setTimeout(resolve, GUEST_CONNECT_TIMEOUT)
   })
-  connection.on('close', () => {
+  const foundHost = await Promise.race([hostFound, timedOut])
+  clearTimeout(timeoutId)
+  if (!foundHost) {
+    return fail(handshakeError
+      ? `Failed to connect to the host: ${handshakeError}`
+      : 'Host not found. Make sure the join link is valid and the game is still open (or connection is blocked by network, try disabling VPN)')
+  }
+
+  const clientDuplex = new CustomDuplex({}, async (data) => dataAction.send(toWire(data), { target: foundHost }))
+  dataAction.onMessage = (data, { peerId }) => {
+    if (peerId !== foundHost) return
+    clientDuplex.push(toBuffer(data))
+  }
+  room.onPeerLeave = (peerId) => {
+    if (peerId !== foundHost) return
     console.log('connection closed')
     clientDuplex.end()
-    // bot._client.end()
-    // bot.end()
+    void room.leave()
     bot.emit('end', 'Disconnected.')
-  })
-  connection.on('error', (error) => {
-    console.error(error)
-    clientDuplex.end()
+  }
+  clientDuplex.on('end', () => {
+    void room.leave()
   })
 
   return clientDuplex
