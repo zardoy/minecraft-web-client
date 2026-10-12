@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Input Debugger</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .key-container {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            gap: 5px;
+            margin: 20px 0;
+        }
+        .key {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            background: white;
+            position: relative;
+            user-select: none;
+        }
+        .key.pressed {
+            background: #90EE90;
+        }
+        .key .duration {
+            position: absolute;
+            bottom: 2px;
+            font-size: 10px;
+        }
+        .key .count {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 10px;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .wasd-container {
+            position: relative;
+            width: 190px;
+            height: 130px;
+        }
+        #KeyW {
+            position: absolute;
+            left: 65px;
+            top: 0;
+        }
+        #KeyA {
+            position: absolute;
+            left: 0;
+            top: 65px;
+        }
+        #KeyS {
+            position: absolute;
+            left: 65px;
+            top: 65px;
+        }
+        #KeyD {
+            position: absolute;
+            left: 130px;
+            top: 65px;
+        }
+        .space-container {
+            margin-top: 20px;
+        }
+        #Space {
+            width: 190px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <label>
+            <input type="checkbox" id="repeatMode"> Use keydown repeat mode (auto key-up after 150ms of no repeat)
+        </label>
+    </div>
+
+    <div class="wasd-container">
+        <div id="KeyW" class="key" data-code="KeyW">W</div>
+        <div id="KeyA" class="key" data-code="KeyA">A</div>
+        <div id="KeyS" class="key" data-code="KeyS">S</div>
+        <div id="KeyD" class="key" data-code="KeyD">D</div>
+    </div>
+
+    <div class="key-container">
+        <div id="ControlLeft" class="key" data-code="ControlLeft">Ctrl</div>
+    </div>
+
+    <div class="space-container">
+        <div id="Space" class="key" data-code="Space">Space</div>
+    </div>
+
+    <script>
+        const keys = {};
+        const keyStats = {};
+        const pressStartTimes = {};
+        const keyTimeouts = {};
+
+        function initKeyStats(code) {
+            if (!keyStats[code]) {
+                keyStats[code] = {
+                    pressCount: 0,
+                    duration: 0,
+                    startTime: 0
+                };
+            }
+        }
+
+        function updateKeyVisuals(code) {
+            const element = document.getElementById(code);
+            if (!element) return;
+
+            const stats = keyStats[code];
+            if (keys[code]) {
+                element.classList.add('pressed');
+                const currentDuration = ((Date.now() - stats.startTime) / 1000).toFixed(1);
+                element.innerHTML = `${element.getAttribute('data-code').replace('Key', '').replace('Left', '')}<span class="duration">${currentDuration}s</span><span class="count">${stats.pressCount}</span>`;
+            } else {
+                element.classList.remove('pressed');
+                element.innerHTML = `${element.getAttribute('data-code').replace('Key', '').replace('Left', '')}<span class="count">${stats.pressCount}</span>`;
+            }
+        }
+
+        function releaseKey(code) {
+            keys[code] = false;
+            if (pressStartTimes[code]) {
+                keyStats[code].duration += (Date.now() - pressStartTimes[code]) / 1000;
+                delete pressStartTimes[code];
+            }
+            updateKeyVisuals(code);
+        }
+
+        function handleKeyDown(event) {
+            const code = event.code;
+            const isRepeatMode = document.getElementById('repeatMode').checked;
+
+            initKeyStats(code);
+
+            // Clear any existing timeout for this key
+            if (keyTimeouts[code]) {
+                clearTimeout(keyTimeouts[code]);
+                delete keyTimeouts[code];
+            }
+
+            if (isRepeatMode) {
+                // In repeat mode, always handle the keydown
+                if (!keys[code] || event.repeat) {
+                    keys[code] = true;
+                    if (!event.repeat) {
+                        // Only increment count on initial press, not repeats
+                        keyStats[code].pressCount++;
+                        keyStats[code].startTime = Date.now();
+                        pressStartTimes[code] = Date.now();
+                    }
+                }
+
+                // Set timeout to release key if no repeat events come
+                keyTimeouts[code] = setTimeout(() => {
+                    releaseKey(code);
+                }, 150);
+            } else {
+                // In normal mode, only handle keydown if key is not already pressed
+                if (!keys[code]) {
+                    keys[code] = true;
+                    keyStats[code].pressCount++;
+                    keyStats[code].startTime = Date.now();
+                    pressStartTimes[code] = Date.now();
+                }
+            }
+
+            updateKeyVisuals(code);
+            event.preventDefault();
+        }
+
+        function handleKeyUp(event) {
+            const code = event.code;
+            const isRepeatMode = document.getElementById('repeatMode').checked;
+
+            if (!isRepeatMode) {
+                releaseKey(code);
+            }
+
+            event.preventDefault();
+        }
+
+        // Initialize all monitored keys
+        const monitoredKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ControlLeft', 'Space'];
+        monitoredKeys.forEach(code => {
+            initKeyStats(code);
+            const element = document.getElementById(code);
+            if (element) {
+                element.innerHTML = `${element.getAttribute('data-code').replace('Key', '').replace('Left', '')}<span class="count">0</span>`;
+            }
+        });
+
+        // Start visual updates
+        setInterval(() => {
+            monitoredKeys.forEach(code => {
+                if (keys[code]) {
+                    updateKeyVisuals(code);
+                }
+            });
+        }, 100);
+
+        // Event listeners
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyUp);
+
+        // Handle mode changes
+        document.getElementById('repeatMode').addEventListener('change', () => {
+            // Release all keys when switching modes
+            monitoredKeys.forEach(code => {
+                if (keys[code]) {
+                    releaseKey(code);
+                }
+                if (keyTimeouts[code]) {
+                    clearTimeout(keyTimeouts[code]);
+                    delete keyTimeouts[code];
+                }
+            });
+        });
+    </script>
+</body>
+</html>
