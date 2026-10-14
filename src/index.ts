@@ -101,7 +101,7 @@ import { loadingTimerState } from './react/LoadingTimer'
 import { loadPluginsIntoWorld } from './react/CreateWorldProvider'
 import { appStorage } from './react/appStorageProvider'
 import { selectBestProxy } from './core/proxyAutoSelect'
-import { getCurrentProxy, getCurrentUsername } from './react/ServersList'
+import { getConnectProxy, getCurrentUsername, getProxiesData } from './react/ServersList'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { isPlayground } from './playgroundIntegration'
 import { appLoadBackend } from './appViewerLoad'
@@ -337,16 +337,17 @@ export async function connect (connectOptions: ConnectOptions) {
   let clientDataStream: Duplex | undefined
 
   if (connectOptions.server && !connectOptions.viewerWsConnect && !parsedServer.isWebSocket) {
-    if (appStorage.proxiesData?.isAutoSelect && appStorage.proxiesData.proxies.length > 0) {
+    const { proxies, isAutoSelect } = getProxiesData()
+    if (!connectOptions.proxy && isAutoSelect && proxies.length > 0) {
       setLoadingScreenStatus('Selecting best proxy...')
-      const bestProxy = await selectBestProxy(appStorage.proxiesData.proxies)
+      const bestProxy = await selectBestProxy(proxies)
       if (bestProxy) {
         connectOptions.proxy = bestProxy
       } else {
         let message = 'Failed to find a working proxy.'
         if (navigator.onLine) {
           message += '\n\nWe tried these proxies but none of them worked, try opening any of these urls in your browser:'
-          message += `\n${appStorage.proxiesData.proxies.join('\n')}`
+          message += `\n${proxies.join('\n')}`
         } else {
           message += '\n\nYour device appears to be offline. Please check your internet connection and try again.'
         }
@@ -1085,7 +1086,7 @@ const maybeEnterGame = () => {
       if (appQueryParams.autoConnect && miscUiState.appConfig?.allowAutoConnect) {
         void connect({
           server: appQueryParams.ip,
-          proxy: getCurrentProxy(),
+          proxy: getConnectProxy(),
           botVersion: appQueryParams.version ?? undefined,
           username: getCurrentUsername()!,
         })

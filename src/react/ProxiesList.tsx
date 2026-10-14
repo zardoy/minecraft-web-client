@@ -7,18 +7,15 @@ import Button from './Button'
 import { pixelartIcons } from './PixelartIcon'
 import { useIsModalActive } from './utilsApp'
 import { appStorage } from './appStorageProvider'
-import { getInitialProxies } from './ServersList'
+import { getProxiesData as getEffectiveProxiesData } from './ServersList'
 
 const getProxiesData = () => {
-  if (!appStorage.proxiesData) {
-    const proxies = getInitialProxies()
-    appStorage.proxiesData = { proxies, selected: proxies[0] ?? '' }
-  }
+  appStorage.proxiesData ??= { ...getEffectiveProxiesData(), proxies: [...getEffectiveProxiesData().proxies] }
   return appStorage.proxiesData
 }
 
 export default () => {
-  const proxies = useSnapshot(appStorage).proxiesData?.proxies ?? getInitialProxies()
+  const { proxies } = useSnapshot(appStorage).proxiesData ?? getEffectiveProxiesData()
   const isActive = useIsModalActive('proxies')
 
   if (!isActive) return null

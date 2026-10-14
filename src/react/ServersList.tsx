@@ -7,26 +7,35 @@ import Singleplayer from './Singleplayer'
 import Input from './Input'
 import Button from './Button'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
-import { SimpleSelectOption } from './SelectOption'
+import Select from './Select'
 import { BaseServerInfo } from './AddServerOrConnect'
 import { useIsSmallWidth } from './simpleHooks'
 import { appStorage, SavedProxiesData, ServerHistoryEntry } from './appStorageProvider'
 import { withInjectableUi } from './extendableSystem'
 
-export const getInitialProxies = () => {
-  const proxies = [] as string[]
-  if (miscUiState.appConfig?.defaultProxy) {
-    proxies.push(miscUiState.appConfig.defaultProxy)
-  }
-  return proxies
+export const getDefaultProxies = () => {
+  const { defaultProxies, defaultProxy } = miscUiState.appConfig ?? {}
+  return defaultProxies?.length ? defaultProxies : defaultProxy ? [defaultProxy] : []
 }
 
+/** Saved proxies or, if user never touched them, defaults from config (auto-select when there are several) */
+export const getProxiesData = (): SavedProxiesData => {
+  if (appStorage.proxiesData) return appStorage.proxiesData
+  const proxies = getDefaultProxies()
+  return { proxies, selected: proxies[0] ?? '', isAutoSelect: proxies.length > 1 }
+}
+
+/** Proxy to use for connecting. Undefined when it should be auto-selected right before connecting */
+export const getConnectProxy = (): string | undefined => {
+  if (appQueryParams.proxy) return appQueryParams.proxy
+  const data = getProxiesData()
+  return data.isAutoSelect && data.proxies.length > 0 ? undefined : data.selected || undefined
+}
+
+/** Proxy for background requests (e.g. server list pings): in auto-select mode the fastest known one */
 export const getCurrentProxy = (): string | undefined => {
-  return appQueryParams.proxy ?? (
-    appStorage.proxiesData?.isAutoSelect
-      ? undefined // Let connect function handle auto-select
-      : appStorage.proxiesData?.selected ?? getInitialProxies()[0]
-  )
+  const data = getProxiesData()
+  return getConnectProxy() ?? proxyPingState.selectedProxy ?? data.proxies[0]
 }
 
 export const getCurrentUsername = () => {
@@ -42,39 +51,38 @@ interface Props extends React.ComponentProps<typeof Singleplayer> {
   setQuickConnectIp?: (ip: string) => void
 }
 
-const ProxyPingStatus = ({ proxy }: { proxy: string }) => {
+const ProxyPingIndicator = ({ proxy }: { proxy: string }) => {
   const pingState = useSnapshot(proxyPingState).proxyStatus[proxy]
-  const proxiesKey = useSnapshot(appStorage).proxiesData?.proxies.join('\n')
-  useEffect(() => {
-    if (!proxyPingState.checkStarted) {
-      void selectBestProxy(appStorage.proxiesData?.proxies ?? [])
-    }
-  }, [proxiesKey])
-
   if (!pingState) return null
 
   let color = 'yellow'
   let text = '...'
-
   if (pingState.status === 'success') {
     color = 'limegreen'
     text = `${pingState.latency}ms`
   } else if (pingState.status === 'error') {
     color = 'red'
-    text = 'err'
+    text = 'offline'
   }
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '4px' }}>
-      <div style={{
-        width: '8px',
-        height: '8px',
-        borderRadius: '50%',
-        backgroundColor: color
-      }} />
-      <span style={{ fontSize: '12px', color: 'lightgray' }}>{text}</span>
-    </div>
-  )
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, color: 'lightgray', flexShrink: 0 }}>
+    {text}
+    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
+  </span>
+}
+
+const AUTO_OPTION = 'auto'
+const MANAGE_OPTION = 'manage'
+
+const ProxyOptionLabel = ({ value, label }: { value: string, label: string }) => {
+  const icon = value === AUTO_OPTION ? pixelartIcons.reload : value === MANAGE_OPTION ? pixelartIcons.sliders : undefined
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between', overflow: 'hidden' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {icon && <PixelartIcon iconName={icon} styles={{ fontSize: 10 }} />}
+      {label}
+    </span>
+    {!icon && <ProxyPingIndicator proxy={value} />}
+  </div>
 }
 
 const ServersListBase = ({
@@ -109,8 +117,14 @@ const ServersListBase = ({
 
   const isSmallWidth = useIsSmallWidth()
 
-  const initialProxies = getInitialProxies()
-  const proxiesData = snap.proxiesData ?? { proxies: initialProxies, selected: initialProxies[0], isAutoSelect: false }
+  const proxiesData = snap.proxiesData ?? getProxiesData()
+  const proxiesKey = proxiesData.proxies.join('\n')
+  useEffect(() => {
+    if (appQueryParams.proxy || proxiesData.proxies.length === 0) return
+    void selectBestProxy([...proxiesData.proxies])
+  }, [proxiesKey])
+  const selectedValue = proxiesData.isAutoSelect ? AUTO_OPTION : proxiesData.selected
+  const shortenProxy = (proxy: string) => proxy.replace(/^(https?|wss?):\/\//, '')
   return <Singleplayer
     {...props}
     worldData={props.worldData ? props.worldData.map(world => ({
@@ -167,27 +181,33 @@ const ServersListBase = ({
           {isSmallWidth
             ? <PixelartIcon iconName={pixelartIcons.server} styles={{ fontSize: 14, color: 'lightgray', marginLeft: 2 }} onClick={onProfileClick} />
             : <span style={{ color: 'lightgray', fontSize: 14 }}>Proxy:</span>}
-          <SimpleSelectOption
-            options={[
-              { value: 'auto', label: '🔄 Auto-select' },
-              ...proxiesData.proxies.map(p => ({ value: p, label: p })),
-              { value: 'manage', label: '⚙️ Add/Remove proxy...' }
+          <Select
+            key={selectedValue}
+            initialOptions={[
+              { value: AUTO_OPTION, label: 'Auto-select' },
+              ...proxiesData.proxies.map(p => ({ value: p, label: shortenProxy(p) })),
+              { value: MANAGE_OPTION, label: 'Manage proxies...' }
             ]}
-            value={proxiesData.isAutoSelect ? 'auto' : proxiesData.selected}
-            onChange={(newSel) => {
-              if (newSel === 'manage') {
+            defaultValue={{ value: selectedValue, label: selectedValue === AUTO_OPTION ? 'Auto-select' : shortenProxy(selectedValue) }}
+            renderOption={(option) => <ProxyOptionLabel value={option.value} label={option.label} />}
+            updateOptions={(newSel) => {
+              if (newSel === MANAGE_OPTION) {
                 showModal({ reactType: 'proxies' })
                 return
               }
-              if (newSel === 'auto') {
+              if (newSel === AUTO_OPTION) {
                 updateProxies({ proxies: [...proxiesData.proxies], selected: proxiesData.selected, isAutoSelect: true })
-              } else {
-                updateProxies({ proxies: [...proxiesData.proxies], selected: newSel, isAutoSelect: false })
+                return
               }
+              if (!newSel) return
+              // option may be a custom typed proxy url
+              const proxies = proxiesData.proxies.includes(newSel) ? [...proxiesData.proxies] : [...proxiesData.proxies, newSel]
+              updateProxies({ proxies, selected: newSel, isAutoSelect: false })
             }}
-            placeholder="Select proxy"
+            containerStyle={{
+              width: isSmallWidth ? 140 : 180,
+            }}
           />
-          {!proxiesData.isAutoSelect && proxiesData.selected && <ProxyPingStatus proxy={proxiesData.selected} />}
           <PixelartIcon iconName='user' styles={{ fontSize: 14, color: 'lightgray', marginLeft: 2 }} onClick={onProfileClick} />
           <Input
             rootStyles={{ width: 80 }}

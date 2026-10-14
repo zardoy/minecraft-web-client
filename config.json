@@ -2,6 +2,12 @@
   "version": 1,
   "defaultHost": "<from-proxy>",
   "defaultProxy": "https://proxy.mcraft.fun",
+  "defaultProxies": [
+    "https://proxy.mcraft.fun",
+    "https://proxy2.mcraft.fun",
+    "https://proxy3.mcraft.fun",
+    "https://mwc.koyeb.app"
+  ],
   "mapsProvider": "https://maps.mcraft.fun/",
   "skinTexturesProxy": "",
   "p2pRelayServer": "wss://p2p.mcraft.fun",

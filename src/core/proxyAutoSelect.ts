@@ -30,6 +30,7 @@ export async function selectBestProxy (proxies: string[]): Promise<string | null
   const abortController = new AbortController()
   currentPingAbortController = abortController
   proxyPingState.checkStarted = true
+  proxyPingState.selectedProxy = null
 
   // Reset ping states
   for (const proxy of proxies) {
@@ -46,6 +47,8 @@ export async function selectBestProxy (proxies: string[]): Promise<string | null
       throw new Error(result.error)
     }
     proxyPingState.proxyStatus[proxy] = { status: 'success', latency: result.latency }
+    // promises resolve in completion order, so the first one to get here is the fastest
+    proxyPingState.selectedProxy ??= normalizedProxy
     return normalizedProxy
   })
 
