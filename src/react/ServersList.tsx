@@ -51,13 +51,12 @@ interface Props extends React.ComponentProps<typeof Singleplayer> {
   setQuickConnectIp?: (ip: string) => void
 }
 
+const HIGH_PING_MS = 150
+
 const PingIndicator = ({ status, latency }: { status: 'checking' | 'success' | 'error', latency?: number }) => {
-  const color = status === 'success' ? 'limegreen' : status === 'error' ? 'red' : 'yellow'
+  const color = status === 'success' ? (latency! > HIGH_PING_MS ? 'greenyellow' : 'limegreen') : status === 'error' ? 'red' : 'yellow'
   const text = status === 'success' ? `${latency}ms` : status === 'error' ? 'offline' : '...'
-  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, color: 'lightgray', flexShrink: 0 }}>
-    {text}
-    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
-  </span>
+  return <span style={{ fontSize: 8, color, flexShrink: 0 }}>{text}</span>
 }
 
 const ProxyPingIndicator = ({ proxy }: { proxy: string }) => {
