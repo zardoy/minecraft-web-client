@@ -23,8 +23,30 @@ export const normalizeProxyUrl = (proxyUrl: string) => {
   return proxyUrl.startsWith(':') ? `${location.protocol}//${location.hostname}${proxyUrl}` : proxyUrl
 }
 
-/** Pings all proxies and resolves with the first one that responded (or null if all failed). Other pings keep running to fill `proxyPingState` */
+/** Don't ping the same list again if it was pinged this recently (or is being pinged right now) */
+const REUSE_RESULT_MS = 30_000
+
+let lastRun: { key: string, startedAt: number, promise: Promise<string | null>, failed: boolean } | null = null
+
+/**
+ * Pings all proxies and resolves with the first one that responded (or null if all failed). Other pings keep running to fill `proxyPingState`.
+ * Repeated calls for the same list reuse the ongoing / recent run so it can't be used to spam proxies.
+ */
 export async function selectBestProxy (proxies: string[]): Promise<string | null> {
+  const key = proxies.join('\n')
+  if (lastRun?.key === key && !lastRun.failed && Date.now() - lastRun.startedAt < REUSE_RESULT_MS) {
+    return lastRun.promise
+  }
+  const run = { key, startedAt: Date.now(), promise: pingProxies(proxies), failed: false }
+  lastRun = run
+  void run.promise.then(best => {
+    // allow retry right away when nothing worked
+    if (!best) run.failed = true
+  })
+  return run.promise
+}
+
+async function pingProxies (proxies: string[]): Promise<string | null> {
   // Cancel any ongoing pings
   cancelProxyPinging()
   const abortController = new AbortController()
@@ -68,6 +90,7 @@ export async function selectBestProxy (proxies: string[]): Promise<string | null
 }
 
 export function cancelProxyPinging () {
+  lastRun = null
   if (currentPingAbortController) {
     currentPingAbortController.abort()
     currentPingAbortController = null

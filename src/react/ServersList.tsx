@@ -125,7 +125,11 @@ const ServersListBase = ({
   const proxiesKey = proxiesData.proxies.join('\n')
   useEffect(() => {
     if (appQueryParams.proxy || proxiesData.proxies.length === 0) return
-    void selectBestProxy([...proxiesData.proxies])
+    // debounce so quickly opening/closing the list doesn't ping every time (selectBestProxy also reuses recent results)
+    const timeout = setTimeout(() => {
+      void selectBestProxy([...proxiesData.proxies])
+    }, 1000)
+    return () => clearTimeout(timeout)
   }, [proxiesKey])
   const selectedValue = proxiesData.isAutoSelect ? AUTO_OPTION : proxiesData.selected
   const shortenProxy = (proxy: string) => proxy.replace(/^(https?|wss?):\/\//, '')
