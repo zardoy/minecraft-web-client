@@ -51,24 +51,29 @@ interface Props extends React.ComponentProps<typeof Singleplayer> {
   setQuickConnectIp?: (ip: string) => void
 }
 
-const ProxyPingIndicator = ({ proxy }: { proxy: string }) => {
-  const pingState = useSnapshot(proxyPingState).proxyStatus[proxy]
-  if (!pingState) return null
-
-  let color = 'yellow'
-  let text = '...'
-  if (pingState.status === 'success') {
-    color = 'limegreen'
-    text = `${pingState.latency}ms`
-  } else if (pingState.status === 'error') {
-    color = 'red'
-    text = 'offline'
-  }
-
+const PingIndicator = ({ status, latency }: { status: 'checking' | 'success' | 'error', latency?: number }) => {
+  const color = status === 'success' ? 'limegreen' : status === 'error' ? 'red' : 'yellow'
+  const text = status === 'success' ? `${latency}ms` : status === 'error' ? 'offline' : '...'
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, color: 'lightgray', flexShrink: 0 }}>
     {text}
     <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
   </span>
+}
+
+const ProxyPingIndicator = ({ proxy }: { proxy: string }) => {
+  const pingState = useSnapshot(proxyPingState).proxyStatus[proxy]
+  return pingState ? <PingIndicator status={pingState.status} latency={pingState.latency} /> : null
+}
+
+/** Ping of the currently fastest proxy, which auto-select would use */
+const BestProxyPingIndicator = () => {
+  const statuses = Object.values(useSnapshot(proxyPingState).proxyStatus)
+  if (statuses.length === 0) return null
+  const successful = statuses.filter(x => x.status === 'success')
+  if (successful.length > 0) {
+    return <PingIndicator status="success" latency={Math.min(...successful.map(x => x.latency!))} />
+  }
+  return <PingIndicator status={statuses.some(x => x.status === 'checking') ? 'checking' : 'error'} />
 }
 
 const AUTO_OPTION = 'auto'
@@ -81,7 +86,7 @@ const ProxyOptionLabel = ({ value, label }: { value: string, label: string }) =>
       {icon && <PixelartIcon iconName={icon} styles={{ fontSize: 10 }} />}
       {label}
     </span>
-    {!icon && <ProxyPingIndicator proxy={value} />}
+    {value === AUTO_OPTION ? <BestProxyPingIndicator /> : !icon && <ProxyPingIndicator proxy={value} />}
   </div>
 }
 
@@ -208,6 +213,8 @@ const ServersListBase = ({
               width: isSmallWidth ? 140 : 180,
             }}
           />
+          {/* proxies saved before auto-select existed: hint that the option is available */}
+          {snap.proxiesData && snap.proxiesData.isAutoSelect === undefined && <span style={{ color: 'gold', fontSize: 8, whiteSpace: 'nowrap' }}>(NEW!)</span>}
           <PixelartIcon iconName='user' styles={{ fontSize: 14, color: 'lightgray', marginLeft: 2 }} onClick={onProfileClick} />
           <Input
             rootStyles={{ width: 80 }}

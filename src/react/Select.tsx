@@ -34,7 +34,8 @@ const SelectBase = ({
   disabled,
   renderOption
 }: Props) => {
-  const [inputValue, setInputValue] = useState<string | undefined>(defaultValue?.label ?? '')
+  // with custom renderOption keep input empty so the formatted selected value is displayed until focus
+  const [inputValue, setInputValue] = useState<string | undefined>(renderOption ? '' : defaultValue?.label ?? '')
   const [currValue, setCurrValue] = useState<string | undefined>(defaultValue?.label ?? '')
   const [inputStyle, setInputStyle] = useState<CSSProperties>({})
   const [isFirstClick, setIsFirstClick] = useState(true)
