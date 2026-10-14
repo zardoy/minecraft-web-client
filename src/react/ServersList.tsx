@@ -59,7 +59,7 @@ const PingIndicator = ({ status, latency }: { status: 'checking' | 'success' | '
   return <span style={{ fontSize: 8, color, flexShrink: 0 }}>{text}</span>
 }
 
-const ProxyPingIndicator = ({ proxy }: { proxy: string }) => {
+export const ProxyPingIndicator = ({ proxy }: { proxy: string }) => {
   const pingState = useSnapshot(proxyPingState).proxyStatus[proxy]
   return pingState ? <PingIndicator status={pingState.status} latency={pingState.latency} /> : null
 }
