@@ -32,6 +32,8 @@ export type AppConfig = {
   // defaultHost?: string
   // defaultHostSave?: string
   defaultProxy?: string
+  /** Proxies available to the user by default. When there is more than one, the fastest is auto-selected (until the user picks one manually) */
+  defaultProxies?: string[]
   // defaultProxySave?: string
   // defaultVersion?: string
   /** Trystero ws-relay signaling server used for P2P (wss://...). Defaults to wss://p2p.mcraft.fun */
