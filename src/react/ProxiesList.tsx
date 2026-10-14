@@ -100,7 +100,7 @@ export default () => {
           <Button style={{ flex: 1, width: 'auto' }} onClick={() => hideCurrentModal()}>Done</Button>
         </div>
         <div style={{ fontSize: 7, color: '#aaa', textAlign: 'center', marginTop: 4, lineHeight: 1.4 }}>
-          You can self-host your own proxy in less than a minute with{' '}
+          Host your own proxy in less than a minute with{' '}
           <span
             style={{ color: '#7a9cff', textDecoration: 'underline', cursor: 'pointer' }}
             onClick={() => openURL('https://github.com/zardoy/minecraft-everywhere')}
