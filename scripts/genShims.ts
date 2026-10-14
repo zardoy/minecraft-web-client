@@ -11,8 +11,11 @@ let resourcesContentOriginal = 'export const resourcesContentOriginal = {\n'
 const keys = [] as string[]
 
 for (const resource of appReplacableResources) {
-  const { path, ...rest } = resource
-  const name = path.split('/').slice(-4).join('_').replace('.png', '').replaceAll('-', '_').replaceAll('.', '_')
+  const { path, name: nameOverride, ...rest } = resource
+  let name = nameOverride ?? path.split('/').slice(-4).join('_').replace('.png', '').replaceAll('-', '_').replaceAll('.', '_')
+  if (name.match(/^\d+/)) {
+    name = `_${name}`
+  }
   keys.push(name)
   headerImports += `import ${name} from '${path.replace('../node_modules/', '')}'\n`
 

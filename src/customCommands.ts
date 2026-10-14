@@ -1,4 +1,4 @@
-import { guiOptionsScheme, tryFindOptionConfig } from './optionsGuiScheme'
+import { optionsMeta } from './defaultOptions'
 import { options } from './optionsStorage'
 
 export const customCommandsConfig = {
@@ -29,22 +29,29 @@ export const customCommandsConfig = {
         if (!action || value === undefined || action === 'toggle') return null
         if (action === 'set') {
           const getBase = () => {
-            const config = tryFindOptionConfig(setting as any)
-            if (config && 'values' in config) {
+            const config = optionsMeta[setting as keyof typeof optionsMeta]
+            if (config?.possibleValues && config.possibleValues.length > 0) {
+              // Handle both string[] and Array<[string, string]> formats
+              const { possibleValues } = config
+              const options = Array.isArray(possibleValues[0]) && typeof possibleValues[0][0] === 'string'
+                ? (possibleValues as Array<[string, string]>).map(([val]) => val)
+                : possibleValues as string[]
               return {
                 type: 'select',
-                options: config.values
+                options
               }
             }
-            if (config?.type === 'toggle' || typeof value === 'boolean') {
+            if (typeof value === 'boolean') {
               return {
                 type: 'select',
                 options: ['true', 'false']
               }
             }
-            if (config?.type === 'slider' || value.type === 'number') {
+            if (typeof value === 'number') {
               return {
                 type: 'number',
+                min: config?.min,
+                max: config?.max,
               }
             }
             return {
@@ -53,25 +60,37 @@ export const customCommandsConfig = {
           }
           return {
             ...getBase(),
-            placeholder: value
+            placeholder: String(value)
           }
         }
       }
     ],
     handler ([setting, action, value]) {
       if (action === 'toggle' || action === undefined) {
-        const value = options[setting]
-        const config = tryFindOptionConfig(setting)
-        if (config && 'values' in config && config.values) {
-          const { values } = config
-          const currentIndex = values.indexOf(value)
+        const currentValue = options[setting]
+        const config = optionsMeta[setting as keyof typeof optionsMeta]
+        if (config?.possibleValues && config.possibleValues.length > 0) {
+          // Handle both string[] and Array<[string, string]> formats
+          const { possibleValues } = config
+          const values = Array.isArray(possibleValues[0]) && typeof possibleValues[0][0] === 'string'
+            ? (possibleValues as Array<[string, string]>).map(([val]) => val)
+            : possibleValues as string[]
+          const currentIndex = values.indexOf(String(currentValue))
           const nextIndex = (currentIndex + 1) % values.length
-          options[setting] = values[nextIndex]
+          options[setting] = values[nextIndex] as any
         } else {
-          options[setting] = typeof value === 'boolean' ? !value : typeof value === 'number' ? value + 1 : value
+          options[setting] = typeof currentValue === 'boolean' ? !currentValue : typeof currentValue === 'number' ? currentValue + 1 : currentValue
         }
       } else {
-        options[setting] = value
+        // Convert string values to appropriate types
+        const config = optionsMeta[setting as keyof typeof optionsMeta]
+        let convertedValue: any = value
+        if (typeof options[setting] === 'boolean') {
+          convertedValue = value === 'true' || value === true
+        } else if (typeof options[setting] === 'number') {
+          convertedValue = Number(value)
+        }
+        options[setting] = convertedValue
       }
     }
   },

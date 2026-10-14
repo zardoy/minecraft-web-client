@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, CSSProperties } from 'react'
 import SharedHudVars from './SharedHudVars'
 import './ArmorBar.css'
+import { withInjectableUi } from './extendableSystem'
 
 
 export type ArmorBarProps = {
@@ -8,7 +9,7 @@ export type ArmorBarProps = {
   style?: CSSProperties
 }
 
-export default ({
+const ArmorBarBase = ({
   armorValue,
   style
 }: ArmorBarProps) => {
@@ -46,3 +47,5 @@ export default ({
     </div>
   </SharedHudVars>
 }
+
+export default withInjectableUi(ArmorBarBase, 'armorBar')

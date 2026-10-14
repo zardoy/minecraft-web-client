@@ -1,13 +1,19 @@
 import { Entity } from 'prismarine-entity'
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import tracker from '@nxg-org/mineflayer-tracker'
 import { loader as autoJumpPlugin } from '@nxg-org/mineflayer-auto-jump'
 import { subscribeKey } from 'valtio/utils'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { Team } from 'mineflayer'
+import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { options, watchValue } from './optionsStorage'
 import { gameAdditionalState, miscUiState } from './globalState'
 import { EntityStatus } from './mineflayer/entityStatus'
+import {
+  applyEntityMovementAnimation,
+  clearLocalPlayerAnimationCache,
+  processMovementAnimations,
+} from './entityMovementAnimationPipeline'
 
 
 const updateAutoJump = () => {
@@ -61,35 +67,59 @@ customEvents.on('gameLoaded', () => {
   }
 
   let lastCall = 0
+
+  const applyLocalPlayerAnimation = (force = false) => {
+    if (!bot.entity) return
+    const rendererMethods = getThreeJsRendererMethods()
+    applyEntityMovementAnimation({
+      entity: bot.entity,
+      horizontalVelocity: bot.entity.velocity,
+      rendererEntityId: 'player_entity',
+      mountedVehicle: bot.vehicle,
+      force,
+      isLocalPlayer: true,
+      isLocalPlayerSneaking: gameAdditionalState.isSneaking,
+      playerPerAnimation,
+      playEntityAnimation (rendererEntityId, animation) {
+        void rendererMethods?.playEntityAnimation(rendererEntityId, animation)
+      },
+      rendererAvailable: rendererMethods !== undefined && rendererMethods !== null,
+    })
+  }
+
   bot.on('physicsTick', () => {
     // throttle, tps: 6
     if (Date.now() - lastCall < 166) return
     lastCall = Date.now()
-    for (const [id, { tracking, info }] of Object.entries(bot.tracker.trackingData)) {
-      if (!tracking) continue
-      const e = bot.entities[id]
-      if (!e) continue
-      const speed = info.avgVel
-      const WALKING_SPEED = 0.03
-      const SPRINTING_SPEED = 0.18
-      const isCrouched = e === bot.entity ? gameAdditionalState.isSneaking : e['crouching']
-      const isWalking = Math.abs(speed.x) > WALKING_SPEED || Math.abs(speed.z) > WALKING_SPEED
-      const isSprinting = Math.abs(speed.x) > SPRINTING_SPEED || Math.abs(speed.z) > SPRINTING_SPEED
 
-      const newAnimation =
-        isCrouched ? (isWalking ? 'crouchWalking' : 'crouch')
-          : isWalking ? (isSprinting ? 'running' : 'walking')
-            : 'idle'
-      if (newAnimation !== playerPerAnimation[id]) {
-        // Handle bot entity animation specially (for player entity in third person)
-        if (e === bot.entity) {
-          getThreeJsRendererMethods()?.playEntityAnimation('player_entity', newAnimation)
-        } else {
-          getThreeJsRendererMethods()?.playEntityAnimation(e.id, newAnimation)
-        }
-        playerPerAnimation[id] = newAnimation
-      }
-    }
+    const rendererMethods = getThreeJsRendererMethods()
+    processMovementAnimations({
+      localPlayerEntity: bot.entity ?? null,
+      localPlayerVehicle: bot.vehicle ?? null,
+      isLocalPlayerSneaking: gameAdditionalState.isSneaking,
+      trackingData: bot.tracker.trackingData,
+      getEntityById: (id) => bot.entities[id],
+      playerPerAnimation,
+      playEntityAnimation (rendererEntityId, animation) {
+        void rendererMethods?.playEntityAnimation(rendererEntityId, animation)
+      },
+      rendererAvailable: rendererMethods !== undefined && rendererMethods !== null,
+    })
+  })
+
+  bot.on('mount', () => {
+    applyLocalPlayerAnimation()
+  })
+
+  bot.on('dismount', () => {
+    applyLocalPlayerAnimation()
+  })
+
+  bot.on('respawn', () => {
+    clearLocalPlayerAnimationCache(playerPerAnimation)
+    queueMicrotask(() => {
+      applyLocalPlayerAnimation(true)
+    })
   })
 
   bot.on('entitySwingArm', (e) => {
@@ -126,6 +156,31 @@ customEvents.on('gameLoaded', () => {
     if (entityStatus === EntityStatus.HURT) {
       getThreeJsRendererMethods()?.damageEntity(entityId, entityStatus)
     }
+
+    if (entityStatus === EntityStatus.BURNED) {
+      updateEntityStates(entityId, true, true)
+    }
+  })
+
+  // on fire events
+  bot._client.on('entity_metadata', (data) => {
+    if (data.entityId !== bot.entity.id) return
+    handleEntityMetadata(data)
+  })
+
+  bot.on('end', () => {
+    if (onFireTimeout) {
+      clearTimeout(onFireTimeout)
+      onFireTimeout = undefined
+    }
+  })
+
+  bot.on('respawn', () => {
+    if (onFireTimeout) {
+      clearTimeout(onFireTimeout)
+      onFireTimeout = undefined
+    }
+    appViewer.playerState.reactive.onFire = false
   })
 
   const updateCamera = (entity: Entity) => {
@@ -179,7 +234,7 @@ customEvents.on('gameLoaded', () => {
 
   bot._client.on('camera', (packet) => {
     if (bot.player.entity.id === packet.cameraId) {
-      if (appViewer.playerState.utils.isSpectatingEntity() && appViewer.playerState.reactive.cameraSpectatingEntity) {
+      if (getPlayerStateUtils(appViewer.playerState.reactive).isSpectatingEntity() && appViewer.playerState.reactive.cameraSpectatingEntity) {
         const entity = bot.entities[appViewer.playerState.reactive.cameraSpectatingEntity]
         appViewer.playerState.reactive.cameraSpectatingEntity = undefined
         if (entity) {
@@ -215,31 +270,32 @@ customEvents.on('gameLoaded', () => {
       const skinUrl = applySkinTexturesProxy(player.skinData.url)
       const capeUrl = applySkinTexturesProxy((player.skinData as any).capeUrl)
 
-      // Find entity with matching UUID and update skin
-      let entityId = ''
-      for (const [entId, entity] of Object.entries(bot.entities)) {
-        if (entity.uuid === player.uuid) {
-          entityId = entId
-          break
-        }
+      void getThreeJsRendererMethods()!.updatePlayerSkin(player.entity?.id ?? '', player.username, player.uuid, skinUrl ?? true, capeUrl)
+      if (player.entity === bot.entity) {
+        appViewer.playerState.reactive.playerSkin = skinUrl
       }
-      // even if not found, still record to cache
-      void getThreeJsRendererMethods()?.updatePlayerSkin(entityId, player.username, player.uuid, skinUrl ?? true, capeUrl)
     } catch (err) {
-      console.error('Error decoding player texture:', err)
+      reportError(new Error('Error applying skin texture:', { cause: err }))
     }
   }
 
   bot.on('playerJoined', updateSkin)
   bot.on('playerUpdated', updateSkin)
+  for (const entity of Object.values(bot.players)) {
+    updateSkin(entity)
+  }
 
-  bot.on('teamUpdated', (team: Team) => {
+  const teamUpdated = (team: Team) => {
     for (const entity of Object.values(bot.entities)) {
       if (entity.type === 'player' && entity.username && team.members.includes(entity.username) || entity.uuid && team.members.includes(entity.uuid)) {
         bot.emit('entityUpdate', entity)
       }
     }
-  })
+  }
+  bot.on('teamUpdated', teamUpdated)
+  for (const team of Object.values(bot.teams)) {
+    teamUpdated(team)
+  }
 
   const updateEntityNameTags = (team: Team) => {
     for (const entity of Object.values(bot.entities)) {
@@ -259,7 +315,7 @@ customEvents.on('gameLoaded', () => {
 
   bot.on('teamMemberAdded', (team: Team, members: string[]) => {
     if (members.includes(bot.username) && appViewer.playerState.reactive.team?.team !== team.team) {
-      appViewer.playerState.reactive.team = team
+      appViewer.playerState.reactive.team = team as any
       // Player was added to a team, need to check if any entities need updating
       updateEntityNameTags(team)
     } else if (doEntitiesNeedUpdating(team)) {
@@ -288,7 +344,7 @@ customEvents.on('gameLoaded', () => {
   })
 
   bot.on('teamRemoved', (team: Team) => {
-    if (appViewer.playerState.reactive.team?.team === team.team) {
+    if (appViewer.playerState.reactive.team?.team === team?.team) {
       appViewer.playerState.reactive.team = undefined
       // Player's team was removed, need to update all entities that are in a team
       updateEntityNameTags(team)
@@ -296,3 +352,50 @@ customEvents.on('gameLoaded', () => {
   })
 
 })
+
+// Constants
+const SHARED_FLAGS_KEY = 0
+const ENTITY_FLAGS = {
+  ON_FIRE: 0x01, // Bit 0
+  SNEAKING: 0x02, // Bit 1
+  SPRINTING: 0x08, // Bit 3
+  SWIMMING: 0x10, // Bit 4
+  INVISIBLE: 0x20, // Bit 5
+  GLOWING: 0x40, // Bit 6
+  FALL_FLYING: 0x80 // Bit 7 (elytra flying)
+}
+
+let onFireTimeout: NodeJS.Timeout | undefined
+const updateEntityStates = (entityId: number, onFire: boolean, timeout?: boolean) => {
+  if (entityId !== bot.entity.id) return
+  if (appViewer.playerState.reactive.onFire !== onFire) {
+    appViewer.playerState.reactive.onFire = onFire
+  }
+  if (onFireTimeout) {
+    clearTimeout(onFireTimeout)
+    onFireTimeout = undefined
+  }
+  if (timeout) {
+    onFireTimeout = setTimeout(() => {
+      onFireTimeout = undefined
+      updateEntityStates(entityId, false, false)
+    }, 5000)
+  }
+}
+
+// Process entity metadata packet
+function handleEntityMetadata (packet: { entityId: number, metadata: Array<{ key: number, type: string, value: number }> }) {
+  const { entityId, metadata } = packet
+
+  // Find shared flags in metadata
+  const flagsData = metadata.find(meta => meta.key === SHARED_FLAGS_KEY &&
+    meta.type === 'byte')
+
+  // Update fire state if flags were found
+  if (flagsData) {
+    const newOnFire = (flagsData.value & ENTITY_FLAGS.ON_FIRE) !== 0
+    if (appViewer.playerState.reactive.onFire !== newOnFire) {
+      appViewer.playerState.reactive.onFire = newOnFire
+    }
+  }
+}

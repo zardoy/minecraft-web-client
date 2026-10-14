@@ -7,7 +7,12 @@ let audioContext: AudioContext
 const sounds: Record<string, any> = {}
 
 // Track currently playing sounds and their gain nodes
-const activeSounds: Array<{ source: AudioBufferSourceNode; gainNode: GainNode; volumeMultiplier: number }> = []
+const activeSounds: Array<{
+  source: AudioBufferSourceNode;
+  gainNode: GainNode;
+  volumeMultiplier: number;
+  isMusic: boolean;
+}> = []
 window.activeSounds = activeSounds
 
 // load as many resources on page load as possible instead on demand as user can disable internet connection after he thinks the page is loaded
@@ -42,8 +47,9 @@ export async function loadSound (path: string, contents = path) {
     if (isCypress()) throw err
   }
 }
+window.loadSound = loadSound
 
-export const loadOrPlaySound = async (url, soundVolume = 1, loadTimeout = 500) => {
+export const loadOrPlaySound = async (url, soundVolume = 1, loadTimeout = options.remoteSoundsLoadTimeout, loop = false, isMusic = false) => {
   const soundBuffer = sounds[url]
   if (!soundBuffer) {
     const start = Date.now()
@@ -51,11 +57,11 @@ export const loadOrPlaySound = async (url, soundVolume = 1, loadTimeout = 500) =
     if (cancelled || Date.now() - start > loadTimeout) return
   }
 
-  return playSound(url, soundVolume)
+  return playSound(url, soundVolume, loop, isMusic)
 }
 
-export async function playSound (url, soundVolume = 1) {
-  const volume = soundVolume * (options.volume / 100)
+async function playSound (url, soundVolume = 1, loop = false, isMusic = false) {
+  const volume = soundVolume * (options.volume / 100) * (isMusic ? options.musicVolume / 100 : 1)
 
   if (!volume) return
 
@@ -75,13 +81,14 @@ export async function playSound (url, soundVolume = 1) {
   const gainNode = audioContext.createGain()
   const source = audioContext.createBufferSource()
   source.buffer = soundBuffer
+  source.loop = loop
   source.connect(gainNode)
   gainNode.connect(audioContext.destination)
   gainNode.gain.value = volume
   source.start(0)
 
   // Add to active sounds
-  activeSounds.push({ source, gainNode, volumeMultiplier: soundVolume })
+  activeSounds.push({ source, gainNode, volumeMultiplier: soundVolume, isMusic })
 
   const callbacks = [] as Array<() => void>
   source.onended = () => {
@@ -99,8 +106,20 @@ export async function playSound (url, soundVolume = 1) {
     onEnded (callback: () => void) {
       callbacks.push(callback)
     },
+    stop () {
+      try {
+        source.stop()
+        // Remove from active sounds
+        const index = activeSounds.findIndex(s => s.source === source)
+        if (index !== -1) activeSounds.splice(index, 1)
+      } catch (err) {
+        console.warn('Failed to stop sound:', err)
+      }
+    },
+    gainNode,
   }
 }
+window.playSound = playSound
 
 export function stopAllSounds () {
   for (const { source } of activeSounds) {
@@ -113,11 +132,24 @@ export function stopAllSounds () {
   activeSounds.length = 0
 }
 
-export function changeVolumeOfCurrentlyPlayingSounds (newVolume: number) {
-  const normalizedVolume = newVolume / 100
-  for (const { gainNode, volumeMultiplier } of activeSounds) {
+export function stopSound (url: string) {
+  const soundIndex = activeSounds.findIndex(s => s.source.buffer === sounds[url])
+  if (soundIndex !== -1) {
+    const { source } = activeSounds[soundIndex]
     try {
-      gainNode.gain.value = normalizedVolume * volumeMultiplier
+      source.stop()
+    } catch (err) {
+      console.warn('Failed to stop sound:', err)
+    }
+    activeSounds.splice(soundIndex, 1)
+  }
+}
+
+export function changeVolumeOfCurrentlyPlayingSounds (newVolume: number, newMusicVolume: number) {
+  const normalizedVolume = newVolume / 100
+  for (const { gainNode, volumeMultiplier, isMusic } of activeSounds) {
+    try {
+      gainNode.gain.value = normalizedVolume * volumeMultiplier * (isMusic ? newMusicVolume / 100 : 1)
     } catch (err) {
       console.warn('Failed to change sound volume:', err)
     }
@@ -125,5 +157,9 @@ export function changeVolumeOfCurrentlyPlayingSounds (newVolume: number) {
 }
 
 subscribeKey(options, 'volume', () => {
-  changeVolumeOfCurrentlyPlayingSounds(options.volume)
+  changeVolumeOfCurrentlyPlayingSounds(options.volume, options.musicVolume)
+})
+
+subscribeKey(options, 'musicVolume', () => {
+  changeVolumeOfCurrentlyPlayingSounds(options.volume, options.musicVolume)
 })

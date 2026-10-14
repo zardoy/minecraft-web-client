@@ -1,5 +1,6 @@
 export const appReplacableResources: Array<{
   path: string
+  name?: string
   cssVar?: string
   cssVarRepeat?: number
 }> = [
@@ -20,42 +21,5 @@ export const appReplacableResources: Array<{
   {
     path: '../node_modules/mc-assets/dist/other-textures/latest/gui/bars.png',
     cssVar: '--bars-gui-atlas',
-  },
-  // container
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/inventory.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/shulker_box.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/generic_54.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/furnace.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/crafting_table.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/dispenser.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/hopper.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/horse.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/villager2.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/enchanting_table.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/anvil.png',
-  },
-  {
-    path: '../node_modules/mc-assets/dist/other-textures/latest/gui/container/beacon.png',
   },
 ]

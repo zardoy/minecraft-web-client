@@ -11,6 +11,12 @@ export const getFixedFilesize = (bytes: number) => {
   return prettyBytes(bytes, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+export const isInterestedInDownload = () => {
+  const { map, texturepack, replayFileUrl } = appQueryParams
+  const { mapDir } = appQueryParamsArray
+  return !!map || !!texturepack || !!replayFileUrl || !!mapDir
+}
+
 const inner = async () => {
   const { map, texturepack, replayFileUrl } = appQueryParams
   const { mapDir } = appQueryParamsArray

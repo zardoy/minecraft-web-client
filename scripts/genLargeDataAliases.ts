@@ -16,7 +16,8 @@ export const genLargeDataAliases = async (isCompressed: boolean) => {
 
     let str = `${decoderCode}\nexport const importLargeData = async (mod: ${Object.keys(modules).map(x => `'${x}'`).join(' | ')}) => {\n`
     for (const [module, { compressed, raw }] of Object.entries(modules)) {
-        let importCode = `(await import('${isCompressed ? compressed : raw}')).default`;
+        const chunkName = module === 'mcData' ? 'mc-data' : 'mc-assets';
+        let importCode = `(await import(/* webpackChunkName: "${chunkName}" */ '${isCompressed ? compressed : raw}')).default`;
         if (isCompressed) {
             importCode = `JSON.parse(decompressFromBase64(${importCode}))`
         }
@@ -29,6 +30,8 @@ export const genLargeDataAliases = async (isCompressed: boolean) => {
 
 const decoderCode = /* ts */ `
 import pako from 'pako';
+
+globalThis.pako = { inflate: pako.inflate.bind(pako) }
 
 function decompressFromBase64(input) {
     console.time('decompressFromBase64')

@@ -1,5 +1,5 @@
 import { useSnapshot } from 'valtio'
-import { openURL } from 'renderer/viewer/lib/simpleUtils'
+import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import { ErrorBoundary } from '@zardoy/react-util'
 import { miscUiState } from '../globalState'
 import { openGithub } from '../utils'

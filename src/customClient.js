@@ -1,6 +1,7 @@
+//@ts-check
+import * as nbt from 'prismarine-nbt'
 import { options } from './optionsStorage'
 
-//@ts-check
 const { EventEmitter } = require('events')
 const debug = require('debug')('minecraft-protocol')
 const states = require('minecraft-protocol/src/states')
@@ -51,8 +52,20 @@ class CustomChannelClient extends EventEmitter {
     this.emit('state', newProperty, oldProperty)
   }
 
-  end(reason) {
-    this._endReason = reason
+  end(endReason, fullReason) {
+    // eslint-disable-next-line unicorn/no-this-assignment
+    const client = this
+    if (client.state === states.PLAY) {
+      fullReason ||= loadedData.supportFeature('chatPacketsUseNbtComponents')
+        ? nbt.comp({ text: nbt.string(endReason) })
+        : JSON.stringify({ text: endReason })
+      client.write('kick_disconnect', { reason: fullReason })
+    } else if (client.state === states.LOGIN) {
+      fullReason ||= JSON.stringify({ text: endReason })
+      client.write('disconnect', { reason: fullReason })
+    }
+
+    this._endReason = endReason
     this.emit('end', this._endReason) // still emits on server side only, doesn't send anything to our client
   }
 

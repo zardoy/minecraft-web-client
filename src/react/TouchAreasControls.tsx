@@ -1,10 +1,12 @@
 import { CSSProperties, PointerEvent, useEffect, useRef, useState } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
+import activatableItemsMobile from 'mineflayer-mouse/dist/activatableItemsMobile'
 import { contro } from '../controls'
 import { options } from '../optionsStorage'
 import PixelartIcon from './PixelartIcon'
 import Button from './Button'
 import Slider from './Slider'
+import { getGameViewportSize } from './utils'
 
 export type ButtonName = 'action' | 'sneak' | 'break' | 'jump'
 
@@ -72,54 +74,52 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
       break: false,
       jump: bot?.getControlState('jump'),
     }[name]
+    const RIGHT_MOUSE_BUTTON = 2
+    const LEFT_MOUSE_BUTTON = 0
     const holdDown = {
       action () {
         if (!bot) return
-        document.dispatchEvent(new MouseEvent('mousedown', { button: 2 }))
+        document.dispatchEvent(new MouseEvent('mousedown', { button: RIGHT_MOUSE_BUTTON }))
         bot.mouse.update()
       },
       sneak () {
         void contro.emit('trigger', {
-          command: 'general.toggleSneakOrDown',
-          schema: null as any,
+          command: 'movement.toggleSneakOrDown',
         })
         active = bot?.getControlState('sneak')
       },
       break () {
         if (!bot) return
-        document.dispatchEvent(new MouseEvent('mousedown', { button: 0 }))
+        document.dispatchEvent(new MouseEvent('mousedown', { button: LEFT_MOUSE_BUTTON }))
         bot.mouse.update()
         active = true
       },
       jump () {
         void contro.emit('trigger', {
-          command: 'general.jump',
-          schema: null as any,
+          command: 'movement.jump',
         })
         active = bot?.controlState.jump
       }
     }
     const holdUp = {
       action () {
-        document.dispatchEvent(new MouseEvent('mouseup', { button: 2 }))
+        document.dispatchEvent(new MouseEvent('mouseup', { button: RIGHT_MOUSE_BUTTON }))
       },
       sneak () {
         void contro.emit('release', {
-          command: 'general.toggleSneakOrDown',
-          schema: null as any,
+          command: 'movement.toggleSneakOrDown',
         })
         active = bot?.getControlState('sneak')
       },
       break () {
         if (!bot) return
-        document.dispatchEvent(new MouseEvent('mouseup', { button: 0 }))
+        document.dispatchEvent(new MouseEvent('mouseup', { button: LEFT_MOUSE_BUTTON }))
         bot.mouse.update()
         active = false
       },
       jump () {
         void contro.emit('release', {
-          command: 'general.jump',
-          schema: null as any,
+          command: 'movement.jump',
         })
         active = bot?.controlState.jump
       }
@@ -173,8 +173,9 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
           const elem = e.currentTarget as HTMLElement
           const size = 32
           const scale = getCurrentAppScaling()
-          const xPerc = (e.clientX - (size * scale) / 2) / window.innerWidth * 100
-          const yPerc = (e.clientY - (size * scale) / 2) / window.innerHeight * 100
+          const { width, height } = getGameViewportSize()
+          const xPerc = (e.clientX - (size * scale) / 2) / width * 100
+          const yPerc = (e.clientY - (size * scale) / 2) / height * 100
           elem.style.left = `${xPerc}%`
           elem.style.top = `${yPerc}%`
           newButtonPositions[name] = [xPerc, yPerc]
@@ -238,10 +239,13 @@ export default ({ setupActive, closeButtonsSetup, foregroundGameActive }: Props)
             ...(selectedButton === 'joystick' ? {
               border: '2px solid white',
             } : {}),
-          } : pointer ? {
-            left: `${pointer.x / window.innerWidth * 100}%`,
-            top: `${pointer.y / window.innerHeight * 100}%`
-          } : {}),
+          } : pointer ? (() => {
+            const { width, height } = getGameViewportSize()
+            return {
+              left: `${pointer.x / width * 100}%`,
+              top: `${pointer.y / height * 100}%`
+            }
+          })() : {}),
         }}
         onClick={() => {
           if (setupActive) {

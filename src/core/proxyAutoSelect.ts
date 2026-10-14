@@ -1,5 +1,4 @@
 import { proxy } from 'valtio'
-import { appStorage } from '../react/appStorageProvider'
 import { pingProxyServer } from './pingProxy'
 
 export interface ProxyPingState {
@@ -20,66 +19,48 @@ export const proxyPingState = proxy<ProxyPingState>({
 
 let currentPingAbortController: AbortController | null = null
 
-export async function selectBestProxy (proxies: string[]): Promise<string | null> {
-  if (proxyPingState.checkStarted) {
-    cancelProxyPinging()
-  }
-  proxyPingState.checkStarted = true
+export const normalizeProxyUrl = (proxyUrl: string) => {
+  return proxyUrl.startsWith(':') ? `${location.protocol}//${location.hostname}${proxyUrl}` : proxyUrl
+}
 
+/** Pings all proxies and resolves with the first one that responded (or null if all failed). Other pings keep running to fill `proxyPingState` */
+export async function selectBestProxy (proxies: string[]): Promise<string | null> {
   // Cancel any ongoing pings
-  if (currentPingAbortController) {
-    currentPingAbortController.abort()
-  }
-  currentPingAbortController = new AbortController()
-  const abortController = currentPingAbortController // Store in local const to satisfy TypeScript
+  cancelProxyPinging()
+  const abortController = new AbortController()
+  currentPingAbortController = abortController
+  proxyPingState.checkStarted = true
 
   // Reset ping states
   for (const proxy of proxies) {
     proxyPingState.proxyStatus[proxy] = { status: 'checking' }
   }
 
-  try {
-    // Create a promise for each proxy
-    const pingPromises = proxies.map(async (proxy) => {
-      if (proxy.startsWith(':')) {
-        proxy = `${location.protocol}//${location.hostname}${proxy}`
-      }
-      try {
-        const result = await pingProxyServer(proxy, abortController.signal)
-        if (result.success) {
-          proxyPingState.proxyStatus[proxy] = { status: 'success', latency: result.latency }
-          return { proxy, latency: result.latency }
-        } else {
-          proxyPingState.proxyStatus[proxy] = { status: 'error', error: result.error }
-          return null
-        }
-      } catch (err) {
-        proxyPingState.proxyStatus[proxy] = { status: 'error', error: String(err) }
-        return null
-      }
-    })
-
-    // Use Promise.race to get the first successful response
-    const results = await Promise.race([
-      // Wait for first successful ping
-      Promise.any(pingPromises.map(async p => p.then(r => r && { type: 'success' as const, data: r }))),
-      // Or wait for all to fail
-      Promise.all(pingPromises).then(results => {
-        if (results.every(r => r === null)) {
-          return { type: 'all-failed' as const }
-        }
-        return null
-      })
-    ])
-
-    if (!results || results.type === 'all-failed') {
-      return null
+  const pingPromises = proxies.map(async (proxy) => {
+    const normalizedProxy = normalizeProxyUrl(proxy)
+    const result = await pingProxyServer(normalizedProxy, abortController.signal)
+    // superseded by a newer run, don't overwrite its state
+    if (abortController.signal.aborted) throw new Error('Aborted')
+    if (!result.success) {
+      proxyPingState.proxyStatus[proxy] = { status: 'error', error: result.error }
+      throw new Error(result.error)
     }
+    proxyPingState.proxyStatus[proxy] = { status: 'success', latency: result.latency }
+    return normalizedProxy
+  })
 
-    return results.type === 'success' ? results.data.proxy : null
-  } finally {
-    currentPingAbortController = null
-    proxyPingState.checkStarted = false
+  void Promise.allSettled(pingPromises).then(() => {
+    if (currentPingAbortController === abortController) {
+      currentPingAbortController = null
+      proxyPingState.checkStarted = false
+    }
+  })
+
+  try {
+    return await Promise.any(pingPromises)
+  } catch {
+    // all pings failed
+    return null
   }
 }
 
@@ -87,5 +68,6 @@ export function cancelProxyPinging () {
   if (currentPingAbortController) {
     currentPingAbortController.abort()
     currentPingAbortController = null
+    proxyPingState.checkStarted = false
   }
 }

@@ -2,29 +2,41 @@ declare namespace NodeJS {
   interface ProcessEnv {
     // Build configuration
     NODE_ENV: 'development' | 'production'
-    SINGLE_FILE_BUILD?: string
-    DISABLE_SERVICE_WORKER?: string
+    MIN_MC_VERSION?: string
+    MAX_MC_VERSION?: string
+    ALWAYS_COMPRESS_LARGE_DATA?: 'true' | 'false'
+    SINGLE_FILE_BUILD?: 'true' | 'false'
+    WS_PORT?: string
+    DISABLE_SERVICE_WORKER?: 'true' | 'false'
     CONFIG_JSON_SOURCE?: 'BUNDLED' | 'REMOTE'
     LOCAL_CONFIG_FILE?: string
+    CONFIG_JSON?: string
     BUILD_VERSION?: string
+    /** Resolved from installed minecraft-renderer package.json at build time. */
+    MINECRAFT_RENDERER_VERSION?: string
+    /** Set at compile time: DD.MM.YY (local date when the config ran). */
+    BUILD_DISPLAY_DATE?: string
 
-    // GitHub and Vercel related
+    // Build internals
     GITHUB_REPOSITORY?: string
     VERCEL_GIT_REPO_OWNER?: string
     VERCEL_GIT_REPO_SLUG?: string
 
-    // UI and Features
+    // UI
     MAIN_MENU_LINKS?: string
+    ALWAYS_MINIMAL_SERVER_UI?: 'true' | 'false'
+
+    // App features
     ENABLE_COOKIE_STORAGE?: string
     COOKIE_STORAGE_PREFIX?: string
 
-    // Release information
+    // Build info. Release information
     RELEASE_TAG?: string
     RELEASE_LINK?: string
     RELEASE_CHANGELOG?: string
 
-    // Other configurations
-    DEPS_VERSIONS?: string
+    // Build info
     INLINED_APP_CONFIG?: string
+    GITHUB_URL?: string
   }
 }

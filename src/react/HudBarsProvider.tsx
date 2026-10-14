@@ -1,5 +1,7 @@
 import { useRef, useState, useMemo } from 'react'
 import { GameMode } from 'mineflayer'
+import { useSnapshot } from 'valtio'
+import { options } from '../optionsStorage'
 import { armor } from './armorValues'
 import HealthBar from './HealthBar'
 import FoodBar from './FoodBar'
@@ -8,6 +10,8 @@ import BreathBar from './BreathBar'
 import './HealthBar.css'
 
 export default () => {
+  const { disabledUiParts } = useSnapshot(options)
+
   const [damaged, setDamaged] = useState(false)
   const [healthValue, setHealthValue] = useState(bot.health)
   const [food, setFood] = useState(bot.food)
@@ -91,7 +95,7 @@ export default () => {
   }, [])
 
   return <div className='hud-bars-container'>
-    <HealthBar
+    {!disabledUiParts.includes('health-bar') && <HealthBar
       gameMode={gameMode}
       isHardcore={isHardcore}
       damaged={damaged}
@@ -102,12 +106,12 @@ export default () => {
         setEffectToAdd(null)
         setEffectToRemove(null)
       }}
-    />
-    <ArmorBar
+    />}
+    {!disabledUiParts.includes('armor-bar') && <ArmorBar
       armorValue={armorValue}
       style={gameMode !== 'survival' && gameMode !== 'adventure' ? { display: 'none' } : { display: 'flex' }}
-    />
-    <FoodBar
+    />}
+    {!disabledUiParts.includes('food-bar') && <FoodBar
       gameMode={gameMode}
       food={food}
       effectToAdd={effectToAdd}
@@ -116,9 +120,9 @@ export default () => {
         setEffectToAdd(null)
         setEffectToRemove(null)
       }}
-    />
-    <BreathBar
+    />}
+    {!disabledUiParts.includes('breath-bar') && <BreathBar
       oxygen={gameMode !== 'survival' && gameMode !== 'adventure' ? 0 : oxygen}
-    />
+    />}
   </div>
 }

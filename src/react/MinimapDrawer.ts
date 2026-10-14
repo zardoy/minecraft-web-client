@@ -27,7 +27,7 @@ export interface DrawerAdapter extends TypedEventEmitter<MapUpdates> {
 }
 
 export type ChunkInfo = {
-  heightmap: Uint8Array,
+  heightmap: Int16Array | Uint8Array,
   colors: string[],
 }
 

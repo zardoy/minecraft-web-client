@@ -1,4 +1,4 @@
-name: Vercel Deploy Next
+name: Vercel Deploy Next (Beta)
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -37,11 +37,11 @@ jobs:
         env:
           CONFIG_JSON_SOURCE: BUNDLED
           LOCAL_CONFIG_FILE: config.mcraft-only.json
-      - name: Copy playground files
-        run: |
-          mkdir -p .vercel/output/static/playground
-          pnpm build-playground
-          cp -r renderer/dist/* .vercel/output/static/playground/
+      # - name: Copy playground files
+      #   run: |
+      #     mkdir -p .vercel/output/static/playground
+      #     pnpm build-playground
+      #     cp -r renderer/dist/* .vercel/output/static/playground/
       - name: Deploy Project Artifacts to Vercel
         uses: mathiasvr/command-output@v2.0.0
         with:
@@ -63,7 +63,7 @@ jobs:
           path: cypress/screenshots/
       - name: Set deployment aliases
         run: |
-          for alias in $(echo ${{ secrets.TEST_PREVIEW_DOMAIN }} | tr "," "\n"); do
+          for alias in $(echo ${{ vars.TEST_PREVIEW_DOMAIN }} | tr "," "\n"); do
             vercel alias set ${{ steps.deploy.outputs.stdout }} $alias --token=${{ secrets.VERCEL_TOKEN }} --scope=zaro
           done
 

@@ -1,20 +1,43 @@
 import PItem from 'prismarine-item'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
-import { options } from './optionsStorage'
+import * as THREE from 'three'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
+import { options, serverChangedSettings } from './optionsStorage'
 import { jeiCustomCategories } from './inventoryWindows'
+import { registerIdeChannels } from './core/ideChannels'
+import { registerIframeChannels } from './core/iframeChannels'
+import { serverSafeSettings } from './defaultOptions'
+import { lastConnectOptions } from './appStatus'
+import { gameAdditionalState } from './globalState'
+import { applyNearbyPlayers, onVoiceAvailable, onVoiceConfig, setVoiceServerSender, disconnectVoice } from './voice/voiceChat'
+
+const isWebSocketServer = (server: string | undefined) => {
+  if (!server) return false
+  return server.startsWith('ws://') || server.startsWith('wss://')
+}
+
+const getIsCustomChannelsEnabled = () => {
+  if (options.customChannels === 'websocket') return isWebSocketServer(lastConnectOptions.value?.server)
+  return options.customChannels
+}
 
 export default () => {
   customEvents.on('mineflayerBotCreated', async () => {
-    if (!options.customChannels) return
-    await new Promise(resolve => {
-      bot.once('login', () => {
-        resolve(true)
-      })
+    if (!getIsCustomChannelsEnabled()) return
+    bot.once('login', () => {
+      registerConnectMetadataChannel()
+      registerBlockModelsChannel()
+      registerMediaChannels()
+      registerSectionAnimationChannels()
+      registeredJeiChannel()
+      registerBlockInteractionsCustomizationChannel()
+      registerWaypointChannels()
+      registerFireworksChannels()
+      registerIdeChannels()
+      registerIframeChannels()
+      registerServerSettingsChannel()
+      registerTypingIndicatorChannel()
+      registerVoiceChatChannel()
     })
-    registerBlockModelsChannel()
-    registerMediaChannels()
-    registerSectionAnimationChannels()
-    registeredJeiChannel()
   })
 }
 
@@ -30,6 +53,169 @@ const registerChannel = (channelName: string, packetStructure: any[], handler: (
   })
 
   console.debug(`registered custom channel ${channelName} channel`)
+}
+
+const registerConnectMetadataChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:connect-metadata'
+  const packetStructure = [
+    'container',
+    [
+      { name: 'metadata', type: ['pstring', { countType: 'i16' }] }
+    ]
+  ]
+
+  bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
+
+  // Send client metadata to server
+  bot._client.writeChannel(CHANNEL_NAME, {
+    metadata: JSON.stringify({
+      version: process.env.RELEASE_TAG,
+      build: process.env.BUILD_VERSION,
+      ...window.serverMetadataConnect,
+    })
+  })
+
+  // Listen for server metadata
+  bot._client.on(CHANNEL_NAME as any, (data) => {
+    try {
+      const metadata = JSON.parse(data.metadata)
+      window.serverMetadata = metadata
+      console.debug('Received server metadata:', metadata)
+    } catch (error) {
+      console.warn('Failed to parse server metadata:', error)
+    }
+  })
+}
+
+const registerBlockInteractionsCustomizationChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:block-interactions-customization'
+  const packetStructure = [
+    'container',
+    [
+      {
+        name: 'newConfiguration',
+        type: ['pstring', { countType: 'i16' }]
+      },
+    ]
+  ]
+
+  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
+    const config = JSON.parse(data.newConfiguration)
+    bot.mouse.setConfigFromPacket(config)
+  }, true)
+}
+
+const registerFireworksChannels = () => {
+  const packetStructure = [
+    'container',
+    [
+      {
+        name: 'x',
+        type: 'f32'
+      },
+      {
+        name: 'y',
+        type: 'f32'
+      },
+      {
+        name: 'z',
+        type: 'f32'
+      },
+      {
+        name: 'optionsJson',
+        type: ['pstring', { countType: 'i16' }]
+      }
+    ]
+  ]
+
+  registerChannel('minecraft-web-client:firework-explode', packetStructure, (data) => {
+    // Parse options if provided
+    let options: any = {}
+    if (data.optionsJson && data.optionsJson.trim() !== '') {
+      try {
+        options = JSON.parse(data.optionsJson)
+      } catch (error) {
+        console.warn('Failed to parse firework optionsJson:', error)
+      }
+    }
+
+    // Set position from coords
+    options.position = new THREE.Vector3(data.x, data.y, data.z)
+
+    getThreeJsRendererMethods()?.launchFirework(options)
+  })
+}
+
+const registerWaypointChannels = () => {
+  const packetStructure = [
+    'container',
+    [
+      {
+        name: 'id',
+        type: ['pstring', { countType: 'i16' }]
+      },
+      {
+        name: 'x',
+        type: 'f32'
+      },
+      {
+        name: 'y',
+        type: 'f32'
+      },
+      {
+        name: 'z',
+        type: 'f32'
+      },
+      {
+        name: 'minDistance',
+        type: 'i32'
+      },
+      {
+        name: 'label',
+        type: ['pstring', { countType: 'i16' }]
+      },
+      {
+        name: 'color',
+        type: 'i32'
+      },
+      {
+        name: 'metadataJson',
+        type: ['pstring', { countType: 'i16' }]
+      }
+    ]
+  ]
+
+  registerChannel('minecraft-web-client:waypoint-add', packetStructure, (data) => {
+    // Parse metadata if provided
+    let metadata: any = {}
+    if (data.metadataJson && data.metadataJson.trim() !== '') {
+      try {
+        metadata = JSON.parse(data.metadataJson)
+      } catch (error) {
+        console.warn('Failed to parse waypoint metadataJson:', error)
+      }
+    }
+
+    getThreeJsRendererMethods()?.addWaypoint(data.id, data.x, data.y, data.z, {
+      minDistance: data.minDistance,
+      maxDistance: metadata.maxDistance,
+      label: data.label || undefined,
+      color: data.color || undefined,
+      metadata
+    })
+  })
+
+  registerChannel('minecraft-web-client:waypoint-delete', [
+    'container',
+    [
+      {
+        name: 'id',
+        type: ['pstring', { countType: 'i16' }]
+      }
+    ]
+  ], (data) => {
+    getThreeJsRendererMethods()?.removeWaypoint(data.id)
+  })
 }
 
 const registerBlockModelsChannel = () => {
@@ -391,6 +577,145 @@ const addTestVideo = (rotation = 0 as 0 | 1 | 2 | 3, scale = 1, isImage = false)
   })
 }
 window.addTestVideo = addTestVideo
+
+const registerServerSettingsChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:server-settings'
+  const packetStructure = [
+    'container',
+    [
+      {
+        name: 'settingsJson',
+        type: ['pstring', { countType: 'i16' }]
+      },
+    ]
+  ]
+
+  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
+    try {
+      const settings = JSON.parse(data.settingsJson)
+
+      if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
+        console.warn('Invalid settings format: expected an object')
+        return
+      }
+
+      let appliedCount = 0
+      let skippedCount = 0
+
+      for (const [key, value] of Object.entries(settings)) {
+        // Only apply settings that are in the safe list
+        if (!(key in serverSafeSettings)) {
+          console.warn(`Skipping unsafe setting: ${key}`)
+          skippedCount++
+          continue
+        }
+
+        // Validate that the setting exists in options
+        if (!(key in options)) {
+          console.warn(`Setting does not exist: ${key}`)
+          skippedCount++
+          continue
+        }
+
+        // todo remove it later, let user take control back and make clear to user
+        serverChangedSettings.value.add(key)
+        options[key] = value
+        appliedCount++
+      }
+
+      console.debug(`Applied ${appliedCount} server settings${skippedCount > 0 ? `, skipped ${skippedCount} unsafe/invalid settings` : ''}`)
+    } catch (error) {
+      console.error('Failed to parse or apply server settings:', error)
+    }
+  }, false) // Don't wait for world, settings can be applied before world loads
+}
+
+const registerTypingIndicatorChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:typing-indicator'
+  const packetStructure = [
+    'container',
+    [
+      {
+        name: 'username',
+        type: ['pstring', { countType: 'i16' }]
+      },
+      {
+        name: 'isTyping',
+        type: 'bool'
+      }
+    ]
+  ]
+
+  registerChannel(CHANNEL_NAME, packetStructure, (data) => {
+    const { username, isTyping } = data
+
+    if (isTyping) {
+      // Add user to typing list if not already there
+      const existingIndex = gameAdditionalState.typingUsers.findIndex(user => user.username === username)
+      if (existingIndex === -1) {
+        gameAdditionalState.typingUsers.push({ username, timestamp: Date.now() })
+      } else {
+        // Update timestamp for existing user
+        gameAdditionalState.typingUsers[existingIndex].timestamp = Date.now()
+      }
+    } else {
+      // Remove user from typing list
+      gameAdditionalState.typingUsers = gameAdditionalState.typingUsers.filter(user => user.username !== username)
+    }
+  })
+}
+
+const registerVoiceChatChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:voice-chat'
+  const packetStructure = [
+    'container',
+    [
+      { name: 'action', type: ['pstring', { countType: 'i16' }] },
+      { name: 'json', type: ['pstring', { countType: 'i16' }] }
+    ]
+  ]
+
+  bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
+
+  setVoiceServerSender((action, payload) => {
+    bot._client.writeChannel(CHANNEL_NAME, { action, json: JSON.stringify(payload) })
+  })
+
+  bot._client.on(CHANNEL_NAME as any, (data) => {
+    console.log('got voice chat', data)
+    let payload: any = {}
+    try {
+      payload = data.json ? JSON.parse(data.json) : {}
+    } catch (error) {
+      console.warn('Failed to parse voice-chat payload:', error)
+      return
+    }
+
+    switch (data.action) {
+      case 'available': {
+        onVoiceAvailable()
+        break
+      }
+      case 'config': {
+        onVoiceConfig(payload)
+        break
+      }
+      case 'nearby': {
+        applyNearbyPlayers(payload.players ?? [], payload.forceMuted ?? [])
+        break
+      }
+      default: {
+        console.log('Unknown voice-chat action:', data.action)
+      }
+    }
+  })
+
+  bot.once('end', () => {
+    void disconnectVoice()
+  })
+
+  console.log(`registered custom channel ${CHANNEL_NAME} channel`)
+}
 
 function getCurrentTopDomain (): string {
   const { hostname } = location

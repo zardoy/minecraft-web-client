@@ -1,9 +1,8 @@
 import { proxy, useSnapshot } from 'valtio'
 import { useState, useEffect, useMemo } from 'react'
-import { isGameActive } from '../globalState'
+import { lastConnectOptions } from '../appStatus'
 import PlayerListOverlay from './PlayerListOverlay'
 import './PlayerListOverlay.css'
-import { lastConnectOptions } from './AppStatusProvider'
 
 const MAX_COLUMNS = 4
 const MAX_ROWS_PER_COL = 10

@@ -35,11 +35,6 @@ jobs:
         env:
           CONFIG_JSON_SOURCE: BUNDLED
           LOCAL_CONFIG_FILE: config.mcraft-only.json
-      - name: Copy playground files
-        run: |
-          mkdir -p .vercel/output/static/playground
-          pnpm build-playground
-          cp -r renderer/dist/* .vercel/output/static/playground/
 
       # publish to github
       - run: cp vercel.json .vercel/output/static/vercel.json
@@ -47,6 +42,20 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .vercel/output/static
+          force_orphan: true
+
+      # Create CNAME file for custom domain
+      - name: Create CNAME file
+        run: echo "mcraft.fun" > .vercel/output/static/CNAME
+
+      - name: Deploy to mwc-mcraft-pages repository
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          personal_token: ${{ secrets.MCW_MCRAFT_PAGE_DEPLOY_TOKEN }}
+          external_repository: ${{ github.repository_owner }}/mwc-mcraft-pages
+          publish_dir: .vercel/output/static
+          publish_branch: main
+          destination_dir: docs
           force_orphan: true
 
       - name: Change index.html title

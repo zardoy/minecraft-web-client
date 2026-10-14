@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSnapshot } from 'valtio'
-import { openURL } from 'renderer/viewer/lib/simpleUtils'
 import { noCase } from 'change-case'
 import { versionToNumber } from 'mc-assets/dist/utils'
+import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
+import Logo from 'minecraft-renderer/logo.webp'
 import { gameAdditionalState, miscUiState, openOptionsMenu, showModal } from './globalState'
-import { AppOptions, getChangedSettings, options, resetOptions } from './optionsStorage'
+import { AppOptions, getChangedSettings, options } from './optionsStorage'
+import { showResetSettingsModal } from './react/AllSettingsEditor'
 import Button from './react/Button'
 import { OptionMeta, OptionSlider } from './react/OptionsItems'
 import Slider from './react/Slider'
@@ -21,11 +23,58 @@ import { createNotificationProgressReporter } from './core/progressReporter'
 import { customKeymaps } from './controls'
 import { appStorage } from './react/appStorageProvider'
 import { exportData, importData } from './core/importExport'
+import { appGraphicBackends, getCurrentGraphicsBackend } from './appViewerLoad'
 
 export const guiOptionsScheme: {
   [t in OptionsGroupType]: Array<{ [K in keyof AppOptions]?: Partial<OptionMeta<AppOptions[K]>> } & { custom? }>
 } = {
   render: [
+    {
+      custom () {
+        const { activeRenderer } = useSnapshot(options)
+        const { name, id } = useMemo(() => getCurrentGraphicsBackend(), [activeRenderer])
+
+        return <Button
+          label={`Backend: ${name}`}
+          inScreen
+          onClick={async () => {
+            const newBackendName = await showOptionsModal(
+              'Change Renderer (Builtin Graphics Backends)',
+              [...appGraphicBackends.map(backend => backend.displayName ?? backend.id), 'Disable Graphics Rendering'],
+              {
+                descriptions: appGraphicBackends.map(backend => backend.description || backend.displayName || ''),
+                hoveredOptionIndex: appGraphicBackends.findIndex(backend => backend.id === id)
+              }
+            )
+            if (!newBackendName) return
+            const newBackend = appGraphicBackends.find(backend => (backend.displayName ?? backend.id) === newBackendName)!.id
+            options.activeRenderer = newBackend
+          }}
+        />
+      },
+    },
+    {
+      custom () {
+        return (
+          <div style={{
+            // span 2
+            gridColumn: 'span 2',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <img
+              src={Logo}
+              alt="Renderer logo"
+              style={{
+                width: 150,
+                objectFit: 'contain',
+              }}
+            />
+          </div>
+        )
+      },
+    },
     {
       custom () {
         const frameLimitValue = useSnapshot(options).frameLimit
@@ -53,48 +102,57 @@ export const guiOptionsScheme: {
       }
     },
     {
-      gpuPreference: {
-        text: 'GPU Preference',
-        tooltip: 'You will need to reload the page for this to take effect.',
-        values: [['default', 'Auto'], ['high-performance', 'Dedicated'], ['low-power', 'Low Power']]
-      },
-    },
-    {
-      custom () {
-        return <Button label='Guide: Disable VSync' onClick={() => openURL('https://gist.github.com/zardoy/6e5ce377d2b4c1e322e660973da069cd')} inScreen />
-      },
       backgroundRendering: {
         text: 'Background FPS limit',
-        values: [
-          ['full', 'NO'],
-          ['5fps', '5 FPS'],
-          ['20fps', '20 FPS'],
-        ],
       },
-      activeRenderer: {
-        text: 'Renderer',
-        values: [
-          ['threejs', 'Three.js (stable)'],
-        ],
+      menuBackgroundMode: {
+        text: 'Menu Background',
+      },
+      renderDebug: {
       },
     },
     {
       custom () {
-        return <Category>Experimental</Category>
+        return <Category>World Settings</Category>
+      },
+      vanillaLook: {
+        tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
+      },
+      rendererWorldPerformance: {
+        text: 'World Performance',
+        tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
+        requiresRestartWhenInGame: true,
+      },
+      rendererMesher: {},
+    },
+    {
+      custom () {
+        return <Button label='Advanced...' onClick={() => openOptionsMenu('renderer-advanced')} inScreen />
+      },
+    },
+  ],
+  'renderer-advanced': [
+    {
+      custom () {
+        return <Category>Debug Performance</Category>
+      },
+      renderEntities: {},
+      disableBlockEntityTextures: {
+        text: 'No Block Entity Textures',
+        tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps',
+      },
+    },
+    {
+      custom () {
+        return <Category>Other Settings</Category>
       },
       dayCycleAndLighting: {
         text: 'Day Cycle',
       },
-      smoothLighting: {},
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
       },
-      lowMemoryMode: {
-        text: 'Low Memory Mode',
-        enableWarning: 'Enabling it will make chunks load ~4x slower. When in the game, app needs to be reloaded to apply this setting.',
-      },
       starfieldRendering: {},
-      renderEntities: {},
       keepChunksDistance: {
         max: 5,
         unit: '',
@@ -103,42 +161,15 @@ export const guiOptionsScheme: {
       renderEars: {
         tooltip: 'Enable rendering Deadmau5 ears for all players if their skin contains textures for it',
       },
-      renderDebug: {
-        values: [
-          'advanced',
-          'basic',
-          'none'
-        ],
-      },
       rendererPerfDebugOverlay: {
         text: 'Performance Debug',
-      }
-    },
-    {
-      custom () {
-        const { _renderByChunks } = useSnapshot(options).rendererSharedOptions
-        return <Button
-          inScreen
-          label={`Batch Chunks Display ${_renderByChunks ? 'ON' : 'OFF'}`}
-          onClick={() => {
-            options.rendererSharedOptions._renderByChunks = !_renderByChunks
-          }}
-        />
-      }
-    },
-    {
-      custom () {
-        return <Category>Resource Packs</Category>
       },
-      serverResourcePacks: {
-        text: 'Download From Server',
-        values: [
-          'prompt',
-          'always',
-          'never'
-        ],
-      }
-    }
+    },
+    {
+      custom () {
+        return <Button label='Guide: Disable VSync' onClick={() => openURL('https://gist.github.com/zardoy/6e5ce377d2b4c1e322e660973da069cd')} inScreen />
+      },
+    },
   ],
   main: [
     {
@@ -151,10 +182,9 @@ export const guiOptionsScheme: {
     {
       custom () {
         const sp = miscUiState.singleplayer || !miscUiState.gameLoaded
-        const id = sp ? 'renderDistance' : 'multiplayerRenderDistance' // cant be changed when settings are open
         return <OptionSlider item={{
           type: 'slider',
-          id,
+          id: 'renderDistance',
           text: 'Render Distance',
           unit: '',
           max: sp ? 16 : 12,
@@ -210,16 +240,16 @@ export const guiOptionsScheme: {
                 return
               }
               if (choice === 'Uninstall') {
-              // todo make hidable
+                // todo make hidable
                 setLoadingScreenStatus('Uninstalling texturepack')
                 await uninstallResourcePack()
                 setLoadingScreenStatus(undefined)
               }
             } else {
-            // if (!fsState.inMemorySave && isGameActive(false)) {
-            //   alert('Unable to install resource pack in loaded save for now')
-            //   return
-            // }
+              // if (!fsState.inMemorySave && isGameActive(false)) {
+              //   alert('Unable to install resource pack in loaded save for now')
+              //   return
+              // }
               openFilePicker('resourcepack')
             }
           }}
@@ -271,6 +301,13 @@ export const guiOptionsScheme: {
         unit: '',
         delayApply: true,
       },
+    },
+    {
+      custom () {
+        return <Button label='Inventory & containers...' onClick={() => openOptionsMenu('inventory')} inScreen />
+      },
+    },
+    {
       custom () {
         return <Category>Chat</Category>
       },
@@ -290,7 +327,10 @@ export const guiOptionsScheme: {
         text: 'Text Select',
       },
       chatPingExtension: {
-      }
+      },
+      chatAlwaysDisplayTypingIndicator: {
+        text: 'Always Show Typing Indicator',
+      },
     },
     {
       custom () {
@@ -299,11 +339,6 @@ export const guiOptionsScheme: {
       showMinimap: {
         text: 'Enable Minimap',
         enableWarning: 'App reload is required to apply this setting',
-        values: [
-          'always',
-          'singleplayer',
-          'never'
-        ],
       },
     },
     {
@@ -312,11 +347,6 @@ export const guiOptionsScheme: {
       },
       highlightBlockColor: {
         text: 'Block Highlight Color',
-        values: [
-          ['auto', 'Auto'],
-          ['blue', 'Blue'],
-          ['classic', 'Classic']
-        ],
       },
       showHand: {
         text: 'Show Hand',
@@ -334,11 +364,6 @@ export const guiOptionsScheme: {
       },
       wysiwygSignEditor: {
         text: 'WYSIWG Editor',
-        values: [
-          'auto',
-          'always',
-          'never'
-        ],
       },
     },
     {
@@ -379,6 +404,12 @@ export const guiOptionsScheme: {
         return <UiToggleButton name='hotbar' />
       },
     },
+    {
+      custom () {
+        return <Category>Other</Category>
+      },
+      displayLoadingMessages: {}
+    }
   ],
   controls: [
     {
@@ -422,6 +453,15 @@ export const guiOptionsScheme: {
       },
       alwaysShowMobileControls: {
         text: 'Always Mobile Controls',
+        disableIf: ['forceDisableTouchControls', true],
+      },
+      forceDisableTouchControls: {
+        text: 'Force Disable Touch Controls',
+        tooltip: 'Never show touch controls, even if your device has a touchscreen. Useful for touch laptops used with mouse and keyboard.',
+      },
+      autoDisplayRotation: {
+        text: 'Auto Landscape Rotation',
+        tooltip: 'On portrait screens, automatically rotate the game to landscape layout (same as the rotate button).',
       },
       touchButtonsSize: {
         min: 40,
@@ -447,11 +487,9 @@ export const guiOptionsScheme: {
       },
       touchMovementType: {
         text: 'Movement Controls',
-        values: [['modern', 'Modern'], ['classic', 'Classic']],
       },
       touchInteractionType: {
         text: 'Interaction Controls',
-        values: [['classic', 'Classic'], ['buttons', 'Buttons']],
       },
     },
     {
@@ -465,11 +503,6 @@ export const guiOptionsScheme: {
         return <Category>Auto Jump</Category>
       },
       autoJump: {
-        values: [
-          'always',
-          'auto',
-          'never'
-        ],
         disableIf: [
           'autoParkour',
           true
@@ -480,6 +513,24 @@ export const guiOptionsScheme: {
   ],
   sound: [
     { volume: {} },
+    {
+      custom () {
+        return <OptionSlider
+          valueOverride={options.enableMusic ? undefined : 0}
+          onChange={(value) => {
+            options.musicVolume = value
+          }}
+          item={{
+            type: 'slider',
+            id: 'musicVolume',
+            text: 'Music Volume',
+            min: 0,
+            max: 100,
+            unit: '%',
+          }}
+        />
+      },
+    },
     {
       custom () {
         return <Button label='Sound Muffler' onClick={() => showModal({ reactType: 'sound-muffler' })} inScreen />
@@ -513,7 +564,7 @@ export const guiOptionsScheme: {
         return <Button
           inScreen
           onClick={() => {
-            if (confirm('Are you sure you want to reset all settings?')) resetOptions()
+            void showResetSettingsModal()
           }}
         >Reset settings</Button>
       },
@@ -548,6 +599,13 @@ export const guiOptionsScheme: {
     {
       custom () {
         return <Category>Server Connection</Category>
+      },
+    },
+    {
+      serverResourcePacks: {
+      },
+      saveLoginPassword: {
+        tooltip: 'Controls whether to save login passwords for servers in this browser memory.',
       },
     },
     {
@@ -619,10 +677,6 @@ export const guiOptionsScheme: {
     {
       packetsLoggerPreset: {
         text: 'Packets Logger Preset',
-        values: [
-          ['all', 'All'],
-          ['no-buffers', 'No Buffers']
-        ],
       },
     },
     {
@@ -679,8 +733,56 @@ export const guiOptionsScheme: {
       }
     }
   ],
+  inventory: [
+    {
+      custom () {
+        return <Category>Inventory & containers</Category>
+      },
+    },
+    {
+      custom () {
+        const { inventoryJei } = useSnapshot(options)
+        const isOff = inventoryJei === false || (Array.isArray(inventoryJei) && inventoryJei.length === 0)
+        const displayLabel = isOff ? 'Off' : inventoryJei === true ? 'On' : 'Partial'
+        return (
+          <Button
+            inScreen
+            label={`JEI sidebar: ${displayLabel}`}
+            title='Recipe/item list beside the inventory (chests, crafting, player inventory, etc.). Click toggles JEI fully on or off; Partial means per-game-mode filtering is set (e.g. from advanced settings).'
+            onClick={() => {
+              options.inventoryJei = !!isOff
+            }}
+          />
+        )
+      },
+    },
+    {
+      inventoryNotes: {
+        text: 'Side notes panel',
+        tooltip: 'Show extra note slots in container UIs where supported.',
+      },
+    },
+    {
+      inventoryPlaceholders: {
+        text: 'Slot hints',
+        tooltip: 'Show placeholder hints in empty inventory slots when supported.',
+      },
+    },
+    {
+      inventoryPlayerModel: {
+        text: 'Dynamic player preview',
+        tooltip: 'Show the rotating player model in the survival inventory when supported.',
+      },
+    },
+    {
+      unimplementedContainers: {
+        text: 'Try unknown containers',
+        tooltip: 'If the server opens a container type the client does not implement yet, show a generic chest-style UI instead of failing.',
+      },
+    },
+  ],
 }
-export type OptionsGroupType = 'main' | 'render' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import'
+export type OptionsGroupType = 'main' | 'render' | 'renderer-advanced' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import' | 'inventory'
 
 const Category = ({ children }) => <div style={{
   fontSize: 9,

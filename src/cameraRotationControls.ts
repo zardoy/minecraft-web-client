@@ -1,3 +1,5 @@
+import { getClampedBoatPassengerYaw, isBoatEntityName } from 'minecraft-renderer/src/three/entity/boatPassengerRotation'
+import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { contro } from './controls'
 import { activeModalStack, isGameActive, miscUiState, showModal } from './globalState'
 import { options } from './optionsStorage'
@@ -18,7 +20,7 @@ export function onCameraMove (e: MouseEvent | CameraMoveEvent) {
   if (!isGameActive(true)) return
   if (e.type === 'mousemove' && !document.pointerLockElement) return
   e.stopPropagation?.()
-  if (appViewer.playerState.utils.isSpectatingEntity()) return
+  if (getPlayerStateUtils(appViewer.playerState.reactive).isSpectatingEntity()) return
   const now = performance.now()
   // todo: limit camera movement for now to avoid unexpected jumps
   if (now - lastMouseMove < 4 && !options.preciseMouseInput) return
@@ -48,8 +50,18 @@ export const moveCameraRawHandler = ({ x, y }: { x: number; y: number }) => {
 
   if (!bot?.entity) return
   const pitch = bot.entity.pitch - y
-  void bot.look(bot.entity.yaw - x, Math.max(minPitch, Math.min(maxPitch, pitch)), true)
-  appViewer.backend?.updateCamera(null, bot.entity.yaw, pitch)
+  const requestedYaw = bot.entity.yaw - x
+  const clampedYaw = resolveBoatPassengerLookYaw(requestedYaw)
+  void bot.look(clampedYaw, Math.max(minPitch, Math.min(maxPitch, pitch)), true)
+  appViewer.backend?.updateCamera(null, clampedYaw, pitch)
+}
+
+function resolveBoatPassengerLookYaw (requestedYaw: number): number {
+  const { vehicle } = bot
+  if (!vehicle || !isBoatEntityName(vehicle.name)) return requestedYaw
+  const boatYaw = vehicle.yaw
+  if (!Number.isFinite(boatYaw) || !Number.isFinite(requestedYaw)) return requestedYaw
+  return getClampedBoatPassengerYaw(requestedYaw, boatYaw)
 }
 
 window.addEventListener('mousemove', (e: MouseEvent) => {

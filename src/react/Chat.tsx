@@ -1,12 +1,18 @@
-import { proxy, subscribe } from 'valtio'
+import { proxy, subscribe, useSnapshot } from 'valtio'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isStringAllowed, MessageFormatPart } from '../chatUtils'
+import { lastConnectOptions } from '../appStatus'
+import { runAuthFlow } from '../core/authModal'
 import { MessagePart } from './MessageFormatted'
 import './Chat.css'
 import { isIos, reactKeyForMessage } from './utils'
 import Button from './Button'
 import { pixelartIcons } from './PixelartIcon'
 import { useScrollBehavior } from './hooks/useScrollBehavior'
+import { withInjectableUi } from './extendableSystem'
+import { useTypingIndicatorText } from './useTypingIndicatorText'
+import { showAutoFillLoginModal } from './AutoFillLoginModal'
+import { findServerPassword } from './serversStorage'
 
 export type Message = {
   parts: MessageFormatPart[],
@@ -45,7 +51,7 @@ const MessageLine = ({ message, currentPlayerName, chatOpened }: { message: Mess
   return <li className={Object.entries(classes).filter(([, val]) => val).map(([name]) => name).join(' ')} data-time={message.timestamp ? new Date(message.timestamp).toLocaleString('en-US', { hour12: false }) : undefined}>
     {message.parts.map((msg, i) => {
       // Check if this is a text part that might contain a mention
-      if (msg.text && currentPlayerName) {
+      if (typeof msg.text === 'string' && currentPlayerName) {
         const parts = msg.text.split(new RegExp(`(@${currentPlayerName})`, 'i'))
         if (parts.length > 1) {
           return parts.map((txtPart, j) => {
@@ -83,13 +89,15 @@ type Props = {
   debugChatScroll?: boolean
   getPingComplete?: (value: string) => Promise<string[]>
   currentPlayerName?: string
+  spellCheckEnabled?: boolean
+  onSpellCheckEnabledChange?: (enabled: boolean) => void
 }
 
 export const chatInputValueGlobal = proxy({
   value: ''
 })
 
-export default ({
+const ChatBase = ({
   messages,
   opacity = 1,
   fetchCompletionItems,
@@ -103,7 +111,9 @@ export default ({
   chatVanillaRestrictions,
   debugChatScroll,
   getPingComplete,
-  currentPlayerName
+  currentPlayerName,
+  spellCheckEnabled = false,
+  onSpellCheckEnabledChange
 }: Props) => {
   const playerNameValidated = useMemo(() => {
     if (!/^[\w\d_]+$/i.test(currentPlayerName ?? '')) return ''
@@ -112,10 +122,11 @@ export default ({
 
   const sendHistoryRef = useRef(JSON.parse(window.sessionStorage.chatHistory || '[]'))
   const [isInputFocused, setIsInputFocused] = useState(false)
-  const [spellCheckEnabled, setSpellCheckEnabled] = useState(false)
   const [preservedInputValue, setPreservedInputValue] = useState('')
   const [inputKey, setInputKey] = useState(0)
   const pingHistoryRef = useRef(JSON.parse(window.localStorage.pingHistory || '[]'))
+
+  const [autoFillHint, setAutoFillHint] = useState<'login' | 'register' | 'changepassword' | 'unregister' | null>(null)
 
   const [completePadText, setCompletePadText] = useState('')
   const completeRequestValue = useRef('')
@@ -125,10 +136,47 @@ export default ({
   const chatInput = useRef<HTMLInputElement>(null!)
   const chatMessages = useRef<HTMLDivElement>(null)
   const chatHistoryPos = useRef(sendHistoryRef.current.length)
+  const commandHistoryPos = useRef(0)
   const inputCurrentlyEnteredValue = useRef('')
+  const commandHistoryRef = useRef(sendHistoryRef.current.filter((msg: string) => msg.startsWith('/')))
 
   const { scrollToBottom, isAtBottom, wasAtBottom, currentlyAtBottom } = useScrollBehavior(chatMessages, { messages, opened })
   const [rightNowAtBottom, setRightNowAtBottom] = useState(false)
+
+  // Typing indicator state
+  const typingIndicatorText = useTypingIndicatorText()
+
+  const typingIndicator = typingIndicatorText ? (
+    <div style={{
+      position: 'relative',
+      /* Below chat-completions (z-index 2) so tab completion list stays on top */
+      zIndex: 1,
+    }}>
+      <div style={{
+        fontSize: '9px',
+        color: 'white',
+        textShadow: '1px 1px 0px #3f3f3f',
+        fontFamily: 'mojangles, minecraft, monospace',
+        padding: '2px 4px',
+        borderRadius: '2px',
+        width: '100%',
+        boxSizing: 'border-box',
+        position: 'absolute',
+        left: 0,
+        height: 0,
+        overflow: 'visible',
+        ...(usingTouch ? {
+          top: '100%',
+          marginTop: 2,
+        } : {
+          bottom: '100%',
+          marginBottom: 11,
+        })
+      }}>
+        {typingIndicatorText}
+      </div>
+    </div>
+  ) : null
 
   useEffect(() => {
     if (!debugChatScroll) return
@@ -142,26 +190,49 @@ export default ({
     sendHistoryRef.current = newHistory
     window.sessionStorage.chatHistory = JSON.stringify(newHistory)
     chatHistoryPos.current = newHistory.length
+    // Update command history (only messages starting with /)
+    commandHistoryRef.current = newHistory.filter((msg: string) => msg.startsWith('/'))
+    commandHistoryPos.current = commandHistoryRef.current.length
   }
 
   const acceptComplete = (item: string) => {
-    const base = completeRequestValue.current === '/' ? '' : getCompleteValue()
-    updateInputValue(base + item)
-    // Record ping completion in history
+    const cursorPos = chatInput.current.selectionEnd ?? chatInput.current.value.length
+    const valueBeforeCursor = chatInput.current.value.slice(0, cursorPos)
+    const valueAfterCursor = chatInput.current.value.slice(cursorPos)
+
+    let prefix: string
+    let suffix: string
+    if (item.startsWith('@')) {
+      // Ping: word starts at @, ends at next space
+      const atIndex = valueBeforeCursor.lastIndexOf('@')
+      prefix = atIndex >= 0 ? valueBeforeCursor.slice(0, atIndex) : valueBeforeCursor
+      const spaceInAfter = valueAfterCursor.indexOf(' ')
+      suffix = spaceInAfter >= 0 ? valueAfterCursor.slice(spaceInAfter) : ''
+    } else {
+      // Command/other: replace current space-separated token, preserve rest
+      const lastSpaceInBefore = valueBeforeCursor.lastIndexOf(' ')
+      prefix = lastSpaceInBefore >= 0 ? valueBeforeCursor.slice(0, lastSpaceInBefore + 1) : (valueBeforeCursor.startsWith('/') ? '' : valueBeforeCursor)
+      const firstSpaceInAfter = valueAfterCursor.indexOf(' ')
+      suffix = firstSpaceInAfter >= 0 ? valueAfterCursor.slice(firstSpaceInAfter) : ''
+    }
+    const newValue = prefix + item + suffix
+    const newCursorPos = prefix.length + item.length
+    updateInputValue(newValue, newCursorPos)
+
     if (item.startsWith('@')) {
       const newHistory = [item, ...pingHistoryRef.current.filter((x: string) => x !== item)].slice(0, 10)
       pingHistoryRef.current = newHistory
-      // todo use appStorage
       window.localStorage.pingHistory = JSON.stringify(newHistory)
     }
     chatInput.current.focus()
   }
 
-  const updateInputValue = (newValue: string) => {
+  const updateInputValue = (newValue: string, cursorPos?: number) => {
     chatInput.current.value = newValue
     onMainInputChange()
     setTimeout(() => {
-      chatInput.current.setSelectionRange(newValue.length, newValue.length)
+      const pos = cursorPos ?? newValue.length
+      chatInput.current.setSelectionRange(pos, pos)
     }, 0)
   }
 
@@ -178,6 +249,21 @@ export default ({
     if (chatHistoryPos.current === sendHistoryRef.current.length) return
     chatHistoryPos.current++
     updateInputValue(sendHistoryRef.current[chatHistoryPos.current] || inputCurrentlyEnteredValue.current || '')
+  }
+
+  const handleCommandArrowUp = () => {
+    if (commandHistoryPos.current === 0 || commandHistoryRef.current.length === 0) return
+    if (commandHistoryPos.current === commandHistoryRef.current.length) { // started navigating command history
+      inputCurrentlyEnteredValue.current = chatInput.current.value
+    }
+    commandHistoryPos.current--
+    updateInputValue(commandHistoryRef.current[commandHistoryPos.current] || '')
+  }
+
+  const handleCommandArrowDown = () => {
+    if (commandHistoryPos.current === commandHistoryRef.current.length) return
+    commandHistoryPos.current++
+    updateInputValue(commandHistoryRef.current[commandHistoryPos.current] || inputCurrentlyEnteredValue.current || '')
   }
 
   const auxInputFocus = (direction: 'up' | 'down') => {
@@ -203,6 +289,7 @@ export default ({
       updateInputValue(chatInputValueGlobal.value)
       chatInputValueGlobal.value = ''
       chatHistoryPos.current = sendHistoryRef.current.length
+      commandHistoryPos.current = commandHistoryRef.current.length
       if (!usingTouch) {
         chatInput.current.focus()
       }
@@ -235,18 +322,38 @@ export default ({
     }
   }, [opened])
 
+  const typingTimeoutRef = useRef<NodeJS.Timeout>()
+
   useMemo(() => {
     if (opened) {
       completeRequestValue.current = ''
       resetCompletionItems()
     } else {
       setPreservedInputValue('')
+      // Send stopped typing when chat closes
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+      if (bot?._client && bot._client.writeChannel) {
+        try {
+          bot._client.writeChannel('minecraft-web-client:typing-indicator', {
+            username: bot.username,
+            isTyping: false
+          })
+        } catch (error) {
+          // Channel might not be registered, ignore error
+        }
+      }
     }
   }, [opened])
 
   const onMainInputChange = () => {
-    const lastWord = chatInput.current.value.slice(0, chatInput.current.selectionEnd ?? chatInput.current.value.length).split(' ').at(-1)!
-    const isCommand = chatInput.current.value.startsWith('/')
+    const inputValue = chatInput.current.value
+    const match = /^\/(login|register|changepassword|unregister)( |$)/i.exec(inputValue)
+    setAutoFillHint(match ? (match[1].toLowerCase() as 'login' | 'register' | 'changepassword' | 'unregister') : null)
+
+    const lastWord = inputValue.slice(0, chatInput.current.selectionEnd ?? inputValue.length).split(' ').at(-1)!
+    const isCommand = inputValue.startsWith('/')
 
     if (lastWord.startsWith('@') && getPingComplete && !isCommand) {
       setCompletePadText(lastWord)
@@ -271,12 +378,13 @@ export default ({
     completeRequestValue.current = completeValue
   }
 
-  const fetchCompletions = async (implicit: boolean, inputValue = chatInput.current.value) => {
+  const fetchCompletions = async (implicit: boolean, inputValue = chatInput.current.value, showList = true) => {
     const completeValue = getCompleteValue(inputValue)
     completeRequestValue.current = completeValue
     resetCompletionItems()
     const newItems = await fetchCompletionItems?.(implicit ? 'implicit' : 'explicit', completeValue, inputValue) ?? []
-    if (completeValue !== completeRequestValue.current) return
+    // if (completeValue !== completeRequestValue.current) return
+    if (!showList) return
     setCompletionItemsSource(newItems)
     updateFilteredCompleteItems(newItems)
   }
@@ -358,6 +466,21 @@ export default ({
           userSelect: opened && allowSelection ? 'text' : undefined,
         }}
       >
+        {/* Close button for desktop when chat is opened */}
+        {!usingTouch && opened && (
+          <div style={{
+            position: 'absolute',
+            top: '-19px',
+            left: '5px',
+            pointerEvents: 'auto',
+          }}>
+            <Button
+              icon={pixelartIcons['close']}
+              onClick={() => onClose?.()}
+              style={{ color: '#ff5d5d' }}
+            />
+          </div>
+        )}
         {opacity && <div ref={chatMessages} className={`chat ${opened ? 'opened' : ''}`} id="chat-messages" style={{ opacity }}>
           {debugChatScroll && (
             <div
@@ -415,6 +538,48 @@ export default ({
       </div>
 
       <div className={`chat-wrapper chat-input-wrapper ${usingTouch ? 'input-mobile' : ''}`} hidden={!opened}>
+        {autoFillHint && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={async () => {
+              const mode = autoFillHint
+              setAutoFillHint(null)
+              const serverIp = lastConnectOptions.value?.server ?? ''
+              const username = bot?.username ?? ''
+              const prefilledPassword = findServerPassword()
+              const result = await showAutoFillLoginModal({ mode, serverIp, username, prefilledPassword })
+              if (!result?.password) return
+              if (mode === 'changepassword' && !result.newPassword) return
+              runAuthFlow(bot, mode, result, { serverIp, username, source: 'modal' })
+              chatInput.current.value = ''
+              onMainInputChange()
+            }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              ...(usingTouch ? {
+                top: '100%',
+                marginTop: 4,
+              } : {
+                bottom: '100%',
+                marginBottom: 4,
+              }),
+              padding: '4px 6px',
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              fontSize: 10,
+              fontFamily: 'mojangles, minecraft, monospace',
+              border: '1px solid #A0A0A0',
+              cursor: 'pointer',
+              zIndex: 10,
+              maxWidth: 'calc(100% - 4px)',
+              boxSizing: 'border-box',
+            }}
+          >
+            💡 Use Auto-fill UI for password manager
+          </div>
+        )}
         {usingTouch && (
           <>
             <Button
@@ -437,7 +602,7 @@ export default ({
                 icon={pixelartIcons['text-wrap']}
                 onClick={() => {
                   setPreservedInputValue(chatInput.current?.value || '')
-                  setSpellCheckEnabled(!spellCheckEnabled)
+                  onSpellCheckEnabledChange?.(!spellCheckEnabled)
                   remountInput()
                 }}
               />
@@ -481,6 +646,8 @@ export default ({
               </div>
             </div>
           ) : null}
+          {/* Typing indicator - above input on desktop */}
+          {!usingTouch && typingIndicator}
           <form onSubmit={async (e) => {
             e.preventDefault()
             const message = chatInput.current.value
@@ -524,9 +691,19 @@ export default ({
               onBlur={() => setIsInputFocused(false)}
               onKeyDown={(e) => {
                 if (e.code === 'ArrowUp') {
-                  handleArrowUp()
+                  if (e.altKey) {
+                    handleCommandArrowUp()
+                    e.preventDefault()
+                  } else {
+                    handleArrowUp()
+                  }
                 } else if (e.code === 'ArrowDown') {
-                  handleArrowDown()
+                  if (e.altKey) {
+                    handleCommandArrowDown()
+                    e.preventDefault()
+                  } else {
+                    handleArrowDown()
+                  }
                 }
                 if (e.code === 'Tab') {
                   if (completionItemsSource.length) {
@@ -540,10 +717,10 @@ export default ({
                 }
                 if (e.code === 'Space') {
                   resetCompletionItems()
-                  if (chatInput.current.value.startsWith('/')) {
-                    // alternative we could just simply use keyup, but only with keydown we can display suggestions popup as soon as possible
-                    void fetchCompletions(true, getCompleteValue(getDefaultCompleteValue() + ' '))
-                  }
+                  const showList = chatInput.current.value.startsWith('/')
+                  // alternative we could just simply use keyup, but only with keydown we can display suggestions popup as soon as possible
+                  void fetchCompletions(true, getCompleteValue(getDefaultCompleteValue() + ' '), showList)
+
                 }
               }}
             />
@@ -560,8 +737,12 @@ export default ({
             {/* for some reason this is needed to make Enter work on android chrome */}
             <button type='submit' className="chat-submit-button" />
           </form>
+          {/* Typing indicator - below input on mobile */}
+          {usingTouch && typingIndicator}
         </div>
       </div>
     </>
   )
 }
+
+export default withInjectableUi(ChatBase, 'chat')

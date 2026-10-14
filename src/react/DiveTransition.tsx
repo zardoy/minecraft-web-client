@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import styles from './DiveTransition.module.css'
+import { withInjectableUi } from './extendableSystem'
 
 const durationInSeconds = 0.3
 const durationInMs = durationInSeconds * 1000
 
-export default ({ children, open, isError = false }) => {
+const DiveTransitionBase = ({ children, open, isError = false }) => {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default ({ children, open, isError = false }) => {
   if (!mounted) return null
 
   return (
-    <AnimatePresence initial={false}>
+    <AnimatePresence>
       {open && (
         <div className={styles.container}>
           <motion.div
@@ -42,3 +43,5 @@ export default ({ children, open, isError = false }) => {
     </AnimatePresence>
   )
 }
+
+export default withInjectableUi(DiveTransitionBase, 'diveTransition')

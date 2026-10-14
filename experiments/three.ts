@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { loadThreeJsTextureFromBitmap } from '../renderer/viewer/lib/utils/skins'
 
 // Create scene, camera and renderer
 const scene = new THREE.Scene()

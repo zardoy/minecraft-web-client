@@ -3,7 +3,6 @@
 import MinecraftData from 'minecraft-data'
 import PrismarineBlock from 'prismarine-block'
 import PrismarineItem from 'prismarine-item'
-import pathfinder from 'mineflayer-pathfinder'
 import { miscUiState } from './globalState'
 import supportedVersions from './supportedVersions.mjs'
 import { options } from './optionsStorage'
@@ -65,7 +64,6 @@ export const loadMinecraftData = async (version: string) => {
   window.PrismarineItem = PrismarineItem(mcData.version.minecraftVersion!)
   window.loadedData = mcData
   window.mcData = mcData
-  window.pathfinder = pathfinder
   miscUiState.loadedDataVersion = version
 }
 

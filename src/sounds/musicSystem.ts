@@ -5,10 +5,10 @@ class MusicSystem {
   private currentMusic: string | null = null
 
   async playMusic (url: string, musicVolume = 1) {
-    if (!options.enableMusic || this.currentMusic) return
+    if (!options.enableMusic || this.currentMusic || options.musicVolume === 0) return
 
     try {
-      const { onEnded } = await loadOrPlaySound(url, 0.5 * musicVolume, 5000) ?? {}
+      const { onEnded } = await loadOrPlaySound(url, musicVolume, 5000, undefined, true) ?? {}
 
       if (!onEnded) return
 

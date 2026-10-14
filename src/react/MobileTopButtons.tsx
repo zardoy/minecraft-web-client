@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { handleMobileButtonActionCommand, handleMobileButtonLongPress } from '../controls'
 import { watchValue } from '../optionsStorage'
@@ -7,10 +7,13 @@ import { miscUiState } from '../globalState'
 import PixelartIcon from './PixelartIcon'
 import styles from './MobileTopButtons.module.css'
 
+const isHeightGreaterThanWidth = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth
+
 export default () => {
   const elRef = useRef<HTMLDivElement | null>(null)
   const { appConfig } = useSnapshot(miscUiState)
   const mobileButtonsConfig = appConfig?.mobileButtons
+  const [portraitTallAspect, setPortraitTallAspect] = useState(isHeightGreaterThanWidth)
 
   const longPressTimerIdRef = useRef<number | null>(null)
   const actionToShortPressRef = useRef<ActionType | null>(null)
@@ -25,6 +28,17 @@ export default () => {
     watchValue(miscUiState, o => {
       showMobileControls(Boolean(o.currentTouch))
     })
+  }, [])
+
+  useEffect(() => {
+    const sync = () => setPortraitTallAspect(isHeightGreaterThanWidth())
+    sync()
+    window.addEventListener('resize', sync)
+    window.addEventListener('orientationchange', sync)
+    return () => {
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('orientationchange', sync)
+    }
   }, [])
 
   const getButtonClassName = (button: MobileButtonConfig): string => {
@@ -155,7 +169,13 @@ export default () => {
 
   // ios note: just don't use <button>
   return (
-    <div ref={elRef} className={styles['mobile-top-btns']} id="mobile-top">
+    <div
+      ref={elRef}
+      className={
+        `${styles['mobile-top-btns']}${portraitTallAspect ? ` ${styles['mobile-top-btns--portrait-tall']}` : ''}`
+      }
+      id="mobile-top"
+    >
       {mobileButtonsConfig && mobileButtonsConfig.length > 0 ? renderConfigButtons() : null}
     </div>
   )

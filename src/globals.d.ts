@@ -9,10 +9,17 @@ declare const bot: Omit<import('mineflayer').Bot, 'world' | '_client'> & {
     write: typeof import('./generatedClientPackets').clientWrite
     on: typeof import('./generatedServerPackets').clientOn
   }
+  vehicle: import('prismarine-entity').Entity | null
+  _boatPhysics?: {
+    getStatus?: () => import('@nxg-org/mineflayer-physics-util').BoatStatus
+    getPaddleState?: () => { leftPaddle: boolean; rightPaddle: boolean }
+  }
+  _horsePhysics?: {
+    getCtx?: () => unknown
+  }
 }
 declare const __type_bot: typeof bot
-declare const appViewer: import('./appViewer').AppViewer
-declare const worldView: import('renderer/viewer/lib/worldDataEmitter').WorldDataEmitter | undefined
+declare const appViewer: import('minecraft-renderer/src').AppViewer
 declare const addStatPerSec: (name: string) => void
 declare const localServer: import('flying-squid/dist/index').FullServer & { options } | undefined
 /** all currently loaded mc data */

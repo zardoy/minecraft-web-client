@@ -1,12 +1,13 @@
 import { proxy, useSnapshot } from 'valtio'
 import { useEffect, useRef, useState } from 'react'
-import { activeModalStack, activeModalStacks, hideModal, insertActiveModalStack, miscUiState } from '../globalState'
+import { activeModalStack, activeModalStacks, hideModal, insertActiveModalStack, maybeCleanupAfterDisconnect, miscUiState } from '../globalState'
 import { guessProblem } from '../errorLoadingScreenHelpers'
 import type { ConnectOptions } from '../connect'
 import { downloadPacketsReplay, packetsRecordingState, replayLogger } from '../packetsReplay/packetsReplayLegacy'
 import { getProxyDetails } from '../microsoftAuthflow'
 import { downloadAutoCapturedPackets, getLastAutoCapturedPackets } from '../mineflayer/plugins/packetsRecording'
 import { appQueryParams } from '../appParams'
+import { lastConnectOptions } from '../appStatus'
 import AppStatus from './AppStatus'
 import DiveTransition from './DiveTransition'
 import { useDidUpdateEffect } from './utils'
@@ -16,6 +17,7 @@ import { updateAuthenticatedAccountData, updateLoadedServerData, AuthenticatedAc
 import { showOptionsModal } from './SelectOption'
 import LoadingChunks from './LoadingChunks'
 import MessageFormattedString from './MessageFormattedString'
+import { withInjectableUi } from './extendableSystem'
 
 const initialState = {
   status: '',
@@ -35,11 +37,6 @@ export const resetAppStatusState = () => {
   Object.assign(appStatusState, initialState)
 }
 
-export const lastConnectOptions = {
-  value: null as ConnectOptions | null
-}
-globalThis.lastConnectOptions = lastConnectOptions
-
 const saveReconnectOptions = (options: ConnectOptions) => {
   sessionStorage.setItem('reconnectOptions', JSON.stringify({
     value: options,
@@ -50,11 +47,22 @@ const saveReconnectOptions = (options: ConnectOptions) => {
 export const reconnectReload = () => {
   if (lastConnectOptions.value) {
     saveReconnectOptions(lastConnectOptions.value)
-    window.location.reload()
   }
+  window.location.reload()
 }
 
-export default () => {
+export const quickDevReconnect = () => {
+  if (!lastConnectOptions.value) {
+    return
+  }
+
+  resetAppStatusState()
+  window.dispatchEvent(new window.CustomEvent('connect', {
+    detail: lastConnectOptions.value
+  }))
+}
+
+const AppStatusProviderBase = () => {
   const lastState = useRef(JSON.parse(JSON.stringify(appStatusState)))
   const currentState = useSnapshot(appStatusState)
   const { active: replayActive } = useSnapshot(packetsRecordingState)
@@ -105,13 +113,6 @@ export default () => {
     }
   }, [isOpen])
 
-  const reconnect = () => {
-    resetAppStatusState()
-    window.dispatchEvent(new window.CustomEvent('connect', {
-      detail: lastConnectOptions.value
-    }))
-  }
-
   useEffect(() => {
     const controller = new AbortController()
     window.addEventListener('keyup', (e) => {
@@ -119,7 +120,7 @@ export default () => {
       if (activeModalStack.at(-1)?.reactType !== 'app-status') return
       // todo do only if reconnect is possible
       if (e.code !== 'KeyR' || !lastConnectOptions.value) return
-      reconnect()
+      quickDevReconnect()
     }, {
       signal: controller.signal
     })
@@ -140,7 +141,7 @@ export default () => {
     const account = await showOptionsModal('Choose account to connect with', [...accounts.map(account => account.username), 'Use other account'])
     if (!account) return
     lastConnectOptions.value!.authenticatedAccount = accounts.find(acc => acc.username === account) || true
-    reconnect()
+    quickDevReconnect()
   }
 
   const lastAutoCapturedPackets = getLastAutoCapturedPackets()
@@ -149,6 +150,8 @@ export default () => {
   let backAction = undefined as (() => void) | undefined
   if (maybeRecoverable && (!lockConnect || !wasDisconnected)) {
     backAction = () => {
+      maybeCleanupAfterDisconnect()
+
       if (!wasDisconnected) {
         hideModal(undefined, undefined, { force: true })
         return
@@ -184,7 +187,7 @@ export default () => {
       actionsSlot={
         <>
           {displayAuthButton && <Button label='Authenticate' onClick={authReconnectAction} />}
-          {displayVpnButton && <PossiblyVpnBypassProxyButton reconnect={reconnect} />}
+          {displayVpnButton && <PossiblyVpnBypassProxyButton reconnect={quickDevReconnect} />}
           {replayActive && <Button label={`Download Packets Replay ${replayLogger?.contents.split('\n').length}L`} onClick={downloadPacketsReplay} />}
           {wasDisconnected && lastAutoCapturedPackets && <Button label={`Inspect Last ${lastAutoCapturedPackets} Packets`} onClick={() => downloadAutoCapturedPackets()} />}
         </>
@@ -195,6 +198,8 @@ export default () => {
     </AppStatus>
   </DiveTransition>
 }
+
+export default withInjectableUi(AppStatusProviderBase, 'appStatusProvider')
 
 const DisplayingIndicator = () => {
   useEffect(() => {

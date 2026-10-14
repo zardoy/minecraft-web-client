@@ -1,4 +1,4 @@
-import { versionToNumber } from 'renderer/viewer/common/utils'
+import { versionToNumber } from 'minecraft-renderer/src/lib/utils'
 import { restoreMinecraftData } from '../optimizeJson'
 // import minecraftInitialDataJson from '../../generated/minecraft-initial-data.json'
 import { toMajorVersion } from '../utils'
@@ -19,11 +19,20 @@ const customResolver = () => {
   }
 }
 
+let dataStatus = 'not-called'
+
 const optimizedDataResolver = customResolver()
 window._MC_DATA_RESOLVER = optimizedDataResolver
 window._LOAD_MC_DATA = async () => {
   if (optimizedDataResolver.resolvedData) return
-  optimizedDataResolver.resolve(await importLargeData('mcData'))
+  dataStatus = 'loading'
+  try {
+    optimizedDataResolver.resolve(await importLargeData('mcData'))
+    dataStatus = 'ready'
+  } catch (e) {
+    dataStatus = 'error'
+    throw e
+  }
 }
 
 // 30 seconds
@@ -39,7 +48,7 @@ const possiblyGetFromCache = (version: string) => {
   }
   const inner = () => {
     if (!optimizedDataResolver.resolvedData) {
-      throw new Error(`Data for ${version} is not ready yet`)
+      throw new Error(`Minecraft data are not ready yet. Ensure you await window._LOAD_MC_DATA() before using it. Status: ${dataStatus}`)
     }
     const dataTypes = Object.keys(optimizedDataResolver.resolvedData)
     const allRestored = {}

@@ -2,6 +2,7 @@ import type { BossBar as BossBarTypeRaw } from 'mineflayer'
 import { useState, useEffect } from 'react'
 import MessageFormattedString from './MessageFormattedString'
 import './BossBarOverlay.css'
+import { withInjectableUi } from './extendableSystem'
 
 const colors = ['pink', 'blue', 'red', 'green', 'yellow', 'purple', 'white']
 const divs = [0, 6, 10, 12, 20]
@@ -16,7 +17,7 @@ export type BossBarType = BossBarTypeRaw & {
   lastUpdated: number
 }
 
-export default ({ bar }: { bar: BossBarType }) => {
+const BossBarOverlayBase = ({ bar }: { bar: BossBarType }) => {
   const [title, setTitle] = useState({})
   const [bossBarStyles, setBossBarStyles] = useState<{ [key: string]: string | number }>({})
   const [fillStyles, setFillStyles] = useState<{ [key: string]: string | number }>({})
@@ -56,3 +57,5 @@ export default ({ bar }: { bar: BossBarType }) => {
     </div>
   )
 }
+
+export default withInjectableUi(BossBarOverlayBase, 'bossBarOverlay')

@@ -1,16 +1,17 @@
+import path from 'path'
+import fs from 'fs'
 import { defineConfig } from 'vitest/config'
 
+const physicsUtilSrcRoot = path.join(__dirname, 'node_modules/@nxg-org/mineflayer-physics-util/src')
+
 export default defineConfig({
-  root: 'renderer/viewer',
+  root: 'src',
+  resolve: {
+    alias: fs.existsSync(physicsUtilSrcRoot) ? {
+      '@nxg-org/mineflayer-physics-util': path.join(__dirname, './scripts/mineflayerPhysicsUtilEntry.ts'),
+      '@nxg-org/mineflayer-util-plugin': path.join(__dirname, 'node_modules/@nxg-org/mineflayer-util-plugin'),
+    } : {},
+  },
   test: {
-    include: [
-      '../../src/botUtils.test.ts',
-      '../../src/markdownToFormattedText.test.ts',
-      '../../src/react/parseKeybindingName.test.ts',
-      '../../src/chatUtils.test.ts',
-      'lib/mesher/test/tests.test.ts',
-      'sign-renderer/tests.test.ts',
-      '../../src/utils.test.ts'
-    ],
   },
 })

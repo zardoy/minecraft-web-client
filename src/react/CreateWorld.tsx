@@ -9,6 +9,7 @@ import Button from './Button'
 import SelectGameVersion from './SelectGameVersion'
 import styles from './createWorld.module.css'
 import { InputOption, showInputsModal, showOptionsModal } from './SelectOption'
+import { withInjectableUi } from './extendableSystem'
 
 // const worldTypes = ['default', 'flat', 'largeBiomes', 'amplified', 'customized', 'buffet', 'debug_all_block_states']
 const worldTypes = ['default', 'flat', 'empty', 'nether', 'all_the_blocks']
@@ -17,12 +18,12 @@ const gameModes = ['survival', 'creative'/* , 'adventure', 'spectator' */]
 export const creatingWorldState = proxy({
   title: '',
   type: worldTypes[0],
-  gameMode: gameModes[0],
+  gameMode: 'creative',
   version: '',
   plugins: [] as string[]
 })
 
-export default ({ cancelClick, createClick, customizeClick, versions, defaultVersion }) => {
+const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, defaultVersion }) => {
   const [quota, setQuota] = useState('')
 
   const { title, type, version, gameMode, plugins } = useSnapshot(creatingWorldState)
@@ -68,10 +69,12 @@ export default ({ cancelClick, createClick, customizeClick, versions, defaultVer
       {/* <Button onClick={() => customizeClick()} disabled>
         Customize
       </Button> */}
-      <Button onClick={() => {
-        const index = gameModes.indexOf(gameMode)
-        creatingWorldState.gameMode = gameModes[index === gameModes.length - 1 ? 0 : index + 1]
-      }}
+      <Button
+        onClick={() => {
+          const index = gameModes.indexOf(gameMode)
+          creatingWorldState.gameMode = gameModes[index === gameModes.length - 1 ? 0 : index + 1]
+        }}
+        disabled
       >
         Game Mode: {gameMode}
       </Button>
@@ -136,3 +139,5 @@ export const WorldCustomize = ({ backClick }) => {
     <Button onClick={backClick}>Back</Button>
   </Screen>
 }
+
+export default withInjectableUi(CreateWorldBase, 'createWorld')

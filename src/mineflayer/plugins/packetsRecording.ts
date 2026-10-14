@@ -4,7 +4,7 @@ import { Bot } from 'mineflayer'
 import CircularBuffer from 'flying-squid/dist/circularBuffer'
 import { PacketsLogger } from 'mcraft-fun-mineflayer/build/packetsLogger'
 import { subscribe } from 'valtio'
-import { lastConnectOptions } from '../../react/AppStatusProvider'
+import { lastConnectOptions } from '../../appStatus'
 import { packetsRecordingState } from '../../packetsReplay/packetsReplayLegacy'
 import { packetsReplayState } from '../../react/state/packetsReplayState'
 

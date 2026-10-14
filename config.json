@@ -4,26 +4,33 @@
   "defaultProxy": "https://proxy.mcraft.fun",
   "mapsProvider": "https://maps.mcraft.fun/",
   "skinTexturesProxy": "",
-  "peerJsServer": "",
-  "peerJsServerFallback": "https://p2p.mcraft.fun",
+  "p2pRelayServer": "wss://p2p.mcraft.fun",
   "promoteServers": [
     {
       "ip": "wss://play.mcraft.fun"
     },
     {
+      "ip": "wss://play.webmc.fun",
+      "name": "WebMC"
+    },
+    {
       "ip": "wss://ws.fuchsmc.net"
     },
     {
-      "ip": "wss://play2.mcraft.fun"
+      "ip": "wss://play2.mcraft.fun",
+      "description": "Mirror for play.mcraft.fun"
     },
     {
-      "ip": "kaboom.pw",
-      "version": "1.20.3",
-      "description": "Very nice a polite server. Must try for everyone!"
+      "ip": "wss://play3.mcraft.fun",
+      "description": "Mirror for play.mcraft.fun"
+    },
+    {
+      "ip": "wss://play-creative.mcraft.fun",
+      "description": "Might be available soon, stay tuned!"
     }
   ],
   "rightSideText": "A Minecraft client clone in the browser!",
-  "splashText": "The sunset is coming!",
+  "splashText": "Mind the bugs and have fun!",
   "splashTextFallback": "Welcome!",
   "pauseLinks": [
     [
@@ -37,11 +44,6 @@
   ],
   "defaultUsername": "mcrafter{0-9999}",
   "mobileButtons": [
-    {
-      "action": "general.drop",
-      "actionHold": "general.dropStack",
-      "label": "Q"
-    },
     {
       "action": "general.selectItem",
       "actionHold": "",

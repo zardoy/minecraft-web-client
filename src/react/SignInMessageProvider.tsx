@@ -1,6 +1,6 @@
 import { proxy, ref, useSnapshot } from 'valtio'
+import { lastConnectOptions } from '../appStatus'
 import SignInMessage from './SignInMessage'
-import { lastConnectOptions } from './AppStatusProvider'
 import { useIsModalActive } from './utilsApp'
 
 export const signInMessageState = proxy({

@@ -5,8 +5,13 @@
   top: 0;
   left: 50%;
   transform: translate(-50%);
+  transform-origin: top center;
   gap: 0 5px;
   z-index: var(--has-modals-z, 7);
+}
+
+.mobile-top-btns--portrait-tall {
+  transform: translate(-50%) scale(1.4);
 }
 
 .pause-btn,

@@ -15,9 +15,12 @@ class CustomDuplex extends Duplex {
 }
 
 export const getWebsocketStream = async (host: string) => {
-  const baseProtocol = location.protocol === 'https:' ? 'wss' : host.startsWith('ws://') ? 'ws' : 'wss'
+  const baseProtocol = host.startsWith('ws://') ? 'ws' : 'wss'
   const hostClean = host.replace('ws://', '').replace('wss://', '')
-  const ws = new WebSocket(`${baseProtocol}://${hostClean}`)
+  const hostURL = new URL(`${baseProtocol}://${hostClean}`)
+  const hostParams = hostURL.searchParams
+  hostParams.append('client_mcraft', '')
+  const ws = new WebSocket(`${baseProtocol}://${hostURL.host}${hostURL.pathname}?${hostParams.toString()}`)
   const clientDuplex = new CustomDuplex(undefined, data => {
     ws.send(data)
   })

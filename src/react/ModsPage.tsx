@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useSnapshot } from 'valtio'
-import { openURL } from 'renderer/viewer/lib/simpleUtils'
+import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import { addRepositoryAction, setEnabledModAction, getAllModsDisplayList, installModByName, selectAndRemoveRepository, uninstallModAction, fetchAllRepositories, modsReactiveUpdater, modsErrors, fetchRepository, getModModifiableFields, saveClientModData, getAllModsModifiableFields, callMethodAction } from '../clientMods'
 import { createNotificationProgressReporter, ProgressReporter } from '../core/progressReporter'
 import { hideModal } from '../globalState'

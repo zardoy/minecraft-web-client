@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { join } from 'path'
 import JSZip from 'jszip'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { fsState, readLevelDat } from './loadSave'
 import { closeWan, openToWanAndCopyJoinLink } from './localServerMultiplayer'
 import { copyFilesAsync, uniqueFileNameFromWorldName } from './browserfs'

@@ -11,9 +11,9 @@ import { SimpleSelectOption } from './SelectOption'
 import { BaseServerInfo } from './AddServerOrConnect'
 import { useIsSmallWidth } from './simpleHooks'
 import { appStorage, SavedProxiesData, ServerHistoryEntry } from './appStorageProvider'
-import { proxiesState } from './ProxiesList'
+import { withInjectableUi } from './extendableSystem'
 
-const getInitialProxies = () => {
+export const getInitialProxies = () => {
   const proxies = [] as string[]
   if (miscUiState.appConfig?.defaultProxy) {
     proxies.push(miscUiState.appConfig.defaultProxy)
@@ -44,11 +44,12 @@ interface Props extends React.ComponentProps<typeof Singleplayer> {
 
 const ProxyPingStatus = ({ proxy }: { proxy: string }) => {
   const pingState = useSnapshot(proxyPingState).proxyStatus[proxy]
+  const proxiesKey = useSnapshot(appStorage).proxiesData?.proxies.join('\n')
   useEffect(() => {
     if (!proxyPingState.checkStarted) {
       void selectBestProxy(appStorage.proxiesData?.proxies ?? [])
     }
-  }, [])
+  }, [proxiesKey])
 
   if (!pingState) return null
 
@@ -76,7 +77,7 @@ const ProxyPingStatus = ({ proxy }: { proxy: string }) => {
   )
 }
 
-export default ({
+const ServersListBase = ({
   joinServer,
   onProfileClick,
   setQuickConnectIp,
@@ -186,6 +187,7 @@ export default ({
             }}
             placeholder="Select proxy"
           />
+          {!proxiesData.isAutoSelect && proxiesData.selected && <ProxyPingStatus proxy={proxiesData.selected} />}
           <PixelartIcon iconName='user' styles={{ fontSize: 14, color: 'lightgray', marginLeft: 2 }} onClick={onProfileClick} />
           <Input
             rootStyles={{ width: 80 }}
@@ -215,3 +217,5 @@ export default ({
     secondRowStyles={getActiveHighlightStyles('server-list')}
   />
 }
+
+export default withInjectableUi(ServersListBase, 'serversList')

@@ -6,6 +6,7 @@ import { activeModalStack, miscUiState } from '../globalState'
 export const watchedModalsFromHooks = proxy({
   value: [] as string[]
 })
+globalThis.watchedModalsFromHooks = watchedModalsFromHooks
 // todo should not be there
 export const hardcodedKnownModals = [
   'empty',
@@ -22,7 +23,7 @@ export const useIsModalActive = (modal: string, useIncludes = false) => {
     watchedModalsFromHooks.value.push(modal)
   }, [])
   useEffect(() => {
-    // watchedModalsFromHooks.add(modal)
+    watchedModalsFromHooks.value.push(modal)
     return () => {
       watchedModalsFromHooks.value = watchedModalsFromHooks.value.filter(x => x !== modal)
     }

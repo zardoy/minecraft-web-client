@@ -2,7 +2,7 @@
 const { cypressEsbuildPreprocessor } = require('cypress-esbuild-preprocessor')
 const { initPlugin } = require('cypress-plugin-snapshots/plugin')
 const polyfill = require('esbuild-plugin-polyfill-node')
-const { startMinecraftServer } = require('./startServer')
+// const { startMinecraftServer } = require('./startServer')
 
 module.exports = (on, config) => {
   initPlugin(on, config)
@@ -24,10 +24,10 @@ module.exports = (on, config) => {
       return null
     },
   })
-  on('task', {
-    async startServer([version, port]) {
-      return startMinecraftServer(version, port)
-    }
-  })
+  // on('task', {
+  //   async startServer([version, port]) {
+  //     return startMinecraftServer(version, port)
+  //   }
+  // })
   return config
 }

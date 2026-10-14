@@ -23,6 +23,7 @@
         // ],
         "@stylistic/arrow-spacing": "error",
         "@stylistic/block-spacing": "error",
+        "@typescript-eslint/no-this-alias": "off",
         "@stylistic/brace-style": [
             "error",
             "1tbs",

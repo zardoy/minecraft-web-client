@@ -1,3 +1,6 @@
+const CONNECT_TIMEOUT = 5000
+const PING_TIMEOUT = 5000
+
 class LatencyMonitor {
   private ws: WebSocket | null = null
   private isConnected = false
@@ -12,13 +15,21 @@ class LatencyMonitor {
       if (!wsUrl.startsWith('ws')) {
         wsUrl = 'wss://' + wsUrl
       }
-      this.ws = new WebSocket(wsUrl)
+      const ws = new WebSocket(wsUrl)
+      this.ws = ws
 
-      this.ws.onopen = () => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Connection timeout'))
+        this.disconnect()
+      }, CONNECT_TIMEOUT)
+
+      ws.onopen = () => {
+        clearTimeout(timeout)
         this.isConnected = true
         resolve()
       }
-      this.ws.onerror = (error) => {
+      ws.onerror = (error) => {
+        clearTimeout(timeout)
         reject(error)
       }
     })
@@ -30,7 +41,8 @@ class LatencyMonitor {
     networkLatency: number;
   }> {
     return new Promise((resolve, reject) => {
-      if (!this.isConnected) {
+      const { ws } = this
+      if (!this.isConnected || !ws) {
         reject(new Error('Not connected'))
         return
       }
@@ -38,12 +50,17 @@ class LatencyMonitor {
       const pingId = Date.now().toString()
       const startTime = performance.now()
 
+      const cleanup = () => {
+        clearTimeout(timeout)
+        ws.removeEventListener('message', handler)
+      }
+
       const handler = (event: MessageEvent) => {
         if (typeof event.data === 'string' && event.data.startsWith('pong:')) {
           const [_, receivedPingId, serverProcessingTime] = event.data.split(':')
 
           if (receivedPingId === pingId) {
-            this.ws?.removeEventListener('message', handler)
+            cleanup()
             const roundTripTime = performance.now() - startTime
 
             resolve({
@@ -55,31 +72,32 @@ class LatencyMonitor {
         }
       }
 
-      this.ws?.addEventListener('message', handler)
-      this.ws?.send('ping:' + pingId)
+      const timeout = setTimeout(() => {
+        cleanup()
+        reject(new Error('Ping timeout'))
+      }, PING_TIMEOUT)
+
+      ws.addEventListener('message', handler)
+      ws.send('ping:' + pingId)
     })
   }
 
   disconnect () {
     if (this.ws) {
       this.ws.close()
+      this.ws = null
       this.isConnected = false
     }
   }
 }
 
 export async function pingProxyServer (serverUrl: string, abortSignal?: AbortSignal) {
+  const monitor = new LatencyMonitor(serverUrl)
+  const onAbort = () => monitor.disconnect()
+  abortSignal?.addEventListener('abort', onAbort)
   try {
-    const monitor = new LatencyMonitor(serverUrl)
-    if (abortSignal) {
-      abortSignal.addEventListener('abort', () => {
-        monitor.disconnect()
-      })
-    }
-
     await monitor.connect()
     const latency = await monitor.measureLatency()
-    monitor.disconnect()
     return {
       success: true,
       latency: Math.round(latency.networkLatency)
@@ -88,34 +106,15 @@ export async function pingProxyServer (serverUrl: string, abortSignal?: AbortSig
     let msg = String(err)
     if (err instanceof Event && err.type === 'error') {
       msg = 'Connection error'
+    } else if (err instanceof Error) {
+      msg = err.message
     }
     return {
       success: false,
       error: msg
     }
-  }
-}
-
-export async function monitorLatency () {
-  const monitor = new LatencyMonitor('https://your-server.com')
-
-  try {
-    await monitor.connect()
-
-    // Single measurement
-    const latency = await monitor.measureLatency()
-
-    // Or continuous monitoring
-    setInterval(async () => {
-      try {
-        const latency = await monitor.measureLatency()
-        console.log('Current latency:', latency)
-      } catch (error) {
-        console.error('Error measuring latency:', error)
-      }
-    }, 5000) // Check every 5 seconds
-
-  } catch (error) {
-    console.error('Failed to connect:', error)
+  } finally {
+    abortSignal?.removeEventListener('abort', onAbort)
+    monitor.disconnect()
   }
 }

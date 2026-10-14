@@ -7,6 +7,7 @@ import Input, { INPUT_LABEL_WIDTH, InputWithLabel } from './Input'
 import Button from './Button'
 import SelectGameVersion from './SelectGameVersion'
 import { usePassesScaledDimensions } from './UIProvider'
+import { withInjectableUi } from './extendableSystem'
 
 export interface BaseServerInfo {
   ip: string
@@ -29,10 +30,9 @@ interface Props {
   accounts?: string[]
   authenticatedAccounts?: number
   versions?: string[]
-  allowAutoConnect?: boolean
 }
 
-export default ({ onBack, onConfirm, title = 'Add a Server', initialData, parseQs, onQsConnect, placeholders, accounts, versions, allowAutoConnect }: Props) => {
+const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', initialData, parseQs, onQsConnect, placeholders, accounts, versions }: Props) => {
   const isSmallHeight = !usePassesScaledDimensions(null, 350)
   const qsParamName = parseQs ? appQueryParams.name : undefined
   const qsParamIp = parseQs ? appQueryParams.ip : undefined
@@ -40,7 +40,6 @@ export default ({ onBack, onConfirm, title = 'Add a Server', initialData, parseQ
   const qsParamProxy = parseQs ? appQueryParams.proxy : undefined
   const qsParamUsername = parseQs ? appQueryParams.username : undefined
   const qsParamLockConnect = parseQs ? appQueryParams.lockConnect : undefined
-  const qsParamAutoConnect = parseQs ? appQueryParams.autoConnect : undefined
 
   const parsedQsIp = parseServerAddress(qsParamIp)
   const parsedInitialIp = parseServerAddress(initialData?.ip)
@@ -118,14 +117,8 @@ export default ({ onBack, onConfirm, title = 'Add a Server', initialData, parseQ
     }
   }
 
-  useEffect(() => {
-    if (qsParamAutoConnect && qsParamIp && qsParamVersion && allowAutoConnect) {
-      onQsConnect?.(commonUseOptions)
-    }
-  }, [])
-
   const displayConnectButton = qsParamIp
-  const serverExamples = ['example.com:25565', 'play.hypixel.net', 'ws://play.pcm.gg']
+  const serverExamples = ['example.com:25565', 'play.hypixel.net', 'ws://play.mcraft.fun', 'wss://play.webmc.fun']
   // pick random example
   const example = serverExamples[Math.floor(Math.random() * serverExamples.length)]
 
@@ -231,7 +224,7 @@ export default ({ onBack, onConfirm, title = 'Add a Server', initialData, parseQ
             Cancel
           </ButtonWrapper>
           <ButtonWrapper type='submit'>
-            {displayConnectButton ? 'Save' : <strong>Save</strong>}
+            {displayConnectButton ? translate('Save') : <strong>{translate('Save')}</strong>}
           </ButtonWrapper>
         </>}
         {displayConnectButton && (
@@ -246,7 +239,7 @@ export default ({ onBack, onConfirm, title = 'Add a Server', initialData, parseQ
                 onQsConnect?.(commonUseOptions)
               }}
             >
-              <strong>Connect</strong>
+              <strong>{translate('Connect')}</strong>
             </ButtonWrapper>
           </div>
         )}
@@ -262,3 +255,5 @@ const ButtonWrapper = ({ ...props }: React.ComponentProps<typeof Button>) => {
 }
 
 const fallbackIfNotFound = (index: number) => (index === -1 ? undefined : index)
+
+export default withInjectableUi(AddServerOrConnectBase, 'addServerOrConnect')

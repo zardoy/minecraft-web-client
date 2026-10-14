@@ -1,12 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 import { useUsingTouch } from './utilsApp'
+import { withInjectableUi } from './extendableSystem'
 
 const duration = 0.2
 
 // save pass: login
 
-const toastHeight = 32
+const toastHeight = 34
 
 interface NotificationProps {
   open: boolean
@@ -21,7 +22,7 @@ interface NotificationProps {
   totalProgress?: number
 }
 
-export default ({
+const NotificationBase = ({
   type = 'message',
   message,
   subMessage = '',
@@ -52,7 +53,9 @@ export default ({
           position: 'fixed',
           top,
           right: 0,
-          width: '180px',
+          width: type === 'progress' ? '180px' : undefined,
+          scale: type === 'progress' ? undefined : 0.9,
+          transformOrigin: type === 'progress' ? undefined : 'right',
           whiteSpace: 'nowrap',
           fontSize: '9px',
           display: 'flex',
@@ -111,3 +114,5 @@ export default ({
     )}
   </AnimatePresence>
 }
+
+export default withInjectableUi(NotificationBase, 'notification')

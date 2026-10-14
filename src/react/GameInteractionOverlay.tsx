@@ -1,16 +1,21 @@
 import { useRef, useEffect } from 'react'
 import { subscribe, useSnapshot } from 'valtio'
 import { useUtilsEffect } from '@zardoy/react-util'
-import { getThreeJsRendererMethods } from 'renderer/viewer/three/threeJsMethods'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
+import { isItemActivatableMobile } from 'mineflayer-mouse/dist/activatableItemsMobile'
 import { options } from '../optionsStorage'
 import { activeModalStack, isGameActive, miscUiState } from '../globalState'
 import { onCameraMove, CameraMoveEvent } from '../cameraRotationControls'
 import { pointerLock, isInRealGameSession } from '../utils'
 import { videoCursorInteraction } from '../customChannels'
 import { handleMovementStickDelta, joystickPointer } from './TouchAreasControls'
+import { mapEventCoordinates } from './utils'
 
 /** after what time of holding the finger start breaking the block */
 const touchStartBreakingBlockMs = 500
+
+type JoystickOrigin = Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'> | null
+type UpdateJoystick = (e: Pick<PointerEvent, 'clientX' | 'clientY'>) => void
 
 function GameInteractionOverlayInner ({
   zIndex,
@@ -18,8 +23,8 @@ function GameInteractionOverlayInner ({
   updateJoystick
 }: {
   zIndex: number,
-  setJoystickOrigin: (e: PointerEvent | null) => void
-  updateJoystick: (e: PointerEvent) => void
+  setJoystickOrigin: (e: JoystickOrigin) => void
+  updateJoystick: UpdateJoystick
 }) {
   const overlayRef = useRef<HTMLDivElement>(null)
 
@@ -53,11 +58,16 @@ function GameInteractionOverlayInner ({
       if (screenTouches === 3) {
         // todo maybe mouse wheel click?
       }
+      const { clientX, clientY, sizeX } = mapEventCoordinates(e)
       const usingModernMovement = options.touchMovementType === 'modern'
       if (usingModernMovement) {
-        if (!joystickPointer.pointer && e.clientX < window.innerWidth / 2) {
+        if (!joystickPointer.pointer && clientX < sizeX / 2) {
           cameraControlEl.setPointerCapture(e.pointerId)
-          setJoystickOrigin(e)
+          setJoystickOrigin({
+            pointerId: e.pointerId,
+            clientX,
+            clientY
+          })
           return
         }
       }
@@ -67,17 +77,20 @@ function GameInteractionOverlayInner ({
       cameraControlEl.setPointerCapture(e.pointerId)
       capturedPointer.active = {
         id: e.pointerId,
-        x: e.clientX,
-        y: e.clientY,
-        sourceX: e.clientX,
-        sourceY: e.clientY,
+        x: clientX,
+        y: clientY,
+        sourceX: clientX,
+        sourceY: clientY,
         activateCameraMove: false,
         time: Date.now()
       }
       if (options.touchInteractionType === 'classic') {
         virtualClickTimeout ??= setTimeout(() => {
           virtualClickActive = true
-          document.dispatchEvent(new MouseEvent('mousedown', { button: 0 }))
+          // If held item is activatable, use right click instead of left
+          const heldItemName = bot?.heldItem?.name
+          const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
+          document.dispatchEvent(new MouseEvent('mousedown', { button: isOnlyActivatable ? 2 : 0 }))
         }, touchStartBreakingBlockMs)
       }
     }
@@ -92,8 +105,9 @@ function GameInteractionOverlayInner ({
         (e as any).pressure !== 1 &&
         (e.pointerType === 'touch' || e.pointerType === 'pen')
 
+      const { clientX, clientY } = mapEventCoordinates(e)
       if (e.pointerId === joystickPointer.pointer?.pointerId) {
-        updateJoystick(e)
+        updateJoystick({ clientX, clientY })
         if (supportsPressure && (e as any).pressure > 0.5) {
           bot.setControlState('sprint', true)
         }
@@ -105,13 +119,10 @@ function GameInteractionOverlayInner ({
       e.stopPropagation()
 
       const allowedJitter = 1.1
-      if (supportsPressure) {
-        bot.setControlState('jump', (e as any).pressure > 0.5)
-      }
 
-      // Adjust coordinates for scale
-      const currentX = e.clientX / scale
-      const currentY = e.clientY / scale
+      // Adjust coordinates for scale (logical axes when body.rotated)
+      const currentX = clientX / scale
+      const currentY = clientY / scale
       const sourceX = capturedPointer.active.sourceX / scale
       const sourceY = capturedPointer.active.sourceY / scale
       const lastX = capturedPointer.active.x / scale
@@ -134,8 +145,8 @@ function GameInteractionOverlayInner ({
         stopPropagation: () => e.stopPropagation()
       } as CameraMoveEvent)
 
-      capturedPointer.active.x = e.clientX
-      capturedPointer.active.y = e.clientY
+      capturedPointer.active.x = clientX
+      capturedPointer.active.y = clientY
     }
 
     const pointerUpHandler = (e: PointerEvent) => {
@@ -150,16 +161,23 @@ function GameInteractionOverlayInner ({
 
       if (virtualClickActive) {
         // button 0 is left click
-        document.dispatchEvent(new MouseEvent('mouseup', { button: 0 }))
+        // If held item is activatable, use right click instead of left
+        const heldItemName = bot?.heldItem?.name
+        const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
+        document.dispatchEvent(new MouseEvent('mouseup', { button: isOnlyActivatable ? 2 : 0 }))
         virtualClickActive = false
       } else if (!capturedPointer.active.activateCameraMove && (Date.now() - capturedPointer.active.time < touchStartBreakingBlockMs)) {
         // single click action
         const MOUSE_BUTTON_RIGHT = 2
         const MOUSE_BUTTON_LEFT = 0
+        const heldItemName = bot?.heldItem?.name
+        const isOnlyActivatable = heldItemName && isItemActivatableMobile(heldItemName, loadedData)
         const gonnaAttack = !!bot.mouse.getCursorState().entity || !!videoCursorInteraction()
-        document.dispatchEvent(new MouseEvent('mousedown', { button: gonnaAttack ? MOUSE_BUTTON_LEFT : MOUSE_BUTTON_RIGHT }))
+        // If not attacking entity and item is activatable, use right click for breaking
+        const useButton = !gonnaAttack && isOnlyActivatable ? MOUSE_BUTTON_RIGHT : (gonnaAttack ? MOUSE_BUTTON_LEFT : MOUSE_BUTTON_RIGHT)
+        document.dispatchEvent(new MouseEvent('mousedown', { button: useButton }))
         bot.mouse.update()
-        document.dispatchEvent(new MouseEvent('mouseup', { button: gonnaAttack ? MOUSE_BUTTON_LEFT : MOUSE_BUTTON_RIGHT }))
+        document.dispatchEvent(new MouseEvent('mouseup', { button: useButton }))
       }
 
       if (screenTouches > 0) {
@@ -268,7 +286,7 @@ export default function GameInteractionOverlay ({ zIndex }: { zIndex: number }) 
   const modalStack = useSnapshot(activeModalStack)
   const { currentTouch } = useSnapshot(miscUiState)
 
-  const setJoystickOrigin = useRef((e: PointerEvent | null) => {
+  const setJoystickOrigin = useRef((e: JoystickOrigin) => {
     if (!e) {
       handleMovementStickDelta()
       joystickPointer.pointer = null
@@ -282,9 +300,9 @@ export default function GameInteractionOverlay ({ zIndex }: { zIndex: number }) 
     }
   }).current
 
-  const updateJoystick = useRef((e: PointerEvent) => {
+  const updateJoystick = useRef(((e) => {
     handleMovementStickDelta(e)
-  }).current
+  }) satisfies UpdateJoystick).current
 
   if (modalStack.length > 0 || !currentTouch) return null
   return <GameInteractionOverlayInner

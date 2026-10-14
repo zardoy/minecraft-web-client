@@ -33,32 +33,6 @@ Paths:
 - `src` - main app source code
 - `src/react` - React components - almost all UI is in this folder. Almost every component has its base (reused in app and storybook) and `Provider` - which is a component that provides context to its children. Consider looking at DeathScreen component to see how it's used.
 
-### Renderer: Playground & Mesher (`renderer`)
-
-- Playground Scripts:
-  - Start: `pnpm run-playground` (playground, mesher + server) or `pnpm watch-playground`
-  - Build: `pnpm build-playground` or `node renderer/esbuild.mjs`
-
-- Mesher Scripts:
-  - Start: `pnpm watch-mesher`
-  - Build: `pnpm build-mesher`
-
-Paths:
-
-- `renderer` - Improved and refactored version of <https://github.com/PrismarineJS/prismarine-viewer>. Here is everything related to rendering the game world itself (no ui at all). Two most important parts here are:
-- `renderer/viewer/lib/worldrenderer.ts` - adding new objects to three.js happens here (sections)
-- `renderer/viewer/lib/models.ts` - preparing data for rendering (blocks) - happens in worker: out file - `worker.js`, building - `renderer/buildWorker.mjs`
-- `renderer/playground/playground.ts` - Playground (source of <mcraft.fun/playground.html>) Use this for testing any rendering changes. You can also modify the playground code.
-
-### Storybook (`.storybook`)
-
-Storybook is a tool for easier developing and testing React components.
-Path of all Storybook stories is `src/react/**/*.stories.tsx`.
-
-- Scripts:
-  - Start: `pnpm storybook`
-  - Build: `pnpm build-storybook`
-
 ## Core-related
 
 How different modules are used:
@@ -69,7 +43,7 @@ How different modules are used:
 
 To start the main web app and playground, run `pnpm run-all`. Note is doesn't start storybook and tests.
 
-## Cypress Tests (E2E)
+## Cypress Tests (Browser Integration)
 
 Cypress tests are located in `cypress` folder. To run them, run `pnpm test-mc-server` and then `pnpm test:cypress` when the `pnpm prod-start` is running (or change the port to 3000 to test with the dev server). Usually you don't need to run these until you get issues on the CI.
 

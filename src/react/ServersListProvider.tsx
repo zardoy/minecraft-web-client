@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useUtilsEffect } from '@zardoy/react-util'
 import { useSnapshot } from 'valtio'
+import { supportedVersions } from 'minecraft-protocol'
+import { versionToNumber } from 'mc-assets/dist/utils'
 import { ConnectOptions } from '../connect'
 import { activeModalStack, hideCurrentModal, miscUiState, notHideableModalsWithoutForce, showModal } from '../globalState'
-import supportedVersions from '../supportedVersions.mjs'
+import appSupportedVersions from '../supportedVersions.mjs'
 import { appQueryParams } from '../appParams'
 import { fetchServerStatus, isServerValid } from '../api/mcStatusApi'
 import { getServerInfo } from '../mineflayer/mc-protocol'
@@ -19,6 +21,10 @@ import { appStorage, StoreServerItem } from './appStorageProvider'
 import Button from './Button'
 import { pixelartIcons } from './PixelartIcon'
 import { showNotification } from './NotificationProvider'
+
+const firstProtocolVersion = versionToNumber(supportedVersions[0])
+const lastProtocolVersion = versionToNumber(supportedVersions.at(-1)!)
+const protocolSupportedVersions = appSupportedVersions.filter(v => versionToNumber(v) >= firstProtocolVersion && versionToNumber(v) <= lastProtocolVersion)
 
 const EXPLICIT_SHARE_SERVER_MODE = false
 
@@ -113,6 +119,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
     ...serversListProvided,
     ...(customServersList ? [] : (miscUiState.appConfig?.promoteServers ?? [])).map((server): StoreServerItem => ({
       ip: server.ip,
+      name: server.name,
       versionOverride: server.version,
       description: server.description,
       isRecommended: true
@@ -130,7 +137,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
     const update = async () => {
       const queue = serversListSorted
         .map(server => {
-          if (!isServerValid(server.ip) || signal.aborted) return null
+          if (!isServerValid(server.ip, true) || signal.aborted) return null
 
           return server
         })
@@ -156,13 +163,23 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
               const isWebSocket = server.ip.startsWith('ws://') || server.ip.startsWith('wss://')
               let data
               if (isWebSocket) {
-                const pingResult = await getServerInfo(server.ip, undefined, undefined, true)
-                console.log('pingResult.fullInfo.description', pingResult.fullInfo.description)
-                data = {
-                  formattedText: pingResult.fullInfo.description,
-                  textNameRight: `ws ${pingResult.latency}ms`,
-                  textNameRightGrayed: `${pingResult.fullInfo.players?.online ?? '??'}/${pingResult.fullInfo.players?.max ?? '??'}`,
-                  offline: false
+                try {
+                  const pingResult = await getServerInfo(server.ip, undefined, undefined, true)
+                  console.log('pingResult.fullInfo.description', pingResult.fullInfo.description)
+                  data = {
+                    formattedText: pingResult.fullInfo.description,
+                    icon: pingResult.fullInfo.favicon,
+                    textNameRight: `ws ${pingResult.latency}ms`,
+                    textNameRightGrayed: `${pingResult.fullInfo.players?.online ?? '??'}/${pingResult.fullInfo.players?.max ?? '??'}`,
+                    offline: false
+                  }
+                } catch (err) {
+                  data = {
+                    formattedText: 'Failed to connect',
+                    textNameRight: '',
+                    textNameRightGrayed: '',
+                    offline: true
+                  }
                 }
               } else {
                 data = await fetchServerStatus(server.ip, /* signal */undefined, server.versionOverride) // DONT ADD SIGNAL IT WILL CRUSH JS RUNTIME
@@ -217,7 +234,6 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
   })
 
   const editModalJsx = isEditScreenModal ? <AddServerOrConnect
-    allowAutoConnect={miscUiState.appConfig?.allowAutoConnect}
     placeholders={{
       proxyOverride: getCurrentProxy(),
       usernameOverride: getCurrentUsername(),
@@ -254,7 +270,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
       }
       dispatchEvent(new CustomEvent('connect', { detail: connectOptions }))
     }}
-    versions={supportedVersions}
+    versions={protocolSupportedVersions}
   /> : null
 
   const serversListJsx = <ServersList

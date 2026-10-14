@@ -54,6 +54,7 @@ type StorageData = {
   serversList: StoreServerItem[] | undefined
   modsAutoUpdateLastCheck: number | undefined
   firstModsPageVisit: boolean
+  iframeConsents: string[] | undefined
 }
 
 const cookieStoreKeys: Array<keyof StorageData> = [
@@ -92,6 +93,14 @@ const setCookieValue = (key: string, value: string): boolean => {
     }
 
     document.cookie = cookie
+
+    // Verify the cookie was actually saved by reading it back
+    const savedValue = getCookieValue(key)
+    if (savedValue !== value) {
+      console.warn(`Cookie verification failed for key '${key}'. Expected: ${value}, Got: ${savedValue}`)
+      return false
+    }
+
     return true
   } catch (error) {
     console.error(`Failed to set cookie for key '${key}':`, error)
@@ -208,6 +217,7 @@ const defaultStorageData: StorageData = {
   serversList: undefined,
   modsAutoUpdateLastCheck: undefined,
   firstModsPageVisit: true,
+  iframeConsents: undefined,
 }
 
 export const setStorageDataOnAppConfigLoad = (appConfig: AppConfig) => {
@@ -230,12 +240,19 @@ export const getRandomUsername = (appConfig: AppConfig) => {
 
 export const appStorage = proxy({ ...defaultStorageData })
 
+// Track if cookies failed in this session
+let cookiesFailedThisSession = false
+
 // Check if cookie storage should be used (will be set by options)
 const shouldUseCookieStorage = () => {
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  // If cookies failed this session, don't try again
+  if (cookiesFailedThisSession) {
+    return false
+  }
+
   const isSecureCookiesAvailable = () => {
     // either https or localhost
-    return window.location.protocol === 'https:' || (window.location.hostname === 'localhost' && !isSafari)
+    return window.location.protocol === 'https:' || (window.location.hostname === 'localhost')
   }
   if (!isSecureCookiesAvailable()) {
     return false
@@ -346,8 +363,10 @@ const saveKey = (key: keyof StorageData) => {
         // Remove from localStorage if cookie save was successful
         markLocalStorageAsMigrated(key)
       } else {
-        // Disabling for now so no confusing conflicts modal after page reload
-        // useLocalStorage = true
+        // Cookie save failed, disable cookies for this session and fallback to localStorage
+        console.warn(`Cookie save failed for key '${key}', disabling cookies for this session`)
+        cookiesFailedThisSession = true
+        useLocalStorage = true
       }
     }
   }

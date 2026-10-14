@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 
 // appReplacableResources
 import { appReplacableResources } from '../generated/resources'
+import { BASE_HOTBAR_HEIGHT } from './HotbarRenderApp'
 
 export default ({ children }): React.ReactElement => {
   useEffect(() => {
@@ -17,7 +18,7 @@ export default ({ children }): React.ReactElement => {
 
         --hud-bottom-max: 0px;
         --hud-bottom-raw: max(env(safe-area-inset-bottom), var(--hud-bottom-max));
-        --safe-area-inset-bottom: calc(var(--hud-bottom-raw) / 2);
+        --safe-area-inset-bottom: calc(var(--hud-bottom-raw) / var(--guiScale) + ${BASE_HOTBAR_HEIGHT + 3}px);
       }
     `
     const style = document.createElement('style')

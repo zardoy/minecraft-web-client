@@ -6,8 +6,8 @@ import { dirname } from 'node:path'
 import supportedVersions from '../src/supportedVersions.mjs'
 import { gzipSizeFromFileSync } from 'gzip-size'
 import fs from 'fs'
-import  {default as _JsonOptimizer}  from '../src/optimizeJson'
-import { gzipSync } from 'zlib';
+import { default as _JsonOptimizer } from '../src/optimizeJson'
+import { gzipSync } from 'zlib'
 import MinecraftData from 'minecraft-data'
 import MCProtocol from 'minecraft-protocol'
 
@@ -21,12 +21,12 @@ const require = Module.createRequire(import.meta.url)
 
 const dataPaths = require('minecraft-data/minecraft-data/data/dataPaths.json')
 
-function toMajor (version) {
+function toMajor(version) {
   const [a, b] = (version + '').split('.')
   return `${a}.${b}`
 }
 
-const versions = {}
+let versions = {}
 const dataTypes = new Set()
 
 for (const [version, dataSet] of Object.entries(dataPaths.pc)) {
@@ -41,6 +41,31 @@ const versionToNumber = (ver) => {
   const [x, y = '0', z = '0'] = ver.split('.')
   return +`${x.padStart(2, '0')}${y.padStart(2, '0')}${z.padStart(2, '0')}`
 }
+
+// Version clipping support
+const minVersion = process.env.MIN_MC_VERSION
+const maxVersion = process.env.MAX_MC_VERSION
+
+// Filter versions based on MIN_VERSION and MAX_VERSION if provided
+if (minVersion || maxVersion) {
+  const filteredVersions = {}
+  const minVersionNum = minVersion ? versionToNumber(minVersion) : 0
+  const maxVersionNum = maxVersion ? versionToNumber(maxVersion) : Infinity
+
+  for (const [version, dataSet] of Object.entries(versions)) {
+    const versionNum = versionToNumber(version)
+    if (versionNum >= minVersionNum && versionNum <= maxVersionNum) {
+      filteredVersions[version] = dataSet
+    }
+  }
+
+  versions = filteredVersions
+
+  console.log(`Version clipping applied: ${minVersion || 'none'} to ${maxVersion || 'none'}`)
+  console.log(`Processing ${Object.keys(versions).length} versions:`, Object.keys(versions).sort((a, b) => versionToNumber(a) - versionToNumber(b)))
+}
+
+console.log('Bundling version range:', Object.keys(versions)[0], 'to', Object.keys(versions).at(-1))
 
 // if not included here (even as {}) will not be bundled & accessible!
 // const compressedOutput = !!process.env.SINGLE_FILE_BUILD
@@ -57,21 +82,26 @@ const dataTypeBundling2 = {
   }
 }
 const dataTypeBundling = {
-  language: {
+  language: process.env.SKIP_MC_DATA_LANGUAGE === 'true' ? {
+    raw: {}
+  } : {
     ignoreRemoved: true,
     ignoreChanges: true
   },
   blocks: {
     arrKey: 'name',
-    processData (current, prev) {
+    processData(current, prev, _, version) {
       for (const block of current) {
+        const prevBlock = prev?.find(x => x.name === block.name)
         if (block.transparent) {
           const forceOpaque = block.name.includes('shulker_box') || block.name.match(/^double_.+_slab\d?$/) || ['melon_block', 'lit_pumpkin', 'lit_redstone_ore', 'lit_furnace'].includes(block.name)
 
-          const prevBlock = prev?.find(x => x.name === block.name);
           if (forceOpaque || (prevBlock && !prevBlock.transparent)) {
             block.transparent = false
           }
+        }
+        if (block.hardness === 0 && prevBlock && prevBlock.hardness > 0) {
+          block.hardness = prevBlock.hardness
         }
       }
     }
@@ -136,7 +166,9 @@ const dataTypeBundling = {
   blockLoot: {
     arrKey: 'block'
   },
-  recipes: {
+  recipes: process.env.SKIP_MC_DATA_RECIPES === 'true' ? {
+    raw: {}
+  } : {
     raw: true
     // processData: processRecipes
   },
@@ -150,7 +182,7 @@ const dataTypeBundling = {
   // }
 }
 
-function processRecipes (current, prev, getData, version) {
+function processRecipes(current, prev, getData, version) {
   // can require the same multiple times per different versions
   if (current._proccessed) return
   const items = getData('items')
@@ -242,30 +274,39 @@ for (const [i, [version, dataSet]] of versionsArr.reverse().entries()) {
   for (const [dataType, dataPath] of Object.entries(dataSet)) {
     const config = dataTypeBundling[dataType]
     if (!config) continue
-    if (dataType === 'blockCollisionShapes' && versionToNumber(version) >= versionToNumber('1.13')) {
-      // contents += `      get ${dataType} () { return window.globalGetCollisionShapes?.("${version}") },\n`
-      continue
-    }
+    const ignoreCollisionShapes = dataType === 'blockCollisionShapes' && versionToNumber(version) >= versionToNumber('1.13')
+
     let injectCode = ''
-    const getData = (type) => {
+    const getRealData = (type) => {
       const loc = `minecraft-data/data/${dataSet[type]}/`
       const dataPathAbsolute = require.resolve(`minecraft-data/${loc}${type}`)
       // const data = fs.readFileSync(dataPathAbsolute, 'utf8')
       const dataRaw = require(dataPathAbsolute)
       return dataRaw
     }
-    const dataRaw = getData(dataType)
+    const dataRaw = getRealData(dataType)
     let rawData = dataRaw
     if (config.raw) {
       rawDataVersions[dataType] ??= {}
       rawDataVersions[dataType][version] = rawData
-      rawData = dataRaw
+      if (config.raw === true) {
+        rawData = dataRaw
+      } else {
+        rawData = config.raw
+      }
+
+      if (ignoreCollisionShapes && dataType === 'blockCollisionShapes') {
+        rawData = {
+          blocks: {},
+          shapes: {}
+        }
+      }
     } else {
       if (!diffSources[dataType]) {
         diffSources[dataType] = new JsonOptimizer(config.arrKey, config.ignoreChanges, config.ignoreRemoved)
       }
       try {
-        config.processData?.(dataRaw, previousData[dataType], getData, version)
+        config.processData?.(dataRaw, previousData[dataType], getRealData, version)
         diffSources[dataType].recordDiff(version, dataRaw)
         injectCode = `restoreDiff(sources, ${JSON.stringify(dataType)}, ${JSON.stringify(version)})`
       } catch (err) {
@@ -297,16 +338,16 @@ console.log('total size (mb)', totalSize / 1024 / 1024)
 console.log(
   'size per data type (mb, %)',
   Object.fromEntries(Object.entries(sizePerDataType).map(([dataType, size]) => {
-    return [dataType, [size / 1024 / 1024, Math.round(size / totalSize * 100)]];
+    return [dataType, [size / 1024 / 1024, Math.round(size / totalSize * 100)]]
   }).sort((a, b) => {
     //@ts-ignore
-    return b[1][1] - a[1][1];
+    return b[1][1] - a[1][1]
   }))
 )
 
 function compressToBase64(input) {
-  const buffer = gzipSync(input);
-  return buffer.toString('base64');
+  const buffer = gzipSync(input)
+  return buffer.toString('base64')
 }
 
 const filePath = './generated/minecraft-data-optimized.json'
@@ -330,6 +371,7 @@ console.log('size', fs.lstatSync(filePath).size / 1000 / 1000, gzipSizeFromFileS
 
 const { defaultVersion } = MCProtocol
 const data = MinecraftData(defaultVersion)
+console.log('defaultVersion', defaultVersion, !!data)
 const initialMcData = {
   [defaultVersion]: {
     version: data.version,

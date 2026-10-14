@@ -3,6 +3,7 @@ import { createContext, FC, Ref, useContext, useEffect, useRef } from 'react'
 import buttonCss from './button.module.css'
 import SharedHudVars from './SharedHudVars'
 import PixelartIcon from './PixelartIcon'
+import { withInjectableUi } from './extendableSystem'
 
 // testing in storybook from deathscreen
 
@@ -25,7 +26,7 @@ export const ButtonProvider: FC<{ children, onClick }> = ({ children, onClick })
   return <ButtonContext.Provider value={{ onClick }}>{children}</ButtonContext.Provider>
 }
 
-export default (({ label, icon, children, inScreen, rootRef, type = 'button', postLabel, overlayColor, noTranslate, ...args }) => {
+const ButtonBase = (({ label, icon, children, inScreen, rootRef, type = 'button', postLabel, overlayColor, noTranslate, ...args }) => {
   const style = {
     ...args.style,
   } as React.CSSProperties
@@ -66,9 +67,18 @@ export default (({ label, icon, children, inScreen, rootRef, type = 'button', po
     args.className = `${args.className ?? ''} settings-text-container-long`
   }
 
-  if (icon) {
+  if (icon && (style.width === null || style.width === undefined)) {
     style.width = 20
   }
+
+  const iconOnly = Boolean(icon && !label && !children && !postLabel)
+  const iconWidth = typeof style.width === 'number' ? style.width : 20
+  const iconStyles = iconOnly ? {
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    fontSize: Math.round(14 * (iconWidth / 20)),
+  } as React.CSSProperties : undefined
 
   const tryToTranslate = (maybeText: any) => {
     if (noTranslate) return maybeText
@@ -98,7 +108,7 @@ export default (({ label, icon, children, inScreen, rootRef, type = 'button', po
       onClick={onClick}
       type={type}
     >
-      {icon && <PixelartIcon className={buttonCss.icon} iconName={icon} />}
+      {icon && <PixelartIcon className={buttonCss.icon} iconName={icon} styles={iconStyles} />}
       {label}
       {postLabel}
       {children}
@@ -112,3 +122,5 @@ export default (({ label, icon, children, inScreen, rootRef, type = 'button', po
     </button>
   </SharedHudVars>
 }) satisfies FC<Props>
+
+export default withInjectableUi(ButtonBase, 'button')

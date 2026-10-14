@@ -94,9 +94,13 @@ export const openOptionsMenu = (group: OptionsGroupType) => {
   showModal({ reactType: `options-${group}` })
 }
 
-subscribe(activeModalStack, () => {
+const syncModalStackBody = () => {
   document.body.style.setProperty('--has-modals-z', activeModalStack.length ? '-1' : null)
-})
+  document.body.classList.toggle('has-open-modals', activeModalStack.length > 0)
+}
+
+subscribe(activeModalStack, syncModalStackBody)
+syncModalStackBody()
 
 // ---
 
@@ -120,6 +124,7 @@ export const miscUiState = proxy({
   flyingSquid: false,
   wanOpened: false,
   wanOpening: false,
+  hadConnected: false,
   /** wether game hud is shown (in playing state) */
   gameLoaded: false,
   showUI: true,
@@ -132,15 +137,36 @@ export const miscUiState = proxy({
   usingGamepadInput: false,
   appConfig: null as AppConfig | null,
   displaySearchInput: false,
-  displayFullmap: false
+  displayFullmap: false,
+  fullscreen: false,
+  /** User opted in to portrait→landscape CSS rotation (`body.rotated`). */
+  displayRotationEnabled: false,
+  /** `innerWidth < innerHeight` — used to show the rotate button on mobile. */
+  viewportPortrait: false,
+  disconnectedCleanup: null as { callback: () => void, date: number, wasConnected: boolean } | null
 })
+
+export const maybeCleanupAfterDisconnect = () => {
+  if (miscUiState.disconnectedCleanup) {
+    miscUiState.disconnectedCleanup.callback()
+    miscUiState.disconnectedCleanup = null
+  }
+}
+
+window.miscUiState = miscUiState
 
 export const isGameActive = (foregroundCheck: boolean) => {
   if (foregroundCheck && activeModalStack.length) return false
   return miscUiState.gameLoaded
 }
 
-window.miscUiState = miscUiState
+const updateFullscreen = () => {
+  miscUiState.fullscreen = !!document.fullscreenElement
+}
+document.documentElement.addEventListener('fullscreenchange', () => {
+  updateFullscreen()
+})
+updateFullscreen()
 
 // state that is not possible to get via bot and in-game specific
 export const gameAdditionalState = proxy({
@@ -154,6 +180,7 @@ export const gameAdditionalState = proxy({
   viewerConnection: false,
 
   usingServerResourcePack: false,
+  typingUsers: [] as Array<{ username: string; timestamp: number }>,
 })
 
 window.gameAdditionalState = gameAdditionalState

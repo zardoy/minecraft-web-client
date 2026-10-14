@@ -11,10 +11,12 @@ import fsExtra from 'fs-extra'
 import { promisify } from 'util'
 import { generateSW } from 'workbox-build'
 import { getSwAdditionalEntries } from './scripts/build'
-import { appAndRendererSharedConfig } from './renderer/rsbuildSharedConfig'
+import { appAndRendererSharedConfig } from './rsbuildSharedConfig'
 import { genLargeDataAliases } from './scripts/genLargeDataAliases'
 import sharp from 'sharp'
 import supportedVersions from './src/supportedVersions.mjs'
+import { startWsServer } from './scripts/wsServer'
+import { applyWatermarkPackagesToConfig } from './scripts/watermarkLockfilePins'
 
 const SINGLE_FILE_BUILD = process.env.SINGLE_FILE_BUILD === 'true'
 
@@ -30,6 +32,11 @@ try { require('./localSettings.js') } catch { }
 const execAsync = promisify(childProcess.exec)
 
 const buildingVersion = new Date().toISOString().split(':')[0]
+
+const buildTime = new Date()
+const buildDisplayDate = `${String(buildTime.getDate()).padStart(2, '0')}.${String(buildTime.getMonth() + 1).padStart(2, '0')}.${String(buildTime.getFullYear()).slice(-2)}`
+
+const minecraftRendererVersion = require('minecraft-renderer/package.json').version as string
 
 const dev = process.env.NODE_ENV === 'development'
 const disableServiceWorker = process.env.DISABLE_SERVICE_WORKER === 'true'
@@ -48,18 +55,41 @@ if (fs.existsSync('./assets/release.json')) {
 }
 
 const configJson = JSON.parse(fs.readFileSync('./config.json', 'utf8'))
+
+// Precedence (last write wins): base config.json → LOCAL_CONFIG_FILE → CONFIG_JSON (CI / PR)
 try {
-    Object.assign(configJson, JSON.parse(fs.readFileSync(process.env.LOCAL_CONFIG_FILE || './config.local.json', 'utf8')))
-} catch (err) {}
+    const localConfigFile = process.env.LOCAL_CONFIG_FILE || './config.local.json'
+    if (fs.existsSync(localConfigFile)) {
+        const localConfig = JSON.parse(fs.readFileSync(localConfigFile, 'utf8'))
+        Object.assign(configJson, localConfig)
+    }
+} catch (err) {
+    console.warn('Failed to parse LOCAL_CONFIG_FILE:', err)
+}
+
+if (process.env.CONFIG_JSON) {
+    try {
+        const prConfig = JSON.parse(process.env.CONFIG_JSON)
+        Object.assign(configJson, prConfig)
+        console.log('Applied config from CONFIG_JSON env var:', Object.keys(prConfig).join(', '))
+    } catch (err) {
+        console.warn('Failed to parse CONFIG_JSON env var:', err)
+    }
+}
+
 if (dev) {
     configJson.defaultProxy = ':8080'
 }
+
+applyWatermarkPackagesToConfig(configJson as Record<string, unknown>, path.resolve('pnpm-lock.yaml'))
 
 const configSource = (SINGLE_FILE_BUILD ? 'BUNDLED' : (process.env.CONFIG_JSON_SOURCE || 'REMOTE')) as 'BUNDLED' | 'REMOTE'
 
 const faviconPath = 'favicon.png'
 
-// base options are in ./renderer/rsbuildSharedConfig.ts
+const enableMetrics = process.env.ENABLE_METRICS === 'true'
+
+// base options are in ./rsbuildSharedConfig.ts
 const appConfig = defineConfig({
     html: {
         template: './index.html',
@@ -136,6 +166,13 @@ const appConfig = defineConfig({
         // 50kb limit for data uri
         dataUriLimit: SINGLE_FILE_BUILD ? 1 * 1024 * 1024 * 1024 : 50 * 1024
     },
+    performance: {
+        // prefetch: {
+        //     include(filename) {
+        //         return filename.includes('mc-data') || filename.includes('mc-assets')
+        //     },
+        // },
+    },
     source: {
         entry: {
             index: './src/index.ts',
@@ -145,13 +182,14 @@ const appConfig = defineConfig({
         // ],
         define: {
             'process.env.BUILD_VERSION': JSON.stringify(!dev ? buildingVersion : 'undefined'),
+            'process.env.BUILD_DISPLAY_DATE': JSON.stringify(buildDisplayDate),
             'process.env.MAIN_MENU_LINKS': JSON.stringify(process.env.MAIN_MENU_LINKS),
             'process.env.SINGLE_FILE_BUILD': JSON.stringify(process.env.SINGLE_FILE_BUILD),
             'process.env.SINGLE_FILE_BUILD_MODE': JSON.stringify(process.env.SINGLE_FILE_BUILD),
             'process.platform': '"browser"',
             'process.env.GITHUB_URL':
                 JSON.stringify(`https://github.com/${process.env.GITHUB_REPOSITORY || `${process.env.VERCEL_GIT_REPO_OWNER}/${process.env.VERCEL_GIT_REPO_SLUG}` || githubRepositoryFallback}`),
-            'process.env.DEPS_VERSIONS': JSON.stringify({}),
+            'process.env.ALWAYS_MINIMAL_SERVER_UI': JSON.stringify(process.env.ALWAYS_MINIMAL_SERVER_UI),
             'process.env.RELEASE_TAG': JSON.stringify(releaseTag),
             'process.env.RELEASE_LINK': JSON.stringify(releaseLink),
             'process.env.RELEASE_CHANGELOG': JSON.stringify(releaseChangelog),
@@ -159,6 +197,9 @@ const appConfig = defineConfig({
             'process.env.INLINED_APP_CONFIG': JSON.stringify(configSource === 'BUNDLED' ? configJson : null),
             'process.env.ENABLE_COOKIE_STORAGE': JSON.stringify(process.env.ENABLE_COOKIE_STORAGE || true),
             'process.env.COOKIE_STORAGE_PREFIX': JSON.stringify(process.env.COOKIE_STORAGE_PREFIX || ''),
+            'process.env.WS_PORT': JSON.stringify(enableMetrics ? 8081 : false),
+            'process.env.MINECRAFT_RENDERER_VERSION': JSON.stringify(minecraftRendererVersion),
+            'process.env.BOAT_PHYS_DEBUG': JSON.stringify(process.env.BOAT_PHYS_DEBUG),
         },
     },
     server: {
@@ -186,7 +227,7 @@ const appConfig = defineConfig({
                         childProcess.execSync('tsx ./scripts/optimizeBlockCollisions.ts', { stdio: 'inherit' })
                     }
                     // childProcess.execSync(['tsx', './scripts/genLargeDataAliases.ts', ...(SINGLE_FILE_BUILD ? ['--compressed'] : [])].join(' '), { stdio: 'inherit' })
-                    genLargeDataAliases(SINGLE_FILE_BUILD)
+                    genLargeDataAliases(SINGLE_FILE_BUILD || process.env.ALWAYS_COMPRESS_LARGE_DATA === 'true')
                     fsExtra.copySync('./node_modules/mc-assets/dist/other-textures/latest/entity', './dist/textures/entity')
                     fsExtra.copySync('./assets/background', './dist/background')
                     fs.copyFileSync('./assets/favicon.png', './dist/favicon.png')
@@ -195,6 +236,7 @@ const appConfig = defineConfig({
                     fs.copyFileSync('./assets/config.html', './dist/config.html')
                     fs.copyFileSync('./assets/debug-inputs.html', './dist/debug-inputs.html')
                     fs.copyFileSync('./assets/loading-bg.jpg', './dist/loading-bg.jpg')
+                    fs.copyFileSync('./assets/mojangles.ttf', './dist/mojangles.ttf')
                     if (fs.existsSync('./assets/release.json')) {
                         fs.copyFileSync('./assets/release.json', './dist/release.json')
                     }
@@ -208,14 +250,30 @@ const appConfig = defineConfig({
                     // childProcess.execSync('./scripts/prepareSounds.mjs', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genMcDataTypes.ts', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genPixelartTypes.ts', { stdio: 'inherit' })
-                    if (fs.existsSync('./renderer/dist/mesher.js') && dev) {
+                    // copy mesher worker
+                    if (fs.existsSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm')) {
+                        fs.copyFileSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm', './dist/wasm_mesher_bg.wasm')
+                    } else {
+                        console.warn('wasm_mesher_bg.wasm not found')
+                    }
+                    if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesherWasm.js')) {
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', './dist/mesherWasm.js')
+                    }
+                    if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesher.js')) {
                         // copy mesher
-                        fs.copyFileSync('./renderer/dist/mesher.js', './dist/mesher.js')
-                        fs.copyFileSync('./renderer/dist/mesher.js.map', './dist/mesher.js.map')
-                    } else if (!dev) {
-                        await execAsync('pnpm run build-mesher')
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js', './dist/mesher.js')
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js.map', './dist/mesher.js.map')
+                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/threeWorker.js', './dist/threeWorker.js')
+                    } else {
+                        throw new Error('mesher.js not found')
                     }
                     fs.writeFileSync('./dist/version.txt', buildingVersion, 'utf-8')
+
+                    // Start WebSocket server in development
+                    if (dev && enableMetrics) {
+                        await startWsServer(8081, false)
+                    }
+
                     console.timeEnd('total-prep')
                 }
                 if (!dev) {
@@ -223,6 +281,10 @@ const appConfig = defineConfig({
                         prep()
                     })
                     build.onAfterBuild(async () => {
+                        if (fs.readdirSync('./assets/customTextures').length > 0) {
+                            childProcess.execSync('tsx ./scripts/patchAssets.ts', { stdio: 'inherit' })
+                        }
+
                         if (SINGLE_FILE_BUILD) {
                             // check that only index.html is in the dist/single folder
                             const singleBuildFiles = fs.readdirSync('./dist/single')

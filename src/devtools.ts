@@ -1,9 +1,20 @@
 // global variables useful for debugging
 
 import fs from 'fs'
-import { WorldRendererThree } from 'renderer/viewer/three/worldrendererThree'
+import { WorldRendererThree } from 'minecraft-renderer/src/three/worldRendererThree'
 import { enable, disable, enabled } from 'debug'
 import { Vec3 } from 'vec3'
+
+customEvents.on('mineflayerBotCreated', () => {
+  window.debugServerPacketNames = Object.fromEntries(Object.keys(loadedData.protocol.play.toClient.types).map(name => {
+    name = name.replace('packet_', '')
+    return [name, name]
+  }))
+  window.debugClientPacketNames = Object.fromEntries(Object.keys(loadedData.protocol.play.toServer.types).map(name => {
+    name = name.replace('packet_', '')
+    return [name, name]
+  }))
+})
 
 window.Vec3 = Vec3
 window.cursorBlockRel = (x = 0, y = 0, z = 0) => {
@@ -209,3 +220,105 @@ setInterval(() => {
 }, 1000)
 
 // ---
+
+// Add type declaration for performance.memory
+declare global {
+  interface Performance {
+    memory?: {
+      usedJSHeapSize: number
+      totalJSHeapSize: number
+      jsHeapSizeLimit: number
+    }
+  }
+}
+
+// Performance metrics WebSocket client
+let ws: WebSocket | null = null
+let wsReconnectTimeout: NodeJS.Timeout | null = null
+let metricsInterval: NodeJS.Timeout | null = null
+
+// Start collecting metrics immediately
+const startTime = performance.now()
+
+function collectAndSendMetrics () {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return
+
+  const metrics = {
+    loadTime: performance.now() - startTime,
+    memoryUsage: (performance.memory?.usedJSHeapSize ?? 0) / 1024 / 1024,
+    timestamp: Date.now()
+  }
+
+  ws.send(JSON.stringify(metrics))
+}
+
+function getWebSocketUrl () {
+  const wsPort = process.env.WS_PORT
+  if (!wsPort) return null
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const { hostname } = window.location
+  return `${protocol}//${hostname}:${wsPort}`
+}
+
+function connectWebSocket () {
+  if (ws) return
+
+  const wsUrl = getWebSocketUrl()
+  if (!wsUrl) {
+    return
+  }
+
+  ws = new WebSocket(wsUrl)
+
+  ws.onopen = () => {
+    console.log('Connected to metrics server')
+    if (wsReconnectTimeout) {
+      clearTimeout(wsReconnectTimeout)
+      wsReconnectTimeout = null
+    }
+
+    // Start sending metrics immediately after connection
+    collectAndSendMetrics()
+
+    // Clear existing interval if any
+    if (metricsInterval) {
+      clearInterval(metricsInterval)
+    }
+
+    // Set new interval
+    metricsInterval = setInterval(collectAndSendMetrics, 500)
+  }
+
+  ws.onclose = () => {
+    console.log('Disconnected from metrics server')
+    ws = null
+
+    // Clear metrics interval
+    if (metricsInterval) {
+      clearInterval(metricsInterval)
+      metricsInterval = null
+    }
+
+    // Try to reconnect after 3 seconds
+    wsReconnectTimeout = setTimeout(connectWebSocket, 3000)
+  }
+
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error)
+  }
+}
+
+// Connect immediately
+connectWebSocket()
+
+// Add command to request current metrics
+window.requestMetrics = () => {
+  const metrics = {
+    loadTime: performance.now() - startTime,
+    memoryUsage: (performance.memory?.usedJSHeapSize ?? 0) / 1024 / 1024,
+    timestamp: Date.now()
+  }
+  console.log('Current metrics:', metrics)
+  return metrics
+}

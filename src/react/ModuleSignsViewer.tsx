@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { WorldRendererThree } from 'renderer/viewer/three/worldrendererThree'
+import { WorldRendererThree } from 'minecraft-renderer/src/three/worldRendererThree'
 import FullScreenWidget from './FullScreenWidget'
 
 export const name = 'loaded world signs'
