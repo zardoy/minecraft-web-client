@@ -4,6 +4,7 @@ import type { Room, TurnServerConfig } from '@trystero-p2p/ws-relay'
 import Client from 'minecraft-protocol/src/client'
 import { setLoadingScreenStatus } from './appStatus'
 import { miscUiState } from './globalState'
+import { showNotification } from './react/NotificationProvider'
 
 /** Trystero app id, rooms are namespaced by it so we never clash with other apps using the same relay */
 const TRYSTERO_APP_ID = 'prismarine-web-client'
@@ -131,24 +132,25 @@ export const getJoinLink = () => {
   return url.toString()
 }
 
+/** @returns whether link was copied to the clipboard automatically */
 const copyJoinLink = async () => {
   miscUiState.wanOpened = true
   const joinLink = getJoinLink()!
   if (navigator.clipboard) {
-    await navigator.clipboard.writeText(joinLink)
-  } else {
-    window.prompt('Copy to clipboard: Ctrl+C, Enter', joinLink)
+    try {
+      await navigator.clipboard.writeText(joinLink)
+      return true
+    } catch (err) {
+      // happens when the link is ready later than user gesture is valid (relay connection takes a while)
+      console.warn('Failed to copy join link automatically', err)
+    }
   }
+  window.prompt('Copy to clipboard: Ctrl+C, Enter', joinLink)
+  return false
 }
 
-export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy = true) => {
-  if (!localServer) return
-  if (hostSession) {
-    if (doCopy) await copyJoinLink()
-    return 'Already opened to wan. Join link copied'
-  }
-  if (miscUiState.wanOpening) return 'Already opening, wait...'
-  miscUiState.wanOpening = true
+const openToWan = async (writeText: (text) => void, doCopy: boolean) => {
+  const server = localServer!
   const roomId = makeRoomId()
   let handshakeError: string | undefined
   const room = await joinP2pRoom(roomId, undefined, (error) => {
@@ -165,10 +167,10 @@ export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy
     if (connections.has(peerId)) return
     console.log('p2p guest connected', peerId)
     const serverDuplex = new CustomDuplex({}, async (data) => dataAction.send(toWire(data), { target: peerId }))
-    const client = new Client(true, localServer.options.version, undefined)
+    const client = new Client(true, server.options.version, undefined)
     client.setSocket(serverDuplex)
     connections.set(peerId, { serverDuplex, client })
-    localServer._server.emit('connection', client)
+    server._server.emit('connection', client)
 
     // our side disconnect
     const endConnection = () => {
@@ -205,12 +207,31 @@ export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy
   if (!relayConnected) {
     writeText(handshakeError ?? `Can't reach signaling server (${getRelayUrls().join(', ')})`)
     closeWan()
-    miscUiState.wanOpening = false
-    return 'Failed to open to wan (timeout)'
+    return 'Failed to share world (signaling server timeout)'
   }
-  await copyJoinLink()
-  miscUiState.wanOpening = false
-  return 'Copied join link to clipboard'
+  const copied = doCopy ? await copyJoinLink() : undefined
+  miscUiState.wanOpened = true
+  const subMessage = copied ? 'Join link copied, send it to friends' : 'Send the join link to friends'
+  showNotification('World is open for friends', subMessage)
+  return copied ? 'Copied join link to clipboard' : 'World is open for friends'
+}
+
+export const openToWanAndCopyJoinLink = async (writeText: (text) => void, doCopy = true) => {
+  if (!localServer) return
+  if (hostSession) {
+    if (doCopy) await copyJoinLink()
+    return 'Already shared, join link copied'
+  }
+  if (miscUiState.wanOpening) return 'Already opening, wait...'
+  miscUiState.wanOpening = true
+  try {
+    return await openToWan(writeText, doCopy)
+  } catch (err) {
+    closeWan()
+    throw err
+  } finally {
+    miscUiState.wanOpening = false
+  }
 }
 
 export const closeWan = () => {
@@ -219,7 +240,7 @@ export const closeWan = () => {
     hostSession = undefined
   }
   miscUiState.wanOpened = false
-  return 'Closed WAN'
+  return 'Sharing stopped'
 }
 
 export type ConnectPeerOptions = {
