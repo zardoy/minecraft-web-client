@@ -7,6 +7,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { applySkinToPlayerObject, createPlayerObject, PlayerObjectType } from 'minecraft-renderer/src/lib/createPlayerObject'
 import { currentScaling } from '../scaleInterface'
 import { activeModalStack } from '../globalState'
+import { releaseWebGLRenderer } from './webglLifecycle'
+import { commitSkinTexture, resolveSkinTexture } from './skinTextureOwnership'
+import { createModelViewerSessionToken, isModelLoadCurrent, modelUrlsToLoad, ModelViewerSessionToken } from './modelViewerLifecycle'
 
 
 export const modelViewerState = proxy({
@@ -222,7 +225,11 @@ export const PlayerModelCanvas = ({
     scene.add(wrapper)
 
     playerObjectRef.current = playerObject
-    const render = () => { renderer.render(scene, camera) }
+    let alive = true
+    const render = () => {
+      if (!alive) return
+      renderer.render(scene, camera)
+    }
     sceneRef.current = { renderer, camera, scene, controls, render }
 
     controls.addEventListener('change', render)
@@ -230,6 +237,7 @@ export const PlayerModelCanvas = ({
 
     // Cursor-following: rotate head/body toward pointer
     let waitingRender = false
+    let pointerRenderFrame: number | undefined
     const handlePointerMove = (event: PointerEvent) => {
       const el = containerRef.current
       if (!el) return
@@ -249,13 +257,23 @@ export const PlayerModelCanvas = ({
       playerObject.skin.head.rotation.x = THREE.MathUtils.lerp(playerObject.skin.head.rotation.x, ny * maxAngle, 0.1)
       playerObject.rotation.y = THREE.MathUtils.lerp(playerObject.rotation.y, nx * maxAngle * 0.3, 0.05)
       if (!waitingRender) {
-        requestAnimationFrame(() => { render(); waitingRender = false })
+        pointerRenderFrame = requestAnimationFrame(() => {
+          pointerRenderFrame = undefined
+          if (alive) render()
+          waitingRender = false
+        })
         waitingRender = true
       }
     }
     if (followCursor) window.addEventListener('pointermove', handlePointerMove)
 
     return () => {
+      alive = false
+      if (pointerRenderFrame !== undefined) {
+        cancelAnimationFrame(pointerRenderFrame)
+        pointerRenderFrame = undefined
+      }
+      waitingRender = false
       if (followCursor) window.removeEventListener('pointermove', handlePointerMove)
       controls.removeEventListener('change', render)
       controls.dispose()
@@ -269,9 +287,8 @@ export const PlayerModelCanvas = ({
       if ((playerObject.skin as any).map) {
         ((playerObject.skin as any).map as THREE.Texture).dispose()
       }
-      renderer.dispose()
-      renderer.domElement?.remove()
-      sceneRef.current = null
+      releaseWebGLRenderer(renderer)
+      if (sceneRef.current?.renderer === renderer) sceneRef.current = null
       playerObjectRef.current = null
     }
   }, [])
@@ -281,10 +298,17 @@ export const PlayerModelCanvas = ({
     const playerObject = playerObjectRef.current
     const s = sceneRef.current
     if (!playerObject || !s) return
-    void applySkinToPlayerObject(playerObject, skinUrl).then(() => {
+    let cancelled = false
+    void resolveSkinTexture(applySkinToPlayerObject(playerObject, skinUrl)).then(texture => {
+      if (!texture) return
+      const committed = commitSkinTexture(playerObject, texture, !cancelled && sceneRef.current === s)
+      if (!committed) return
       s.render()
       setSkinReady(true)
     })
+    return () => {
+      cancelled = true
+    }
   }, [skinUrl])
 
   // Propagate size changes to the running renderer
@@ -350,6 +374,7 @@ export default () => {
   const timerRef = useRef(new THREE.Timer())
   const mixersAnimatingRef = useRef(false)
   const rafIdRef = useRef<number | undefined>(undefined)
+  const sessionTokenRef = useRef<ModelViewerSessionToken | undefined>(undefined)
 
   const updateAllMixers = (delta: number) => {
     for (const mixer of animationMixers.current.values()) {
@@ -365,15 +390,20 @@ export default () => {
     return false
   }
 
-  const ensureMixerLoop = (render: () => void) => {
-    if (mixersAnimatingRef.current) return
+  const ensureMixerLoop = (render: () => void, sessionToken: ModelViewerSessionToken) => {
+    if (sessionTokenRef.current !== sessionToken || mixersAnimatingRef.current) return
     mixersAnimatingRef.current = true
     const tick = (timestamp: number) => {
+      if (sessionTokenRef.current !== sessionToken) {
+        mixersAnimatingRef.current = false
+        rafIdRef.current = undefined
+        return
+      }
       timerRef.current.update(timestamp)
       const delta = timerRef.current.getDelta()
       updateAllMixers(delta)
       render()
-      if (anyActionActive()) {
+      if (sessionTokenRef.current === sessionToken && anyActionActive()) {
         rafIdRef.current = requestAnimationFrame(tick)
       } else {
         mixersAnimatingRef.current = false
@@ -383,7 +413,12 @@ export default () => {
     rafIdRef.current = requestAnimationFrame(tick)
   }
 
-  const playAnimationForModel = (modelUrl: string, animName: string | undefined, render: () => void) => {
+  const playAnimationForModel = (
+    modelUrl: string,
+    animName: string | undefined,
+    render: () => void,
+    sessionToken: ModelViewerSessionToken
+  ) => {
     const clips = gltfClips.current.get(modelUrl)
     const mixer = animationMixers.current.get(modelUrl)
     if (!clips || !mixer) {
@@ -407,7 +442,7 @@ export default () => {
     action.timeScale = speed
     action.reset().fadeIn(0.1).play()
     activeActions.current.set(modelUrl, action)
-    ensureMixerLoop(render)
+    ensureMixerLoop(render, sessionToken)
   }
 
   const applyAnimationParamsToAll = () => {
@@ -420,14 +455,44 @@ export default () => {
   }
 
   // Model management functions
-  const loadModel = (modelUrl: string) => {
-    if (loadedModels.current.has(modelUrl)) return // Already loaded
+  const disposeModelObject = (object: THREE.Object3D) => {
+    object.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      const materials = Array.isArray(child.material) ? child.material : [child.material]
+      for (const material of materials) material.dispose()
+      child.geometry.dispose()
+    })
+  }
+
+  const loadModel = (modelUrl: string, sessionToken = sessionTokenRef.current) => {
+    if (!sessionToken || loadedModels.current.has(modelUrl) || modelLoaders.current.has(modelUrl)) return
 
     const isGLTF = modelUrl.toLowerCase().endsWith('.gltf') || modelUrl.toLowerCase().endsWith('.glb')
     const loader = isGLTF ? new GLTFLoader() : new OBJLoader()
     modelLoaders.current.set(modelUrl, loader)
 
     const onLoad = (object: THREE.Object3D, animations?: THREE.AnimationClip[]) => {
+      if (sessionTokenRef.current !== sessionToken) {
+        disposeModelObject(object)
+        return
+      }
+      if (!isModelLoadCurrent(sessionTokenRef.current, sessionToken, modelViewerState.model?.models, modelUrl)) {
+        disposeModelObject(object)
+        if (modelLoaders.current.get(modelUrl) === loader) modelLoaders.current.delete(modelUrl)
+        return
+      }
+      if (modelLoaders.current.get(modelUrl) !== loader) {
+        disposeModelObject(object)
+        return
+      }
+
+      modelLoaders.current.delete(modelUrl)
+      const currentScene = sceneRef.current
+      if (!currentScene) {
+        disposeModelObject(object)
+        return
+      }
+
       // Apply customization if available
       const customization = model?.modelCustomization?.[modelUrl]
       if (customization?.rotation) {
@@ -479,7 +544,7 @@ export default () => {
 
       // Store the model using URL as key
       loadedModels.current.set(modelUrl, object)
-      sceneRef.current?.scene.add(object)
+      currentScene.scene.add(object)
 
       // Setup animations for GLTF
       if (animations && animations.length > 0) {
@@ -487,17 +552,20 @@ export default () => {
         animationMixers.current.set(modelUrl, mixer)
         gltfClips.current.set(modelUrl, animations)
         // Auto-play current requested animation if set
-        const render = () => sceneRef.current?.renderer.render(sceneRef.current.scene, sceneRef.current.camera)
-        playAnimationForModel(modelUrl, modelViewerState.model?.playModelAnimation, render)
+        const render = () => {
+          if (sessionTokenRef.current !== sessionToken) return
+          const sceneState = sceneRef.current
+          if (sceneState) sceneState.renderer.render(sceneState.scene, sceneState.camera)
+        }
+        playAnimationForModel(modelUrl, modelViewerState.model?.playModelAnimation, render, sessionToken)
       }
 
       // Trigger render
-      if (sceneRef.current) {
-        setTimeout(() => {
-          const render = () => sceneRef.current?.renderer.render(sceneRef.current.scene, sceneRef.current.camera)
-          render()
-        }, 0)
-      }
+      setTimeout(() => {
+        if (sessionTokenRef.current !== sessionToken) return
+        const sceneState = sceneRef.current
+        if (sceneState) sceneState.renderer.render(sceneState.scene, sceneState.camera)
+      }, 0)
     }
 
     if (isGLTF) {
@@ -513,22 +581,7 @@ export default () => {
     const model = loadedModels.current.get(modelUrl)
     if (model) {
       sceneRef.current?.scene.remove(model)
-      model.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              for (const mat of child.material) {
-                mat.dispose()
-              }
-            } else {
-              child.material.dispose()
-            }
-          }
-          if (child.geometry) {
-            child.geometry.dispose()
-          }
-        }
-      })
+      disposeModelObject(model)
       loadedModels.current.delete(modelUrl)
     }
     modelLoaders.current.delete(modelUrl)
@@ -547,20 +600,22 @@ export default () => {
     const modelsChanged = () => {
       const currentModels = modelViewerState.model?.models || []
       const currentModelUrls = new Set(currentModels)
-      const loadedModelUrls = new Set(loadedModels.current.keys())
+      const knownModelUrls = new Set([...loadedModels.current.keys(), ...modelLoaders.current.keys()])
 
-      // Remove models that are no longer in the state
-      for (const modelUrl of loadedModelUrls) {
+      // Remove models and in-flight loads that are no longer in the state
+      for (const modelUrl of knownModelUrls) {
         if (!currentModelUrls.has(modelUrl)) {
           removeModel(modelUrl)
         }
       }
 
       // Add new models
-      for (const modelUrl of currentModels) {
-        if (!loadedModelUrls.has(modelUrl)) {
-          loadModel(modelUrl)
-        }
+      for (const modelUrl of modelUrlsToLoad(
+        currentModels,
+        new Set(loadedModels.current.keys()),
+        new Set(modelLoaders.current.keys())
+      )) {
+        loadModel(modelUrl)
       }
     }
     const unsubscribe = subscribe(modelViewerState.model.models, modelsChanged)
@@ -583,6 +638,8 @@ export default () => {
     if (!model || !containerRef.current || model.steveModelSkin !== undefined) return
 
     // Setup scene
+    const sessionToken = createModelViewerSessionToken()
+    sessionTokenRef.current = sessionToken
     const scene = new THREE.Scene()
     scene.background = null // Transparent background
 
@@ -626,7 +683,11 @@ export default () => {
     scene.add(camera)
 
     // Render function
+    let alive = true
+    let continuousRenderFrame: number | undefined
+    let disposed = false
     const render = () => {
+      if (!alive || sessionTokenRef.current !== sessionToken) return
       renderer.render(scene, camera)
     }
 
@@ -634,13 +695,14 @@ export default () => {
     if (model.continiousRender) {
       // Continuous animation loop
       const animate = (timestamp: number) => {
-        requestAnimationFrame(animate)
+        if (!alive || sessionTokenRef.current !== sessionToken) return
+        continuousRenderFrame = requestAnimationFrame(animate)
         timerRef.current.update(timestamp)
         const delta = timerRef.current.getDelta()
         updateAllMixers(delta)
         render()
       }
-      requestAnimationFrame(animate)
+      continuousRenderFrame = requestAnimationFrame(animate)
     } else {
       // Render only on camera movement
       controls.addEventListener('change', render)
@@ -656,30 +718,27 @@ export default () => {
       renderer,
       controls,
       dispose () {
+        if (disposed) return
+        disposed = true
+        if (sessionTokenRef.current === sessionToken) sessionTokenRef.current = undefined
+        alive = false
+        if (continuousRenderFrame !== undefined) {
+          cancelAnimationFrame(continuousRenderFrame)
+          continuousRenderFrame = undefined
+        }
         if (!model.continiousRender) {
           controls.removeEventListener('change', render)
         }
-        if (rafIdRef.current !== undefined) cancelAnimationFrame(rafIdRef.current)
+        if (rafIdRef.current !== undefined) {
+          cancelAnimationFrame(rafIdRef.current)
+          rafIdRef.current = undefined
+        }
+        mixersAnimatingRef.current = false
 
         // Clean up loaded GLTF/OBJ models
-        for (const [modelUrl, model] of loadedModels.current) {
+        for (const model of loadedModels.current.values()) {
           scene.remove(model)
-          model.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
-              if (child.material) {
-                if (Array.isArray(child.material)) {
-                  for (const mat of child.material) {
-                    mat.dispose()
-                  }
-                } else {
-                  child.material.dispose()
-                }
-              }
-              if (child.geometry) {
-                child.geometry.dispose()
-              }
-            }
-          })
+          disposeModelObject(model)
         }
         loadedModels.current.clear()
         modelLoaders.current.clear()
@@ -687,20 +746,27 @@ export default () => {
         animationMixers.current.clear()
         gltfClips.current.clear()
 
-        renderer.dispose()
-        renderer.domElement?.remove()
+        releaseWebGLRenderer(renderer)
+        if (sceneRef.current?.renderer === renderer) sceneRef.current = undefined
       }
     }
 
+    for (const modelUrl of model.models ?? []) {
+      loadModel(modelUrl, sessionToken)
+    }
+
     return () => {
-      sceneRef.current?.dispose()
+      if (sceneRef.current?.renderer === renderer) sceneRef.current.dispose()
     }
   }, [model])
 
   // React to animation name changes
   useEffect(() => {
     if (!model) return
+    const sessionToken = sessionTokenRef.current
+    if (!sessionToken) return
     const render = () => {
+      if (sessionTokenRef.current !== sessionToken) return
       const s = sceneRef.current
       if (!s) return
       s.renderer.render(s.scene, s.camera)
@@ -708,7 +774,7 @@ export default () => {
     const animName = model.playModelAnimation
     if (animName === undefined) return
     for (const modelUrl of loadedModels.current.keys()) {
-      playAnimationForModel(modelUrl, animName, render)
+      playAnimationForModel(modelUrl, animName, render, sessionToken)
     }
   }, [model?.playModelAnimation])
 
