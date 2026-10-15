@@ -14,9 +14,9 @@ export default () => {
 
 const RendererDebugMenu = ({ worldRenderer }: { worldRenderer: WorldRendererCommon }) => {
   const { reactiveDebugParams } = worldRenderer
-  const { chunksRenderAboveEnabled, chunksRenderBelowEnabled, chunksRenderDistanceEnabled, chunksRenderAboveOverride, chunksRenderBelowOverride, chunksRenderDistanceOverride, stopRendering, disableEntities, caveCullingDebug, smartCull } = useSnapshot(reactiveDebugParams)
+  const { chunksRenderAboveEnabled, chunksRenderBelowEnabled, chunksRenderDistanceEnabled, chunksRenderAboveOverride, chunksRenderBelowOverride, chunksRenderDistanceOverride, stopRendering, disableEntities, caveCullingDebug } = useSnapshot(reactiveDebugParams)
 
-  const { rendererPerfDebugOverlay } = useSnapshot(options)
+  const { rendererPerfDebugOverlay, rendererSmartCull } = useSnapshot(options)
 
   // Helper to round values to nearest step
   const roundToStep = (value: number, step: number) => Math.round(value / step) * step
@@ -37,9 +37,9 @@ const RendererDebugMenu = ({ worldRenderer }: { worldRenderer: WorldRendererComm
         overlayColor={disableEntities ? 'red' : undefined}
       />
       <Button
-        label={smartCull ? 'Disable Smart Cull' : 'Enable Smart Cull'}
-        onClick={() => { reactiveDebugParams.smartCull = !smartCull }}
-        overlayColor={smartCull ? undefined : 'orange'}
+        label={rendererSmartCull ? 'Disable Smart Cull' : 'Enable Smart Cull'}
+        onClick={() => { options.rendererSmartCull = !rendererSmartCull }}
+        overlayColor={rendererSmartCull ? undefined : 'orange'}
       />
       <Button
         label={caveCullingDebug ? 'Hide Cave Cull Debug' : 'Show Cave Cull Debug'}
