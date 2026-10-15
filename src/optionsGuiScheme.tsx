@@ -453,6 +453,11 @@ export const guiOptionsScheme: {
       },
       alwaysShowMobileControls: {
         text: 'Always Mobile Controls',
+        disableIf: ['forceDisableTouchControls', true],
+      },
+      forceDisableTouchControls: {
+        text: 'Force Disable Touch Controls',
+        tooltip: 'Never show touch controls, even if your device has a touchscreen. Useful for touch laptops used with mouse and keyboard.',
       },
       autoDisplayRotation: {
         text: 'Auto Landscape Rotation',

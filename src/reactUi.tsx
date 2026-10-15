@@ -70,6 +70,7 @@ import CreditsAboutModal from './react/CreditsAboutModal'
 import GlobalOverlayHints from './react/GlobalOverlayHints'
 import FullscreenTime from './react/FullscreenTime'
 import StorageConflictModal from './react/StorageConflictModal'
+import ProxiesList from './react/ProxiesList'
 import FireRenderer from './react/FireRenderer'
 import MonacoEditor from './react/MonacoEditor'
 import IframeModal from './react/IframeModal'
@@ -272,6 +273,7 @@ const AppBase = () => {
             <CreditsAboutModal />
             <AllSettingsEditor />
             <NoModalFoundProvider />
+            <ProxiesList />
           </RobustPortal>
           <RobustPortal to={document.body}>
             <div className='overlay-top-scaled'>

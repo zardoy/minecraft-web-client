@@ -5,6 +5,7 @@
   "scripts": {
     "dev-rsbuild": "rsbuild dev",
     "dev-proxy": "node server.js",
+    "p2p-relay": "node scripts/p2pRelayServer.mjs",
     "start": "run-p dev-proxy dev-rsbuild",
     "start2": "run-p dev-rsbuild",
     "start-metrics": "ENABLE_METRICS=true rsbuild dev",
@@ -53,6 +54,7 @@
     "@react-oauth/google": "^0.12.1",
     "@royalscome/nextconsole": "^1.0.7",
     "@stylistic/eslint-plugin": "^2.6.1",
+    "@trystero-p2p/ws-relay": "0.25.4",
     "@types/gapi": "^0.0.47",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
@@ -91,7 +93,6 @@
     "mojangson": "^2.0.4",
     "net-browserify": "github:zardoy/prismarinejs-net-browserify",
     "node-gzip": "^1.1.2",
-    "peerjs": "^1.5.0",
     "pixelarticons": "^1.8.1",
     "pretty-bytes": "^6.1.1",
     "prismarine-provider-anvil": "github:zardoy/prismarine-provider-anvil#everything",
