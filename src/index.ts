@@ -244,9 +244,10 @@ export async function connect (connectOptions: ConnectOptions) {
     errorAbortController.abort()
     ended = true
     progress.end()
-    bot.end()
+    // bot doesn't exist yet when connection setup fails early (e.g. mesher preload error)
+    bot?.end()
     // ensure mineflayer plugins receive this event for cleanup
-    bot.emit('end', '')
+    bot?.emit('end', '')
 
     miscUiState.disconnectedCleanup = {
       callback () {
