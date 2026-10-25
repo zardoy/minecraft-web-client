@@ -1,7 +1,7 @@
 import { supportedVersions, postNettyVersionsByProtocolVersion } from 'minecraft-data'
 
-// export const ignoredVersionsRegex = /(^0\.30c$)|w|-pre|-rc/
-export const ignoredVersionsRegex = /^(?!1\.).*$/
+// only plain releases: 1.x.y and the year-based 26.x.y scheme (drops snapshots, -pre, -rc, 0.30c, etc.)
+export const ignoredVersionsRegex = /^(?!(1\.\d+(\.\d+)?|\d{2}\.\d+(\.\d+)?)$).*$/
 
 /** @type {string[]} */
 const versionsFromProtocol = Object.values(postNettyVersionsByProtocolVersion.pc).flat().filter(x => !ignoredVersionsRegex.test(x.minecraftVersion)).map(x => x.minecraftVersion)

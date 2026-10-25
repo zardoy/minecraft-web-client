@@ -201,17 +201,45 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
     return chunk
   }
 
+  private invisibleStates?: Set<number>
+
+  /** y of the top visible block per column (index z * 16 + x) of a column that the client has loaded, undefined when it is not loaded */
+  computeHeightmap (chunkX: number, chunkZ: number): Int16Array | undefined {
+    const column = (bot.world as any).getColumn?.(chunkX, chunkZ) as PCChunk | undefined
+    if (!column) return undefined
+    if (!this.invisibleStates) {
+      this.invisibleStates = new Set()
+      for (const name of INVISIBLE_BLOCKS) {
+        const b = bot.registry.blocksByName[name]
+        if (b) for (let id = b.minStateId!; id <= b.maxStateId!; id++) this.invisibleStates.add(id)
+      }
+    }
+    const { height, minY } = bot.game as any
+    const heightmap = new Int16Array(256)
+    const pos = new Vec3(0, 0, 0)
+    for (let z = 0; z < 16; z++) {
+      for (let x = 0; x < 16; x++) {
+        let y = minY + height - 1
+        for (; y > minY; y--) {
+          pos.x = x; pos.y = y; pos.z = z
+          if (!this.invisibleStates.has(column.getBlockStateId(pos))) break
+        }
+        heightmap[z * 16 + x] = y
+      }
+    }
+    return heightmap
+  }
+
   async loadChunkMinimap (key: string) {
     const [chunkX, chunkZ] = key.split(',').map(Number)
     const chunkWorldX = chunkX * 16
     const chunkWorldZ = chunkZ * 16
     if (appViewer.rendererState.world.chunksLoaded[key]) {
       // console.log('[MinimapProvider] loading chunk for minimap', key)
-      const heightmap = appViewer.rendererState.world.heightmaps[key]
-      if (heightmap) {
-        // console.log('[MinimapProvider] did get highest blocks')
-      } else {
-        console.warn('[MinimapProvider] no highestBlocks from renderMethods')
+      // the renderer does not always publish heightmaps (nothing is sent for several mesher backends): compute them from the loaded column
+      const heightmap = appViewer.rendererState.world.heightmaps[key] ?? this.computeHeightmap(chunkX, chunkZ)
+      if (!heightmap) {
+        console.warn('[MinimapProvider] no heightmap for chunk', key)
         return undefined
       }
       const colors = Array.from({ length: 256 }).fill('') as string[]

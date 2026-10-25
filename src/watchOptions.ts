@@ -23,7 +23,7 @@ watchValue(options, o => {
   // gui scale is set in scaleInterface.ts
 })
 const updateTouch = (o) => {
-  miscUiState.currentTouch = o.alwaysShowMobileControls || isMobile()
+  miscUiState.currentTouch = !o.forceDisableTouchControls && (o.alwaysShowMobileControls || isMobile())
 }
 watchValue(options, updateTouch)
 window.matchMedia('(pointer: coarse)').addEventListener('change', (e) => {

@@ -20,6 +20,7 @@ interface Props {
   placeholder?: string
   containerStyle?: CSSProperties
   disabled?: boolean
+  renderOption?: (option: OptionStorage) => React.ReactNode
 }
 
 const SelectBase = ({
@@ -30,9 +31,11 @@ const SelectBase = ({
   defaultValue,
   containerStyle,
   placeholder,
-  disabled
+  disabled,
+  renderOption
 }: Props) => {
-  const [inputValue, setInputValue] = useState<string | undefined>(defaultValue?.label ?? '')
+  // with custom renderOption keep input empty so the formatted selected value is displayed until focus
+  const [inputValue, setInputValue] = useState<string | undefined>(renderOption ? '' : defaultValue?.label ?? '')
   const [currValue, setCurrValue] = useState<string | undefined>(defaultValue?.label ?? '')
   const [inputStyle, setInputStyle] = useState<CSSProperties>({})
   const [isFirstClick, setIsFirstClick] = useState(true)
@@ -46,6 +49,12 @@ const SelectBase = ({
     isClearable={true}
     formatCreateLabel={(value) => {
       return 'Use "' + value + '"'
+    }}
+    formatOptionLabel={(option) => {
+      if (renderOption) {
+        return renderOption(option)
+      }
+      return option.label
     }}
     isDisabled={disabled}
     placeholder={placeholder ?? ''}

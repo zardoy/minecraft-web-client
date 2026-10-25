@@ -15,6 +15,7 @@ const migrateRemoveLocalStorage = false
 export interface SavedProxiesData {
   proxies: string[]
   selected: string
+  isAutoSelect?: boolean
 }
 
 export interface ServerHistoryEntry {

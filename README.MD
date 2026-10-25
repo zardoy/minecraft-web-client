@@ -33,7 +33,7 @@ For building the project yourself / contributing, see [Development, Debugging & 
 - Advanced Resource pack support: Custom GUI, all textures. Server resource packs are supported with proper CORS configuration.
 - Built-in JEI with recipes & descriptions for almost every item (JEI is a creative-inventory replacement)
 - Custom protocol channel extensions (eg for custom block models in the world)
-- Play with friends over internet! (P2P is powered by Peer.js discovery servers)
+- Play with friends over internet! (P2P is powered by Trystero (WebRTC) with a WebSocket signaling relay)
 - ~~Google Drive support for reading / saving worlds back to the cloud~~
 - Support for custom rendering 3D engines. Modular architecture.
 - and more!
@@ -241,7 +241,7 @@ Only during development:
 - [Prismarine Provider Anvil](https://github.com/PrismarineJS/prismarine-provider-anvil) - Handles world loading (region format)
 - [Prismarine Physics](https://github.com/nxg-org/mineflayer-physics-utils/tree/master/src/physics/engines/botcraft.ts) - Does all the physics calculations
 - [Minecraft Protocol](https://github.com/PrismarineJS/node-minecraft-protocol) - Makes connections to servers possible
-- [Peer.js](https://peerjs.com/) - P2P networking (when you open to wan)
+- [Trystero](https://github.com/dmotz/trystero) - P2P networking (when you share your world with friends)
 - [Three.js](https://threejs.org/) - Helping in 3D rendering
 
 ### Things that are not planned yet
