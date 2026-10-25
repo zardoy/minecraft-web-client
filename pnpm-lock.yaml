@@ -160,13 +160,13 @@ importers:
         version: 3.117.0
       minecraft-inventory:
         specifier: ^0.1.47
-        version: 0.1.47(@xmcl/text-component@2.1.3)(mc-assets@0.2.72)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 0.1.47(@xmcl/text-component@2.1.3)(mc-assets@0.2.90)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       minecraft-protocol:
         specifier: github:PrismarineJS/node-minecraft-protocol#master
         version: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/1c83189272348b9e12076465a748a5ecdd14acce(patch_hash=09462c5aa19586a0c2b55f33724cda3e415281669f5b11f7d3c8470e9eea7b99)(encoding@0.1.13)
       minecraft-renderer:
-        specifier: ^0.1.105
-        version: 0.1.105(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0)
+        specifier: ^0.1.106
+        version: 0.1.106(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.90)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0)
       mineflayer-item-map-downloader:
         specifier: github:zardoy/mineflayer-item-map-downloader
         version: https://codeload.github.com/zardoy/mineflayer-item-map-downloader/tar.gz/a8d210ecdcf78dd082fa149a96e1612cc9747824(patch_hash=a731ebbace2d8790c973ab3a5ba33494a6e9658533a9710dd8ba36f86db061ad)(encoding@0.1.13)
@@ -358,8 +358,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       mc-assets:
-        specifier: ^0.2.72
-        version: 0.2.72
+        specifier: ^0.2.90
+        version: 0.2.90
       mineflayer:
         specifier: github:zardoy/mineflayer#gen-the-master
         version: https://codeload.github.com/zardoy/mineflayer/tar.gz/51266af3b679da448978a4e54afd7e242298093b(encoding@0.1.13)
@@ -6080,8 +6080,8 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
-  mc-assets@0.2.72:
-    resolution: {integrity: sha512-wL9/kSkxlgQxWiLERO0vVW6GUMFZDc5iDjRDZru6xRue+KnFTUOmkaglf/ZVKiD2yjoSYrrJbvATkog5VSuZ3Q==}
+  mc-assets@0.2.90:
+    resolution: {integrity: sha512-2Gi66bLZF0udx51TBKlXjK+44gFAKpvJuBLUvQ05OyznFXXEYsb5xX+OqeOS6pesDgD1jPgxtz/ZeoFiWJszIA==}
     engines: {node: '>=18.0.0'}
 
   mc-bridge@0.1.3:
@@ -6304,8 +6304,8 @@ packages:
     version: 1.68.0
     engines: {node: '>=22'}
 
-  minecraft-renderer@0.1.105:
-    resolution: {integrity: sha512-ot0gOAFcVunSy3cDd80O4vr75Y7JCE8I+DCBsb2qT/89hdiJ7Zf5pdk1JcIqn9e90cyq0n0wjJQZMEeMIJmBxw==}
+  minecraft-renderer@0.1.106:
+    resolution: {integrity: sha512-CnO8UMUb4Q8kBsb98NthZ5sec0gftImKJCQ5+x7lPOYAvtg1JXrT3UjTiFaHWkQGUPeGGBOZXXW/3YuDRnFnUA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     peerDependencies:
       contro-max: '*'
@@ -15840,7 +15840,7 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mc-assets@0.2.72:
+  mc-assets@0.2.90:
     dependencies:
       maxrects-packer: '@zardoy/maxrects-packer@2.7.4'
       zod: 3.24.2
@@ -16138,13 +16138,13 @@ snapshots:
 
   minecraft-folder-path@1.2.0: {}
 
-  minecraft-inventory@0.1.47(@xmcl/text-component@2.1.3)(mc-assets@0.2.72)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  minecraft-inventory@0.1.47(@xmcl/text-component@2.1.3)(mc-assets@0.2.90)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@xmcl/text-component': 2.1.3
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     optionalDependencies:
-      mc-assets: 0.2.72
+      mc-assets: 0.2.90
 
   minecraft-protocol@https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/1c83189272348b9e12076465a748a5ecdd14acce(patch_hash=09462c5aa19586a0c2b55f33724cda3e415281669f5b11f7d3c8470e9eea7b99)(encoding@0.1.13):
     dependencies:
@@ -16171,7 +16171,7 @@ snapshots:
       - encoding
       - supports-color
 
-  minecraft-renderer@0.1.105(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.72)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0):
+  minecraft-renderer@0.1.106(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.90)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0):
     dependencies:
       '@tweenjs/tween.js': 20.0.3
       '@types/events': 3.0.3
@@ -16194,7 +16194,7 @@ snapshots:
       vec3: 0.1.10
     optionalDependencies:
       contro-max: 0.1.12(typescript@5.5.4)
-      mc-assets: 0.2.72
+      mc-assets: 0.2.90
       minecraft-data: 3.117.0
     transitivePeerDependencies:
       - '@types/react'
@@ -16899,6 +16899,8 @@ snapshots:
       mojangson: 2.0.4
       prismarine-nbt: 2.8.0
       prismarine-registry: 1.12.0
+    transitivePeerDependencies:
+      - supports-color
 
   prismarine-chat@1.13.0:
     dependencies:
@@ -16935,8 +16937,6 @@ snapshots:
     dependencies:
       prismarine-nbt: 2.8.0
       prismarine-registry: 1.12.0
-    transitivePeerDependencies:
-      - supports-color
 
   prismarine-nbt@2.7.0:
     dependencies:
