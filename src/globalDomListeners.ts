@@ -22,6 +22,9 @@ window.addEventListener('beforeunload', (event) => {
     sessionStorage.justReloaded = false
   }
 
+  // automated browsers (chrome devtools / puppeteer / playwright set navigator.webdriver) must be able to reload without a dialog
+  if (navigator.webdriver) return
+
   // todo-low maybe exclude chat?
   if (!isGameActive(true) && activeModalStack.at(-1)?.elem?.id !== 'chat') return
   if (sessionStorage.lastReload && !options.preventDevReloadWhilePlaying) return
