@@ -46,6 +46,14 @@ export const watchOptionsAfterViewerInit = () => {
     appViewer.inWorldRenderingConfig.volume = Math.max(o.volume / 100, 0)
   })
 
+  watchValue(options, o => {
+    appViewer.inWorldRenderingConfig.smartCull = o.rendererSmartCull
+    const worldRenderer = window.world
+    if (worldRenderer) {
+      worldRenderer.reactiveDebugParams.smartCull = true
+    }
+  })
+
   subscribeKey(options, 'newVersionsLighting', () => {
     applyRendererEnableLighting(
       appViewer,
