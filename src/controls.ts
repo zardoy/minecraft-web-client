@@ -662,10 +662,7 @@ export const f3Keybinds: Array<{
     action () {
       const wv = appViewer.worldView
       if (!wv) return
-      const loadedChunks = Object.entries(wv.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
-      for (const [x, z] of loadedChunks) {
-        wv.unloadChunk({ x, z })
-      }
+      void wv.reloadColumnGeometry()
       // for (const child of viewer.scene.children) {
       //   if (child.name === 'chunk') { // should not happen
       //     viewer.scene.remove(child)
