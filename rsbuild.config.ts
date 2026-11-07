@@ -249,7 +249,6 @@ const appConfig = defineConfig({
                                 console.warn(`gendata-ext.zip was not downloaded (${(err as Error).message}); the build has no extension datapack`)
                             }
                         }
-                        if (fs.existsSync(extFile)) fs.copyFileSync(extFile, './dist/gendata-ext.zip')
                     }
                     // bundled vanilla worldgen data (Mojang's jar is downloaded when it is not cached): full pack and the structure-less slim pack
                     for (const [file, flags] of [['mc-worldgen-data.zip', ''], ['mc-worldgen-data-slim.zip', '--no-structures']]) {
@@ -263,6 +262,10 @@ const appConfig = defineConfig({
                     }
                     // childProcess.execSync(['tsx', './scripts/genLargeDataAliases.ts', ...(SINGLE_FILE_BUILD ? ['--compressed'] : [])].join(' '), { stdio: 'inherit' })
                     genLargeDataAliases(SINGLE_FILE_BUILD || process.env.ALWAYS_COMPRESS_LARGE_DATA === 'true')
+                    fs.mkdirSync('./dist', { recursive: true })
+                    if (!SINGLE_FILE_BUILD && fs.existsSync('./generated/gendata-ext.zip')) {
+                        fs.copyFileSync('./generated/gendata-ext.zip', './dist/gendata-ext.zip')
+                    }
                     fsExtra.copySync('./node_modules/mc-assets/dist/other-textures/latest/entity', './dist/textures/entity')
                     fsExtra.copySync('./assets/background', './dist/background')
                     fs.copyFileSync('./assets/favicon.png', './dist/favicon.png')
@@ -313,7 +316,7 @@ const appConfig = defineConfig({
                 }
                 if (!dev) {
                     build.onBeforeBuild(async () => {
-                        prep()
+                        await prep()
                     })
                     build.onAfterBuild(async () => {
                         if (fs.readdirSync('./assets/customTextures').length > 0) {
