@@ -16,6 +16,11 @@ export const visit = (url = '/', visitOptions: CypressVisitOptions = {}) => {
   cy.visit(url, {
     onBeforeLoad (win) {
       win.localStorage.cypress = 'true'
+      // Attach before app scripts run. cy.visit can outlast world load, and the event is then missed.
+      const ready = new Promise<void>(resolve => {
+        win.document.addEventListener('cypress-world-ready', () => resolve(), { once: true })
+      })
+      ;(win as Window & { __cypressWorldReady?: Promise<void> }).__cypressWorldReady = ready
       const changedSettings: Partial<AppOptions> = {
         chatOpacity: 0,
         ...visitOptions.changedSettings,

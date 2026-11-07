@@ -797,12 +797,14 @@ export async function connect (connectOptions: ConnectOptions) {
   let worldWasReady = false
   const waitForChunksToLoad = async (progress?: ProgressReporter) => {
     await new Promise<void>(resolve => {
-      if (worldWasReady) {
+      const chunksReady = () => appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber
+      if (worldWasReady || chunksReady()) {
+        worldWasReady = true
         resolve()
         return
       }
       const unsub = subscribe(appViewer.rendererState, () => {
-        if (appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber) {
+        if (chunksReady()) {
           worldWasReady = true
           resolve()
           unsub()

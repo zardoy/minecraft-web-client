@@ -88,8 +88,9 @@ export const appAndRendererSharedConfig = () => defineConfig({
                 config.watchOptions.ignored = /\.git/
             }
             rspackViewerConfig(config, helpers)
-            // Deepslate NbtChunk/NbtRegion use namespace `class Ref`; concatenating those modules
-            // hoists two `let Ref` bindings into one scope and breaks runtime parse (Cypress/CI).
+            // Scope-hoisting concatenates deepslate's two `class Ref` bindings into one scope
+            // (`let Ref` declared twice) and also breaks some `.catch` calls. The Ref loader
+            // covers the first case when hoisting is on; hoisting stays off until that is safe.
             config.optimization = {
                 ...config.optimization,
                 concatenateModules: false,
@@ -130,6 +131,18 @@ export const rspackViewerConfig = (config: any, { appendPlugins, addRules, rspac
         }
     }))
     addRules([
+        {
+            // Keep scope-hoisting on. Rename deepslate's two `class Ref` bindings so concatenation stays valid.
+            test: /deepslate[/\\]lib[/\\]nbt[/\\]Nbt(?:Chunk|Region)\.js$/,
+            enforce: 'pre',
+            use: [path.join(__dirname, 'scripts/deepslateNbtRefLoader.cjs')],
+        },
+        {
+            // Uint8Array from BrowserFS is not prismarine-nbt's Buffer.
+            test: /prismarine-nbt[/\\]nbt\.js$/,
+            enforce: 'pre',
+            use: [path.join(__dirname, 'scripts/prismarineNbtBufferLoader.cjs')],
+        },
         {
             test: /\.obj$/,
             type: 'asset/source',
