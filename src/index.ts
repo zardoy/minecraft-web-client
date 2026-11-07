@@ -56,6 +56,7 @@ import {
 
 import { parseServerAddress } from './parseServerAddress'
 import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
+import { CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES } from './cypressFlatWorld'
 import { isCypress } from './standaloneUtils'
 
 import { startLocalServer, unsupportedLocalServerFeatures } from './createLocalServer'
@@ -104,6 +105,7 @@ import { selectBestProxy } from './core/proxyAutoSelect'
 import { getConnectProxy, getCurrentUsername, getProxiesData } from './react/ServersList'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { isPlayground } from './playgroundIntegration'
+import { isWorldgenPerf, startWorldgenPerf } from './worldgen/perf'
 import { appLoadBackend } from './appViewerLoad'
 import { getCameraMovementMode, shouldSnapCameraOnMount } from './cameraMovementMode'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
@@ -112,9 +114,10 @@ window.debug = debug
 
 // ACTUAL CODE
 
-if (!isPlayground) {
+if (!isPlayground && !isWorldgenPerf) {
   void appLoadBackend()
 }
+if (isWorldgenPerf) startWorldgenPerf()
 if (isPlayground) {
   void import('minecraft-renderer/src/playground/playground')
 }
@@ -794,12 +797,14 @@ export async function connect (connectOptions: ConnectOptions) {
   let worldWasReady = false
   const waitForChunksToLoad = async (progress?: ProgressReporter) => {
     await new Promise<void>(resolve => {
-      if (worldWasReady) {
+      const chunksReady = () => appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber
+      if (worldWasReady || chunksReady()) {
+        worldWasReady = true
         resolve()
         return
       }
       const unsub = subscribe(appViewer.rendererState, () => {
-        if (appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber) {
+        if (chunksReady()) {
           worldWasReady = true
           resolve()
           unsub()
@@ -1063,7 +1068,13 @@ const maybeEnterGame = () => {
 
   if (appQueryParams.singleplayer === '1' || appQueryParams.sp === '1') {
     return waitForConfigFsLoad(async () => {
-      loadSingleplayer({}, {
+      loadSingleplayer({
+        ...appQueryParams.seed !== undefined && appQueryParams.seed !== ''
+          ? { generation: { name: 'noise', options: { seed: appQueryParams.seed } } }
+          : isCypress()
+            ? CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES
+            : {}
+      }, {
         worldFolder: undefined,
         ...appQueryParams.version ? { version: appQueryParams.version } : {}
       })
@@ -1157,7 +1168,7 @@ const maybeEnterGame = () => {
 }
 
 // Skip game connection logic in playground mode
-if (!isPlayground) {
+if (!isPlayground && !isWorldgenPerf) {
   try {
     maybeEnterGame()
   } catch (err) {

@@ -81,7 +81,9 @@ fs.promises = new Proxy(Object.fromEntries(['readFile', 'writeFile', 'stat', 'mk
             return Promise.resolve()
           }
         }
-        if (oneOf(p, 'writeFile', 'mkdir', 'rename')) return
+        // fs.promises always returns a promise. A bare return is `undefined`, and callers such as
+        // flying-squid `writeFile(...).catch(...)` throw when a zip world is read-only.
+        if (oneOf(p, 'writeFile', 'mkdir', 'rename')) return Promise.resolve()
       }
       if (p === 'open' && fsState.isReadonly) {
         args[1] = 'r' // read-only, zipfs throw otherwise
