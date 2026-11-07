@@ -3,6 +3,7 @@ import { proxy, useSnapshot } from 'valtio'
 import { filesize } from 'filesize'
 import { getAvailableServerPlugins } from '../clientMods'
 import { showModal } from '../globalState'
+import { loadExtraDatapack, removeExtraDatapack, worldgenPackState } from '../worldgen/datapack'
 import Input from './Input'
 import Screen from './Screen'
 import Button from './Button'
@@ -10,7 +11,6 @@ import SelectGameVersion from './SelectGameVersion'
 import styles from './createWorld.module.css'
 import { InputOption, showInputsModal, showOptionsModal } from './SelectOption'
 import { withInjectableUi } from './extendableSystem'
-import { loadExtraDatapack, removeExtraDatapack, worldgenPackState } from '../worldgen/datapack'
 
 // const worldTypes = ['default', 'flat', 'largeBiomes', 'amplified', 'customized', 'buffet', 'debug_all_block_states']
 const worldTypes = ['default', 'flat', 'empty', 'nether', 'all_the_blocks']
@@ -76,7 +76,7 @@ const DatapackField = () => {
         {status === 'loaded'
           ? <>{files} files, {filesize(bytes)}. Stored only in this browser and used for new worlds; keep using the same pack for a world's later chunks.</>
           : builtinExt ? <>This build already layers its own worldgen datapack (gendata-ext.zip) on top of vanilla. You can load another one on top of it. It never leaves your device.</>
-          : <>Optional: load a worldgen datapack (.jar / .zip, e.g. a terrain mod you downloaded) to replace vanilla biomes and terrain. It never leaves your device.</>}
+            : <>Optional: load a worldgen datapack (.jar / .zip, e.g. a terrain mod you downloaded) to replace vanilla biomes and terrain. It never leaves your device.</>}
       </div>
       {error && <div style={{ fontSize: 8, color: '#ff8a8a', maxWidth: 300, textAlign: 'center' }}>{error}</div>}
     </div>

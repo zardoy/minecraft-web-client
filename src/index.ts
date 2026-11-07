@@ -56,6 +56,7 @@ import {
 
 import { parseServerAddress } from './parseServerAddress'
 import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
+import { CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES } from './cypressFlatWorld'
 import { isCypress } from './standaloneUtils'
 
 import { startLocalServer, unsupportedLocalServerFeatures } from './createLocalServer'
@@ -1068,7 +1069,9 @@ const maybeEnterGame = () => {
       loadSingleplayer({
         ...appQueryParams.seed !== undefined && appQueryParams.seed !== ''
           ? { generation: { name: 'noise', options: { seed: appQueryParams.seed } } }
-          : {}
+          : isCypress()
+            ? CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES
+            : {}
       }, {
         worldFolder: undefined,
         ...appQueryParams.version ? { version: appQueryParams.version } : {}

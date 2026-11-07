@@ -1,7 +1,7 @@
 /* eslint-disable max-nested-callbacks */
 /// <reference types="cypress" />
 import supportedVersions from '../../src/supportedVersions.mjs'
-import { setOptions, cleanVisit, visit } from './shared'
+import { cleanVisit, visit } from './shared'
 
 // todo use ssl
 
@@ -24,17 +24,7 @@ const testWorldLoad = () => {
 }
 
 it('Loads & renders singleplayer', () => {
-  cleanVisit('/?singleplayer=1')
-  setOptions({
-    localServerOptions: {
-      generation: {
-        name: 'superflat',
-        // eslint-disable-next-line unicorn/numeric-separators-style
-        options: { seed: 250869072 }
-      },
-    },
-    renderDistance: 2
-  })
+  cleanVisit('/?singleplayer=1', { flatSingleplayerWorld: true })
   testWorldLoad()
 })
 

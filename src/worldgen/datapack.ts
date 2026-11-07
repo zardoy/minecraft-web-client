@@ -24,7 +24,7 @@ const DB = 'mc-worldgen'
 const STORE = 'datapacks'
 const KEY = 'extra'
 
-const idb = <T>(run: (store: IDBObjectStore) => IDBRequest<T>, mode: IDBTransactionMode = 'readonly') => new Promise<T>((resolve, reject) => {
+const idb = async <T>(run: (store: IDBObjectStore) => IDBRequest<T>, mode: IDBTransactionMode = 'readonly') => new Promise<T>((resolve, reject) => {
   const open = indexedDB.open(DB, 1)
   open.onupgradeneeded = () => open.result.createObjectStore(STORE)
   open.onerror = () => reject(open.error)
