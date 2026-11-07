@@ -31,6 +31,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download Generated Sounds map
         run: node scripts/downloadSoundsMap.mjs
+      - name: Download worldgen extension datapack
+        run: node scripts/downloadGendataExt.mjs
       - run: vercel build --token=${{ secrets.VERCEL_TOKEN }} --prod
         env:
           CONFIG_JSON_SOURCE: BUNDLED
@@ -79,6 +81,8 @@ jobs:
 
       - name: Build single-file version - minecraft.html
         run: pnpm build-single-file && mv dist/single/index.html minecraft.html
+      - name: Build slim single-file version - minecraft-slim.html
+        run: pnpm build-single-file-slim && mv dist/single-slim/index.html minecraft-slim.html
       - name: Build self-host version
         run: pnpm build
       - name: Bundle server.js

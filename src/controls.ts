@@ -36,6 +36,7 @@ import { setTalking, toggleTalking } from './voice/voiceChat'
 import { voiceChatStatus } from './react/VoiceMicrophone'
 import { emulateMouseClick } from './app/gamepadCursor'
 import { isNextConsoleKeyboardTarget } from './loadDevConsole'
+import { openRecipeEditor } from './core/recipeChannels'
 
 export const customKeymaps = proxy(appStorage.keybindings)
 subscribe(customKeymaps, () => {
@@ -817,10 +818,7 @@ export const f3Keybinds: Array<{
     action () {
       const wv = appViewer.worldView
       if (!wv) return
-      const loadedChunks = Object.entries(wv.loadedChunks).filter(([, v]) => v).map(([key]) => key.split(',').map(Number))
-      for (const [x, z] of loadedChunks) {
-        wv.unloadChunk({ x, z })
-      }
+      void wv.reloadColumnGeometry()
       // for (const child of viewer.scene.children) {
       //   if (child.name === 'chunk') { // should not happen
       //     viewer.scene.remove(child)
@@ -851,6 +849,12 @@ export const f3Keybinds: Array<{
       showModal({ reactType: 'chunks-debug' })
     },
     mobileTitle: 'Show Chunks Debug',
+  },
+  {
+    action () {
+      openRecipeEditor()
+    },
+    mobileTitle: 'Dimension recipe editor',
   },
   {
     action () {

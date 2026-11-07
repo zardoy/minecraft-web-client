@@ -291,7 +291,7 @@ export default () => {
       {singleplayer ? (
         <div className={styles.row}>
           <Button className="button" style={{ width: '170px' }} onClick={async () => clickJoinLinkButton()}>
-            {wanOpening ? 'Opening, wait...' : wanOpened ? 'Close Wan' : 'Copy Join Link'}
+            {wanOpening ? 'Opening, wait...' : wanOpened ? 'Stop Sharing' : 'Copy Join Link'}
           </Button>
           {(navigator.share as typeof navigator.share | undefined) ? (
             <Button

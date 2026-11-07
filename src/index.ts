@@ -56,6 +56,7 @@ import {
 
 import { parseServerAddress } from './parseServerAddress'
 import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
+import { CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES } from './cypressFlatWorld'
 import { isCypress } from './standaloneUtils'
 
 import { startLocalServer, unsupportedLocalServerFeatures } from './createLocalServer'
@@ -99,9 +100,12 @@ import { registerOpenBenchmarkListener } from './benchmark'
 import { tryHandleBuiltinCommand } from './builtinCommands'
 import { loadingTimerState } from './react/LoadingTimer'
 import { loadPluginsIntoWorld } from './react/CreateWorldProvider'
-import { getCurrentProxy, getCurrentUsername } from './react/ServersList'
+import { appStorage } from './react/appStorageProvider'
+import { selectBestProxy } from './core/proxyAutoSelect'
+import { getConnectProxy, getCurrentUsername, getProxiesData } from './react/ServersList'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { isPlayground } from './playgroundIntegration'
+import { isWorldgenPerf, startWorldgenPerf } from './worldgen/perf'
 import { appLoadBackend } from './appViewerLoad'
 import { getCameraMovementMode, shouldSnapCameraOnMount } from './cameraMovementMode'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
@@ -110,9 +114,10 @@ window.debug = debug
 
 // ACTUAL CODE
 
-if (!isPlayground) {
+if (!isPlayground && !isWorldgenPerf) {
   void appLoadBackend()
 }
+if (isWorldgenPerf) startWorldgenPerf()
 if (isPlayground) {
   void import('minecraft-renderer/src/playground/playground')
 }
@@ -215,8 +220,6 @@ export async function connect (connectOptions: ConnectOptions) {
     const https = connectOptions.proxy.startsWith('https://') || location.protocol === 'https:'
     connectOptions.proxy = `${connectOptions.proxy}:${https ? 443 : 80}`
   }
-  const parsedProxy = parseServerAddress(connectOptions.proxy, false)
-  const proxy = { host: parsedProxy.host, port: parsedProxy.port }
   let { username } = connectOptions
 
   if (connectOptions.server) {
@@ -244,9 +247,10 @@ export async function connect (connectOptions: ConnectOptions) {
     errorAbortController.abort()
     ended = true
     progress.end()
-    bot.end()
+    // bot doesn't exist yet when connection setup fails early (e.g. mesher preload error)
+    bot?.end()
     // ensure mineflayer plugins receive this event for cleanup
-    bot.emit('end', '')
+    bot?.emit('end', '')
 
     miscUiState.disconnectedCleanup = {
       callback () {
@@ -337,6 +341,27 @@ export async function connect (connectOptions: ConnectOptions) {
   let clientDataStream: Duplex | undefined
 
   if (connectOptions.server && !connectOptions.viewerWsConnect && !parsedServer.isWebSocket) {
+    const { proxies, isAutoSelect } = getProxiesData()
+    if (!connectOptions.proxy && isAutoSelect && proxies.length > 0) {
+      setLoadingScreenStatus('Selecting best proxy...')
+      const bestProxy = await selectBestProxy(proxies)
+      if (bestProxy) {
+        connectOptions.proxy = bestProxy
+      } else {
+        let message = 'Failed to find a working proxy.'
+        if (navigator.onLine) {
+          message += '\n\nWe tried these proxies but none of them worked, try opening any of these urls in your browser:'
+          message += `\n${proxies.join('\n')}`
+        } else {
+          message += '\n\nYour device appears to be offline. Please check your internet connection and try again.'
+        }
+        setLoadingScreenStatus(message, true)
+        return
+      }
+    }
+
+    const parsedProxy = parseServerAddress(connectOptions.proxy, false)
+    const proxy = { host: parsedProxy.host, port: parsedProxy.port }
     console.log(`using proxy ${proxy.host}:${proxy.port || location.port}`)
     net['setProxy']({ hostname: proxy.host, port: proxy.port, headers: { Authorization: `Bearer ${new URLSearchParams(location.search).get('token') ?? ''}` }, artificialDelay: appQueryParams.addPing ? Number(appQueryParams.addPing) : undefined })
   }
@@ -772,12 +797,14 @@ export async function connect (connectOptions: ConnectOptions) {
   let worldWasReady = false
   const waitForChunksToLoad = async (progress?: ProgressReporter) => {
     await new Promise<void>(resolve => {
-      if (worldWasReady) {
+      const chunksReady = () => appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber
+      if (worldWasReady || chunksReady()) {
+        worldWasReady = true
         resolve()
         return
       }
       const unsub = subscribe(appViewer.rendererState, () => {
-        if (appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber) {
+        if (chunksReady()) {
           worldWasReady = true
           resolve()
           unsub()
@@ -1041,7 +1068,13 @@ const maybeEnterGame = () => {
 
   if (appQueryParams.singleplayer === '1' || appQueryParams.sp === '1') {
     return waitForConfigFsLoad(async () => {
-      loadSingleplayer({}, {
+      loadSingleplayer({
+        ...appQueryParams.seed !== undefined && appQueryParams.seed !== ''
+          ? { generation: { name: 'noise', options: { seed: appQueryParams.seed } } }
+          : isCypress()
+            ? CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES
+            : {}
+      }, {
         worldFolder: undefined,
         ...appQueryParams.version ? { version: appQueryParams.version } : {}
       })
@@ -1065,7 +1098,7 @@ const maybeEnterGame = () => {
       if (appQueryParams.autoConnect && miscUiState.appConfig?.allowAutoConnect) {
         void connect({
           server: appQueryParams.ip,
-          proxy: getCurrentProxy(),
+          proxy: getConnectProxy(),
           botVersion: appQueryParams.version ?? undefined,
           username: getCurrentUsername()!,
         })
@@ -1135,7 +1168,7 @@ const maybeEnterGame = () => {
 }
 
 // Skip game connection logic in playground mode
-if (!isPlayground) {
+if (!isPlayground && !isWorldgenPerf) {
   try {
     maybeEnterGame()
   } catch (err) {
