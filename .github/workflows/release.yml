@@ -31,6 +31,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download Generated Sounds map
         run: node scripts/downloadSoundsMap.mjs
+      - name: Download worldgen extension datapack
+        run: node scripts/downloadGendataExt.mjs
       - run: vercel build --token=${{ secrets.VERCEL_TOKEN }} --prod
         env:
           CONFIG_JSON_SOURCE: BUNDLED
