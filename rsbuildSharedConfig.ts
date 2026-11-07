@@ -88,6 +88,12 @@ export const appAndRendererSharedConfig = () => defineConfig({
                 config.watchOptions.ignored = /\.git/
             }
             rspackViewerConfig(config, helpers)
+            // Deepslate NbtChunk/NbtRegion use namespace `class Ref`; concatenating those modules
+            // hoists two `let Ref` bindings into one scope and breaks runtime parse (Cypress/CI).
+            config.optimization = {
+                ...config.optimization,
+                concatenateModules: false,
+            }
         }
     },
 })
