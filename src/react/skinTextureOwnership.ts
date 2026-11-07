@@ -6,11 +6,6 @@ type PlayerObjectWithSkin = {
   }
 }
 
-export const resolveSkinTexture = async (result: Promise<unknown>): Promise<THREE.Texture | undefined> => {
-  const value = await result
-  return value instanceof THREE.Texture ? value : undefined
-}
-
 export const commitSkinTexture = (playerObject: PlayerObjectWithSkin, texture: THREE.Texture, isCurrent: boolean): boolean => {
   if (!isCurrent) {
     texture.dispose()

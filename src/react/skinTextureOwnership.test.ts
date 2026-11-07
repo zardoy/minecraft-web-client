@@ -1,13 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import * as THREE from 'three'
-import { commitSkinTexture, resolveSkinTexture } from './skinTextureOwnership'
-
-test('resolves a loaded texture without trusting the published return type', async () => {
-  const texture = new THREE.Texture()
-
-  await expect(resolveSkinTexture(Promise.resolve(texture))).resolves.toBe(texture)
-  await expect(resolveSkinTexture(Promise.resolve(undefined))).resolves.toBeUndefined()
-})
+import { commitSkinTexture } from './skinTextureOwnership'
 
 test('keeps the current texture when a late texture loses ownership', () => {
   const playerObject = { skin: { map: null } } as any

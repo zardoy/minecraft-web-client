@@ -4,11 +4,12 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { applySkinToPlayerObject, createPlayerObject, PlayerObjectType } from 'minecraft-renderer/src/lib/createPlayerObject'
+import { createPlayerObject, PlayerObjectType } from 'minecraft-renderer/src/lib/createPlayerObject'
+import { loadSkinImage, stevePngUrl } from 'minecraft-renderer/src/lib/utils/skins'
 import { currentScaling } from '../scaleInterface'
 import { activeModalStack } from '../globalState'
 import { releaseWebGLRenderer } from './webglLifecycle'
-import { commitSkinTexture, resolveSkinTexture } from './skinTextureOwnership'
+import { commitSkinTexture } from './skinTextureOwnership'
 import { createModelViewerSessionToken, isModelLoadCurrent, modelUrlsToLoad, ModelViewerSessionToken } from './modelViewerLifecycle'
 
 
@@ -299,13 +300,18 @@ export const PlayerModelCanvas = ({
     const s = sceneRef.current
     if (!playerObject || !s) return
     let cancelled = false
-    void resolveSkinTexture(applySkinToPlayerObject(playerObject, skinUrl)).then(texture => {
-      if (!texture) return
+    // Build the texture here instead of via applySkinToPlayerObject: the published renderer applies it
+    // to the player itself and returns nothing, so a late skin load could not be rejected or disposed.
+    void loadSkinImage(skinUrl || stevePngUrl).then(({ canvas }) => {
+      const texture = new THREE.CanvasTexture(canvas)
+      texture.magFilter = THREE.NearestFilter
+      texture.minFilter = THREE.NearestFilter
+      texture.needsUpdate = true
       const committed = commitSkinTexture(playerObject, texture, !cancelled && sceneRef.current === s)
       if (!committed) return
       s.render()
       setSkinReady(true)
-    })
+    }).catch(console.error)
     return () => {
       cancelled = true
     }
