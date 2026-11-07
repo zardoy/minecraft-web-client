@@ -4,7 +4,7 @@
 // Query: seed, settings (minecraft:overworld|nether|end|amplified|...), recipe (mining|islands|chaos|spires|...), workers (0 = main thread), radius, order (spiral|rows), inflight, autorun=0
 import './datapack'
 // the `minecraft-worldgen` package (linked from ../minecraft-worldgen)
-import { createChunkSource } from 'minecraft-worldgen/dist/worker/pool'
+import { createChunkSource, type WebWorkerFactory, type WebWorkerLike } from 'minecraft-worldgen/dist/worker/pool'
 import { parseWorldSeed } from 'minecraft-worldgen/dist/rng/random'
 import { createWorldgenWorker } from './workerFactory'
 
@@ -185,7 +185,8 @@ export const startWorldgenPerf = () => {
       source = await createChunkSource(base, 0)
     } else {
       base.datapackUrl = urls.length === 1 ? urls[0] : urls
-      source = await createChunkSource(base, p.workers, createWorldgenWorker)
+      const workerFactory: WebWorkerFactory = () => createWorldgenWorker() as WebWorkerLike
+      source = await createChunkSource(base, p.workers, workerFactory)
     }
     initMs = performance.now() - t
     sourceKey = key
