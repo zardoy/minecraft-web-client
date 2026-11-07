@@ -5,6 +5,7 @@ import { options, serverChangedSettings } from './optionsStorage'
 import { jeiCustomCategories } from './inventoryWindows'
 import { registerIdeChannels } from './core/ideChannels'
 import { registerIframeChannels } from './core/iframeChannels'
+import { registerRecipeChannels } from './core/recipeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
@@ -21,6 +22,12 @@ const getIsCustomChannelsEnabled = () => {
 }
 
 export default () => {
+  // the recipe editor talks to the local (singleplayer) server too, where `customChannels: 'websocket'` would disable the channels
+  customEvents.on('mineflayerBotCreated', () => {
+    bot.once('login', () => {
+      if (localServer) registerRecipeChannels()
+    })
+  })
   customEvents.on('mineflayerBotCreated', async () => {
     if (!getIsCustomChannelsEnabled()) return
     bot.once('login', () => {
@@ -33,6 +40,7 @@ export default () => {
       registerWaypointChannels()
       registerFireworksChannels()
       registerIdeChannels()
+      if (!localServer) registerRecipeChannels()
       registerIframeChannels()
       registerServerSettingsChannel()
       registerTypingIndicatorChannel()

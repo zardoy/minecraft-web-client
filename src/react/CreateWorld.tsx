@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { proxy, useSnapshot } from 'valtio'
 import { filesize } from 'filesize'
 import { getAvailableServerPlugins } from '../clientMods'
@@ -10,23 +10,137 @@ import SelectGameVersion from './SelectGameVersion'
 import styles from './createWorld.module.css'
 import { InputOption, showInputsModal, showOptionsModal } from './SelectOption'
 import { withInjectableUi } from './extendableSystem'
+import { loadExtraDatapack, removeExtraDatapack, worldgenPackState } from '../worldgen/datapack'
 
 // const worldTypes = ['default', 'flat', 'largeBiomes', 'amplified', 'customized', 'buffet', 'debug_all_block_states']
 const worldTypes = ['default', 'flat', 'empty', 'nether', 'all_the_blocks']
 const gameModes = ['survival', 'creative'/* , 'adventure', 'spectator' */]
+
+const JAVA_LONG_MIN = -0x80_00_00_00_00_00_00_00n
+const JAVA_LONG_MAX = 0x7f_ff_ff_ff_ff_ff_ff_ffn
+
+/** Java `String.hashCode()` (UTF-16), same as Java Edition create-world word seeds. */
+const javaStringHash = (s: string) => {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return h
+}
+
+type SeedPreview =
+  | { kind: 'empty' }
+  | { kind: 'numeric', value: string }
+  | { kind: 'hashed', value: string, why: string }
+
+/** Mirrors MC `WorldOptions.parseSeed` (Java Edition 1.18–26.3 create world). */
+function previewJavaSeed (raw: string): SeedPreview {
+  if (raw.length === 0) return { kind: 'empty' }
+  if (/^-?\d+$/.test(raw)) {
+    try {
+      const v = BigInt(raw)
+      if (v >= JAVA_LONG_MIN && v <= JAVA_LONG_MAX) return { kind: 'numeric', value: v.toString() }
+    } catch { /* overflow */ }
+    return { kind: 'hashed', value: String(javaStringHash(raw)), why: 'outside a Java long (±2⁶³−1), so Java hashes it like a word' }
+  }
+  let why = 'word seed → Java String.hashCode()'
+  if (raw !== raw.trim()) why = 'Java does not trim: leading/trailing spaces make this a word seed'
+  else if (raw.includes(',') || /\s/.test(raw)) why = 'commas/spaces are not digits, so this is hashed (not the number)'
+  else if (raw.startsWith('+')) why = 'a leading + is not a Java long, so this is hashed'
+  else if (/^-?\d+[eE.]/.test(raw)) why = 'decimals / scientific notation are hashed, not parsed as a number'
+  return { kind: 'hashed', value: String(javaStringHash(raw)), why }
+}
+
+/** optional third-party worldgen datapack (.jar / .zip) chosen by the player; stored on this device only, layered on top of vanilla (see worldgen/datapack.ts) */
+const DatapackField = () => {
+  const { status, name, files, bytes, error, builtinExt } = useSnapshot(worldgenPackState)
+  const input = useRef<HTMLInputElement>(null)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      <input
+        ref={input}
+        type='file'
+        accept='.jar,.zip'
+        style={{ display: 'none' }}
+        onChange={async e => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) await loadExtraDatapack(file)
+        }}
+      />
+      <div style={{ display: 'flex' }}>
+        <Button onClick={() => input.current?.click()}>
+          Worldgen datapack: {status === 'loaded' ? name : status === 'loading' ? '...' : 'none (vanilla)'}
+        </Button>
+        {status === 'loaded' && <Button onClick={() => { void removeExtraDatapack() }}>Remove</Button>}
+      </div>
+      <div className='muted' style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.3, maxWidth: 300 }}>
+        {status === 'loaded'
+          ? <>{files} files, {filesize(bytes)}. Stored only in this browser and used for new worlds; keep using the same pack for a world's later chunks.</>
+          : builtinExt ? <>This build already layers its own worldgen datapack (gendata-ext.zip) on top of vanilla. You can load another one on top of it. It never leaves your device.</>
+          : <>Optional: load a worldgen datapack (.jar / .zip, e.g. a terrain mod you downloaded) to replace vanilla biomes and terrain. It never leaves your device.</>}
+      </div>
+      {error && <div style={{ fontSize: 8, color: '#ff8a8a', maxWidth: 300, textAlign: 'center' }}>{error}</div>}
+    </div>
+  )
+}
+
+const SeedField = ({ seed, worldType }: { seed: string, worldType: string }) => {
+  const [open, setOpen] = useState(false)
+  const preview = previewJavaSeed(seed)
+  const looksLikeNumber = seed.length > 0 && /\d/.test(seed)
+  const hashedButLooksNumeric = preview.kind === 'hashed' && looksLikeNumber
+  const defaultWorld = worldType === 'default'
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      <Input
+        value={seed}
+        onChange={({ target: { value } }) => {
+          creatingWorldState.seed = value
+        }}
+        placeholder='Seed (empty = random)'
+        spellCheck={false}
+        validateInput={() => (hashedButLooksNumeric ? { outline: '1px solid #e6c84c' } : undefined)}
+      />
+      <div className='muted' style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.3 }}>
+        {preview.kind === 'empty' && 'Empty → random'}
+        {preview.kind === 'numeric' && <>Java seed <span style={{ color: '#c6ffc6' }}>{preview.value}</span></>}
+        {preview.kind === 'hashed' && <>Hashed → <span style={{ color: hashedButLooksNumeric ? '#ffe08a' : '#c6ffc6' }}>{preview.value}</span></>}
+        {' '}
+        <span
+          role='button'
+          tabIndex={0}
+          onClick={() => setOpen(o => !o)}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setOpen(o => !o) }}
+          style={{ color: '#9cf', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          {open ? 'hide' : 'about'}
+        </span>
+      </div>
+      {open && (
+        <div className='muted' style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.35, maxWidth: 280 }}>
+          {preview.kind === 'hashed' && hashedButLooksNumeric && <><div>{preview.why}.</div></>}
+          Java Edition create-world parse (1.18–26.3): a Java long as-is, otherwise String.hashCode(). Not Bedrock. No commas, no leading +.
+          {defaultWorld
+            ? <> Terrain is MC 26.3 noise worldgen (plus the worldgen datapack you load below, if any). The version dropdown is client protocol only. Trees/structures still WIP.</>
+            : <> This world type is not vanilla overworld generation.</>}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export const creatingWorldState = proxy({
   title: '',
   type: worldTypes[0],
   gameMode: 'creative',
   version: '',
+  seed: '',
   plugins: [] as string[]
 })
 
 const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, defaultVersion }) => {
   const [quota, setQuota] = useState('')
 
-  const { title, type, version, gameMode, plugins } = useSnapshot(creatingWorldState)
+  const { title, type, version, gameMode, plugins, seed } = useSnapshot(creatingWorldState)
   useEffect(() => {
     creatingWorldState.version = defaultVersion
     void navigator.storage?.estimate?.().then(({ quota, usage }) => {
@@ -59,6 +173,8 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
       />
       <button type='submit' style={{ visibility: 'hidden' }} />
     </form>
+    <SeedField seed={seed} worldType={type} />
+    {type === 'default' && <DatapackField />}
     <div style={{ display: 'flex' }}>
       <Button onClick={() => {
         const index = worldTypes.indexOf(type)
@@ -110,8 +226,6 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
         Save Type: Java
       </Button>
     </div>
-    <div className='muted' style={{ fontSize: 8 }}>Default and other world types are WIP</div>
-
     <div style={{ display: 'flex' }}>
       <Button onClick={() => {
         cancelClick()

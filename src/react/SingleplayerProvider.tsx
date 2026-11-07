@@ -62,16 +62,19 @@ export const readWorlds = (abortController: AbortController) => {
       const worlds = await fs.promises.readdir(worldsPath)
 
       const newMappedWorlds = (await Promise.allSettled(worlds.map(async (folder) => {
-        const { levelDat } = (await readLevelDat(`${worldsPath}/${folder}`))!
-        const levelDatStat = await fs.promises.stat(`${worldsPath}/${folder}/level.dat`)
+        // a folder without level.dat (a world closed before its first autosave, written by older builds) is still a world: it is listed and level.dat is created on load
+        const levelDat: Record<string, any> = (await readLevelDat(`${worldsPath}/${folder}`))?.levelDat ?? {}
+        const levelDatStat = await fs.promises.stat(`${worldsPath}/${folder}/level.dat`).catch(async () => fs.promises.stat(`${worldsPath}/${folder}`))
         let size = 0
         if (providersEnableFeatures[provider].calculateSize) {
           // todo use whole dir size
-          for (const region of await fs.promises.readdir(`${worldsPath}/${folder}/region`)) {
-            // eslint-disable-next-line no-await-in-loop -- it's still fast enough, nobody complains about it
-            const stat = await fs.promises.stat(`${worldsPath}/${folder}/region/${region}`)
-            size += stat.size
-          }
+          try {
+            for (const region of await fs.promises.readdir(`${worldsPath}/${folder}/region`)) {
+              // eslint-disable-next-line no-await-in-loop -- it's still fast enough, nobody complains about it
+              const stat = await fs.promises.stat(`${worldsPath}/${folder}/region/${region}`)
+              size += stat.size
+            }
+          } catch {} // no chunks saved yet
         }
         let iconBase64 = ''
         if (providersEnableFeatures[provider].icon) {

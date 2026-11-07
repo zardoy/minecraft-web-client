@@ -75,7 +75,7 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
   // todo check jsHeapSizeLimit
 
   const warnings: string[] = []
-  const { levelDat, dataRaw } = (await readLevelDat(root))!
+  const { levelDat, dataRaw } = (await readLevelDat(root)) ?? {} as { levelDat?: import('./mcTypes').LevelDat, dataRaw?: Record<string, any> }
   if (levelDat === undefined) {
     if (fsState.isReadonly) {
       throw new Error('level.dat not found, ensure you are loading world folder')
@@ -105,7 +105,7 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
 
     const playerUuid = nameToMcOfflineUUID(options.localUsername)
     const playerDatPath = `${root}/playerdata/${playerUuid}.dat`
-    const playerDataOverride = dataRaw.Player
+    const playerDataOverride = dataRaw?.Player
     if (playerDataOverride) {
       const playerDat = await gzip(nbt.writeUncompressed({ name: '', ...playerDataOverride }))
       if (fsState.isReadonly) {

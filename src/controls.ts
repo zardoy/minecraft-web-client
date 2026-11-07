@@ -35,6 +35,7 @@ import { setTalking, toggleTalking } from './voice/voiceChat'
 import { voiceChatStatus } from './react/VoiceMicrophone'
 import { emulateMouseClick } from './app/gamepadCursor'
 import { isNextConsoleKeyboardTarget } from './loadDevConsole'
+import { openRecipeEditor } from './core/recipeChannels'
 
 export const customKeymaps = proxy(appStorage.keybindings)
 subscribe(customKeymaps, () => {
@@ -720,6 +721,12 @@ export const f3Keybinds: Array<{
       showModal({ reactType: 'chunks-debug' })
     },
     mobileTitle: 'Show Chunks Debug',
+  },
+  {
+    action () {
+      openRecipeEditor()
+    },
+    mobileTitle: 'Dimension recipe editor',
   },
   {
     action () {
