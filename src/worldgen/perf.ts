@@ -185,12 +185,13 @@ export const startWorldgenPerf = () => {
       source = await createChunkSource(base, 0)
     } else {
       base.datapackUrl = urls.length === 1 ? urls[0] : urls
-      source = await createChunkSource(base, p.workers, createWorldgenWorker as any)
+      source = await createChunkSource(base, p.workers, createWorldgenWorker)
     }
     initMs = performance.now() - t
     sourceKey = key
     curWorkers = p.workers
-    return source!
+    if (!source) throw new Error('worldgen source failed to initialize')
+    return source
   }
 
   const run = async () => {
@@ -211,18 +212,56 @@ export const startWorldgenPerf = () => {
     let finishedCount = 0
     await new Promise<void>(resolve => {
       let inflight = 0
+      const runGenerationId = id
+
+      const finishRun = () => {
+        endT = performance.now()
+        resolve()
+      }
+
+      const scheduleNext = () => {
+        dirty = true
+        if (runGenerationId !== runId) {
+          resolve()
+          return
+        }
+        if (queue.length === 0 && inflight === 0) {
+          finishRun()
+          return
+        }
+        pump()
+      }
+
       const pump = () => {
-        while (inflight < limit && queue.length && id === runId) {
-          const [cx, cz] = queue.shift()!
-          const cell = cellAt(cx, cz)
-          cell.state = 'running'; cell.t0 = performance.now(); inflight++; dirty = true
-          src.generate(cx, cz).then(data => {
-            cell.latency = performance.now() - cell.t0; cell.genMs = data.genMs ?? cell.latency; cell.stages = data.stages; cell.state = 'done'; cell.order = finishedCount++
-          }).catch(e => { cell.state = 'error'; cell.error = String(e?.message ?? e).slice(0, 200) }).finally(() => {
-            inflight--; dirty = true
-            if (id !== runId) return resolve()
-            if (!queue.length && inflight === 0) { endT = performance.now(); resolve() } else { pump() }
-          })
+        if (runGenerationId !== runId) {
+          resolve()
+          return
+        }
+        if (inflight >= limit || queue.length === 0) return
+
+        const [cx, cz] = queue.shift()!
+        const cell = cellAt(cx, cz)
+        cell.state = 'running'
+        cell.t0 = performance.now()
+        inflight++
+        dirty = true
+
+        void src.generate(cx, cz).then(data => {
+          cell.latency = performance.now() - cell.t0
+          cell.genMs = data.genMs ?? cell.latency
+          cell.stages = data.stages
+          cell.state = 'done'
+          cell.order = finishedCount++
+        }).catch(e => {
+          cell.state = 'error'
+          cell.error = String(e?.message ?? e).slice(0, 200)
+        }).finally(() => {
+          inflight--
+          scheduleNext()
+        })
+
+        if (inflight < limit && queue.length > 0 && runGenerationId === runId) {
+          pump()
         }
       }
       pump()

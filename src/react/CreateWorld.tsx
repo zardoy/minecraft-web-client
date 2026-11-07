@@ -22,7 +22,11 @@ const JAVA_LONG_MAX = 0x7f_ff_ff_ff_ff_ff_ff_ffn
 /** Java `String.hashCode()` (UTF-16), same as Java Edition create-world word seeds. */
 const javaStringHash = (s: string) => {
   let h = 0
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  for (let i = 0; i < s.length; i++) {
+    // Java String.hashCode (UTF-16 code units, signed 32-bit overflow)
+    /* eslint-disable-next-line unicorn/prefer-math-trunc, unicorn/prefer-code-point -- matches Java Edition */
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  }
   return h
 }
 
