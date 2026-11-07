@@ -229,9 +229,9 @@ const setupMovementUseGuards = () => {
   removeMovementUseSubscription?.()
   removeMovementUseSubscription = undefined
   movementGuardsBot = bot
-  movementControls.forEach(key => {
+  for (const key of movementControls) {
     desiredMovementState[key] = false
-  })
+  }
   if (movementPulseTimer) {
     clearInterval(movementPulseTimer)
     movementPulseTimer = undefined

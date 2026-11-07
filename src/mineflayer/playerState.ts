@@ -3,13 +3,12 @@ import { states } from 'minecraft-protocol'
 import { subscribe } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
 import { HandItemBlock, UseItemAction, UseItemParticleEffect, UseItemSession, UseItemSnapshot } from 'minecraft-renderer/src/playerState/types'
+import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { beforeRenderFrame } from '../beforeRenderFrame'
 import { gameAdditionalState } from '../globalState'
 import { options } from '../optionsStorage'
 import { getCameraMovementMode } from '../cameraMovementMode'
 import { updateMountedBobState, updateMountedMovementState } from '../mountedPlayerState'
-
-import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { buildUseEffectBoundaries, getCrossedUseEffectBoundaries, getUseEffectDescriptor, type UseEffectPhase } from './useItemEffects'
 import { canUseItemAtHunger } from './useHungerGate'
 
@@ -36,22 +35,32 @@ const getUseItemSnapshot = (name: string): UseItemSnapshot => {
   let durationTicks = 0
   let particleEffect: UseItemParticleEffect = 'none'
 
-  if (name === 'bow') {
-    action = 'BOW'
-    durationTicks = 20
-  } else if (name === 'crossbow') {
-    action = 'CROSSBOW'
-    durationTicks = 20
-  } else if (name === 'shield') {
-    action = 'SHIELD'
-  } else if (DRINK_ITEM_NAMES[name]) {
-    action = 'DRINK'
-    durationTicks = name === 'honey_bottle' ? 40 : 32
-    particleEffect = 'drink'
-  } else if (typeof loadedData !== 'undefined' && loadedData?.foodsArray?.some(food => food.name === name)) {
-    action = 'EAT'
-    durationTicks = name === 'dried_kelp' ? 16 : 32
-    particleEffect = 'food'
+  switch (name) {
+    case 'bow': {
+      action = 'BOW'
+      durationTicks = 20
+      break
+    }
+    case 'crossbow': {
+      action = 'CROSSBOW'
+      durationTicks = 20
+      break
+    }
+    case 'shield': {
+      action = 'SHIELD'
+      break
+    }
+    default: {
+      if (DRINK_ITEM_NAMES[name]) {
+        action = 'DRINK'
+        durationTicks = name === 'honey_bottle' ? 40 : 32
+        particleEffect = 'drink'
+      } else if (typeof loadedData !== 'undefined' && loadedData?.foodsArray?.some(food => food.name === name)) {
+        action = 'EAT'
+        durationTicks = name === 'dried_kelp' ? 16 : 32
+        particleEffect = 'food'
+      }
+    }
   }
 
   return {
@@ -135,7 +144,7 @@ export class PlayerStateControllerMain {
   // Held item state
   private nextUseSessionId = 0
   private activeUseSlot: number | null = null
-  private useEffectRecords = new Map<number, UseEffectRecord>()
+  private readonly useEffectRecords = new Map<number, UseEffectRecord>()
   private eyeHeightWatchInstalled = false
 
   /** Vanilla isUsingItem: still using until cancel or event-9, including remaining=0. */
@@ -470,7 +479,7 @@ export class PlayerStateControllerMain {
       status: 'active',
     }
     this.useEffectRecords.set(session.id, {
-      boundaries: buildUseEffectBoundaries(session.durationTicks, FAST_FOOD_ITEM_NAMES[name] === true),
+      boundaries: buildUseEffectBoundaries(session.durationTicks, name in FAST_FOOD_ITEM_NAMES),
       fired: new Set<number>(),
     })
     this.reactive.itemUseSession = session

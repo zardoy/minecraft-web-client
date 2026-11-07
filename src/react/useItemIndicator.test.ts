@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { computeUseIndicatorProgress, shouldDisplayUseIndicator, type UseIndicatorClock } from './useItemIndicator'
 import type { UseItemSession } from 'minecraft-renderer/src/playerState/types'
+import { computeUseIndicatorProgress, shouldDisplayUseIndicator, type UseIndicatorClock } from './useItemIndicator'
 
 const clock = (ticks?: number, changeMs = 0): UseIndicatorClock => ({
   lastElapsedTicks: ticks,

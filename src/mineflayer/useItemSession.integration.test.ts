@@ -4,12 +4,12 @@ import { beforeAll, describe, expect, test, vi } from 'vitest'
 import { MouseManager } from 'mineflayer-mouse/dist/mouse'
 import { isItemActivatable } from 'mineflayer-mouse/dist/itemActivatable'
 import { getInitialPlayerState } from 'minecraft-renderer/src/playerState/playerState'
-import { shouldApplyEatTransform } from '../../../minecraft-renderer/src/three/holdingBlockEatTransform'
+import { shouldApplyEatTransform } from 'minecraft-renderer/src/three/holdingBlockEatTransform'
 import type { UseItemSession } from 'minecraft-renderer/src/playerState/types'
+import { shouldDisplayUseIndicator } from '../react/useItemIndicator'
 import type { PlayerStateControllerMain as PlayerStateController } from './playerState'
 import { buildUseEffectBoundaries, getCrossedUseEffectBoundaries } from './useItemEffects'
 import { shouldSlowWhileUsing } from './movementWhileUsing'
-import { shouldDisplayUseIndicator } from '../react/useItemIndicator'
 
 vi.mock('../globalState', () => ({
   gameAdditionalState: { isFlying: false, isSneaking: false },
@@ -25,7 +25,7 @@ vi.mock('../cameraMovementMode', () => ({
   getCameraMovementMode: vi.fn(() => 'local-player'),
 }))
 vi.mock('minecraft-renderer/src/three/threeJsMethods', () => ({
-  getThreeJsRendererMethods: () => {
+  getThreeJsRendererMethods () {
     const globals = globalThis as typeof globalThis & { __integrationRendererMethods?: unknown }
     return globals.__integrationRendererMethods
   },
@@ -135,7 +135,7 @@ const createHarness = (mainName = 'dirt', offhandName: string | undefined = 'bre
   globals.__integrationRendererMethods = {
     spawnItemParticles: vi.fn(async (_x: number, _y: number, _z: number, name: string, count: number) => {
       particles.push({ name, count })
-    }),
+    }) as (...args: unknown[]) => Promise<void>,
   }
   bot.on('soundEffectHeard', (sound: unknown) => sounds.push(String(sound)))
 
@@ -430,7 +430,7 @@ describe('item-use input/state/UI integration', () => {
     const fired = new Set<number>()
 
     const crossed = getCrossedUseEffectBoundaries(0, session.durationTicks, session.durationTicks, boundaries, fired)
-    crossed.forEach(value => fired.add(value))
+    for (const value of crossed) fired.add(value)
     expect(crossed).toHaveLength(6)
     expect(getCrossedUseEffectBoundaries(0, session.durationTicks, session.durationTicks, boundaries, fired)).toEqual([])
   })

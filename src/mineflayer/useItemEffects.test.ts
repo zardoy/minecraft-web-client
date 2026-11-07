@@ -24,7 +24,7 @@ describe('use-item effect boundaries', () => {
     const boundaries = buildUseEffectBoundaries(16, true)
     const fired = new Set<number>()
     const first = getCrossedUseEffectBoundaries(0, 5, 16, boundaries, fired)
-    first.forEach(remaining => fired.add(remaining))
+    for (const remaining of first) fired.add(remaining)
     expect(first).toEqual([16, 12])
     expect(getCrossedUseEffectBoundaries(0, 5, 16, boundaries, fired)).toEqual([])
   })
