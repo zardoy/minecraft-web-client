@@ -14,7 +14,7 @@ const compareRenderedFlatWorld = () => {
 }
 
 const testWorldLoad = () => {
-  return cy.window().then({ timeout: 35_000 }, win => {
+  return cy.window().then({ timeout: 35_000 }, async win => {
     const ready = (win as Window & { __cypressWorldReady?: Promise<void> }).__cypressWorldReady
     if (!ready) throw new Error('cypress world-ready listener was not installed')
     return ready
