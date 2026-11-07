@@ -4,6 +4,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions: write-all
     steps:
       - name: Checkout repository
@@ -76,6 +77,8 @@ jobs:
       - run: nohup pnpm prod-start &
       - run: nohup pnpm test-mc-server &
       - uses: cypress-io/github-action@v5
+        # a frozen browser never trips cypress' own command timeouts, so bound the whole step
+        timeout-minutes: 8
         with:
           install: false
       - uses: actions/upload-artifact@v4
