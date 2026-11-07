@@ -27,15 +27,15 @@ export class WaterSoundTracker {
   private lastPosition: Vec3Like | undefined
   private moveDist = 0
 
-  constructor(private readonly random: () => number = Math.random) {}
+  constructor (private readonly random: () => number = Math.random) {}
 
-  reset() {
+  reset () {
     this.wasInWater = false
     this.lastPosition = undefined
     this.moveDist = 0
   }
 
-  update(position: Vec3Like, velocity: Vec3Like, inWater: boolean): WaterSound[] {
+  update (position: Vec3Like, velocity: Vec3Like, inWater: boolean): WaterSound[] {
     const sounds: WaterSound[] = []
     const last = this.lastPosition
     this.lastPosition = { x: position.x, y: position.y, z: position.z }
