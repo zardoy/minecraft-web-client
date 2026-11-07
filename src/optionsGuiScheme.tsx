@@ -153,6 +153,7 @@ export const guiOptionsScheme: {
         text: 'Lighting in Newer Versions',
       },
       starfieldRendering: {},
+      cloudsRendering: {},
       keepChunksDistance: {
         max: 5,
         unit: '',

@@ -165,8 +165,8 @@ importers:
         specifier: github:PrismarineJS/node-minecraft-protocol#master
         version: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/1c83189272348b9e12076465a748a5ecdd14acce(patch_hash=09462c5aa19586a0c2b55f33724cda3e415281669f5b11f7d3c8470e9eea7b99)(encoding@0.1.13)
       minecraft-renderer:
-        specifier: ^0.1.106
-        version: 0.1.106(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.90)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0)
+        specifier: ^0.1.109
+        version: 0.1.109(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.90)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0)
       mineflayer-item-map-downloader:
         specifier: github:zardoy/mineflayer-item-map-downloader
         version: https://codeload.github.com/zardoy/mineflayer-item-map-downloader/tar.gz/a8d210ecdcf78dd082fa149a96e1612cc9747824(patch_hash=a731ebbace2d8790c973ab3a5ba33494a6e9658533a9710dd8ba36f86db061ad)(encoding@0.1.13)
@@ -6304,8 +6304,8 @@ packages:
     version: 1.68.0
     engines: {node: '>=22'}
 
-  minecraft-renderer@0.1.106:
-    resolution: {integrity: sha512-CnO8UMUb4Q8kBsb98NthZ5sec0gftImKJCQ5+x7lPOYAvtg1JXrT3UjTiFaHWkQGUPeGGBOZXXW/3YuDRnFnUA==}
+  minecraft-renderer@0.1.109:
+    resolution: {integrity: sha512-4KEiY2obEQjPhEdUZaHd39G/v03AxbbWYmlNIKS9680VM1H7R1UheqB+EtKkZW88F11O6vCrdoWSBZQfw7XdCg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     peerDependencies:
       contro-max: '*'
@@ -12279,7 +12279,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 6.1.0(typescript@5.5.4)
       '@typescript-eslint/utils': 6.1.0(eslint@8.57.1)(typescript@5.5.4)
-      debug: 4.4.1
+      debug: 4.4.3
       eslint: 8.57.1
       ts-api-utils: 1.4.3(typescript@5.5.4)
     optionalDependencies:
@@ -12311,7 +12311,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 6.21.0
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.4.1
+      debug: 4.4.3
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -12326,7 +12326,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.26.0
       '@typescript-eslint/visitor-keys': 8.26.0
-      debug: 4.4.1
+      debug: 4.4.3
       fast-glob: 3.3.3
       is-glob: 4.0.3
       minimatch: 9.0.5
@@ -16171,7 +16171,7 @@ snapshots:
       - encoding
       - supports-color
 
-  minecraft-renderer@0.1.106(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.90)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0):
+  minecraft-renderer@0.1.109(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.90)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0):
     dependencies:
       '@tweenjs/tween.js': 20.0.3
       '@types/events': 3.0.3
@@ -16899,8 +16899,6 @@ snapshots:
       mojangson: 2.0.4
       prismarine-nbt: 2.8.0
       prismarine-registry: 1.12.0
-    transitivePeerDependencies:
-      - supports-color
 
   prismarine-chat@1.13.0:
     dependencies:
@@ -16937,6 +16935,8 @@ snapshots:
     dependencies:
       prismarine-nbt: 2.8.0
       prismarine-registry: 1.12.0
+    transitivePeerDependencies:
+      - supports-color
 
   prismarine-nbt@2.7.0:
     dependencies:
@@ -17168,7 +17168,7 @@ snapshots:
   puppeteer-core@2.1.1:
     dependencies:
       '@types/mime-types': 2.1.4
-      debug: 4.4.1
+      debug: 4.4.3
       extract-zip: 1.7.0
       https-proxy-agent: 4.0.0
       mime: 2.6.0
