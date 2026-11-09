@@ -165,6 +165,10 @@ export const guiOptionsScheme: {
       rendererPerfDebugOverlay: {
         text: 'Performance Debug',
       },
+      rendererSmartCull: {
+        text: 'Smart cull',
+        tooltip: 'Occlusion-based section culling for better performance in caves and enclosed spaces',
+      },
     },
     {
       custom () {
