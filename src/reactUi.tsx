@@ -25,6 +25,7 @@ import MinimapProvider, { DrawerAdapterImpl } from './react/MinimapProvider'
 import HudBarsProvider from './react/HudBarsProvider'
 import XPBarProvider from './react/XPBarProvider'
 import DebugOverlay from './react/DebugOverlay'
+import VisualEffectsPanel from './react/VisualEffectsPanel'
 import MobileTopButtons from './react/MobileTopButtons'
 import PauseScreen from './react/PauseScreen'
 import SoundMuffler from './react/SoundMuffler'
@@ -175,6 +176,7 @@ const InGameUi = () => {
           <GameInteractionOverlay zIndex={7} />
           {!disabledUiParts.includes('death-screen') && <DeathScreenProvider />}
           {!disabledUiParts.includes('debug-overlay') && <DebugOverlay />}
+          <VisualEffectsPanel />
           {!disabledUiParts.includes('mobile-top-buttons') && <MobileTopButtons />}
           {!disabledUiParts.includes('players-list') && <PlayerListOverlayProvider />}
           {!disabledUiParts.includes('chat') && <ChatProvider />}

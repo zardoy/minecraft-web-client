@@ -1,0 +1,45 @@
+.panel {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  /* the GUI scale makes buttons huge, this is a tuning HUD: keep it small */
+  transform: translateY(-50%) scale(0.5);
+  transform-origin: left center;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 200px;
+  /* no backdrop on purpose: the world must stay visible while tuning */
+  pointer-events: auto;
+}
+
+.panel button,
+.panel > div[class*='slider'] {
+  width: 100%;
+}
+
+.title {
+  color: white;
+  font-size: 14px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: space-between;
+}
+
+.key {
+  opacity: 0.7;
+}
+
+.profiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.hint {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 10px;
+  line-height: 1.2;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+}

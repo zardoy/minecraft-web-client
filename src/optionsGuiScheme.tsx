@@ -4,7 +4,7 @@ import { noCase } from 'change-case'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import Logo from 'minecraft-renderer/logo.webp'
-import { gameAdditionalState, miscUiState, openOptionsMenu, showModal } from './globalState'
+import { gameAdditionalState, hideAllModals, miscUiState, openOptionsMenu, showModal } from './globalState'
 import { AppOptions, getChangedSettings, options } from './optionsStorage'
 import { showResetSettingsModal } from './react/AllSettingsEditor'
 import Button from './react/Button'
@@ -24,6 +24,7 @@ import { customKeymaps } from './controls'
 import { appStorage } from './react/appStorageProvider'
 import { exportData, importData } from './core/importExport'
 import { appGraphicBackends, getCurrentGraphicsBackend } from './appViewerLoad'
+import { openVisualEffectsPanel } from './visualEffectsPanel'
 
 export const guiOptionsScheme: {
   [t in OptionsGroupType]: Array<{ [K in keyof AppOptions]?: Partial<OptionMeta<AppOptions[K]>> } & { custom? }>
@@ -109,6 +110,24 @@ export const guiOptionsScheme: {
         text: 'Menu Background',
       },
       renderDebug: {
+      },
+    },
+    {
+      custom () {
+        const { gameLoaded } = useSnapshot(miscUiState)
+        return (
+          <Button
+            label='Visual Effects Panel (F7)'
+            title={gameLoaded ? 'Tune shadows, bloom, color grading etc. live on screen' : 'Available in game'}
+            disabled={!gameLoaded}
+            inScreen
+            onClick={() => {
+              hideAllModals()
+              // closing the settings screen asks for the mouse back, free it again once that is done
+              setTimeout(openVisualEffectsPanel, 150)
+            }}
+          />
+        )
       },
     },
     {
