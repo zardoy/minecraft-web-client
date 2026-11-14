@@ -4,6 +4,8 @@ import { useSnapshot } from 'valtio'
 import type { Block } from 'prismarine-block'
 import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
 import { BlockStateModelInfo } from 'minecraft-renderer/src/mesher-shared/shared'
+import type { WorldRendererCommon } from 'minecraft-renderer/src/lib/worldrendererCommon'
+import { formatLightingLine } from 'minecraft-renderer/src/lighting/lightingDebugInfo'
 import { miscUiState } from '../globalState'
 import { getFixedFilesize } from '../downloadAndOpenFile'
 import { options } from '../optionsStorage'
@@ -34,8 +36,7 @@ const DebugOverlayBase = () => {
   const [packetsString, setPacketsString] = useState('')
   const { showDebugHud } = useSnapshot(miscUiState)
   const [pos, setPos] = useState<{ x: number, y: number, z: number }>({ x: 0, y: 0, z: 0 })
-  const [skyL, setSkyL] = useState(0)
-  const [blockL, setBlockL] = useState(0)
+  const [lightLine, setLightLine] = useState('Light: -')
   const [biomeId, setBiomeId] = useState(0)
   const [day, setDay] = useState(0)
   const [timeOfDay, setTimeOfDay] = useState(0)
@@ -134,8 +135,14 @@ const DebugOverlayBase = () => {
 
     const freqUpdateInterval = setInterval(() => {
       setPos({ ...bot.entity.position })
-      setSkyL(bot.world.getSkyLight(bot.entity.position))
-      setBlockL(bot.world.getBlockLight(bot.entity.position))
+      // light and where it comes from (server, client engine, disabled), from the renderer's own light data
+      const worldRenderer = window.world as WorldRendererCommon | undefined
+      const { x, y, z } = bot.entity.position
+      setLightLine(
+        worldRenderer?.getLightingDebugInfo
+          ? formatLightingLine(worldRenderer.getLightingDebugInfo(x, y, z))
+          : `Light: ${bot.world.getBlockLight(bot.entity.position)} (${bot.world.getSkyLight(bot.entity.position)} sky)`
+      )
       setBiomeId(bot.world.getBiome(bot.entity.position))
       setDimension(bot.game.dimension)
       setDay(bot.time.day)
@@ -195,7 +202,7 @@ const DebugOverlayBase = () => {
       <p>Client TPS: {clientTps} {serverTps ? `Server TPS: ${serverTps.value} ${serverTps.frozen ? '(frozen)' : ''}` : ''}</p>
       <p>Facing (viewer): {bot.entity.yaw.toFixed(3)} {bot.entity.pitch.toFixed(3)}</p>
       <p>Facing (minecraft): {quadsDescription[minecraftQuad.current]} ({minecraftYaw.current.toFixed(1)} {(bot.entity.pitch * -180 / Math.PI).toFixed(1)})</p>
-      <p>Light: {blockL} ({skyL} sky)</p>
+      <p>{lightLine}</p>
 
       <p>Biome: minecraft:{loadedData.biomesArray[biomeId]?.name ?? 'unknown biome'}</p>
       <p>Day: {day} Time: {timeOfDay}</p>
