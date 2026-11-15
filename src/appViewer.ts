@@ -99,28 +99,6 @@ subscribe(activeModalStack, modalStackUpdateChecks)
 /** Chunks that received `update_light` before worldView finished the initial load. */
 const pendingUpdateLightRelight = new Set<string>()
 
-/**
- * update_light remeshes for already-loaded chunks, coalesced per animation
- * frame: servers emit one packet per light change, so walking through a
- * freshly-lit area can burst many packets for the same chunk within a single
- * frame. Without coalescing each packet schedules a full chunk remesh.
- */
-const pendingLightRemesh = new Map<string, Vec3>()
-let lightRemeshScheduled = false
-const flushPendingLightRemesh = () => {
-  lightRemeshScheduled = false
-  const { worldView } = appViewer
-  if (!worldView) {
-    pendingLightRemesh.clear()
-    return
-  }
-  const entries = [...pendingLightRemesh.entries()]
-  pendingLightRemesh.clear()
-  for (const [, pos] of entries) {
-    void worldView.loadChunk(pos, true, 'update_light-coalesced')
-  }
-}
-
 const connectAppWorldViewToBot = () => {
   const entitiesObjectData = new Map<string, number>()
   const deadEntities = new Set<number>()
@@ -241,7 +219,6 @@ const connectAppWorldViewToBot = () => {
       appViewer.worldView?.emit('time', bot.time.timeOfDay)
     },
     end () {
-      pendingLightRemesh.clear()
       appViewer.worldView?.emit('end')
     },
     login () {
@@ -270,11 +247,8 @@ const connectAppWorldViewToBot = () => {
     const waiting = !!appViewer.worldView?.waitingSpiralChunksLoad[key]
     const loaded = !!appViewer.worldView?.loadedChunks[key]
     if (!waiting && loaded) {
-      pendingLightRemesh.set(key, new Vec3(bx, 0, bz))
-      if (!lightRemeshScheduled) {
-        lightRemeshScheduled = true
-        requestAnimationFrame(flushPendingLightRemesh)
-      }
+      // Coalesced by the renderer: at most one light reload per column per frame.
+      appViewer.worldView?.queueLightRemesh(bx, bz)
     } else if (!loaded) {
       pendingUpdateLightRelight.add(key)
     }
