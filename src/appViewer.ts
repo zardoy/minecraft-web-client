@@ -247,7 +247,8 @@ const connectAppWorldViewToBot = () => {
     const waiting = !!appViewer.worldView?.waitingSpiralChunksLoad[key]
     const loaded = !!appViewer.worldView?.loadedChunks[key]
     if (!waiting && loaded) {
-      void appViewer.worldView?.loadChunk(new Vec3(bx, 0, bz), true, 'update_light')
+      // Coalesced by the renderer: at most one light reload per column per frame.
+      appViewer.worldView?.queueLightRemesh(bx, bz)
     } else if (!loaded) {
       pendingUpdateLightRelight.add(key)
     }
