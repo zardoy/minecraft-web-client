@@ -64,6 +64,7 @@ import ConnectOnlyServerUi from './react/ConnectOnlyServerUi'
 import ControDebug from './react/ControDebug'
 import ChunksDebug from './react/ChunksDebug'
 import ChunksDebugScreen from './react/ChunksDebugScreen'
+import RecipeEditorScreen from './react/RecipeEditorScreen'
 import DebugResponseTimeIndicator from './react/debugs/DebugResponseTimeIndicator'
 import RendererDebugMenu from './react/RendererDebugMenu'
 import CreditsAboutModal from './react/CreditsAboutModal'
@@ -187,6 +188,7 @@ const InGameUi = () => {
           {!disabledUiParts.includes('bossbars') && displayBossBars && <BossBarOverlayProvider />}
           <VoiceMicrophone />
           <ChunksDebugScreen />
+          <RecipeEditorScreen />
           <RendererDebugMenu />
           {!disabledUiParts.includes('fire') && <FireRenderer />}
         </PerComponentErrorBoundary>

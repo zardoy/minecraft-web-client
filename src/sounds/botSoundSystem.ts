@@ -9,7 +9,9 @@ import { loadOrPlaySound } from '../basicSounds'
 import { getActiveResourcepackBasePath, resourcePackState } from '../resourcePack'
 import { showNotification } from '../react/NotificationProvider'
 import { pixelartIcons } from '../react/PixelartIcon'
+import { watchUnloadForCleanup } from '../gameUnload'
 import { createSoundMap, SoundMap } from './soundsMap'
+import { isWaterBlock, UNDERWATER_ENTER_SOUND, UNDERWATER_EXIT_SOUND, WaterSoundTracker } from './waterSounds'
 import { musicSystem } from './musicSystem'
 import './customSoundSystem'
 
@@ -169,9 +171,28 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
     await playHardcodedSound(sound, position, 0.6, 1)
   }
 
+  const waterSoundTracker = new WaterSoundTracker()
+  const waterMovementHappening = () => {
+    if (!bot.entity || !soundMap) return
+    if (appViewer.playerState.reactive.gameMode === 'spectator') return
+    const inWater = isWaterBlock(bot.world.getBlock(bot.entity.position.floored()))
+    for (const { sound, volume, pitch } of waterSoundTracker.update(bot.entity.position, bot.entity.velocity, inWater)) {
+      void playHardcodedSound(sound, undefined, volume, pitch)
+    }
+  }
+
   const registerEvents = () => {
     bot.on('move', () => {
       void movementHappening()
+      waterMovementHappening()
+    })
+    // Camera going under/over the surface (separate from the body-in-water state used for splashes).
+    const unsubscribeUnderwater = subscribeKey(appViewer.playerState.reactive, 'inWater', () => {
+      void playHardcodedSound(appViewer.playerState.reactive.inWater ? UNDERWATER_ENTER_SOUND : UNDERWATER_EXIT_SOUND)
+    })
+    watchUnloadForCleanup(() => {
+      unsubscribeUnderwater()
+      waterSoundTracker.reset()
     })
     bot._client.on('world_event', async ({ effectId, location, data, global: disablePosVolume }) => {
       const position = disablePosVolume ? undefined : new Vec3(location.x, location.y, location.z)

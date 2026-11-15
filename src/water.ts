@@ -1,5 +1,6 @@
 import { ref } from 'valtio'
 import { watchUnloadForCleanup } from './gameUnload'
+import { isWaterBlock } from './sounds/waterSounds'
 
 let inWater = false
 
@@ -20,8 +21,9 @@ customEvents.on('gameLoaded', () => {
     updateBackground()
   }
   bot.on('physicsTick', () => {
-    // todo
-    const _inWater = bot.world.getBlock(bot.entity.position.offset(0, 1, 0))?.name === 'water'
+    // Underwater effects (fog, ambience) follow the camera, so test the block at eye level.
+    const eyeHeight = appViewer.playerState.reactive.eyeHeight ?? 1.62
+    const _inWater = isWaterBlock(bot.world.getBlock(bot.entity.position.offset(0, eyeHeight, 0).floored()))
     if (_inWater !== inWater) {
       inWater = _inWater
       updateInWater()

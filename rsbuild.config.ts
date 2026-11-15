@@ -13,12 +13,18 @@ import { generateSW } from 'workbox-build'
 import { getSwAdditionalEntries } from './scripts/build'
 import { appAndRendererSharedConfig } from './rsbuildSharedConfig'
 import { genLargeDataAliases } from './scripts/genLargeDataAliases'
+// @ts-ignore
+import { compressSingleFile } from './scripts/compressSingleFile.mjs'
 import sharp from 'sharp'
 import supportedVersions from './src/supportedVersions.mjs'
 import { startWsServer } from './scripts/wsServer'
 import { applyWatermarkPackagesToConfig } from './scripts/watermarkLockfilePins'
+import { copyMesherArtifacts } from './scripts/copyMesherWorkers'
 
 const SINGLE_FILE_BUILD = process.env.SINGLE_FILE_BUILD === 'true'
+/** smaller single file build (`pnpm build-single-file-slim`): clipped Minecraft versions, no structures in the bundled worldgen data, no voice chat, no polyfills */
+const SLIM_BUILD = process.env.SLIM_BUILD === 'true'
+const SINGLE_DIR = SLIM_BUILD ? 'single-slim' : 'single'
 
 if (SINGLE_FILE_BUILD) {
     const patchCssFile = 'node_modules/pixelarticons/fonts/pixelart-icons-font.css'
@@ -159,7 +165,7 @@ const appConfig = defineConfig({
             },
         },
         distPath: SINGLE_FILE_BUILD ? {
-            html: './single',
+            html: `./${SINGLE_DIR}`,
         } : undefined,
         inlineScripts: SINGLE_FILE_BUILD,
         inlineStyles: SINGLE_FILE_BUILD,
@@ -185,6 +191,9 @@ const appConfig = defineConfig({
             'process.env.BUILD_DISPLAY_DATE': JSON.stringify(buildDisplayDate),
             'process.env.MAIN_MENU_LINKS': JSON.stringify(process.env.MAIN_MENU_LINKS),
             'process.env.SINGLE_FILE_BUILD': JSON.stringify(process.env.SINGLE_FILE_BUILD),
+            'process.env.SLIM_BUILD': JSON.stringify(process.env.SLIM_BUILD),
+            'process.env.MIN_MC_VERSION': JSON.stringify(process.env.MIN_MC_VERSION ?? ''),
+            'process.env.MAX_MC_VERSION': JSON.stringify(process.env.MAX_MC_VERSION ?? ''),
             'process.env.SINGLE_FILE_BUILD_MODE': JSON.stringify(process.env.SINGLE_FILE_BUILD),
             'process.platform': '"browser"',
             'process.env.GITHUB_URL':
@@ -219,8 +228,34 @@ const appConfig = defineConfig({
                 const prep = async () => {
                     console.time('total-prep')
                     fs.mkdirSync('./generated', { recursive: true })
-                    if (!fs.existsSync('./generated/minecraft-data-optimized.json') || !fs.existsSync('./generated/mc-assets-compressed.js') || require('./generated/minecraft-data-optimized.json').versionKey !== require('minecraft-data/package.json').version) {
+                    // generated mc-data depends on the version clipping of the slim build: regenerate when switching between variants
+                    const dataVariant = SLIM_BUILD ? `slim ${process.env.MIN_MC_VERSION ?? ''}-${process.env.MAX_MC_VERSION ?? ''}` : (process.env.MIN_MC_VERSION || process.env.MAX_MC_VERSION) ? `clip ${process.env.MIN_MC_VERSION ?? ''}-${process.env.MAX_MC_VERSION ?? ''}` : 'full'
+                    const dataVariantFile = './generated/data-variant.txt'
+                    const variantChanged = (fs.existsSync(dataVariantFile) ? fs.readFileSync(dataVariantFile, 'utf8') : 'full') !== dataVariant
+                    if (variantChanged || !fs.existsSync('./generated/minecraft-data-optimized.json') || !fs.existsSync('./generated/mc-assets-compressed.js') || require('./generated/minecraft-data-optimized.json').versionKey !== require('minecraft-data/package.json').version) {
                         childProcess.execSync('tsx ./scripts/makeOptimizedMcData.mjs', { stdio: 'inherit' })
+                        fs.writeFileSync(dataVariantFile, dataVariant)
+                    }
+                    // optional worldgen datapack layer served next to the app (regular builds and dev only: never inlined into single file builds). The filename is
+                    // fixed so the file can be replaced; override the source with GENDATA_EXT_URL, GENDATA_EXT_URL=off skips it.
+                    if (!SINGLE_FILE_BUILD) {
+                        const extUrl = process.env.GENDATA_EXT_URL ?? 'https://raw.githubusercontent.com/dimaka-love/temp-mc-sounds/refs/heads/gamedata/gendata-ext.zip'
+                        const extFile = './generated/gendata-ext.zip'
+                        if (extUrl !== 'off' && !fs.existsSync(extFile)) {
+                            try {
+                                const res = await fetch(extUrl)
+                                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                                fs.writeFileSync(extFile, Buffer.from(await res.arrayBuffer()))
+                            } catch (err) {
+                                console.warn(`gendata-ext.zip was not downloaded (${(err as Error).message}); the build has no extension datapack`)
+                            }
+                        }
+                    }
+                    // bundled vanilla worldgen data (Mojang's jar is downloaded when it is not cached): full pack and the structure-less slim pack
+                    for (const [file, flags] of [['mc-worldgen-data.zip', ''], ['mc-worldgen-data-slim.zip', '--no-structures']]) {
+                        if ((file.includes('slim') ? SLIM_BUILD : !SLIM_BUILD) && !fs.existsSync(`./generated/${file}`)) {
+                            childProcess.execSync(`node node_modules/minecraft-worldgen/dist/cli.js generated/${file} --vanilla --download 26.3 ${flags}`, { stdio: 'inherit' })
+                        }
                     }
                     childProcess.execSync('tsx ./scripts/genShims.ts', { stdio: 'inherit' })
                     if (!fs.existsSync('./generated/latestBlockCollisionsShapes.json') || require('./generated/latestBlockCollisionsShapes.json').versionKey !== require('minecraft-data/package.json').version) {
@@ -228,6 +263,10 @@ const appConfig = defineConfig({
                     }
                     // childProcess.execSync(['tsx', './scripts/genLargeDataAliases.ts', ...(SINGLE_FILE_BUILD ? ['--compressed'] : [])].join(' '), { stdio: 'inherit' })
                     genLargeDataAliases(SINGLE_FILE_BUILD || process.env.ALWAYS_COMPRESS_LARGE_DATA === 'true')
+                    fs.mkdirSync('./dist', { recursive: true })
+                    if (!SINGLE_FILE_BUILD && fs.existsSync('./generated/gendata-ext.zip')) {
+                        fs.copyFileSync('./generated/gendata-ext.zip', './dist/gendata-ext.zip')
+                    }
                     fsExtra.copySync('./node_modules/mc-assets/dist/other-textures/latest/entity', './dist/textures/entity')
                     fsExtra.copySync('./assets/background', './dist/background')
                     fs.copyFileSync('./assets/favicon.png', './dist/favicon.png')
@@ -250,22 +289,21 @@ const appConfig = defineConfig({
                     // childProcess.execSync('./scripts/prepareSounds.mjs', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genMcDataTypes.ts', { stdio: 'inherit' })
                     // childProcess.execSync('tsx ./scripts/genPixelartTypes.ts', { stdio: 'inherit' })
-                    // copy mesher worker
-                    if (fs.existsSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm')) {
-                        fs.copyFileSync('./node_modules/minecraft-renderer/src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm', './dist/wasm_mesher_bg.wasm')
-                    } else {
-                        console.warn('wasm_mesher_bg.wasm not found')
-                    }
-                    if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesherWasm.js')) {
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesherWasm.js', './dist/mesherWasm.js')
-                    }
-                    if (fs.existsSync('./node_modules/minecraft-renderer/dist/mesher.js')) {
-                        // copy mesher
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js', './dist/mesher.js')
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/mesher.js.map', './dist/mesher.js.map')
-                        fs.copyFileSync('./node_modules/minecraft-renderer/dist/threeWorker.js', './dist/threeWorker.js')
-                    } else {
+                    const rendererRoot = path.dirname(require.resolve('minecraft-renderer/package.json'))
+                    const copiedMesher = await copyMesherArtifacts({
+                        mesherDistDir: path.join(rendererRoot, 'dist'),
+                        outDir: './dist',
+                        wasmPath: path.join(rendererRoot, 'src/wasm-mesher/runtime-build/wasm_mesher_bg.wasm'),
+                    })
+                    const copiedBase = copiedMesher.map(file => path.basename(file))
+                    if (!copiedBase.includes('mesher.js')) {
                         throw new Error('mesher.js not found')
+                    }
+                    if (!copiedBase.includes('lightOwnerWorker.js')) {
+                        throw new Error('lightOwnerWorker.js not found: rebuild/install minecraft-renderer with zardoy/minecraft-renderer#96 before building this client')
+                    }
+                    if (!copiedBase.includes('wasm_mesher_bg.wasm')) {
+                        console.warn('wasm_mesher_bg.wasm not found')
                     }
                     fs.writeFileSync('./dist/version.txt', buildingVersion, 'utf-8')
 
@@ -278,7 +316,7 @@ const appConfig = defineConfig({
                 }
                 if (!dev) {
                     build.onBeforeBuild(async () => {
-                        prep()
+                        await prep()
                     })
                     build.onAfterBuild(async () => {
                         if (fs.readdirSync('./assets/customTextures').length > 0) {
@@ -287,13 +325,13 @@ const appConfig = defineConfig({
 
                         if (SINGLE_FILE_BUILD) {
                             // check that only index.html is in the dist/single folder
-                            const singleBuildFiles = fs.readdirSync('./dist/single')
+                            const singleBuildFiles = fs.readdirSync(`./dist/${SINGLE_DIR}`)
                             if (singleBuildFiles.length !== 1 || singleBuildFiles[0] !== 'index.html') {
-                                throw new Error('Single file build must only have index.html in the dist/single folder. Ensure workers are imported & built correctly.')
+                                throw new Error(`Single file build must only have index.html in the dist/${SINGLE_DIR} folder. Ensure workers are imported & built correctly.`)
                             }
 
                             // process index.html
-                            const singleBuildHtml = './dist/single/index.html'
+                            const singleBuildHtml = `./dist/${SINGLE_DIR}/index.html`
                             let html = fs.readFileSync(singleBuildHtml, 'utf8')
                             const verToMajor = (ver: string) => ver.split('.').slice(0, 2).join('.')
                             const supportedMajorVersions = [...new Set(supportedVersions.map(a => verToMajor(a)))].join(', ')
@@ -303,6 +341,8 @@ const appConfig = defineConfig({
                             html = html.replace('favicon.png', `data:image/png;base64,${resizedImage}`)
                             html = html.replace('src="./loading-bg.jpg"', `src="data:image/png;base64,${fs.readFileSync('./assets/loading-bg.jpg', 'base64')}"`)
                             html += '<script id="mesher-worker-code">' + fs.readFileSync('./dist/mesher.js', 'utf8') + '</script>'
+                            // slim build: gzip the inline scripts (decompressed at load time), roughly halves the file
+                            if (SLIM_BUILD) html = compressSingleFile(html)
                             fs.writeFileSync(singleBuildHtml, html, 'utf8')
                             // write output file size
                             console.log('single file size', (fs.statSync(singleBuildHtml).size / 1024 / 1024).toFixed(2), 'mb')
