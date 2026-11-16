@@ -2,10 +2,16 @@
 // Please do not change this file!
 interface CssExports {
   close: string;
+  free: string;
+  heavy: string;
   hint: string;
+  light: string;
+  moderate: string;
   note: string;
   panel: string;
   profiles: string;
+  rect: string;
+  row: string;
   title: string;
 }
 declare const cssExports: CssExports;

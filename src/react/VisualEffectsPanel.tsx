@@ -5,9 +5,11 @@ import { titleCase } from 'title-case'
 import {
   RENDERER_EFFECT_OPTION_KEYS,
   RENDERER_OPTIONS_META,
+  RENDERER_PERFORMANCE_LEVEL_LABELS,
   RENDERER_PERFORMANCE_NOTE,
   RENDERER_VISUAL_PROFILES,
   detectVisualProfile,
+  rendererOptionPerformanceLevel,
   type RendererEffectOptionKey,
   type RendererVisualProfileId
 } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
@@ -47,11 +49,19 @@ const EffectRow = ({ optionKey }: { optionKey: RendererEffectOptionKey }) => {
   return <Button label={`${text}: ${current?.[1] ?? String(value)}`} overlayColor={value === 'off' ? 'rgba(255,0,0,0.12)' : undefined} onClick={() => next && set(next[0])} />
 }
 
+/** Small square in the top left corner of an option: what the current setting costs, same colours as the cost text. */
+const LevelRect = ({ optionKey }: { optionKey: RendererEffectOptionKey }) => {
+  const level = rendererOptionPerformanceLevel(optionKey, useSnapshot(options)[optionKey])
+  if (!level) return null
+  return <span className={`${styles.rect} ${styles[level]}`} title={`${RENDERER_PERFORMANCE_LEVEL_LABELS[level]} performance cost`} />
+}
+
 const Panel = () => {
   const snapshot = useSnapshot(options)
   const active = detectVisualProfile(snapshot)
   const [hovered, setHovered] = useState<RendererEffectOptionKey | undefined>()
-  const note = hovered ? RENDERER_OPTIONS_META[hovered]?.performance : undefined
+  const performance = hovered ? RENDERER_OPTIONS_META[hovered]?.performance : undefined
+  const hoveredLevel = hovered ? rendererOptionPerformanceLevel(hovered, snapshot[hovered]) : undefined
 
   return (
     <div className={styles.panel}>
@@ -65,12 +75,22 @@ const Panel = () => {
         ))}
       </div>
       {RENDERER_EFFECT_OPTION_KEYS.map(key => (
-        <div key={key} onMouseEnter={() => setHovered(key)} onMouseLeave={() => setHovered(current => (current === key ? undefined : current))}>
+        <div key={key} className={styles.row} onMouseEnter={() => setHovered(key)} onMouseLeave={() => setHovered(current => (current === key ? undefined : current))}>
           <EffectRow optionKey={key} />
+          <LevelRect optionKey={key} />
         </div>
       ))}
       <div className={styles.hint}>
-        <div className={styles.note}>{note ?? 'Hover an option to see what it costs.'}</div>
+        {/* fixed height: the panel must not jump while moving the mouse over the options */}
+        <div className={styles.note}>
+          {performance && hoveredLevel ? (
+            <>
+              <span className={styles[hoveredLevel]}>{RENDERER_PERFORMANCE_LEVEL_LABELS[hoveredLevel]}</span> {performance.note}
+            </>
+          ) : (
+            'Hover an option to see what it costs.'
+          )}
+        </div>
         <div>{RENDERER_PERFORMANCE_NOTE}</div>
       </div>
     </div>

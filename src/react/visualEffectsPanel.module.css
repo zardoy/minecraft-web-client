@@ -49,8 +49,35 @@
   gap: 4px;
 }
 
-/* what the hovered option costs: always two lines tall so the panel does not jump around */
+/* what the hovered option costs: a fixed height (the longest note) so the panel never jumps around */
 .note {
   color: white;
-  min-height: 2.5em;
+  min-height: 6.5em;
 }
+
+.row {
+  position: relative;
+}
+
+/* cost of the current setting, top left corner of the option */
+.rect {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  /* the client buttons are z-index 1 */
+  z-index: 2;
+}
+
+.free { color: #55ff55; }
+.light { color: #ffff55; }
+.moderate { color: #ffaa00; }
+.heavy { color: #ff5555; }
+
+.rect.free { background: #55ff55; }
+.rect.light { background: #ffff55; }
+.rect.moderate { background: #ffaa00; }
+.rect.heavy { background: #ff5555; }

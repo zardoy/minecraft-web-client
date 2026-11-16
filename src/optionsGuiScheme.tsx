@@ -114,6 +114,11 @@ export const guiOptionsScheme: {
     },
     {
       custom () {
+        return <Category>World Settings</Category>
+      },
+    },
+    {
+      custom () {
         const { gameLoaded } = useSnapshot(miscUiState)
         return (
           <Button
@@ -127,9 +132,6 @@ export const guiOptionsScheme: {
       },
     },
     {
-      custom () {
-        return <Category>World Settings</Category>
-      },
       rendererWorldPerformance: {
         text: 'World Performance',
         tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
