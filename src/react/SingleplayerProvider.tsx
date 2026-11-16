@@ -162,6 +162,22 @@ const Inner = () => {
   const { selectedProvider, error, brokenWorlds, selectedGoogleId } = useSnapshot(worldsProxy)
   const readWorldsAbortController = useRef(new AbortController())
 
+  // like vanilla: with no worlds there is nothing to pick, so go straight to "Create New World" (its Cancel returns to the title screen).
+  // worldsProxy keeps the list of the previous visit, so only trust an empty list after this visit saw the list loading
+  const sawWorldsLoading = useRef(false)
+  const openedCreateWorld = useRef(false)
+  useEffect(() => {
+    if (worlds === null) {
+      sawWorldsLoading.current = true
+      return
+    }
+    if (!sawWorldsLoading.current || openedCreateWorld.current) return
+    if (selectedProvider !== 'local' || worlds.length > 0 || error || brokenWorlds.length > 0) return
+    openedCreateWorld.current = true
+    hideCurrentModal()
+    showModal({ reactType: 'create-world' })
+  }, [worlds, selectedProvider, error, brokenWorlds])
+
   // 3rd party providers
   useEffect(() => {
     if (selectedProvider !== 'google') return
