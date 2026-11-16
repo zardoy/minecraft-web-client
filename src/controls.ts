@@ -674,9 +674,7 @@ contro.on('trigger', ({ command }) => {
   }
 
   if (command === 'general.visualEffectsPanel') {
-    if (isGameActive(true)) {
-      toggleVisualEffectsPanel()
-    }
+    toggleVisualEffectsPanel()
     return
   }
 

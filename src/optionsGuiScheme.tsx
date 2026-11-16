@@ -4,7 +4,7 @@ import { noCase } from 'change-case'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
 import Logo from 'minecraft-renderer/logo.webp'
-import { gameAdditionalState, hideAllModals, miscUiState, openOptionsMenu, showModal } from './globalState'
+import { gameAdditionalState, miscUiState, openOptionsMenu, showModal } from './globalState'
 import { AppOptions, getChangedSettings, options } from './optionsStorage'
 import { showResetSettingsModal } from './react/AllSettingsEditor'
 import Button from './react/Button'
@@ -121,11 +121,7 @@ export const guiOptionsScheme: {
             title={gameLoaded ? 'Tune shadows, bloom, color grading etc. live on screen' : 'Available in game'}
             disabled={!gameLoaded}
             inScreen
-            onClick={() => {
-              hideAllModals()
-              // closing the settings screen asks for the mouse back, free it again once that is done
-              setTimeout(openVisualEffectsPanel, 150)
-            }}
+            onClick={openVisualEffectsPanel}
           />
         )
       },
@@ -133,9 +129,6 @@ export const guiOptionsScheme: {
     {
       custom () {
         return <Category>World Settings</Category>
-      },
-      vanillaLook: {
-        tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
       },
       rendererWorldPerformance: {
         text: 'World Performance',

@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { noCase } from 'change-case'
 import { titleCase } from 'title-case'
 import {
   RENDERER_EFFECT_OPTION_KEYS,
+  RENDERER_OPTIONS_META,
+  RENDERER_PERFORMANCE_NOTE,
   RENDERER_VISUAL_PROFILES,
   detectVisualProfile,
   type RendererEffectOptionKey,
@@ -10,9 +13,10 @@ import {
 } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 import { optionsMeta } from '../defaultOptions'
 import { options } from '../optionsStorage'
-import { miscUiState } from '../globalState'
+import { VISUAL_EFFECTS_MODAL, closeVisualEffectsPanel } from '../visualEffectsPanel'
 import Button from './Button'
 import Slider from './Slider'
+import { useIsModalActive } from './utilsApp'
 import styles from './visualEffectsPanel.module.css'
 
 const applyProfile = (id: RendererVisualProfileId) => {
@@ -46,10 +50,14 @@ const EffectRow = ({ optionKey }: { optionKey: RendererEffectOptionKey }) => {
 const Panel = () => {
   const snapshot = useSnapshot(options)
   const active = detectVisualProfile(snapshot)
+  const [hovered, setHovered] = useState<RendererEffectOptionKey | undefined>()
+  const note = hovered ? RENDERER_OPTIONS_META[hovered]?.performance : undefined
+
   return (
-    <div className={styles.panel} onMouseDown={e => e.stopPropagation()}>
+    <div className={styles.panel}>
       <div className={styles.title}>
-        Visual effects <span className={styles.key}>F7</span>
+        <span>Visual effects</span>
+        <Button className={styles.close} icon='pixelarticons:close' title='Close (F7 or Escape)' onClick={closeVisualEffectsPanel} />
       </div>
       <div className={styles.profiles}>
         {Object.entries(RENDERER_VISUAL_PROFILES).map(([id, profile]) => (
@@ -57,16 +65,24 @@ const Panel = () => {
         ))}
       </div>
       {RENDERER_EFFECT_OPTION_KEYS.map(key => (
-        <EffectRow key={key} optionKey={key} />
+        <div key={key} onMouseEnter={() => setHovered(key)} onMouseLeave={() => setHovered(current => (current === key ? undefined : current))}>
+          <EffectRow optionKey={key} />
+        </div>
       ))}
-      <div className={styles.hint}>Click the world to look around, F7 to adjust again, F7 twice to close</div>
+      <div className={styles.hint}>
+        <div className={styles.note}>{note ?? 'Hover an option to see what it costs.'}</div>
+        <div>{RENDERER_PERFORMANCE_NOTE}</div>
+      </div>
     </div>
   )
 }
 
-/** Live tuning of the renderer visual effects: a small panel in the corner without a backdrop, the world stays visible. */
+/**
+ * Live tuning of the renderer visual effects. A modal like the settings pages, so the app cannot be used behind it,
+ * but without a backdrop: the world stays visible and every change shows up on screen immediately.
+ */
 export default () => {
-  const { showVisualEffectsPanel } = useSnapshot(miscUiState)
-  if (!showVisualEffectsPanel) return null
+  const active = useIsModalActive(VISUAL_EFFECTS_MODAL)
+  if (!active) return null
   return <Panel />
 }

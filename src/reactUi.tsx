@@ -176,7 +176,6 @@ const InGameUi = () => {
           <GameInteractionOverlay zIndex={7} />
           {!disabledUiParts.includes('death-screen') && <DeathScreenProvider />}
           {!disabledUiParts.includes('debug-overlay') && <DebugOverlay />}
-          <VisualEffectsPanel />
           {!disabledUiParts.includes('mobile-top-buttons') && <MobileTopButtons />}
           {!disabledUiParts.includes('players-list') && <PlayerListOverlayProvider />}
           {!disabledUiParts.includes('chat') && <ChatProvider />}
@@ -264,6 +263,7 @@ const AppBase = () => {
             <VoiceChatMenuProvider />
             <ServersListProvider />
             <OptionsRenderApp />
+            <VisualEffectsPanel />
             <MainMenuRenderApp />
             <ConnectOnlyServerUi />
             <TouchAreasControlsProvider />

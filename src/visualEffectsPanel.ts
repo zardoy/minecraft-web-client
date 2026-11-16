@@ -1,38 +1,33 @@
-import { appViewer } from './appViewer'
-import { miscUiState } from './globalState'
+import { activeModalStack, hideModal, isGameActive, showModal } from './globalState'
 import { pointerLock } from './utils'
 
-/** The panel needs a free mouse. Losing pointer lock normally opens the pause screen, so it is suppressed meanwhile. */
-let suppressedEscapeMenu = false
+export const VISUAL_EFFECTS_MODAL = 'visual-effects'
+
+export const isVisualEffectsPanelOpen = () => activeModalStack.at(-1)?.reactType === VISUAL_EFFECTS_MODAL
 
 export const openVisualEffectsPanel = () => {
-  miscUiState.showVisualEffectsPanel = true
-  if (!appViewer.rendererState.preventEscapeMenu) {
-    appViewer.rendererState.preventEscapeMenu = true
-    suppressedEscapeMenu = true
-  }
+  showModal({ reactType: VISUAL_EFFECTS_MODAL })
+  // it is a modal now, so losing the pointer lock does not open the pause screen
   document.exitPointerLock?.()
 }
 
 export const closeVisualEffectsPanel = () => {
-  miscUiState.showVisualEffectsPanel = false
-  if (suppressedEscapeMenu) {
-    appViewer.rendererState.preventEscapeMenu = false
-    suppressedEscapeMenu = false
-  }
-  void pointerLock.requestPointerLock()
+  hideModal({ reactType: VISUAL_EFFECTS_MODAL })
+  if (activeModalStack.length === 0) void pointerLock.requestPointerLock()
 }
 
-/**
- * One key does it all: show the panel and free the mouse; when the mouse is captured again (clicked the world to look
- * around with the changes live) free it once more; when it is already free hide the panel.
- */
+/** F7: open it from the game, close it when it is open (Escape closes it too, like any modal). */
 export const toggleVisualEffectsPanel = () => {
-  if (!miscUiState.showVisualEffectsPanel) {
-    openVisualEffectsPanel()
-  } else if (pointerLock.hasPointerLock) {
-    document.exitPointerLock?.()
-  } else {
-    closeVisualEffectsPanel()
-  }
+  if (isVisualEffectsPanelOpen()) closeVisualEffectsPanel()
+  else if (isGameActive(true)) openVisualEffectsPanel()
 }
+
+// The controls library only prevents browser defaults outside of modals, and F7 is caret browsing in browsers.
+// Capture phase, so it runs before anything else closes the panel in the same key press.
+window.addEventListener(
+  'keydown',
+  e => {
+    if (e.code === 'F7' && isVisualEffectsPanelOpen()) e.preventDefault()
+  },
+  true
+)

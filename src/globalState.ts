@@ -129,8 +129,6 @@ export const miscUiState = proxy({
   gameLoaded: false,
   showUI: true,
   showDebugHud: false,
-  /** live tuning panel of the renderer visual effects (F7) */
-  showVisualEffectsPanel: false,
   loadedServerIndex: '',
   /** currently trying to load or loaded mc version, after all data is loaded */
   loadedDataVersion: null as string | null,
