@@ -56,6 +56,7 @@ import {
 
 import { parseServerAddress } from './parseServerAddress'
 import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
+import { beginLoadingStage, reportLoadingStage, startSingleplayerLoadingProgress } from './loadingProgress'
 import { CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES } from './cypressFlatWorld'
 import { isCypress } from './standaloneUtils'
 
@@ -168,6 +169,14 @@ function listenGlobalEvents () {
     const { connectOptions, ...rest } = detail
     loadSingleplayer(rest, {}, connectOptions)
   })
+}
+
+const CHUNKS_STALL_TIMEOUT_MS = 20_000
+
+/** the loading screen stays until the chunks around the player are loaded (`?sp=1` is the quick start for development and never waits) */
+const shouldWaitForChunks = (singleplayer: boolean) => {
+  if (appQueryParams.sp === '1') return false
+  return options.waitForChunksRender === 'sp-only' ? singleplayer : !!options.waitForChunksRender
 }
 
 export async function connect (connectOptions: ConnectOptions) {
@@ -480,6 +489,7 @@ export async function connect (connectOptions: ConnectOptions) {
         console.log('Server plugins placed')
       }
 
+      startSingleplayerLoadingProgress({ waitForChunks: shouldWaitForChunks(true) })
       localServer = window.localServer = window.server = startLocalServer(serverOptions)
       connectOptions?.connectEvents?.serverCreated?.()
       // todo need just to call quit if started
@@ -792,6 +802,7 @@ export async function connect (connectOptions: ConnectOptions) {
     errorAbortController.abort()
     loadingTimerState.networkOnlyStart = 0
     progress.setMessage('Loading world')
+    beginLoadingStage('viewer')
   })
 
   let worldWasReady = false
@@ -809,8 +820,11 @@ export async function connect (connectOptions: ConnectOptions) {
           resolve()
           unsub()
         } else {
-          const perc = Math.round(Object.keys(appViewer.rendererState.world.chunksLoaded).length / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
+          const loaded = Object.keys(appViewer.rendererState.world.chunksLoaded).length
+          const total = appViewer.nonReactiveState.world.chunksTotalNumber
+          const perc = Math.round(loaded / total * 100)
           progress?.reportProgress('chunks', perc / 100)
+          reportLoadingStage('chunks', loaded / total, `${loaded} / ${total}`)
         }
       })
     })
@@ -905,19 +919,34 @@ export async function connect (connectOptions: ConnectOptions) {
       if (appStatusState.isError) return
 
       const waitForChunks = async () => {
-        if (appQueryParams.sp === '1') return //todo
-        const waitForChunks = options.waitForChunksRender === 'sp-only' ? !!singleplayer : options.waitForChunksRender
-        if (!appViewer.backend || appViewer.rendererState.world.allChunksLoaded || !waitForChunks) {
+        if (!appViewer.backend || appViewer.rendererState.world.allChunksLoaded || !shouldWaitForChunks(!!singleplayer)) {
           return
         }
 
+        beginLoadingStage('chunks')
+        // a chunk that never arrives must not keep the loading screen forever: stop waiting when no chunk was added for a while
+        let stallTimer: ReturnType<typeof setInterval> | undefined
+        const stalled = new Promise<void>(resolve => {
+          let lastCount = -1
+          let lastChange = Date.now()
+          stallTimer = setInterval(() => {
+            const count = Object.keys(appViewer.rendererState.world.chunksLoaded).length
+            if (count !== lastCount) {
+              lastCount = count
+              lastChange = Date.now()
+            } else if (Date.now() - lastChange > CHUNKS_STALL_TIMEOUT_MS) {
+              console.warn('No new chunk for', CHUNKS_STALL_TIMEOUT_MS / 1000, 's, showing the world anyway')
+              resolve()
+            }
+          }, 1000)
+        })
         await progress.executeWithMessage(
           'Loading chunks',
           'chunks',
           async () => {
-            await waitForChunksToLoad(progress)
+            await Promise.race([waitForChunksToLoad(progress), stalled])
           }
-        )
+        ).finally(() => { clearInterval(stallTimer) })
       }
 
       await waitForChunks()

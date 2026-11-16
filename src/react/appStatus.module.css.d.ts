@@ -3,9 +3,16 @@
 interface CssExports {
   'app-status-title-context-info': string;
   appStatusTitleContextInfo: string;
+  bar: string;
   description: string;
+  fill: string;
+  hidden: string;
   'last-status': string;
   lastStatus: string;
+  progress: string;
+  'progress-info': string;
+  progressInfo: string;
+  track: string;
 }
 declare const cssExports: CssExports;
 export default cssExports;
