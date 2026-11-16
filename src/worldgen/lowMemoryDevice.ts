@@ -11,12 +11,13 @@ export interface DeviceInfo {
 
 export const LOW_MEMORY_WORLDGEN_WORKERS = 1
 
-const isIosDevice = ({ userAgent, platform, maxTouchPoints = 0 }: DeviceInfo) =>
-  /iPhone|iPad|iPod/.test(userAgent) ||
+const isIosDevice = ({ userAgent, platform, maxTouchPoints = 0 }: DeviceInfo) => {
+  if (/iPhone|iPad|iPod/.test(userAgent)) return true
   // iPadOS 13+ reports itself as a Mac
-  (platform === 'MacIntel' && maxTouchPoints > 1)
+  return platform === 'MacIntel' && maxTouchPoints > 1
+}
 
-const isAndroidDevice = ({ userAgent }: DeviceInfo) => /Android/.test(userAgent)
+const isAndroidDevice = ({ userAgent }: DeviceInfo) => userAgent.includes('Android')
 
 /** worker count to use instead of the default when the device is short on memory; undefined = keep the default */
 export const lowMemoryWorldgenWorkers = (device: DeviceInfo): number | undefined => {
