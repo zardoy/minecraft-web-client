@@ -24,7 +24,7 @@
   visibility: hidden;
 }
 
-/* Minecraft-like bar: light outline, black frame, dark track, green fill. Everything is drawn inside the element (border + padding),
+/* flat bar: light outline, black frame, dark track, solid lime fill. Everything is drawn inside the element (border + padding),
    an outside box-shadow gets clipped by the scrolling screen content */
 .bar {
   box-sizing: border-box;
@@ -40,8 +40,8 @@
 
 .fill {
   height: 100%;
-  background: #6cc24a;
-  box-shadow: inset 0 1px 0 #a6e58a, inset 0 -1px 0 #3f8a28;
+  /* one flat colour, no bevel or gradient */
+  background: limegreen;
   transition: width 0.3s linear;
 }
 
