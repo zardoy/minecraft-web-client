@@ -12,9 +12,38 @@ const SINGLEPLAYER_STAGES: LoadingStageDef[] = [
   { id: 'generator', label: 'Preparing world generator', weight: 2, expectedMs: 400 },
   { id: 'warmup', label: 'Warming up world generator', weight: 13, expectedMs: 3500 },
   { id: 'spawn', label: 'Generating spawn terrain', weight: 10, expectedMs: 3000 },
+  { id: 'join', label: 'Joining the world', weight: 2, expectedMs: 600 },
   { id: 'viewer', label: 'Starting renderer', weight: 18, expectedMs: 6000 },
   { id: 'chunks', label: 'Loading chunks', weight: 50, expectedMs: 15_000 }
 ]
+
+// Joining a server. Weights follow one join of wss://play.mcraft.fun (1.17.1) in desktop Chrome with the CPU 6x slower: game data 1.7 s, server ping 2.4 s,
+// textures 1.3 s, connect + login + join 0.6 s together. Stages that cannot happen for a connection (no proxy for wss:// servers, a fixed version, no Microsoft account) are left out
+// when the bar starts, so they do not make it jump; the others that do not happen (no configuration phase before 1.20.2, no server resource pack)
+// are passed over when a later stage begins.
+const SERVER_STAGES: Array<LoadingStageDef & { when?: keyof ServerLoadingOptions }> = [
+  { id: 'data', label: 'Loading game data', weight: 12, expectedMs: 1200 },
+  { id: 'proxy', label: 'Finding the best proxy', weight: 6, expectedMs: 1200, when: 'autoProxy' },
+  { id: 'version', label: 'Checking the server', weight: 16, expectedMs: 1500, when: 'autoVersion' },
+  { id: 'textures', label: 'Preparing textures', weight: 10, expectedMs: 900 },
+  { id: 'auth', label: 'Signing in', weight: 10, expectedMs: 2500, when: 'microsoftAuth' },
+  { id: 'connect', label: 'Connecting to the server', weight: 4, expectedMs: 300 },
+  { id: 'login', label: 'Logging in', weight: 3, expectedMs: 300 },
+  { id: 'config', label: 'Receiving server data', weight: 3, expectedMs: 400 },
+  { id: 'join', label: 'Joining the world', weight: 3, expectedMs: 400 },
+  { id: 'resourcePack', label: 'Downloading server resource pack', weight: 12, expectedMs: 4000 },
+  { id: 'viewer', label: 'Starting renderer', weight: 10, expectedMs: 1500 },
+  { id: 'chunks', label: 'Loading chunks', weight: 30, expectedMs: 8000, when: 'waitForChunks' }
+]
+
+export interface ServerLoadingOptions {
+  /** a proxy is picked by pinging the known ones */
+  autoProxy: boolean
+  /** the server is pinged for its version first */
+  autoVersion: boolean
+  microsoftAuth: boolean
+  waitForChunks: boolean
+}
 
 export const loadingProgressState = proxy({
   active: false,
@@ -92,15 +121,46 @@ const onWorldgenStartup = (summary: WorldgenStartupSummary) => {
   }
 }
 
-/** @param waitForChunks the loading screen stays until the chunks around the player are loaded (otherwise it ends right after the renderer started) */
-export const startSingleplayerLoadingProgress = ({ waitForChunks }: { waitForChunks: boolean }) => {
+const start = (stages: LoadingStageDef[], firstStage: string) => {
   endLoadingProgress()
   loadingProgressTimeline.length = 0
   startedAt = performance.now()
-  model = new LoadingProgressModel(SINGLEPLAYER_STAGES.filter(stage => waitForChunks || stage.id !== 'chunks'))
+  model = new LoadingProgressModel(stages)
   loadingProgressState.active = true
-  beginLoadingStage('server')
-  unsubscribeWorldgen = subscribeWorldgenStartup(onWorldgenStartup)
+  beginLoadingStage(firstStage)
   // the estimate of a running stage moves with time even when nothing reports
   ticker = setInterval(refresh, 100)
+}
+
+/** @param waitForChunks the loading screen stays until the chunks around the player are loaded (otherwise it ends right after the renderer started) */
+export const startSingleplayerLoadingProgress = ({ waitForChunks }: { waitForChunks: boolean }) => {
+  start(SINGLEPLAYER_STAGES.filter(stage => waitForChunks || stage.id !== 'chunks'), 'server')
+  unsubscribeWorldgen = subscribeWorldgenStartup(onWorldgenStartup)
+}
+
+export const startServerLoadingProgress = (options: ServerLoadingOptions) => {
+  start(SERVER_STAGES.filter(stage => !stage.when || options[stage.when]), 'data')
+}
+
+/** protocol state of the connection (minecraft-protocol `state` event) */
+export const onConnectionStateChanged = (state: string) => {
+  switch (state) {
+    case 'login': {
+      beginLoadingStage('login')
+      break
+    }
+    case 'configuration': {
+      beginLoadingStage('config')
+      break
+    }
+    case 'play': {
+      beginLoadingStage('join')
+      break
+    }
+  }
+}
+
+export const reportResourcePackDownload = (loaded: number, total: number) => {
+  beginLoadingStage('resourcePack')
+  if (total > 0) reportLoadingStage('resourcePack', loaded / total, `${formatMb(loaded)} / ${formatMb(total)}`)
 }

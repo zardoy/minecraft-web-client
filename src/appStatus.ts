@@ -61,6 +61,8 @@ export const setLoadingScreenStatus = function (status: string | undefined | nul
   appStatusState.status = status
   appStatusState.minecraftJsonMessage = minecraftJsonMessage ?? null
 
+  // an error ends the load: the bar is hidden on error screens and must not keep its stages for the next attempt
+  if (isError) endLoadingProgress()
   if (isError && miscUiState.gameLoaded) {
     resetStateAfterDisconnect()
   }

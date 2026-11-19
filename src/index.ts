@@ -57,7 +57,7 @@ import {
 
 import { parseServerAddress } from './parseServerAddress'
 import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
-import { beginLoadingStage, reportLoadingStage, startSingleplayerLoadingProgress } from './loadingProgress'
+import { beginLoadingStage, onConnectionStateChanged, reportLoadingStage, startServerLoadingProgress, startSingleplayerLoadingProgress } from './loadingProgress'
 import { CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES } from './cypressFlatWorld'
 import { isCypress } from './standaloneUtils'
 
@@ -241,6 +241,15 @@ export async function connect (connectOptions: ConnectOptions) {
   const progress = createFullScreenProgressReporter()
   const loggingInMsg = connectOptions.server ? 'Connecting to server' : 'Logging in'
   progress.beginStage('connect', loggingInMsg)
+  if (connectOptions.server && !singleplayer && !p2pMultiplayer && !connectOptions.viewerWsConnect && !connectOptions.worldStateFileContents) {
+    const { proxies, isAutoSelect } = getProxiesData()
+    startServerLoadingProgress({
+      autoProxy: !parsedServer.isWebSocket && !connectOptions.proxy && !!isAutoSelect && proxies.length > 0,
+      autoVersion: !connectOptions.botVersion,
+      microsoftAuth: !!connectOptions.authenticatedAccount,
+      waitForChunks: shouldWaitForChunks(false)
+    })
+  }
 
   let ended = false
   let bot!: typeof __type_bot
@@ -355,6 +364,7 @@ export async function connect (connectOptions: ConnectOptions) {
     const { proxies, isAutoSelect } = getProxiesData()
     if (!connectOptions.proxy && isAutoSelect && proxies.length > 0) {
       setLoadingScreenStatus('Selecting best proxy...')
+      beginLoadingStage('proxy')
       const bestProxy = await selectBestProxy(proxies)
       if (bestProxy) {
         connectOptions.proxy = bestProxy
@@ -412,6 +422,7 @@ export async function connect (connectOptions: ConnectOptions) {
       if (dataDownloaded) return
       dataDownloaded = true
       appViewer.resourcesManager.currentConfig = { version, texturesVersion: options.useVersionsTextures || undefined }
+      beginLoadingStage('textures')
 
       await progress.executeWithMessage(
         'Processing downloaded Minecraft data',
@@ -526,6 +537,7 @@ export async function connect (connectOptions: ConnectOptions) {
       if (!finalVersion) {
         const versionAutoSelect = getVersionAutoSelect()
         const wrapped = createWrappedProgressReporter(progress, `Fetching server version. Preffered: ${versionAutoSelect}`)
+        beginLoadingStage('version')
         loadingTimerState.networkOnlyStart = Date.now()
         const autoVersionSelect = await getServerInfo(server.host, server.port ? Number(server.port) : undefined, versionAutoSelect)
         wrapped.end()
@@ -551,6 +563,7 @@ export async function connect (connectOptions: ConnectOptions) {
     const cachedTokens = typeof connectOptions.authenticatedAccount === 'object' ? connectOptions.authenticatedAccount.cachedTokens : {}
     let authData: Awaited<ReturnType<typeof microsoftAuthflow>> | undefined
     if (connectOptions.authenticatedAccount) {
+      beginLoadingStage('auth')
       const proxiesData = getProxiesData()
       authData = await microsoftAuthflow({
         tokenCaches: cachedTokens,
@@ -598,6 +611,7 @@ export async function connect (connectOptions: ConnectOptions) {
     }
 
     const brand = clientDataStream ? 'minecraft-web-client' : undefined
+    beginLoadingStage('connect')
     bot = mineflayer.createBot({
       host: server.host,
       port: server.port ? +server.port : undefined,
@@ -776,6 +790,7 @@ export async function connect (connectOptions: ConnectOptions) {
   }
   bot._client.on('packet', packetBeforePlay as any)
   const playStateSwitch = (newState) => {
+    onConnectionStateChanged(newState)
     if (newState === 'play') {
       bot._client.removeListener('packet', packetBeforePlay)
     }
@@ -806,7 +821,7 @@ export async function connect (connectOptions: ConnectOptions) {
     errorAbortController.abort()
     loadingTimerState.networkOnlyStart = 0
     progress.setMessage('Loading world')
-    beginLoadingStage('viewer')
+    beginLoadingStage('join')
   })
 
   let worldWasReady = false
@@ -866,6 +881,7 @@ export async function connect (connectOptions: ConnectOptions) {
       playerState.reactive.onlineMode = !!connectOptions.authenticatedAccount
 
       progress.setMessage('Placing blocks (starting viewer)')
+      beginLoadingStage('viewer')
       if (!connectOptions.worldStateFileContents || connectOptions.worldStateFileContents.length < 3 * 1024 * 1024) {
         localStorage.lastConnectOptions = JSON.stringify(connectOptions)
         if (process.env.NODE_ENV === 'development' && !localStorage.lockUrl && !location.search.slice(1).length) {
