@@ -50,7 +50,8 @@ export const defaultOptions = {
   language: 'auto',
   preciseMouseInput: false,
   // todo ui setting, maybe enable by default?
-  waitForChunksRender: false as 'sp-only' | boolean,
+  /** keep the loading screen (with its progress bar) until the chunks around the player are loaded; 'sp-only' = only in singleplayer */
+  waitForChunksRender: 'sp-only' as 'sp-only' | boolean,
   inventoryJei: true as boolean | Array<'creative' | 'survival' | 'adventure' | 'spectator'>,
   inventoryNotes: true as boolean,
   inventoryPlaceholders: false,

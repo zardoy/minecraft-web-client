@@ -14,6 +14,7 @@ import { gameAdditionalState, miscUiState } from './globalState'
 import { watchUnloadForCleanup } from './gameUnload'
 import { createConsoleLogProgressReporter, createFullScreenProgressReporter, ProgressReporter } from './core/progressReporter'
 import { inventoryBundledConfig } from './react/inventory/inventoryTexturesConfig'
+import { reportResourcePackDownload } from './loadingProgress'
 
 export const resourcePackState = proxy({
   resourcePackInstalled: false,
@@ -454,6 +455,7 @@ const downloadAndUseResourcePack = async (url: string, progressReporter: Progres
     const total = contentLength ? parseInt(contentLength, 10) : 0
     let loaded = 0
 
+    reportResourcePackDownload(0, total)
     const reader = response.body!.getReader()
     const chunks: Uint8Array[] = []
 
@@ -464,6 +466,7 @@ const downloadAndUseResourcePack = async (url: string, progressReporter: Progres
 
       chunks.push(value)
       loaded += value.length
+      reportResourcePackDownload(loaded, total)
 
       if (total) {
         const progress = Math.round((loaded / total) * 100)

@@ -18,6 +18,8 @@ const AppStatusBase = ({
   actionsSlot = null as React.ReactNode | null,
   showReconnect = false,
   onReconnect = undefined as undefined | (() => void),
+  /** overall progress of a long load: 0..1 with what is being done now */
+  progress = undefined as undefined | { value: number, label: string, detail?: string },
   children
 }) => {
   const [loadingDotIndex, setLoadingDotIndex] = useState(0)
@@ -50,7 +52,7 @@ const AppStatusBase = ({
   return (
     <div className=''>
       <Screen
-        className='small-content'
+        className={`small-content ${isError ? '' : 'loading-centered'}`}
         titleSelectable={isError}
         title={
           <>
@@ -61,9 +63,9 @@ const AppStatusBase = ({
                 whiteSpace: 'pre-wrap',
               }}
             >
-              {status}
+              {progress ? progress.label || status : status}
             </span>
-            <div style={{ display: 'inline-flex', gap: '1px', }} hidden={hideDots || isError}>
+            <div style={{ display: 'inline-flex', gap: '1px', }} hidden={hideDots || isError || !!progress}>
               {
                 [...'...'].map((dot, i) => {
                   return <span
@@ -73,6 +75,24 @@ const AppStatusBase = ({
                 })
               }
             </div>
+            {/* the space of the bar is always reserved on loading screens, so the title does not jump when the bar appears */}
+            {!isError && <div className={`${styles.progress} ${progress ? '' : styles.hidden}`} aria-hidden={!progress}>
+              <div
+                className={styles.bar}
+                role='progressbar'
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round((progress?.value ?? 0) * 100)}
+              >
+                <div className={styles.track}>
+                  <div className={styles.fill} style={{ width: `${Math.round((progress?.value ?? 0) * 100)}%` }} />
+                </div>
+              </div>
+              <div className={styles.progressInfo}>
+                <span>{progress?.detail ?? ''}</span>
+                <span>{Math.round((progress?.value ?? 0) * 100)}%</span>
+              </div>
+            </div>}
             <p className={styles.description}>{description}</p>
             <p className={styles['last-status']}>{lastStatus ? `Last status: ${lastStatus}` : lastStatus}</p>
             {isError && <p className={`app-status-title-context-info ${styles.appStatusTitleContextInfo}`}>

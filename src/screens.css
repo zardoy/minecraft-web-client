@@ -92,3 +92,14 @@ body.rotated .fullscreen {
         gap: 4px 1px;
     }
 }
+
+/* loading screens (app status): the content sits in the middle of the screen instead of under the top margin */
+.fullscreen.loading-centered {
+    align-items: center;
+}
+
+.fullscreen.loading-centered .screen-content {
+    margin-top: 0;
+    justify-content: center;
+    max-height: 100%;
+}

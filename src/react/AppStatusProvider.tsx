@@ -8,6 +8,7 @@ import { getProxyDetails } from '../microsoftAuthflow'
 import { downloadAutoCapturedPackets, getLastAutoCapturedPackets } from '../mineflayer/plugins/packetsRecording'
 import { appQueryParams } from '../appParams'
 import { lastConnectOptions } from '../appStatus'
+import { loadingProgressState } from '../loadingProgress'
 import AppStatus from './AppStatus'
 import DiveTransition from './DiveTransition'
 import { useDidUpdateEffect } from './utils'
@@ -66,6 +67,7 @@ const AppStatusProviderBase = () => {
   const lastState = useRef(JSON.parse(JSON.stringify(appStatusState)))
   const currentState = useSnapshot(appStatusState)
   const { active: replayActive } = useSnapshot(packetsRecordingState)
+  const loadingProgress = useSnapshot(loadingProgressState)
 
   const isOpen = useIsModalActive('app-status')
 
@@ -172,6 +174,7 @@ const AppStatusProviderBase = () => {
   }
   return <DiveTransition open={isOpen} isError={isError}>
     <AppStatus
+      progress={loadingProgress.active ? { value: loadingProgress.value, label: loadingProgress.label, detail: loadingProgress.detail } : undefined}
       status={status}
       isError={isError || status === ''} // display back button if status is empty as probably our app is errored
       hideDots={hideDots}
