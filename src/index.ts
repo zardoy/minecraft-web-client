@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import './dev/memoryBallast'
 import './importsWorkaround'
 import './styles.css'
 import './testCrasher'
@@ -102,6 +103,7 @@ import { loadingTimerState } from './react/LoadingTimer'
 import { loadPluginsIntoWorld } from './react/CreateWorldProvider'
 import { appStorage } from './react/appStorageProvider'
 import { selectBestProxy } from './core/proxyAutoSelect'
+import { resolveAuthProxy } from './core/authProxy'
 import { getConnectProxy, getCurrentUsername, getProxiesData } from './react/ServersList'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { isPlayground } from './playgroundIntegration'
@@ -539,9 +541,11 @@ export async function connect (connectOptions: ConnectOptions) {
     const cachedTokens = typeof connectOptions.authenticatedAccount === 'object' ? connectOptions.authenticatedAccount.cachedTokens : {}
     let authData: Awaited<ReturnType<typeof microsoftAuthflow>> | undefined
     if (connectOptions.authenticatedAccount) {
+      const proxiesData = getProxiesData()
       authData = await microsoftAuthflow({
         tokenCaches: cachedTokens,
-        proxyBaseUrl: connectOptions.proxy,
+        // a direct WebSocket server has no proxy of its own, but signing in still needs one
+        proxyBaseUrl: await resolveAuthProxy({ proxy: connectOptions.proxy, selected: proxiesData.selected || undefined, proxies: proxiesData.proxies, isAutoSelect: proxiesData.isAutoSelect }, selectBestProxy),
         setProgressText (text) {
           progress.setMessage(text)
         },
