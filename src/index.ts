@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import './dev/memoryBallast'
 import './importsWorkaround'
 import './styles.css'
 import './testCrasher'
