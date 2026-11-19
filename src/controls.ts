@@ -11,6 +11,7 @@ import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsM
 import { getPlayerStateUtils } from 'minecraft-renderer/src'
 import { isGameActive, showModal, gameAdditionalState, activeModalStack, hideCurrentModal, miscUiState, hideModal, hideAllModals } from './globalState'
 import { goFullscreen, isInRealGameSession, pointerLock, reloadChunks } from './utils'
+import { toggleVisualEffectsPanel } from './visualEffectsPanel'
 import { options } from './optionsStorage'
 import { openPlayerInventory } from './inventoryWindows'
 import { chatInputValueGlobal } from './react/Chat'
@@ -85,6 +86,7 @@ export const contro = new ControMax({
       viewerConsole: ['Backquote'],
       togglePerspective: ['F5', 'Up'],
       takeScreenshot: ['F2'],
+      visualEffectsPanel: ['F7'],
     },
     ui: {
       toggleFullscreen: ['F11'],
@@ -668,6 +670,11 @@ contro.on('trigger', ({ command }) => {
     if (isGameActive(true)) {
       takeScreenshotAction()
     }
+    return
+  }
+
+  if (command === 'general.visualEffectsPanel') {
+    toggleVisualEffectsPanel()
     return
   }
 
