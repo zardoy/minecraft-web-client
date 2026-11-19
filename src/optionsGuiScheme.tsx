@@ -152,6 +152,8 @@ export const guiOptionsScheme: {
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
       },
+      clientLighting: {},
+      animatedTextures: {},
       starfieldRendering: {},
       cloudsRendering: {},
       keepChunksDistance: {
