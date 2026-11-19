@@ -25,6 +25,7 @@ import MinimapProvider, { DrawerAdapterImpl } from './react/MinimapProvider'
 import HudBarsProvider from './react/HudBarsProvider'
 import XPBarProvider from './react/XPBarProvider'
 import DebugOverlay from './react/DebugOverlay'
+import VisualEffectsPanel from './react/VisualEffectsPanel'
 import MobileTopButtons from './react/MobileTopButtons'
 import PauseScreen from './react/PauseScreen'
 import SoundMuffler from './react/SoundMuffler'
@@ -262,6 +263,7 @@ const AppBase = () => {
             <VoiceChatMenuProvider />
             <ServersListProvider />
             <OptionsRenderApp />
+            <VisualEffectsPanel />
             <MainMenuRenderApp />
             <ConnectOnlyServerUi />
             <TouchAreasControlsProvider />
