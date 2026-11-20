@@ -83,6 +83,8 @@ jobs:
           echo "{\"latestTag\": \"$(git rev-parse --short ${{ github.event.pull_request.head.sha }})\", \"isCommit\": true}" > assets/release.json
       - name: Download Generated Sounds map
         run: node scripts/downloadSoundsMap.mjs
+      - name: Download worldgen extension datapack
+        run: node scripts/downloadGendataExt.mjs
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
         env:

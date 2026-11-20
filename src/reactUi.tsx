@@ -25,6 +25,7 @@ import MinimapProvider, { DrawerAdapterImpl } from './react/MinimapProvider'
 import HudBarsProvider from './react/HudBarsProvider'
 import XPBarProvider from './react/XPBarProvider'
 import DebugOverlay from './react/DebugOverlay'
+import VisualEffectsPanel from './react/VisualEffectsPanel'
 import MobileTopButtons from './react/MobileTopButtons'
 import PauseScreen from './react/PauseScreen'
 import SoundMuffler from './react/SoundMuffler'
@@ -64,6 +65,7 @@ import ConnectOnlyServerUi from './react/ConnectOnlyServerUi'
 import ControDebug from './react/ControDebug'
 import ChunksDebug from './react/ChunksDebug'
 import ChunksDebugScreen from './react/ChunksDebugScreen'
+import RecipeEditorScreen from './react/RecipeEditorScreen'
 import DebugResponseTimeIndicator from './react/debugs/DebugResponseTimeIndicator'
 import RendererDebugMenu from './react/RendererDebugMenu'
 import CreditsAboutModal from './react/CreditsAboutModal'
@@ -187,6 +189,7 @@ const InGameUi = () => {
           {!disabledUiParts.includes('bossbars') && displayBossBars && <BossBarOverlayProvider />}
           <VoiceMicrophone />
           <ChunksDebugScreen />
+          <RecipeEditorScreen />
           <RendererDebugMenu />
           {!disabledUiParts.includes('fire') && <FireRenderer />}
         </PerComponentErrorBoundary>
@@ -260,6 +263,7 @@ const AppBase = () => {
             <VoiceChatMenuProvider />
             <ServersListProvider />
             <OptionsRenderApp />
+            <VisualEffectsPanel />
             <MainMenuRenderApp />
             <ConnectOnlyServerUi />
             <TouchAreasControlsProvider />

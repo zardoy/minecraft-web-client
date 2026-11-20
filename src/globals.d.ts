@@ -59,5 +59,17 @@ declare module '*.wgsl' {
   const png: string
   export default png
 }
+declare module 'worldgen-bundled-pack.zip' {
+  const url: string
+  export default url
+}
+declare module '*.zip' {
+  const url: string
+  export default url
+}
+declare module '*.zip?url' {
+  const url: string
+  export default url
+}
 
 declare interface Window extends Record<string, any> { }

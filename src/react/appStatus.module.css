@@ -13,3 +13,45 @@
 .last-status {
   color: #808080;
 }
+
+.progress {
+  /* fixed width: the same on every stage (the longest label fits) */
+  width: 170px;
+  margin: 8px auto 0;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+/* flat bar: light outline, black frame, dark track, solid lime fill. Everything is drawn inside the element (border + padding),
+   an outside box-shadow gets clipped by the scrolling screen content */
+.bar {
+  box-sizing: border-box;
+  border: 1px solid #6b6b6b;
+  padding: 1px;
+  background: #000;
+}
+
+.track {
+  height: 5px;
+  background: #3a3a3a;
+}
+
+.fill {
+  height: 100%;
+  /* one flat colour, no bevel or gradient */
+  background: limegreen;
+  transition: width 0.3s linear;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 3px;
+  color: #aaa;
+  font-size: 7px;
+  text-shadow: 1px 1px #222;
+  min-height: 1.2em;
+}

@@ -17,14 +17,19 @@ export const appAndRendererSharedConfig = () => defineConfig({
         },
     },
     output: {
-        polyfill: 'usage',
+        polyfill: process.env.SLIM_BUILD === 'true' ? 'off' : 'usage',
         // 50kb limit for data uri
         dataUriLimit: 50 * 1024,
         assetPrefix: './',
     },
     source: {
         alias: {
-            // GitHub install has src/ but no dist/; shim fixes type-only re-exports for rspack
+            // bundled vanilla worldgen datapack (slim build: without structures)
+            'worldgen-bundled-pack.zip': path.join(__dirname, process.env.SLIM_BUILD === 'true' ? 'generated/mc-worldgen-data-slim.zip' : 'generated/mc-worldgen-data.zip'),
+            // slim build: drop big optional dependencies (see scripts/slim)
+            ...(process.env.SLIM_BUILD === 'true' ? {
+                'mc-assets/dist/blockStatesModels.json$': path.join(__dirname, 'scripts/slim/blockStatesModels.ts'),
+            } : {}),
             ...(fs.existsSync(physicsUtilSrcRoot) ? {
                 '@nxg-org/mineflayer-physics-util': path.join(__dirname, './scripts/mineflayerPhysicsUtilEntry.ts'),
                 // physics-util src lists these as devDeps; resolve from project root when bundling its src
@@ -34,9 +39,12 @@ export const appAndRendererSharedConfig = () => defineConfig({
                 'vec3': path.join(__dirname, 'node_modules/vec3'),
             } : {}),
             fs: path.join(__dirname, `./src/shims/fs.js`),
-            http: 'http-browserify',
-            stream: 'stream-browserify',
-            net: 'net-browserify',
+            // absolute so they also resolve for files outside this repo (../space-squid/dist)
+            http: path.join(__dirname, 'node_modules/http-browserify'),
+            stream: path.join(__dirname, 'node_modules/stream-browserify'),
+            net: path.join(__dirname, 'node_modules/net-browserify'),
+            // worker_threads: not available in browser, noise generator runs in-process (workers: 0)
+            worker_threads: false,
             'minecraft-protocol$': 'minecraft-protocol/src/index.js',
             'buffer$': 'buffer',
             // avoid bundling, not used on client side
@@ -80,11 +88,29 @@ export const appAndRendererSharedConfig = () => defineConfig({
                 config.watchOptions.ignored = /\.git/
             }
             rspackViewerConfig(config, helpers)
+            // Scope-hoisting concatenates deepslate's two `class Ref` bindings into one scope
+            // (`let Ref` declared twice) and also breaks some `.catch` calls. The Ref loader
+            // covers the first case when hoisting is on; hoisting stays off until that is safe.
+            config.optimization = {
+                ...config.optimization,
+                concatenateModules: false,
+            }
         }
     },
 })
 
 export const rspackViewerConfig = (config: any, { appendPlugins, addRules, rspack }: ModifyRspackConfigUtils) => {
+    // WRITE_BUNDLE_STATS=true: dist/stats-<name>.json (module sizes), see scripts/bundleSizes.mjs
+    if (process.env.WRITE_BUNDLE_STATS) {
+        appendPlugins({
+            apply (compiler: any) {
+                compiler.hooks.done.tap('write-bundle-stats', (stats: any) => {
+                    fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true })
+                    fs.writeFileSync(path.join(__dirname, `dist/stats-${compiler.options.name ?? 'main'}.json`), JSON.stringify(stats.toJson({ all: false, assets: true, chunks: true, chunkModules: true, modules: true, nestedModules: true, modulesSpace: 1e9, chunkModulesSpace: 1e9, nestedModulesSpace: 1e9, ids: true, dependentModules: true, orphanModules: true, runtimeModules: false, excludeModules: false })))
+                })
+            }
+        } as any)
+    }
     appendPlugins(new rspack.NormalModuleReplacementPlugin(/data|prismarine-physics/, (resource) => {
         let absolute: string
         const request = resource.request.replaceAll('\\', '/')
@@ -105,6 +131,18 @@ export const rspackViewerConfig = (config: any, { appendPlugins, addRules, rspac
         }
     }))
     addRules([
+        {
+            // Keep scope-hoisting on. Rename deepslate's two `class Ref` bindings so concatenation stays valid.
+            test: /deepslate[/\\]lib[/\\]nbt[/\\]Nbt(?:Chunk|Region)\.js$/,
+            enforce: 'pre',
+            use: [path.join(__dirname, 'scripts/deepslateNbtRefLoader.cjs')],
+        },
+        {
+            // Uint8Array from BrowserFS is not prismarine-nbt's Buffer.
+            test: /prismarine-nbt[/\\]nbt\.js$/,
+            enforce: 'pre',
+            use: [path.join(__dirname, 'scripts/prismarineNbtBufferLoader.cjs')],
+        },
         {
             test: /\.obj$/,
             type: 'asset/source',
@@ -128,8 +166,21 @@ export const rspackViewerConfig = (config: any, { appendPlugins, addRules, rspac
         {
             test: /\.gltf$/,
             type: 'asset/resource',
+        },
+        {
+            // worldgen datapack: fetched at runtime; has to be a data: url in the single file build (nothing else is served)
+            test: /\.zip$/,
+            type: process.env.SINGLE_FILE_BUILD === 'true' ? 'asset/inline' : 'asset/resource',
         }
     ])
+    // Web Workers load their chunks with importScripts, and the page-relative assetPrefix './' resolves against the worker script URL.
+    // The worldgen worker chunk is therefore emitted in the dist root, where './static/js/...' is correct for it too.
+    config.output ??= {}
+    const defaultChunkFilename = config.output.chunkFilename
+    config.output.chunkFilename = ((pathData: any, assetInfo: any) => {
+        if (pathData?.chunk?.name === 'worldgen-worker') return 'worldgen-worker.[contenthash:8].js'
+        return typeof defaultChunkFilename === 'function' ? defaultChunkFilename(pathData, assetInfo) : (defaultChunkFilename ?? '[name].js')
+    }) as any
     config.ignoreWarnings = [
         /the request of a dependency is an expression/,
         /Unsupported pseudo class or element: xr-overlay/

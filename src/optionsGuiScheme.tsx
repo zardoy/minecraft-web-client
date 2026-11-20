@@ -24,6 +24,7 @@ import { customKeymaps } from './controls'
 import { appStorage } from './react/appStorageProvider'
 import { exportData, importData } from './core/importExport'
 import { appGraphicBackends, getCurrentGraphicsBackend } from './appViewerLoad'
+import { openVisualEffectsPanel } from './visualEffectsPanel'
 
 export const guiOptionsScheme: {
   [t in OptionsGroupType]: Array<{ [K in keyof AppOptions]?: Partial<OptionMeta<AppOptions[K]>> } & { custom? }>
@@ -115,9 +116,22 @@ export const guiOptionsScheme: {
       custom () {
         return <Category>World Settings</Category>
       },
-      vanillaLook: {
-        tooltip: 'On: Minecraft-style face shading. Off: client’s higher-contrast shading (default).',
+    },
+    {
+      custom () {
+        const { gameLoaded } = useSnapshot(miscUiState)
+        return (
+          <Button
+            label='Visual Effects Panel (F7)'
+            title={gameLoaded ? 'Tune shadows, bloom, color grading etc. live on screen' : 'Available in game'}
+            disabled={!gameLoaded}
+            inScreen
+            onClick={openVisualEffectsPanel}
+          />
+        )
       },
+    },
+    {
       rendererWorldPerformance: {
         text: 'World Performance',
         tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
@@ -152,7 +166,10 @@ export const guiOptionsScheme: {
       newVersionsLighting: {
         text: 'Lighting in Newer Versions',
       },
+      clientLighting: {},
+      animatedTextures: {},
       starfieldRendering: {},
+      cloudsRendering: {},
       keepChunksDistance: {
         max: 5,
         unit: '',

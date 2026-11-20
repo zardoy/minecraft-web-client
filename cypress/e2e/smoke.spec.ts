@@ -1,7 +1,7 @@
 /* eslint-disable max-nested-callbacks */
 /// <reference types="cypress" />
 import supportedVersions from '../../src/supportedVersions.mjs'
-import { setOptions, cleanVisit, visit } from './shared'
+import { cleanVisit, visit } from './shared'
 
 // todo use ssl
 
@@ -14,27 +14,17 @@ const compareRenderedFlatWorld = () => {
 }
 
 const testWorldLoad = () => {
-  return cy.document().then({ timeout: 35_000 }, doc => {
-    return new Cypress.Promise(resolve => {
-      doc.addEventListener('cypress-world-ready', resolve)
-    })
+  return cy.window().then({ timeout: 35_000 }, async win => {
+    const ready = (win as Window & { __cypressWorldReady?: Promise<void> }).__cypressWorldReady
+    if (!ready) throw new Error('cypress world-ready listener was not installed')
+    return ready
   }).then(() => {
     compareRenderedFlatWorld()
   })
 }
 
 it('Loads & renders singleplayer', () => {
-  cleanVisit('/?singleplayer=1')
-  setOptions({
-    localServerOptions: {
-      generation: {
-        name: 'superflat',
-        // eslint-disable-next-line unicorn/numeric-separators-style
-        options: { seed: 250869072 }
-      },
-    },
-    renderDistance: 2
-  })
+  cleanVisit('/?singleplayer=1', { flatSingleplayerWorld: true })
   testWorldLoad()
 })
 

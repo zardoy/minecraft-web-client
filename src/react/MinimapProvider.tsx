@@ -211,7 +211,7 @@ export class DrawerAdapterImpl extends TypedEventEmitter<MapUpdates> implements 
       this.invisibleStates = new Set()
       for (const name of INVISIBLE_BLOCKS) {
         const b = bot.registry.blocksByName[name]
-        if (b) for (let id = b.minStateId!; id <= b.maxStateId!; id++) this.invisibleStates.add(id)
+        if (b) for (let id = b.minStateId; id <= b.maxStateId; id++) this.invisibleStates.add(id)
       }
     }
     const { height, minY } = bot.game as any
