@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { miscUiState } from '../globalState'
 import { DrawerAdapter } from './MinimapDrawer'
+import { nextMinimapRotation } from './minimapRotation'
 import Fullmap from './Fullmap'
 
 
@@ -23,6 +24,7 @@ export default (
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [position, setPosition] = useState({ x: 0, y: 0, z: 0 })
   const lastUpdate = useRef(0)
+  const shownRotation = useRef<number | undefined>(undefined)
   const THROTTLE_MS = 50 // 20fps
 
   const updateMap = () => {
@@ -56,7 +58,8 @@ export default (
 
   const rotateMap = () => {
     if (!adapter.mapDrawer) return
-    adapter.mapDrawer.canvas.style.transform = `rotate(${adapter.yaw}rad)`
+    shownRotation.current = nextMinimapRotation(shownRotation.current, adapter.yaw)
+    adapter.mapDrawer.canvas.style.transform = `rotate(${shownRotation.current}rad)`
     adapter.mapDrawer.yaw = adapter.yaw
   }
 
