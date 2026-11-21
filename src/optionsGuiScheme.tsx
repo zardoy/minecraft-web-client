@@ -628,7 +628,7 @@ export const guiOptionsScheme: {
     {
       sendPerfData: {
         text: 'Send anonymous performance data',
-        tooltip: 'Sends frame rate, stutters, loading times and your device and graphics settings (no name, chat or position) to servers that ask for it, to find and fix slow spots. Also off when your browser sends Do Not Track. Applies from the next connection.',
+        tooltip: 'Sends frame rate, stutters, loading times, and your device and graphics settings to servers that ask for it, to find and fix slow spots. Also off when your browser sends Do Not Track. Applies from the next connection.',
       },
     },
     {
