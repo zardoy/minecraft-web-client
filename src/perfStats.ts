@@ -81,6 +81,15 @@ const readGpu = (): string | undefined => {
   }
 }
 
+/** Android Chrome freezes the user agent ("Android 10; K"), the real phone model is only in the client hints (needs a secure context) */
+let hintModel: string | undefined
+try {
+  const uaData = (navigator as Navigator & { userAgentData?: { getHighEntropyValues?: (hints: string[]) => Promise<{ model?: string }> } }).userAgentData
+  void uaData?.getHighEntropyValues?.(['model']).then(values => {
+    hintModel = values.model || undefined
+  }).catch(() => {})
+} catch {}
+
 const readDevice = () => {
   const nav = navigator as Navigator & { deviceMemory?: number; cpuPerformance?: number }
   // the game canvas is the biggest one (the FPS meter and others are small)
@@ -89,6 +98,7 @@ const readDevice = () => {
     if (!canvas || candidate.width * candidate.height > canvas.width * canvas.height) canvas = candidate
   }
   return {
+    model: hintModel,
     gpu: readGpu(),
     cpuTier: nav.cpuPerformance,
     ramGb: nav.deviceMemory,
