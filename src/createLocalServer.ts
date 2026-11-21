@@ -36,4 +36,6 @@ export const startLocalServer = (serverOptions) => {
 
 // features that flying-squid doesn't support at all
 // todo move & generate in flying-squid
-export const unsupportedLocalServerFeatures = ['transactionPacketExists', 'teleportUsesOwnPacket']
+// (`teleportUsesOwnPacket` was here too: flying-squid now waits for `teleport_confirm` and ignores every movement until it
+// arrives, so without the confirm the server kept the player at the first /tp target and never sent the chunks around them)
+export const unsupportedLocalServerFeatures = ['transactionPacketExists']
