@@ -9,6 +9,7 @@ import { registerRecipeChannels } from './core/recipeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
+import { getConnectStats, onServerMetadata } from './core/perfStats'
 import { applyNearbyPlayers, onVoiceAvailable, onVoiceConfig, setVoiceServerSender, disconnectVoice } from './voice/voiceChat'
 
 const isWebSocketServer = (server: string | undefined) => {
@@ -80,6 +81,8 @@ const registerConnectMetadataChannel = () => {
       version: process.env.RELEASE_TAG,
       build: process.env.BUILD_VERSION,
       ...window.serverMetadataConnect,
+      // performance stats: whether the player takes part (setting "Send anonymous performance data") and a random id of this browser
+      stats: getConnectStats(),
     })
   })
 
@@ -89,6 +92,7 @@ const registerConnectMetadataChannel = () => {
       const metadata = JSON.parse(data.metadata)
       window.serverMetadata = metadata
       console.debug('Received server metadata:', metadata)
+      onServerMetadata(metadata)
     } catch (error) {
       console.warn('Failed to parse server metadata:', error)
     }
