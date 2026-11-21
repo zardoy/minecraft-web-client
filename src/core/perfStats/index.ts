@@ -1,6 +1,6 @@
-import { options } from './optionsStorage'
-import { activeModalStack } from './globalState'
-import { FrameStats, buildPerfReport, perfStatsOptOutReason, type OptOutReason, type Phase } from './perfStatsCore'
+import { options } from '../../optionsStorage'
+import { activeModalStack } from '../../globalState'
+import { FrameStats, buildPerfReport, perfStatsOptOutReason, type OptOutReason, type Phase } from './frameStats'
 
 /**
  * Anonymous performance stats for servers that ask for it (the play.mcraft.fun proxy): frame rate while the world loads and while

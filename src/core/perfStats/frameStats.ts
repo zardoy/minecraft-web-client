@@ -1,6 +1,6 @@
 /**
  * Pure parts of the performance stats (no browser globals): frame statistics and the opt-out rule.
- * The wiring (events, the channel to the proxy) is in perfStats.ts. The proxy side validates every field again.
+ * The wiring (events, the channel to the proxy) is in index.ts. The proxy side validates every field again.
  */
 
 /** 0 = not measured (tab hidden, game paused, not in a world), 1 = the world is loading, 2 = playing (all chunks loaded) */

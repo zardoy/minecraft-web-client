@@ -9,7 +9,7 @@ import { registerRecipeChannels } from './core/recipeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
-import { getConnectStats, onServerMetadata } from './perfStats'
+import { getConnectStats, onServerMetadata } from './core/perfStats'
 import { applyNearbyPlayers, onVoiceAvailable, onVoiceConfig, setVoiceServerSender, disconnectVoice } from './voice/voiceChat'
 
 const isWebSocketServer = (server: string | undefined) => {

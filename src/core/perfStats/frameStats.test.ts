@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FrameStats, buildPerfReport, perfStatsAllowed, perfStatsOptOutReason } from './perfStatsCore'
+import { FrameStats, buildPerfReport, perfStatsAllowed, perfStatsOptOutReason } from './frameStats'
 
 const feed = (stats: FrameStats, count: number, dt: number, phase: 0 | 1 | 2) => {
   for (let i = 0; i < count; i++) stats.frame(dt, phase)

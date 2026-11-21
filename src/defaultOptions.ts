@@ -80,7 +80,7 @@ export const defaultOptions = {
   autoDisplayRotation: false,
   excludeCommunicationDebugEvents: [] as string[],
   preventDevReloadWhilePlaying: false,
-  /** anonymous frame rate / stutter / device numbers for servers that ask for them (the play.mcraft.fun proxy), see perfStats.ts */
+  /** anonymous frame rate / stutter / device numbers for servers that ask for them (the play.mcraft.fun proxy), see core/perfStats */
   sendPerfData: true,
   localServerOptions: {
     gameMode: 1
