@@ -19,14 +19,6 @@
   font-size: 0.5rem
 }
 
-.playerlist-title {
-  color: white;
-  text-shadow: 1px 1px 0px #3f3f3f;
-  font-size: 10px;
-  margin: 0;
-  padding: 0;
-}
-
 .playerlist-entry {
   overflow: hidden;
   color: white;
@@ -56,6 +48,21 @@
   float: left;
   margin: 0;
   margin-right: 1px;
+}
+
+.playerlist-ping-value.ping-ok {
+  color: rgb(255, 255, 85);
+  text-shadow: 1px 1px 0px rgb(63, 63, 21);
+}
+
+.playerlist-ping-value.ping-slow {
+  color: rgb(255, 170, 0);
+  text-shadow: 1px 1px 0px rgb(63, 42, 0);
+}
+
+.playerlist-ping-value.ping-bad {
+  color: rgb(255, 85, 85);
+  text-shadow: 1px 1px 0px rgb(63, 21, 21);
 }
 
 .playerlist-ping-label {

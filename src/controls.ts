@@ -289,6 +289,8 @@ let lastScreenshotAt = 0
 const screenshotRepeatCooldownMs = 500
 
 export const takeScreenshotAction = () => {
+  // without the kept frame the canvas reads back empty (Screenshot Buffer setting, off by default on iOS)
+  if (!options.preserveDrawingBuffer) return
   const now = Date.now()
   if (now - lastScreenshotAt < screenshotRepeatCooldownMs) return
   lastScreenshotAt = now
