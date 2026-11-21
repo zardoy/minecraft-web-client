@@ -1,6 +1,6 @@
 import { options } from './optionsStorage'
 import { activeModalStack } from './globalState'
-import { FrameStats, buildPerfReport, perfStatsAllowed, type Phase } from './perfStatsCore'
+import { FrameStats, buildPerfReport, perfStatsOptOutReason, type OptOutReason, type Phase } from './perfStatsCore'
 
 /**
  * Anonymous performance stats for servers that ask for it (the play.mcraft.fun proxy): frame rate while the world loads and while
@@ -20,15 +20,17 @@ const MAX_REPORTS = 720 // two hours at one every 10 s
 /** settings that change performance (the proxy keeps only the ones on its own list) */
 const REPORTED_SETTINGS = ['renderDistance', 'newVersionsLighting', 'clientLighting', 'smoothLighting', 'animatedTextures', 'sunShadows', 'wavingFoliage', 'rendererMesher', 'visualEffectsProfile']
 
-export const isPerfStatsOn = (): boolean => {
+const optOutReason = (): OptOutReason | undefined => {
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean }
-  return perfStatsAllowed({
+  return perfStatsOptOutReason({
     option: options.sendPerfData,
     urlParam: new URLSearchParams(location.search).get('stats'),
     doNotTrack: nav.doNotTrack ?? (window as any).doNotTrack,
     globalPrivacyControl: nav.globalPrivacyControl
   })
 }
+
+export const isPerfStatsOn = (): boolean => optOutReason() === undefined
 
 /** A random id of this browser profile, made on first use. Not linked to the player name; "Remove all data" deletes it. */
 const getInstallId = (): string | undefined => {
@@ -44,11 +46,15 @@ const getInstallId = (): string | undefined => {
   }
 }
 
-/** Goes into the connect metadata the client sends the server when it joins: does the player take part, and under which random id. */
-export const getConnectStats = (): { optIn: boolean; installId?: string } => {
-  if (!isPerfStatsOn()) return { optIn: false }
+/**
+ * Goes into the connect metadata the client sends the server when it joins: does the player take part, and under which random id.
+ * A player who does not take part sends only the reason (setting, Do Not Track, ...) and no id.
+ */
+export const getConnectStats = (): { optIn: boolean; installId?: string; reason?: OptOutReason } => {
+  const reason = optOutReason()
+  if (reason) return { optIn: false, reason }
   const installId = getInstallId()
-  return installId ? { optIn: true, installId } : { optIn: false }
+  return installId ? { optIn: true, installId } : { optIn: false, reason: 'no-storage' }
 }
 
 // when joining started, to time the stages (set when the bot is created, so it covers the whole connection)

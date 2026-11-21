@@ -113,13 +113,22 @@ export function buildPerfReport (input: PerfReportInput): string {
   return JSON.stringify({ v: 1, ...input, t: Math.round(input.t) })
 }
 
+export type OptOutReason = 'setting' | 'dnt' | 'gpc' | 'url' | 'no-storage'
+
+export type PerfStatsInput = { option: boolean; urlParam?: string | null; doNotTrack?: string | null; globalPrivacyControl?: boolean }
+
 /**
- * Whether performance data may be sent. The player's setting decides, and a browser that says "do not track" or sends the global
- * privacy control signal turns it off too, even though the setting is on by default. `?stats=0` / `?stats=1` overrides all of it for a session.
+ * Why performance data may NOT be sent, undefined when it may. The player's setting decides, and a browser that says "do not track"
+ * or sends the global privacy control signal turns it off too, even though the setting is on by default.
+ * `?stats=0` / `?stats=1` overrides all of it for a session. The reason goes to the server (nothing else does) so the opt-out rate is visible.
  */
-export function perfStatsAllowed (input: { option: boolean; urlParam?: string | null; doNotTrack?: string | null; globalPrivacyControl?: boolean }): boolean {
-  if (input.urlParam === '0') return false
-  if (input.urlParam === '1') return true
-  if (!input.option) return false
-  return input.doNotTrack !== '1' && input.doNotTrack !== 'yes' && input.globalPrivacyControl !== true
+export function perfStatsOptOutReason (input: PerfStatsInput): OptOutReason | undefined {
+  if (input.urlParam === '0') return 'url'
+  if (input.urlParam === '1') return undefined
+  if (!input.option) return 'setting'
+  if (input.doNotTrack === '1' || input.doNotTrack === 'yes') return 'dnt'
+  if (input.globalPrivacyControl === true) return 'gpc'
+  return undefined
 }
+
+export const perfStatsAllowed = (input: PerfStatsInput): boolean => perfStatsOptOutReason(input) === undefined

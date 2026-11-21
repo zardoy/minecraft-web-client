@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FrameStats, buildPerfReport, perfStatsAllowed } from './perfStatsCore'
+import { FrameStats, buildPerfReport, perfStatsAllowed, perfStatsOptOutReason } from './perfStatsCore'
 
 const feed = (stats: FrameStats, count: number, dt: number, phase: 0 | 1 | 2) => {
   for (let i = 0; i < count; i++) stats.frame(dt, phase)
@@ -87,5 +87,16 @@ describe('buildPerfReport', () => {
     const parsed = JSON.parse(json)
     expect(parsed.v).toBe(1)
     expect(parsed.t).toBe(123)
+  })
+})
+
+describe('perfStatsOptOutReason', () => {
+  it('names why nothing is sent, so the server can count opt-outs by reason', () => {
+    expect(perfStatsOptOutReason({ option: true })).toBeUndefined()
+    expect(perfStatsOptOutReason({ option: false })).toBe('setting')
+    expect(perfStatsOptOutReason({ option: true, doNotTrack: '1' })).toBe('dnt')
+    expect(perfStatsOptOutReason({ option: true, globalPrivacyControl: true })).toBe('gpc')
+    expect(perfStatsOptOutReason({ option: true, urlParam: '0' })).toBe('url')
+    expect(perfStatsOptOutReason({ option: false, doNotTrack: '1' })).toBe('setting')
   })
 })
