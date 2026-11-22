@@ -73,7 +73,6 @@ import { appStatusState, quickDevReconnect } from './react/AppStatusProvider'
 import { fsState } from './loadSave'
 import { loadInMemorySave } from './react/SingleplayerProvider'
 
-import { possiblyHandleStateVariable } from './googledrive'
 import flyingSquidEvents from './flyingSquidEvents'
 import { showNotification } from './react/NotificationProvider'
 import { saveToBrowserMemory } from './react/PauseScreen'
@@ -1213,7 +1212,6 @@ const maybeEnterGame = () => {
     void downloadAndOpenFile()
   }
 
-  void possiblyHandleStateVariable()
 }
 
 // Skip game connection logic in playground mode

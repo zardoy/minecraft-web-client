@@ -19,9 +19,8 @@ import { createFullScreenProgressReporter } from './core/progressReporter'
 import { showNotification } from './react/NotificationProvider'
 import { resetAppStorage } from './react/appStorageProvider'
 import { ConnectOptions } from './connect'
-// NOT USED / NOT MIGRATED: the Google Drive world provider is a custom BrowserFS-only backend (google-drive-browserfs). It stays on BrowserFS and will NOT be ported to ZenFS (issue #113):
-// it is to be removed together with BrowserFS, not migrated. Do not build anything new on it.
-const { GoogleDriveFileSystem } = require('google-drive-browserfs/src/backends/GoogleDrive')
+// Google Drive world provider: DISABLED (commented out). Nobody uses it; it was a custom BrowserFS-only backend (google-drive-browserfs) and is NOT migrated to ZenFS (issue #113).
+// const { GoogleDriveFileSystem } = require('google-drive-browserfs/src/backends/GoogleDrive')
 
 browserfs.install(window)
 const defaultMountablePoints = {
@@ -243,36 +242,35 @@ export const mountExportFolder = async () => {
   return true
 }
 
-// NOT USED / NOT MIGRATED (see the require above): Google Drive stays on BrowserFS and is not ported to ZenFS
-let googleDriveFileSystem
-
-/** Only cached! */
-export const googleDriveGetFileIdFromPath = (path: string) => {
-  return googleDriveFileSystem._getExistingFileId(path)
-}
-
-export const mountGoogleDriveFolder = async (readonly: boolean, rootId: string) => {
-  googleDriveFileSystem = new GoogleDriveFileSystem()
-  googleDriveFileSystem.rootDirId = rootId
-  googleDriveFileSystem.isReadonly = readonly
-  await new Promise<void>(resolve => {
-    browserfs.configure({
-      fs: 'MountableFileSystem',
-      options: {
-        ...defaultMountablePoints,
-        '/google': googleDriveFileSystem
-      },
-    }, (e) => {
-      if (e) throw e
-      resolve()
-    })
-  })
-  fsState.isReadonly = readonly
-  fsState.syncFs = false
-  fsState.inMemorySave = false
-  fsState.remoteBackend = true
-  return true
-}
+// let googleDriveFileSystem
+//
+// /** Only cached! */
+// export const googleDriveGetFileIdFromPath = (path: string) => {
+//   return googleDriveFileSystem._getExistingFileId(path)
+// }
+//
+// export const mountGoogleDriveFolder = async (readonly: boolean, rootId: string) => {
+//   googleDriveFileSystem = new GoogleDriveFileSystem()
+//   googleDriveFileSystem.rootDirId = rootId
+//   googleDriveFileSystem.isReadonly = readonly
+//   await new Promise<void>(resolve => {
+//     browserfs.configure({
+//       fs: 'MountableFileSystem',
+//       options: {
+//         ...defaultMountablePoints,
+//         '/google': googleDriveFileSystem
+//       },
+//     }, (e) => {
+//       if (e) throw e
+//       resolve()
+//     })
+//   })
+//   fsState.isReadonly = readonly
+//   fsState.syncFs = false
+//   fsState.inMemorySave = false
+//   fsState.remoteBackend = true
+//   return true
+// }
 
 export async function removeFileRecursiveAsync (path, removeDirectoryItself = true) {
   const errors = [] as Array<[string, Error]>
