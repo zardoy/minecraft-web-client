@@ -70,6 +70,13 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
     return true
   }
 
+  if (texturepackUrl && (mapUrl || mapUrlDir?.length)) {
+    // a link with a map AND a resource pack (?texturepack=...&mapDir=...): the map branches below never look at the pack, so install the pack first (the texturepack-only path of
+    // this function), then open the map
+    await downloadAndOpenMapFromUrl(undefined, texturepackUrl, undefined, undefined)
+    texturepackUrl = undefined
+  }
+
   const mapUrlDirGuess = appQueryParams.mapDirGuess
   const mapUrlDirBaseUrl = appQueryParams.mapDirBaseUrl
   if (mapUrlDir?.length) {
