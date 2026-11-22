@@ -5,7 +5,7 @@ import { useUseIndicatorVisual } from './useItemIndicator'
 
 export default () => {
   // In VR the HUD is a floating panel and aiming doesn't follow it, a crosshair there points at nothing
-  const { inVrSession } = useSnapshot(appViewer.rendererState) as { inVrSession?: boolean }
+  const { inVrSession } = useSnapshot(appViewer.rendererState)
   const { itemUseSession } = useSnapshot(appViewer.playerState.reactive)
   const session = itemUseSession
   const action = session?.itemSnapshot.action
