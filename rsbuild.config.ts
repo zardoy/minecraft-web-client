@@ -189,6 +189,8 @@ const appConfig = defineConfig({
         define: {
             'process.env.BUILD_VERSION': JSON.stringify(!dev ? buildingVersion : 'undefined'),
             'process.env.BUILD_DISPLAY_DATE': JSON.stringify(buildDisplayDate),
+            // exact build time (ms) for "built 3h ago" in the main menu, production builds only like BUILD_VERSION
+            'process.env.BUILD_TIME': JSON.stringify(!dev ? String(buildTime.getTime()) : ''),
             'process.env.MAIN_MENU_LINKS': JSON.stringify(process.env.MAIN_MENU_LINKS),
             'process.env.SINGLE_FILE_BUILD': JSON.stringify(process.env.SINGLE_FILE_BUILD),
             'process.env.SLIM_BUILD': JSON.stringify(process.env.SLIM_BUILD),

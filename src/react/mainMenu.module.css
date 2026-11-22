@@ -112,6 +112,7 @@
     flex-direction: column;
     gap: 3;
     align-items: flex-end;
+    text-align: right;
     padding-right: calc(env(safe-area-inset-right) / 2);
 }
 
