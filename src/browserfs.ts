@@ -4,6 +4,8 @@ import fs from 'fs'
 import sanitizeFilename from 'sanitize-filename'
 import { oneOf } from '@zardoy/utils'
 import * as browserfs from 'browserfs'
+import { configure, promises as zenFsPromises, umount } from '@zenfs/core'
+import { Zip } from '@zenfs/archives'
 import { options, resetOptions } from './optionsStorage'
 
 import { fsState, loadSave } from './loadSave'
@@ -22,13 +24,16 @@ const { GoogleDriveFileSystem } = require('google-drive-browserfs/src/backends/G
 browserfs.install(window)
 const defaultMountablePoints = {
   '/data': { fs: 'IndexedDB' },
-  '/resourcepack': { fs: 'InMemory' }, // temporary storage for currently loaded resource pack
   '/temp': { fs: 'InMemory' }
 }
 const fallbackMountablePoints = {
-  '/resourcepack': { fs: 'InMemory' }, // temporary storage for downloaded server resource pack
   '/temp': { fs: 'InMemory' }
 }
+// paths served by ZenFS (the newer fs, issue #113) instead of BrowserFS. /resourcepack is a read-only mount of the server resource pack zip (see mountServerResourcePack),
+// so the pack is never copied file by file
+const newFsMounts = [
+  '/resourcepack'
+]
 browserfs.configure({
   fs: 'MountableFileSystem',
   options: defaultMountablePoints,
@@ -93,7 +98,8 @@ fs.promises = new Proxy(Object.fromEntries(['readFile', 'writeFile', 'stat', 'mk
       } else if (p === 'writeFile') {
         fsState.openWriteOperations++
       }
-      return target[p](...args).finally(() => {
+      const fsPromises = typeof args[0] === 'string' && newFsMounts.some(m => args[0] === m || args[0].startsWith(m + '/')) ? zenFsPromises : target
+      return fsPromises[p](...args).finally(() => {
         if (p === 'readFile') {
           fsState.openReadOperations--
         } else if (p === 'writeFile') {
@@ -560,6 +566,24 @@ export const openWorldFromHttpDir = async (fileDescriptorUrls: string[]/*  | und
   fsState.remoteBackend = true
 
   await loadSave()
+}
+
+/** Mounts a resource pack zip read-only at /resourcepack (ZenFS), replacing the previous one. Nothing is extracted or copied. */
+export const mountServerResourcePack = async (file: ArrayBuffer) => {
+  unmountServerResourcePack()
+  await configure({
+    mounts: {
+      '/resourcepack': { backend: Zip, data: file },
+    },
+  })
+}
+
+export const unmountServerResourcePack = () => {
+  try {
+    umount('/resourcepack')
+  } catch {
+    // not mounted
+  }
 }
 
 // todo rename method

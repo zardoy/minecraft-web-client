@@ -86,6 +86,12 @@ importers:
       '@zardoy/utils':
         specifier: ^0.0.11
         version: 0.0.11
+      '@zenfs/archives':
+        specifier: ^1.5.0
+        version: 1.5.0(@zenfs/core@2.9.0)(kerium@1.5.0)(memium@1.1.2)(utilium@3.13.0)
+      '@zenfs/core':
+        specifier: ^2.9.0
+        version: 2.9.0
       adm-zip:
         specifier: ^0.5.12
         version: 0.5.16
@@ -3117,6 +3123,9 @@ packages:
   '@types/node@22.13.9':
     resolution: {integrity: sha512-acBjXdRJ3A6Pb3tqnw9HZmyR3Fiol3aGxRCK1x3d+6CDAMjl7I649wpSd+yNURCjbOUGu9tqtLKnTGxmK6CyGw==}
 
+  '@types/node@26.6.6':
+    resolution: {integrity: sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==}
+
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
 
@@ -3426,6 +3435,24 @@ packages:
   '@zardoy/utils@0.0.11':
     resolution: {integrity: sha512-d6xBnSFCOa98HcL52xSBflJKjKpxfRhtr1eVexy89YujeCHSQhUMmSz9h07xyrulfW60k9tSeYH5reuqoh4l4w==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+
+  '@zenfs/archives@1.5.0':
+    resolution: {integrity: sha512-va+kHPhQ1EVQAv838BAh+APxyfhOxqJ/KlbIMVANEFxxBKtqB6TWExbGyLI67NpuCGZJLC7l8xvlpVvYKYNWRg==}
+    engines: {node: '>= 20'}
+    peerDependencies:
+      '@zenfs/core': ^2.6.0
+      kerium: ^1.4.2
+      memium: ^1.0.0
+      utilium: ^3.0.0
+
+  '@zenfs/core@2.9.0':
+    resolution: {integrity: sha512-CG22M9+1my323VjIxPS69zicW354WAHjhOPhMjSOvwyGayGe9Hlr1VcE2/qVxgXVXq7cX1cjeyu8WgpBu7IWVw==}
+    engines: {node: '>= 18'}
+    hasBin: true
+
+  '@zenfs/streams@1.0.2':
+    resolution: {integrity: sha512-qSq9tgDe7kG6i5L6IA9yVgKXjggO2tJb1SehQsSRnA7vP3VQqnyo7wNFK+DthEetM2dK+YXkqmgjrE67lQkoqg==}
+    engines: {node: '>= 22'}
 
   Base64@0.2.1:
     resolution: {integrity: sha512-reGEWshDmTDQDsCec/HduOO9Wyj6yMOupMfhIf3ugN1TDlK2NQW4DDJSqNNtp380SNcvRfXtO8HSCQot0d0SMw==}
@@ -4867,6 +4894,9 @@ packages:
   eventemitter3@4.0.7:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
 
+  eventemitter3@5.0.4:
+    resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
+
   events@3.3.0:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
@@ -5874,6 +5904,9 @@ packages:
   jws@3.2.2:
     resolution: {integrity: sha512-YHlZCB6lMTllWDtSPHz/ZXTsi8S00usEV6v1tjq8tOUZzw7DpSDWVXjXDre6ed1w/pd495ODpHZYSdkRTsa0HA==}
 
+  kerium@1.5.0:
+    resolution: {integrity: sha512-HJMvcFmkMR92VU4KRnvoibz6amtfR3bDUVcW03iluragLB2DFvZUE2myyhipnrCnOqXRnVo/Y7RkXCI3Hc3odA==}
+
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
@@ -6141,6 +6174,9 @@ packages:
   memfs@4.17.0:
     resolution: {integrity: sha512-4eirfZ7thblFmqFjywlTmuWVSvccHAJbn1r8qQLzmTO11qcqpohOjmY2mFce6x7x7WtskzRqApPD0hv+Oa74jg==}
     engines: {node: '>= 4.0.0'}
+
+  memium@1.1.2:
+    resolution: {integrity: sha512-2hPA9BHUcZRAkyxp4TTN1mNUMV/FvAB1MiWvNCyCDv8iDzPaI2/TSqkdUygdBZEcXPhuOC+2ULjW3JMZBnofdw==}
 
   memoize-one@6.0.0:
     resolution: {integrity: sha512-rkpe71W0N0c0Xz6QD0eJETuWAJGnJ9afsl1srmwPrI+yBCkge5EycXXbYRyvL29zZVUWQCY7InPRCv3GDXuZNw==}
@@ -8331,6 +8367,9 @@ packages:
   undici-types@6.20.0:
     resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
 
+  undici-types@8.9.0:
+    resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
+
   undici@6.0.1:
     resolution: {integrity: sha512-eZFYQLeS9BiXpsU0cuFhCwfeda2MnC48EVmmOz/eCjsTgmyTdaHdVsPSC/kwC2GtW2e0uH0HIPbadf3/bRWSxw==}
     engines: {node: '>=18.0'}
@@ -8505,6 +8544,11 @@ packages:
 
   util@0.12.5:
     resolution: {integrity: sha512-kZf/K6hEIrWHI6XqOFUiiMa+79wE/D8Q+NCNAWclkyg3b4d2k7s0QGepNjiABc+aR3N1PAyHL7p6UcLY6LmrnA==}
+
+  utilium@3.13.0:
+    resolution: {integrity: sha512-gc1qElFSKEKLSuaD9OBjHL8LSnVh2FudLkWnDhfp8uTVeMB8W/C6Sm1uyK6wqp98SO2695Z5slY6ph0BejqyHg==}
+    engines: {node: '>=22'}
+    hasBin: true
 
   utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
@@ -12141,6 +12185,10 @@ snapshots:
     dependencies:
       undici-types: 6.20.0
 
+  '@types/node@26.6.6':
+    dependencies:
+      undici-types: 8.9.0
+
   '@types/normalize-package-data@2.4.4': {}
 
   '@types/offscreencanvas@2019.7.3': {}
@@ -12576,6 +12624,29 @@ snapshots:
       lodash.compact: 3.0.1
       rambda: 6.9.0
       type-fest: 2.19.0
+
+  '@zenfs/archives@1.5.0(@zenfs/core@2.9.0)(kerium@1.5.0)(memium@1.1.2)(utilium@3.13.0)':
+    dependencies:
+      '@zenfs/core': 2.9.0
+      fflate: 0.8.3
+      kerium: 1.5.0
+      memium: 1.1.2
+      utilium: 3.13.0
+
+  '@zenfs/core@2.9.0':
+    dependencies:
+      '@types/node': 26.6.6
+      '@zenfs/streams': 1.0.2
+      buffer: 6.0.3
+      eventemitter3: 5.0.4
+      kerium: 1.5.0
+      memium: 1.1.2
+      utilium: 3.13.0
+
+  '@zenfs/streams@1.0.2':
+    dependencies:
+      '@types/node': 26.6.6
+      buffer: 6.0.3
 
   Base64@0.2.1: {}
 
@@ -14479,6 +14550,8 @@ snapshots:
 
   eventemitter3@4.0.7: {}
 
+  eventemitter3@5.0.4: {}
+
   events@3.3.0: {}
 
   evp_bytestokey@1.0.3:
@@ -15635,6 +15708,10 @@ snapshots:
       jwa: 1.4.1
       safe-buffer: 5.2.1
 
+  kerium@1.5.0:
+    dependencies:
+      utilium: 3.13.0
+
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
@@ -15944,6 +16021,11 @@ snapshots:
       '@jsonjoy.com/util': 1.5.0(tslib@2.8.1)
       tree-dump: 1.0.2(tslib@2.8.1)
       tslib: 2.8.1
+
+  memium@1.1.2:
+    dependencies:
+      kerium: 1.5.0
+      utilium: 3.13.0
 
   memoize-one@6.0.0: {}
 
@@ -18695,6 +18777,8 @@ snapshots:
 
   undici-types@6.20.0: {}
 
+  undici-types@8.9.0: {}
+
   undici@6.0.1:
     dependencies:
       '@fastify/busboy': 2.1.1
@@ -18875,6 +18959,10 @@ snapshots:
       is-generator-function: 1.1.0
       is-typed-array: 1.1.15
       which-typed-array: 1.1.18
+
+  utilium@3.13.0:
+    dependencies:
+      eventemitter3: 5.0.4
 
   utils-merge@1.0.1: {}
 

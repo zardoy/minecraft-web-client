@@ -64,6 +64,8 @@
     "@xmcl/text-component": "^2.1.3",
     "@zardoy/react-util": "^0.2.4",
     "@zardoy/utils": "^0.0.11",
+    "@zenfs/archives": "^1.5.0",
+    "@zenfs/core": "^2.9.0",
     "adm-zip": "^0.5.12",
     "browserfs": "github:zardoy/browserfs#build",
     "change-case": "^5.1.2",
