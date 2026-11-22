@@ -262,10 +262,10 @@ const appConfig = defineConfig({
                         childProcess.execSync('tsx ./scripts/optimizeBlockCollisions.ts', { stdio: 'inherit' })
                     }
                     // childProcess.execSync(['tsx', './scripts/genLargeDataAliases.ts', ...(SINGLE_FILE_BUILD ? ['--compressed'] : [])].join(' '), { stdio: 'inherit' })
-                    // production: the large data ships compressed (base64 deflate, inflated once at startup, the text is then freed). ~64 MB less memory for the
-                    // whole session (the raw json stays in memory twice: script source + parsed constant) and on an iPhone 14 Pro the data was ready 2-6x sooner
-                    // (3.2 vs 18.3 MB). ALWAYS_COMPRESS_LARGE_DATA=false opts out, =true compresses dev builds too.
-                    genLargeDataAliases(SINGLE_FILE_BUILD || (dev ? process.env.ALWAYS_COMPRESS_LARGE_DATA === 'true' : process.env.ALWAYS_COMPRESS_LARGE_DATA !== 'false'))
+                    // the large data ships compressed (base64 deflate, inflated once at startup, the text is then freed): ~64 MB less memory for the whole session
+                    // (the raw json stays in memory twice: script source + parsed constant), and on an iPhone 14 Pro the data was ready 2-6x sooner (3.2 vs 18.3 MB).
+                    // Dev too, so phones behave the same in dev (the compressed files are generated anyway). ALWAYS_COMPRESS_LARGE_DATA=false opts out.
+                    genLargeDataAliases(SINGLE_FILE_BUILD || process.env.ALWAYS_COMPRESS_LARGE_DATA !== 'false')
                     fs.mkdirSync('./dist', { recursive: true })
                     if (!SINGLE_FILE_BUILD && fs.existsSync('./generated/gendata-ext.zip')) {
                         fs.copyFileSync('./generated/gendata-ext.zip', './dist/gendata-ext.zip')
