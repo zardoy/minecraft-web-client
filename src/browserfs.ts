@@ -19,6 +19,8 @@ import { createFullScreenProgressReporter } from './core/progressReporter'
 import { showNotification } from './react/NotificationProvider'
 import { resetAppStorage } from './react/appStorageProvider'
 import { ConnectOptions } from './connect'
+// NOT USED / NOT MIGRATED: the Google Drive world provider is a custom BrowserFS-only backend (google-drive-browserfs). It stays on BrowserFS and will NOT be ported to ZenFS (issue #113):
+// it is to be removed together with BrowserFS, not migrated. Do not build anything new on it.
 const { GoogleDriveFileSystem } = require('google-drive-browserfs/src/backends/GoogleDrive')
 
 browserfs.install(window)
@@ -241,6 +243,7 @@ export const mountExportFolder = async () => {
   return true
 }
 
+// NOT USED / NOT MIGRATED (see the require above): Google Drive stays on BrowserFS and is not ported to ZenFS
 let googleDriveFileSystem
 
 /** Only cached! */
