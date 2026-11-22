@@ -24,7 +24,8 @@
     },
     "include": [
         "src",
-        "cypress",
+        "e2e",
+        "playwright.config.ts",
     ],
     "exclude": [
         "node_modules"
