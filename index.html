@@ -240,8 +240,12 @@
     <meta name="format-detection" content="telephone=no">
   </head>
   <body>
-    <div id="react-root"></div>
-    <div id="ui-root"></div>
+    <!-- #game-ui is moved into the canvas as one panel during VR sessions, keep in-game UI inside it -->
+    <div id="game-ui">
+      <div id="react-root"></div>
+      <div id="ui-root"></div>
+      <div id="ui-portals"></div>
+    </div>
     <!-- inject script -->
   </body>
 </html>

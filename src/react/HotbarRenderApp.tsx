@@ -208,6 +208,7 @@ export default () => {
   return gameMode === 'spectator' ? null : <HotbarInner />
 }
 
-const Portal = ({ children, to = document.body }) => {
+// inside #game-ui so the hotbar is part of the VR UI panel
+const Portal = ({ children, to = document.getElementById('ui-portals') ?? document.body }) => {
   return createPortal(children, to)
 }
