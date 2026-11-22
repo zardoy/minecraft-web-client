@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import './dev/memoryBallast'
 import './importsWorkaround'
 import './styles.css'
 import './testCrasher'
@@ -56,6 +57,8 @@ import {
 
 import { parseServerAddress } from './parseServerAddress'
 import { setLoadingScreenStatus, lastConnectOptions, formatLoadingScreenError } from './appStatus'
+import { beginLoadingStage, onConnectionStateChanged, reportLoadingStage, startServerLoadingProgress, startSingleplayerLoadingProgress } from './loadingProgress'
+import { CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES } from './cypressFlatWorld'
 import { isCypress } from './standaloneUtils'
 
 import { startLocalServer, unsupportedLocalServerFeatures } from './createLocalServer'
@@ -99,9 +102,13 @@ import { registerOpenBenchmarkListener } from './benchmark'
 import { tryHandleBuiltinCommand } from './builtinCommands'
 import { loadingTimerState } from './react/LoadingTimer'
 import { loadPluginsIntoWorld } from './react/CreateWorldProvider'
-import { getCurrentProxy, getCurrentUsername } from './react/ServersList'
+import { appStorage } from './react/appStorageProvider'
+import { selectBestProxy } from './core/proxyAutoSelect'
+import { resolveAuthProxy } from './core/authProxy'
+import { getConnectProxy, getCurrentUsername, getProxiesData } from './react/ServersList'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { isPlayground } from './playgroundIntegration'
+import { isWorldgenPerf, startWorldgenPerf } from './worldgen/perf'
 import { appLoadBackend } from './appViewerLoad'
 import { getCameraMovementMode, shouldSnapCameraOnMount } from './cameraMovementMode'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
@@ -110,9 +117,10 @@ window.debug = debug
 
 // ACTUAL CODE
 
-if (!isPlayground) {
+if (!isPlayground && !isWorldgenPerf) {
   void appLoadBackend()
 }
+if (isWorldgenPerf) startWorldgenPerf()
 if (isPlayground) {
   void import('minecraft-renderer/src/playground/playground')
 }
@@ -129,8 +137,9 @@ if (appQueryParams.testCrashApp === '2') throw new Error('test')
 
 function hideCurrentScreens () {
   const appStatus = activeModalStack.find(x => x.reactType === 'app-status')
-  activeModalStacks['main-menu'] = activeModalStack.filter(x => x !== appStatus)
-  insertActiveModalStack('', appStatus ? [appStatus] : [])
+  const keepOpen = activeModalStack.filter(x => x === appStatus || x.reactType === 'voice-chat-consent')
+  activeModalStacks['main-menu'] = activeModalStack.filter(x => !keepOpen.includes(x))
+  insertActiveModalStack('', keepOpen)
 }
 
 const loadSingleplayer = (serverOverrides = {}, flattenedServerOverrides = {}, connectOptions?: Partial<ConnectOptions>) => {
@@ -162,6 +171,14 @@ function listenGlobalEvents () {
     const { connectOptions, ...rest } = detail
     loadSingleplayer(rest, {}, connectOptions)
   })
+}
+
+const CHUNKS_STALL_TIMEOUT_MS = 20_000
+
+/** the loading screen stays until the chunks around the player are loaded (`?sp=1` is the quick start for development and never waits) */
+const shouldWaitForChunks = (singleplayer: boolean) => {
+  if (appQueryParams.sp === '1') return false
+  return options.waitForChunksRender === 'sp-only' ? singleplayer : !!options.waitForChunksRender
 }
 
 export async function connect (connectOptions: ConnectOptions) {
@@ -214,8 +231,6 @@ export async function connect (connectOptions: ConnectOptions) {
     const https = connectOptions.proxy.startsWith('https://') || location.protocol === 'https:'
     connectOptions.proxy = `${connectOptions.proxy}:${https ? 443 : 80}`
   }
-  const parsedProxy = parseServerAddress(connectOptions.proxy, false)
-  const proxy = { host: parsedProxy.host, port: parsedProxy.port }
   let { username } = connectOptions
 
   if (connectOptions.server) {
@@ -226,6 +241,15 @@ export async function connect (connectOptions: ConnectOptions) {
   const progress = createFullScreenProgressReporter()
   const loggingInMsg = connectOptions.server ? 'Connecting to server' : 'Logging in'
   progress.beginStage('connect', loggingInMsg)
+  if (connectOptions.server && !singleplayer && !p2pMultiplayer && !connectOptions.viewerWsConnect && !connectOptions.worldStateFileContents) {
+    const { proxies, isAutoSelect } = getProxiesData()
+    startServerLoadingProgress({
+      autoProxy: !parsedServer.isWebSocket && !connectOptions.proxy && !!isAutoSelect && proxies.length > 0,
+      autoVersion: !connectOptions.botVersion,
+      microsoftAuth: !!connectOptions.authenticatedAccount,
+      waitForChunks: shouldWaitForChunks(false)
+    })
+  }
 
   let ended = false
   let bot!: typeof __type_bot
@@ -243,9 +267,10 @@ export async function connect (connectOptions: ConnectOptions) {
     errorAbortController.abort()
     ended = true
     progress.end()
-    bot.end()
+    // bot doesn't exist yet when connection setup fails early (e.g. mesher preload error)
+    bot?.end()
     // ensure mineflayer plugins receive this event for cleanup
-    bot.emit('end', '')
+    bot?.emit('end', '')
 
     miscUiState.disconnectedCleanup = {
       callback () {
@@ -336,6 +361,28 @@ export async function connect (connectOptions: ConnectOptions) {
   let clientDataStream: Duplex | undefined
 
   if (connectOptions.server && !connectOptions.viewerWsConnect && !parsedServer.isWebSocket) {
+    const { proxies, isAutoSelect } = getProxiesData()
+    if (!connectOptions.proxy && isAutoSelect && proxies.length > 0) {
+      setLoadingScreenStatus('Selecting best proxy...')
+      beginLoadingStage('proxy')
+      const bestProxy = await selectBestProxy(proxies)
+      if (bestProxy) {
+        connectOptions.proxy = bestProxy
+      } else {
+        let message = 'Failed to find a working proxy.'
+        if (navigator.onLine) {
+          message += '\n\nWe tried these proxies but none of them worked, try opening any of these urls in your browser:'
+          message += `\n${proxies.join('\n')}`
+        } else {
+          message += '\n\nYour device appears to be offline. Please check your internet connection and try again.'
+        }
+        setLoadingScreenStatus(message, true)
+        return
+      }
+    }
+
+    const parsedProxy = parseServerAddress(connectOptions.proxy, false)
+    const proxy = { host: parsedProxy.host, port: parsedProxy.port }
     console.log(`using proxy ${proxy.host}:${proxy.port || location.port}`)
     net['setProxy']({ hostname: proxy.host, port: proxy.port, headers: { Authorization: `Bearer ${new URLSearchParams(location.search).get('token') ?? ''}` }, artificialDelay: appQueryParams.addPing ? Number(appQueryParams.addPing) : undefined })
   }
@@ -375,6 +422,7 @@ export async function connect (connectOptions: ConnectOptions) {
       if (dataDownloaded) return
       dataDownloaded = true
       appViewer.resourcesManager.currentConfig = { version, texturesVersion: options.useVersionsTextures || undefined }
+      beginLoadingStage('textures')
 
       await progress.executeWithMessage(
         'Processing downloaded Minecraft data',
@@ -454,6 +502,7 @@ export async function connect (connectOptions: ConnectOptions) {
         console.log('Server plugins placed')
       }
 
+      startSingleplayerLoadingProgress({ waitForChunks: shouldWaitForChunks(true) })
       localServer = window.localServer = window.server = startLocalServer(serverOptions)
       connectOptions?.connectEvents?.serverCreated?.()
       // todo need just to call quit if started
@@ -488,6 +537,7 @@ export async function connect (connectOptions: ConnectOptions) {
       if (!finalVersion) {
         const versionAutoSelect = getVersionAutoSelect()
         const wrapped = createWrappedProgressReporter(progress, `Fetching server version. Preffered: ${versionAutoSelect}`)
+        beginLoadingStage('version')
         loadingTimerState.networkOnlyStart = Date.now()
         const autoVersionSelect = await getServerInfo(server.host, server.port ? Number(server.port) : undefined, versionAutoSelect)
         wrapped.end()
@@ -513,9 +563,12 @@ export async function connect (connectOptions: ConnectOptions) {
     const cachedTokens = typeof connectOptions.authenticatedAccount === 'object' ? connectOptions.authenticatedAccount.cachedTokens : {}
     let authData: Awaited<ReturnType<typeof microsoftAuthflow>> | undefined
     if (connectOptions.authenticatedAccount) {
+      beginLoadingStage('auth')
+      const proxiesData = getProxiesData()
       authData = await microsoftAuthflow({
         tokenCaches: cachedTokens,
-        proxyBaseUrl: connectOptions.proxy,
+        // a direct WebSocket server has no proxy of its own, but signing in still needs one
+        proxyBaseUrl: await resolveAuthProxy({ proxy: connectOptions.proxy, selected: proxiesData.selected || undefined, proxies: proxiesData.proxies, isAutoSelect: proxiesData.isAutoSelect }, selectBestProxy),
         setProgressText (text) {
           progress.setMessage(text)
         },
@@ -558,6 +611,7 @@ export async function connect (connectOptions: ConnectOptions) {
     }
 
     const brand = clientDataStream ? 'minecraft-web-client' : undefined
+    beginLoadingStage('connect')
     bot = mineflayer.createBot({
       host: server.host,
       port: server.port ? +server.port : undefined,
@@ -736,6 +790,7 @@ export async function connect (connectOptions: ConnectOptions) {
   }
   bot._client.on('packet', packetBeforePlay as any)
   const playStateSwitch = (newState) => {
+    onConnectionStateChanged(newState)
     if (newState === 'play') {
       bot._client.removeListener('packet', packetBeforePlay)
     }
@@ -766,23 +821,29 @@ export async function connect (connectOptions: ConnectOptions) {
     errorAbortController.abort()
     loadingTimerState.networkOnlyStart = 0
     progress.setMessage('Loading world')
+    beginLoadingStage('join')
   })
 
   let worldWasReady = false
   const waitForChunksToLoad = async (progress?: ProgressReporter) => {
     await new Promise<void>(resolve => {
-      if (worldWasReady) {
+      const chunksReady = () => appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber
+      if (worldWasReady || chunksReady()) {
+        worldWasReady = true
         resolve()
         return
       }
       const unsub = subscribe(appViewer.rendererState, () => {
-        if (appViewer.rendererState.world.allChunksLoaded && appViewer.nonReactiveState.world.chunksTotalNumber) {
+        if (chunksReady()) {
           worldWasReady = true
           resolve()
           unsub()
         } else {
-          const perc = Math.round(Object.keys(appViewer.rendererState.world.chunksLoaded).length / appViewer.nonReactiveState.world.chunksTotalNumber * 100)
+          const loaded = Object.keys(appViewer.rendererState.world.chunksLoaded).length
+          const total = appViewer.nonReactiveState.world.chunksTotalNumber
+          const perc = Math.round(loaded / total * 100)
           progress?.reportProgress('chunks', perc / 100)
+          reportLoadingStage('chunks', loaded / total, `${loaded} / ${total}`)
         }
       })
     })
@@ -820,6 +881,7 @@ export async function connect (connectOptions: ConnectOptions) {
       playerState.reactive.onlineMode = !!connectOptions.authenticatedAccount
 
       progress.setMessage('Placing blocks (starting viewer)')
+      beginLoadingStage('viewer')
       if (!connectOptions.worldStateFileContents || connectOptions.worldStateFileContents.length < 3 * 1024 * 1024) {
         localStorage.lastConnectOptions = JSON.stringify(connectOptions)
         if (process.env.NODE_ENV === 'development' && !localStorage.lockUrl && !location.search.slice(1).length) {
@@ -877,19 +939,34 @@ export async function connect (connectOptions: ConnectOptions) {
       if (appStatusState.isError) return
 
       const waitForChunks = async () => {
-        if (appQueryParams.sp === '1') return //todo
-        const waitForChunks = options.waitForChunksRender === 'sp-only' ? !!singleplayer : options.waitForChunksRender
-        if (!appViewer.backend || appViewer.rendererState.world.allChunksLoaded || !waitForChunks) {
+        if (!appViewer.backend || appViewer.rendererState.world.allChunksLoaded || !shouldWaitForChunks(!!singleplayer)) {
           return
         }
 
+        beginLoadingStage('chunks')
+        // a chunk that never arrives must not keep the loading screen forever: stop waiting when no chunk was added for a while
+        let stallTimer: ReturnType<typeof setInterval> | undefined
+        const stalled = new Promise<void>(resolve => {
+          let lastCount = -1
+          let lastChange = Date.now()
+          stallTimer = setInterval(() => {
+            const count = Object.keys(appViewer.rendererState.world.chunksLoaded).length
+            if (count !== lastCount) {
+              lastCount = count
+              lastChange = Date.now()
+            } else if (Date.now() - lastChange > CHUNKS_STALL_TIMEOUT_MS) {
+              console.warn('No new chunk for', CHUNKS_STALL_TIMEOUT_MS / 1000, 's, showing the world anyway')
+              resolve()
+            }
+          }, 1000)
+        })
         await progress.executeWithMessage(
           'Loading chunks',
           'chunks',
           async () => {
-            await waitForChunksToLoad(progress)
+            await Promise.race([waitForChunksToLoad(progress), stalled])
           }
-        )
+        ).finally(() => { clearInterval(stallTimer) })
       }
 
       await waitForChunks()
@@ -1040,7 +1117,13 @@ const maybeEnterGame = () => {
 
   if (appQueryParams.singleplayer === '1' || appQueryParams.sp === '1') {
     return waitForConfigFsLoad(async () => {
-      loadSingleplayer({}, {
+      loadSingleplayer({
+        ...appQueryParams.seed !== undefined && appQueryParams.seed !== ''
+          ? { generation: { name: 'noise', options: { seed: appQueryParams.seed } } }
+          : isCypress()
+            ? CYPRESS_SINGLEPLAYER_FLAT_OVERRIDES
+            : {}
+      }, {
         worldFolder: undefined,
         ...appQueryParams.version ? { version: appQueryParams.version } : {}
       })
@@ -1064,7 +1147,7 @@ const maybeEnterGame = () => {
       if (appQueryParams.autoConnect && miscUiState.appConfig?.allowAutoConnect) {
         void connect({
           server: appQueryParams.ip,
-          proxy: getCurrentProxy(),
+          proxy: getConnectProxy(),
           botVersion: appQueryParams.version ?? undefined,
           username: getCurrentUsername()!,
         })
@@ -1134,7 +1217,7 @@ const maybeEnterGame = () => {
 }
 
 // Skip game connection logic in playground mode
-if (!isPlayground) {
+if (!isPlayground && !isWorldgenPerf) {
   try {
     maybeEnterGame()
   } catch (err) {

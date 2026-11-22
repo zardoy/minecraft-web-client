@@ -14,6 +14,7 @@ import { gameAdditionalState, miscUiState } from './globalState'
 import { watchUnloadForCleanup } from './gameUnload'
 import { createConsoleLogProgressReporter, createFullScreenProgressReporter, ProgressReporter } from './core/progressReporter'
 import { inventoryBundledConfig } from './react/inventory/inventoryTexturesConfig'
+import { reportResourcePackDownload } from './loadingProgress'
 
 export const resourcePackState = proxy({
   resourcePackInstalled: false,
@@ -128,7 +129,14 @@ export const completeResourcepackPackInstall = async (displayName: string | unde
     await fs.promises.writeFile(join(basePath, 'name.txt'), displayName, 'utf8')
   }
 
-  await updateTextures(progressReporter)
+  try {
+    await updateTextures(progressReporter)
+  } catch (err) {
+    // installed from a link before any world was opened (a ?texturepack= link): the resources manager has no config yet. The files are in place, the pack is enabled below and the
+    // textures are built from it when the world starts
+    if (!(err instanceof Error) || !err.message.includes('No config loaded')) throw err
+    console.log('resource pack installed: textures will be applied when a world opens')
+  }
   if (currentErrors.length > 0) {
     showNotification(`Resource pack installed & enabled with ${currentErrors.length} errors`)
     console.error('Resource pack installed & enabled with errors:', currentErrors)
@@ -454,6 +462,7 @@ const downloadAndUseResourcePack = async (url: string, progressReporter: Progres
     const total = contentLength ? parseInt(contentLength, 10) : 0
     let loaded = 0
 
+    reportResourcePackDownload(0, total)
     const reader = response.body!.getReader()
     const chunks: Uint8Array[] = []
 
@@ -464,6 +473,7 @@ const downloadAndUseResourcePack = async (url: string, progressReporter: Progres
 
       chunks.push(value)
       loaded += value.length
+      reportResourcePackDownload(loaded, total)
 
       if (total) {
         const progress = Math.round((loaded / total) * 100)

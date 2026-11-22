@@ -23,7 +23,7 @@ watchValue(options, o => {
   // gui scale is set in scaleInterface.ts
 })
 const updateTouch = (o) => {
-  miscUiState.currentTouch = o.alwaysShowMobileControls || isMobile()
+  miscUiState.currentTouch = !o.forceDisableTouchControls && (o.alwaysShowMobileControls || isMobile())
 }
 watchValue(options, updateTouch)
 window.matchMedia('(pointer: coarse)').addEventListener('change', (e) => {
@@ -46,19 +46,11 @@ export const watchOptionsAfterViewerInit = () => {
     appViewer.inWorldRenderingConfig.volume = Math.max(o.volume / 100, 0)
   })
 
-  watchValue(options, o => {
-    appViewer.inWorldRenderingConfig.smartCull = o.rendererSmartCull
-    const worldRenderer = window.world
-    if (worldRenderer) {
-      worldRenderer.reactiveDebugParams.smartCull = true
-    }
-  })
-
   subscribeKey(options, 'newVersionsLighting', () => {
     applyRendererEnableLighting(
       appViewer,
       options.newVersionsLighting,
-      bot.supportFeature('blockStateId')
+      typeof bot === 'undefined' || !bot ? false : bot.supportFeature('blockStateId')
     )
   })
 

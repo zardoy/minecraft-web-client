@@ -9,6 +9,7 @@ export const displayHintsState = proxy({
   captureMouseHint: false
 })
 
+// automated browsers (chrome devtools / puppeteer / playwright set navigator.webdriver) never capture the mouse, the hint only covers screenshots
 export default () => {
   const { captureMouseHint } = useSnapshot(displayHintsState)
   const { usingGamepadInput } = useSnapshot(miscUiState)
@@ -44,7 +45,7 @@ export default () => {
     pointerEvents: 'none',
     textShadow: '0 0 1px black'
   }}>
-    {captureMouseHint && !usingTouch && !usingGamepadInput && !acitveModals && inRealGameSession && <div style={{
+    {captureMouseHint && !usingTouch && !usingGamepadInput && !acitveModals && inRealGameSession && !navigator.webdriver && <div style={{
       display: 'flex',
       alignItems: 'center',
       gap: '10px',

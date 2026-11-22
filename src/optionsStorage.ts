@@ -26,16 +26,37 @@ export const serverChangedSettings = proxy({
   value: new Set<string>()
 })
 
+const isDeepEqual = (a: any, b: any): boolean => {
+  if (a === b) return true
+  if (typeof a !== typeof b) return false
+  if (typeof a !== 'object') return false
+  if (a === null || b === null) return a === b
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false
+    return a.every((item, index) => isDeepEqual(item, b[index]))
+  }
+  const keysA = Object.keys(a)
+  const keysB = Object.keys(b)
+  if (keysA.length !== keysB.length) return false
+  return keysA.every(key => isDeepEqual(a[key], b[key]))
+}
+
+/** the touch button layout that was the default until the layout moved jump / sneak up (it was saved for everyone, see below) */
+const PREVIOUS_DEFAULT_TOUCH_POSITIONS = { action: [70, 76], sneak: [84, 76], break: [70, 57], jump: [84, 57] }
+
 const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
-  if (Object.keys(options.touchControlsPositions ?? {}).length === 0) {
-    options.touchControlsPositions = defaultOptions.touchControlsPositions
+  // `options` are the saved changes: this used to copy the default layout into them for every player, which froze it (a new default never
+  // reached anyone). A saved layout that is just a default (empty, or the previous default) is dropped, so the current default applies.
+  if (Object.keys(options.touchControlsPositions ?? {}).length === 0 || isDeepEqual(options.touchControlsPositions, PREVIOUS_DEFAULT_TOUCH_POSITIONS)) {
+    delete options.touchControlsPositions
   }
   if (options.jeiEnabled) {
     options.inventoryJeiEnabled = options.jeiEnabled
     delete options.jeiEnabled
   }
-  if (options.touchControlsPositions?.jump === undefined) {
-    options.touchControlsPositions!.jump = defaultOptions.touchControlsPositions.jump
+  // a layout saved before the jump button existed
+  if (options.touchControlsPositions && options.touchControlsPositions.jump === undefined) {
+    options.touchControlsPositions.jump = defaultOptions.touchControlsPositions.jump
   }
   if (options.touchControlsType === 'joystick-buttons') {
     options.touchInteractionType = 'buttons'
@@ -61,21 +82,6 @@ const migrateOptions = (options: Partial<AppOptions & Record<string, any>>) => {
 }
 
 export type AppOptions = typeof defaultOptions
-
-const isDeepEqual = (a: any, b: any): boolean => {
-  if (a === b) return true
-  if (typeof a !== typeof b) return false
-  if (typeof a !== 'object') return false
-  if (a === null || b === null) return a === b
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false
-    return a.every((item, index) => isDeepEqual(item, b[index]))
-  }
-  const keysA = Object.keys(a)
-  const keysB = Object.keys(b)
-  if (keysA.length !== keysB.length) return false
-  return keysA.every(key => isDeepEqual(a[key], b[key]))
-}
 
 export const getChangedSettings = () => {
   return Object.fromEntries(
@@ -123,6 +129,14 @@ subscribe(options, (ops) => {
     // }
     const key = path[0] as string
     if (disabledSettings.value.has(key) || serverChangedSettings.value.has(key)) continue
+    // a value equal to the default is not a change: keeping it saved would freeze today's default for this player (a later default
+    // would never reach them, which happened to the touch button layout)
+    const defaults = initialAppConfig.defaultSettings as Record<string, unknown> | undefined
+    const defaultValue = defaults && key in defaults ? defaults[key] : defaultOptions[key as keyof typeof defaultOptions]
+    if (isDeepEqual(options[key], defaultValue)) {
+      delete appStorage.changedSettings[key]
+      continue
+    }
     appStorage.changedSettings[key] = options[key]
   }
 })

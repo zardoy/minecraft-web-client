@@ -5,9 +5,12 @@ import { options, serverChangedSettings } from './optionsStorage'
 import { jeiCustomCategories } from './inventoryWindows'
 import { registerIdeChannels } from './core/ideChannels'
 import { registerIframeChannels } from './core/iframeChannels'
+import { registerRecipeChannels } from './core/recipeChannels'
 import { serverSafeSettings } from './defaultOptions'
 import { lastConnectOptions } from './appStatus'
 import { gameAdditionalState } from './globalState'
+import { getConnectStats, onServerMetadata } from './core/perfStats'
+import { applyNearbyPlayers, onVoiceAvailable, onVoiceConfig, setVoiceServerSender, disconnectVoice } from './voice/voiceChat'
 
 const isWebSocketServer = (server: string | undefined) => {
   if (!server) return false
@@ -20,6 +23,12 @@ const getIsCustomChannelsEnabled = () => {
 }
 
 export default () => {
+  // the recipe editor talks to the local (singleplayer) server too, where `customChannels: 'websocket'` would disable the channels
+  customEvents.on('mineflayerBotCreated', () => {
+    bot.once('login', () => {
+      if (localServer) registerRecipeChannels()
+    })
+  })
   customEvents.on('mineflayerBotCreated', async () => {
     if (!getIsCustomChannelsEnabled()) return
     bot.once('login', () => {
@@ -32,9 +41,11 @@ export default () => {
       registerWaypointChannels()
       registerFireworksChannels()
       registerIdeChannels()
+      if (!localServer) registerRecipeChannels()
       registerIframeChannels()
       registerServerSettingsChannel()
       registerTypingIndicatorChannel()
+      registerVoiceChatChannel()
     })
   })
 }
@@ -70,6 +81,8 @@ const registerConnectMetadataChannel = () => {
       version: process.env.RELEASE_TAG,
       build: process.env.BUILD_VERSION,
       ...window.serverMetadataConnect,
+      // performance stats: whether the player takes part (setting "Send anonymous performance data") and a random id of this browser
+      stats: getConnectStats(),
     })
   })
 
@@ -79,6 +92,7 @@ const registerConnectMetadataChannel = () => {
       const metadata = JSON.parse(data.metadata)
       window.serverMetadata = metadata
       console.debug('Received server metadata:', metadata)
+      onServerMetadata(metadata)
     } catch (error) {
       console.warn('Failed to parse server metadata:', error)
     }
@@ -661,6 +675,58 @@ const registerTypingIndicatorChannel = () => {
       gameAdditionalState.typingUsers = gameAdditionalState.typingUsers.filter(user => user.username !== username)
     }
   })
+}
+
+const registerVoiceChatChannel = () => {
+  const CHANNEL_NAME = 'minecraft-web-client:voice-chat'
+  const packetStructure = [
+    'container',
+    [
+      { name: 'action', type: ['pstring', { countType: 'i16' }] },
+      { name: 'json', type: ['pstring', { countType: 'i16' }] }
+    ]
+  ]
+
+  bot._client.registerChannel(CHANNEL_NAME, packetStructure, true)
+
+  setVoiceServerSender((action, payload) => {
+    bot._client.writeChannel(CHANNEL_NAME, { action, json: JSON.stringify(payload) })
+  })
+
+  bot._client.on(CHANNEL_NAME as any, (data) => {
+    console.log('got voice chat', data)
+    let payload: any = {}
+    try {
+      payload = data.json ? JSON.parse(data.json) : {}
+    } catch (error) {
+      console.warn('Failed to parse voice-chat payload:', error)
+      return
+    }
+
+    switch (data.action) {
+      case 'available': {
+        onVoiceAvailable()
+        break
+      }
+      case 'config': {
+        onVoiceConfig(payload)
+        break
+      }
+      case 'nearby': {
+        applyNearbyPlayers(payload.players ?? [], payload.forceMuted ?? [])
+        break
+      }
+      default: {
+        console.log('Unknown voice-chat action:', data.action)
+      }
+    }
+  })
+
+  bot.once('end', () => {
+    void disconnectVoice()
+  })
+
+  console.log(`registered custom channel ${CHANNEL_NAME} channel`)
 }
 
 function getCurrentTopDomain (): string {

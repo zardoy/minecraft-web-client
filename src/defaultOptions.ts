@@ -3,6 +3,10 @@ import {
   RENDERER_OPTIONS_META
 } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 
+/** iPhone / iPad (an iPad asks for the desktop site and calls itself a Mac, but has a touch screen) */
+const isIosDevice = typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
 export const defaultOptions = {
   renderDistance: 3,
   closeConfirmation: true,
@@ -38,7 +42,8 @@ export const defaultOptions = {
   debugLogNotFrequentPackets: false,
   unimplementedContainers: false,
   ...RENDERER_DEFAULT_OPTIONS,
-  rendererSmartCull: false as boolean,
+  /** keeping the frame for screenshots (F2) costs GPU work; iPhones and iPads skip it by default (Render > Advanced: Screenshot Buffer) */
+  preserveDrawingBuffer: !isIosDevice,
   enabledResourcepack: null as string | null,
   useVersionsTextures: 'latest',
   serverResourcePacks: 'prompt' as 'prompt' | 'always' | 'never',
@@ -51,7 +56,8 @@ export const defaultOptions = {
   language: 'auto',
   preciseMouseInput: false,
   // todo ui setting, maybe enable by default?
-  waitForChunksRender: false as 'sp-only' | boolean,
+  /** keep the loading screen (with its progress bar) until the chunks around the player are loaded; 'sp-only' = only in singleplayer */
+  waitForChunksRender: 'sp-only' as 'sp-only' | boolean,
   inventoryJei: true as boolean | Array<'creative' | 'survival' | 'adventure' | 'spectator'>,
   inventoryNotes: true as boolean,
   inventoryPlaceholders: false,
@@ -74,10 +80,14 @@ export const defaultOptions = {
   singleplayerAutoSave: false,
   alwaysBackupWorldBeforeLoading: undefined as boolean | undefined | null,
   alwaysShowMobileControls: false,
+  /** Never enable touch controls, even if the device reports a touchscreen (e.g. laptops with mouse & keyboard). */
+  forceDisableTouchControls: false,
   /** Portrait viewport: apply `body.rotated` landscape layout without tapping the rotate button. */
   autoDisplayRotation: false,
   excludeCommunicationDebugEvents: [] as string[],
   preventDevReloadWhilePlaying: false,
+  /** anonymous frame rate / stutter / device numbers for servers that ask for them (the play.mcraft.fun proxy), see core/perfStats */
+  sendPerfData: true,
   localServerOptions: {
     gameMode: 1
   } as any,
@@ -108,7 +118,19 @@ export const defaultOptions = {
   displayBossBars: true,
   disabledUiParts: [] as string[],
   neighborChunkUpdates: true,
-  activeRenderer: 'auto' as 'auto' | string | null
+  activeRenderer: 'auto' as 'auto' | string | null,
+
+  // voice chat
+  /** Whether to join voice chat when a server offers it. */
+  voiceChatEnabled: true,
+  /** Set once the user has answered the first-time voice chat prompt. */
+  voiceChatConsented: false,
+  voiceMasterVolume: 1,
+  voiceInputDeviceId: '' as string,
+  /** Per-player mute/volume, keyed by voice identity (player UUID). */
+  voicePlayerSettings: {} as Record<string, { volume: number, muted: boolean }>,
+  /** Not exposed in any settings UI yet. False: hold the keybind to talk. True: pressing it toggles the mic on/off. */
+  voiceOpenMic: false,
 }
 
 function getDefaultTouchControlsPositions () {
@@ -117,17 +139,18 @@ function getDefaultTouchControlsPositions () {
       70,
       76
     ],
+    // jump above sneak at the right edge, high like Bedrock: clear of the hand, the hotbar and the bottom corner
     sneak: [
-      84,
-      76
+      87,
+      56
     ],
     break: [
       70,
       57
     ],
     jump: [
-      84,
-      57
+      87,
+      36
     ],
   } as Record<string, [number, number]>
 }
@@ -205,10 +228,6 @@ export type OptionMeta = {
 
 export const optionsMeta: Partial<Record<keyof typeof defaultOptions, OptionMeta>> = {
   ...RENDERER_OPTIONS_META,
-  rendererSmartCull: {
-    text: 'Smart cull',
-    tooltip: 'Occlusion-based section culling for better performance in caves and enclosed spaces',
-  },
   activeRenderer: {
     possibleValues: [
       ['threejs', 'Three.js (stable)'],

@@ -10,7 +10,7 @@ import { appQueryParams } from '../appParams'
 import { fetchServerStatus, isServerValid } from '../api/mcStatusApi'
 import { getServerInfo } from '../mineflayer/mc-protocol'
 import { parseServerAddress } from '../parseServerAddress'
-import ServersList, { getCurrentProxy, getCurrentUsername } from './ServersList'
+import ServersList, { getConnectProxy, getCurrentProxy, getCurrentUsername } from './ServersList'
 import AddServerOrConnect, { BaseServerInfo } from './AddServerOrConnect'
 import { useDidUpdateEffect } from './utils'
 import { useIsModalActive } from './utilsApp'
@@ -264,7 +264,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
       const connectOptions: ConnectOptions = {
         username: info.usernameOverride || getCurrentUsername() || '',
         server: normalizeIp(info.ip),
-        proxy: info.proxyOverride || getCurrentProxy(),
+        proxy: info.proxyOverride || getConnectProxy(),
         botVersion: info.versionOverride,
         ignoreQs: true,
       }
@@ -321,7 +321,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
       const options = {
         username,
         server: normalizeIp(ip),
-        proxy: overrides.proxyOverride || getCurrentProxy(),
+        proxy: overrides.proxyOverride || getConnectProxy(),
         botVersion: overrides.versionOverride ?? /* legacy */ overrides['version'],
         ignoreQs: true,
         authenticatedAccount,

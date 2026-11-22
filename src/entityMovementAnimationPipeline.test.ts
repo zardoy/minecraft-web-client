@@ -17,7 +17,7 @@ function makePlaySpy () {
   const calls: Array<{ id: number | 'player_entity'; animation: string }> = []
   return {
     calls,
-    playEntityAnimation: (id: number | 'player_entity', animation: string) => {
+    playEntityAnimation (id: number | 'player_entity', animation: string) {
       calls.push({ id, animation })
     },
   }
@@ -107,7 +107,7 @@ test('local player is not processed again in remote loop', () => {
       '1': { tracking: true, info: { avgVel: { x: 0, z: 0 } } },
       '2': { tracking: true, info: { avgVel: walkingVelocity } },
     },
-    getEntityById: (id) => {
+    getEntityById (id) {
       if (id === '1') return localPlayer
       if (id === '2') return remotePlayer
       return undefined

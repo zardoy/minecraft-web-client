@@ -218,7 +218,7 @@ export function getRemoteBoatPaddleState (
     return { leftPaddle: false, rightPaddle: false }
   }
 
-  const metadata = entity.metadata
+  const { metadata } = entity
   if (!Array.isArray(metadata)) {
     return { leftPaddle: false, rightPaddle: false }
   }

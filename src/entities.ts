@@ -80,10 +80,10 @@ customEvents.on('gameLoaded', () => {
       isLocalPlayer: true,
       isLocalPlayerSneaking: gameAdditionalState.isSneaking,
       playerPerAnimation,
-      playEntityAnimation: (rendererEntityId, animation) => {
+      playEntityAnimation (rendererEntityId, animation) {
         void rendererMethods?.playEntityAnimation(rendererEntityId, animation)
       },
-      rendererAvailable: rendererMethods != null,
+      rendererAvailable: rendererMethods !== undefined && rendererMethods !== null,
     })
   }
 
@@ -100,10 +100,10 @@ customEvents.on('gameLoaded', () => {
       trackingData: bot.tracker.trackingData,
       getEntityById: (id) => bot.entities[id],
       playerPerAnimation,
-      playEntityAnimation: (rendererEntityId, animation) => {
+      playEntityAnimation (rendererEntityId, animation) {
         void rendererMethods?.playEntityAnimation(rendererEntityId, animation)
       },
-      rendererAvailable: rendererMethods != null,
+      rendererAvailable: rendererMethods !== undefined && rendererMethods !== null,
     })
   })
 

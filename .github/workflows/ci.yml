@@ -4,6 +4,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions: write-all
     steps:
       - name: Checkout repository
@@ -21,9 +22,12 @@ jobs:
         uses: pnpm/action-setup@v4
       - run: pnpm install
       - run: pnpm build-single-file
+      - run: pnpm build-single-file-slim
+      - name: Check the slim single file stays under 10 MB
+        run: test $(stat -c %s dist/single-slim/index.html) -lt 10485760
       - name: Store minecraft.html size
         run: |
-          SIZE_BYTES=$(du -s dist/single/minecraft.html 2>/dev/null | cut -f1)
+          SIZE_BYTES=$(du -s dist/single/index.html 2>/dev/null | cut -f1)
           echo "SIZE_BYTES=$SIZE_BYTES" >> $GITHUB_ENV
       - run: pnpm check-build
       - name: Create zip package for size comparison
@@ -73,6 +77,8 @@ jobs:
       - run: nohup pnpm prod-start &
       - run: nohup pnpm test-mc-server &
       - uses: cypress-io/github-action@v5
+        # a frozen browser never trips cypress' own command timeouts, so bound the whole step
+        timeout-minutes: 8
         with:
           install: false
       - uses: actions/upload-artifact@v4

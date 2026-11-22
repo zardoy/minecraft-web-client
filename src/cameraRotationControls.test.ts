@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { getClampedBoatPassengerYaw, isBoatEntityName } from 'minecraft-renderer/src/three/entity/boatPassengerRotation'
 
-const BOAT_YAW = 1.0
+const BOAT_YAW = 1
 
 function resolveBoatPassengerLookYaw (requestedYaw: number, vehicle: { name: string; yaw: number } | null): number {
   if (!vehicle || !isBoatEntityName(vehicle.name)) return requestedYaw

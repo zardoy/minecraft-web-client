@@ -25,6 +25,7 @@ import MinimapProvider, { DrawerAdapterImpl } from './react/MinimapProvider'
 import HudBarsProvider from './react/HudBarsProvider'
 import XPBarProvider from './react/XPBarProvider'
 import DebugOverlay from './react/DebugOverlay'
+import VisualEffectsPanel from './react/VisualEffectsPanel'
 import MobileTopButtons from './react/MobileTopButtons'
 import PauseScreen from './react/PauseScreen'
 import SoundMuffler from './react/SoundMuffler'
@@ -47,6 +48,8 @@ import SignInMessageProvider from './react/SignInMessageProvider'
 import BookProvider from './react/BookProvider'
 import { options } from './optionsStorage'
 import BossBarOverlayProvider from './react/BossBarOverlayProvider'
+import VoiceChatConsentProvider from './react/VoiceChatConsentProvider'
+import VoiceChatMenuProvider from './react/VoiceChatMenuProvider'
 import ModsPage from './react/ModsPage'
 import DebugEdges from './react/DebugEdges'
 import GameInteractionOverlay from './react/GameInteractionOverlay'
@@ -62,12 +65,14 @@ import ConnectOnlyServerUi from './react/ConnectOnlyServerUi'
 import ControDebug from './react/ControDebug'
 import ChunksDebug from './react/ChunksDebug'
 import ChunksDebugScreen from './react/ChunksDebugScreen'
+import RecipeEditorScreen from './react/RecipeEditorScreen'
 import DebugResponseTimeIndicator from './react/debugs/DebugResponseTimeIndicator'
 import RendererDebugMenu from './react/RendererDebugMenu'
 import CreditsAboutModal from './react/CreditsAboutModal'
 import GlobalOverlayHints from './react/GlobalOverlayHints'
 import FullscreenTime from './react/FullscreenTime'
 import StorageConflictModal from './react/StorageConflictModal'
+import ProxiesList from './react/ProxiesList'
 import FireRenderer from './react/FireRenderer'
 import MonacoEditor from './react/MonacoEditor'
 import IframeModal from './react/IframeModal'
@@ -184,6 +189,7 @@ const InGameUi = () => {
           {!disabledUiParts.includes('bossbars') && displayBossBars && <BossBarOverlayProvider />}
           <VoiceMicrophone />
           <ChunksDebugScreen />
+          <RecipeEditorScreen />
           <RendererDebugMenu />
           {!disabledUiParts.includes('fire') && <FireRenderer />}
         </PerComponentErrorBoundary>
@@ -253,8 +259,11 @@ const AppBase = () => {
             <CreateWorldProvider />
             <AppStatusProvider />
             <KeybindingsScreenProvider />
+            <VoiceChatConsentProvider />
+            <VoiceChatMenuProvider />
             <ServersListProvider />
             <OptionsRenderApp />
+            <VisualEffectsPanel />
             <MainMenuRenderApp />
             <ConnectOnlyServerUi />
             <TouchAreasControlsProvider />
@@ -268,6 +277,7 @@ const AppBase = () => {
             <CreditsAboutModal />
             <AllSettingsEditor />
             <NoModalFoundProvider />
+            <ProxiesList />
           </RobustPortal>
           <RobustPortal to={document.body}>
             <div className='overlay-top-scaled'>

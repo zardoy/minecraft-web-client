@@ -26,8 +26,19 @@ jobs:
         env:
           LOCAL_CONFIG_FILE: config.mcraft-only.json
 
+      - name: Build slim single-file version - minecraft-slim.html
+        run: pnpm build-single-file-slim && mv dist/single-slim/index.html minecraft-slim.html
+        env:
+          LOCAL_CONFIG_FILE: config.mcraft-only.json
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: minecraft.html
           path: minecraft.html
+
+      - name: Upload slim artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-slim.html
+          path: minecraft-slim.html

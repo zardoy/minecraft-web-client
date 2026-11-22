@@ -57,7 +57,7 @@ export const moveCameraRawHandler = ({ x, y }: { x: number; y: number }) => {
 }
 
 function resolveBoatPassengerLookYaw (requestedYaw: number): number {
-  const vehicle = bot.vehicle
+  const { vehicle } = bot
   if (!vehicle || !isBoatEntityName(vehicle.name)) return requestedYaw
   const boatYaw = vehicle.yaw
   if (!Number.isFinite(boatYaw) || !Number.isFinite(requestedYaw)) return requestedYaw

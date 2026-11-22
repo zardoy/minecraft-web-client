@@ -1,0 +1,90 @@
+.panel {
+  /* the GUI scale makes buttons huge, this is a tuning HUD: keep it smallish */
+  --panel-scale: 0.6;
+  position: absolute;
+  /* below the fullscreen button in the top left corner, clear of the notch in landscape */
+  top: 16px;
+  left: max(4px, env(safe-area-inset-left));
+  transform: scale(var(--panel-scale));
+  transform-origin: left top;
+  /* never taller than the screen (a phone in landscape): the options scroll instead (heights are before the scale) */
+  max-height: calc((100% - 20px) / var(--panel-scale));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 200px;
+  /* no backdrop on purpose: the world must stay visible while tuning */
+  pointer-events: auto;
+}
+
+.panel button {
+  width: 100%;
+}
+
+.title {
+  color: white;
+  font-size: 14px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* a small square button, not the full width one of the others */
+.panel .close {
+  width: 20px;
+  min-width: 20px;
+}
+
+.profiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.hint {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 10px;
+  line-height: 1.25;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* what the hovered option costs: a fixed height (the longest note) so the panel never jumps around */
+.note {
+  color: white;
+  min-height: 6.5em;
+}
+
+.row {
+  position: relative;
+}
+
+/* cost of the current setting, top left corner of the option */
+.rect {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  /* the client buttons are z-index 1 */
+  z-index: 2;
+}
+
+.free { color: #55ff55; }
+.light { color: #ffff55; }
+.moderate { color: #ffaa00; }
+.heavy { color: #ff5555; }
+
+.rect.free { background: #55ff55; }
+.rect.light { background: #ffff55; }
+.rect.moderate { background: #ffaa00; }
+.rect.heavy { background: #ff5555; }

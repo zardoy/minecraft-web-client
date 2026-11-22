@@ -49,10 +49,6 @@ export function getIsCrouched (
   return isLocalPlayer ? isLocalPlayerSneaking : Boolean(entity.crouching)
 }
 
-export function resolveCacheKey (rendererEntityId: RendererEntityId): string {
-  return String(rendererEntityId)
-}
-
 export function shouldTrackPlayerEntity (entity: EntityLike): boolean {
   return Boolean(entity.username) && entity.type === 'player'
 }
@@ -63,10 +59,7 @@ export function shouldProcessRemoteTrackingEntry (params: {
   localPlayerEntity: EntityLike | null | undefined
 }): boolean {
   const { tracking, entity, localPlayerEntity } = params
-  if (!tracking) return false
-  if (!entity) return false
-  if (entity === localPlayerEntity) return false
-  return true
+  return Boolean(tracking && entity && entity !== localPlayerEntity)
 }
 
 export type ApplyEntityMovementAnimationParams = {
@@ -105,7 +98,7 @@ export function applyEntityMovementAnimation (params: ApplyEntityMovementAnimati
     horizontalVelocity: sanitizedVelocity,
   })
 
-  const cacheKey = resolveCacheKey(rendererEntityId)
+  const cacheKey = String(rendererEntityId)
   if (!force && playerPerAnimation[cacheKey] === animation) return false
   if (!rendererAvailable) return false
 
