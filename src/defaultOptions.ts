@@ -133,17 +133,18 @@ function getDefaultTouchControlsPositions () {
       70,
       76
     ],
+    // jump above sneak at the right edge, high like Bedrock: clear of the hand, the hotbar and the bottom corner
     sneak: [
-      84,
-      76
+      87,
+      56
     ],
     break: [
       70,
       57
     ],
     jump: [
-      84,
-      57
+      87,
+      36
     ],
   } as Record<string, [number, number]>
 }

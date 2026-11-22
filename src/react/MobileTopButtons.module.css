@@ -14,37 +14,45 @@
   transform: translate(-50%) scale(1.4);
 }
 
+/* Bedrock-like: dark translucent tiles that sit on the world instead of bright tan blocks with a white outline (same sizes as before) */
+.pause-btn,
+.chat-btn,
+.debug-btn,
+.tab-btn {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(24, 24, 24, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+.pause-btn:active,
+.chat-btn:active,
+.debug-btn:active,
+.tab-btn:active {
+  background: rgba(24, 24, 24, 0.8);
+  color: white;
+}
+
 .pause-btn,
 .chat-btn {
   --scale: 1.3;
-  border: none;
-  outline: 0.5px solid white;
   width: calc(14px * var(--scale));
   height: calc(14px * var(--scale));
-  background-image: url('../../assets/gui.png');
-  background-size: calc(256px * var(--scale));
-  background-position-x: calc(var(--scale) * -202px);
-  background-position-y: calc(var(--scale) * -66px);
+  font-size: 12px;
 }
 
-.chat-btn {
-  background-position-y: calc(var(--scale) * -84px);
-}
 .debug-btn {
-  background: #9c8c86;
   font-size: 8px;
-  /* todo make other buttons centered */
-  /* margin-right: 5px; */
-  color: white;
   font-family: minecraft, mojangles, monospace;
   padding: 4px 6px;
-  outline: 0.5px solid white;
 }
 
 .tab-btn {
-  color: #fff;
-  background: #9c8c86;
-  outline: .5px solid #fff;
   padding: 4px 6px;
   font-family: pixelarticons, mojangles, monospace;
   font-size: 8px;
