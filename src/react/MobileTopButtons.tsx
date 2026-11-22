@@ -63,6 +63,9 @@ export default () => {
     return mobileButtonsConfig?.map((button, index) => {
       const className = getButtonClassName(button)
       let label: string | JSX.Element = button.icon || button.label || ''
+      // chat and pause have no label in the config: the icon used to be a sprite of gui.png with its own light background
+      if (!label && className === styles['chat-btn']) label = 'pixelarticons:message'
+      if (!label && className === styles['pause-btn']) label = 'pixelarticons:pause'
 
       if (typeof label === 'string' && label.startsWith('pixelarticons:')) {
         const iconName = label.replace('pixelarticons:', '')

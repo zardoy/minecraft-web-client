@@ -88,7 +88,7 @@ const Panel = () => {
               <span className={styles[hoveredLevel]}>{RENDERER_PERFORMANCE_LEVEL_LABELS[hoveredLevel]}</span> {performance.note}
             </>
           ) : (
-            'Hover an option to see what it costs.'
+            'Hover or tap an option to see what it costs.'
           )}
         </div>
         <div>{RENDERER_PERFORMANCE_NOTE}</div>
