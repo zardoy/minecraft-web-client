@@ -5,7 +5,7 @@ import JSZip from 'jszip'
 import { proxy, subscribe } from 'valtio'
 import { armorTextures } from 'minecraft-renderer/src/three/entity/armorModels'
 import { allTexturePaths } from 'minecraft-inventory/src/bundledTexturesConfig'
-import { copyFilesAsyncWithProgress, mkdirRecursive, removeFileRecursiveAsync } from './browserfs'
+import { copyFilesAsyncWithProgress, mkdirRecursive, mountServerResourcePack, removeFileRecursiveAsync, unmountServerResourcePack } from './browserfs'
 import { showNotification } from './react/NotificationProvider'
 import { options } from './optionsStorage'
 import { showOptionsModal } from './react/SelectOption'
@@ -35,7 +35,7 @@ const getLoadedImage = async (url: string) => {
 const resourcepackPackBasePath = '/data/resourcePacks/'
 export const uninstallResourcePack = async (name = 'default') => {
   if (await existsAsync('/resourcepack/pack.mcmeta')) {
-    await removeFileRecursiveAsync('/resourcepack', false)
+    unmountServerResourcePack() // read-only zip mount, nothing to delete
     gameAdditionalState.usingServerResourcePack = false
   }
   const basePath = resourcepackPackBasePath + name
@@ -73,50 +73,60 @@ export const installTexturePackFromHandle = async () => {
 
 export const installResourcepackPack = async (file: File | ArrayBuffer, progressReporter: ProgressReporter, displayName = file['name'], name = 'default', isServer = false) => {
   console.time('processResourcePack')
-  const installPath = isServer ? '/resourcepack/' : resourcepackPackBasePath + name
-  try {
-    await progressReporter.executeWithMessage('Uninstalling resource pack', async () => {
-      await uninstallResourcePack(name)
-    })
-  } catch (err) {
-  }
-  const status = 'Installing resource pack: copying all files'
-  progressReporter.beginStage('copy-files-resourcepack', status)
-
-  // extract the zip and write to fs every file in it
-  const zip = new JSZip()
-  const zipFile = await zip.loadAsync(file)
-  if (!zipFile.file('pack.mcmeta')) throw new Error('Not a resource pack: missing /pack.mcmeta')
-  await mkdirRecursive(installPath)
-
-  const allFilesArr = Object.entries(zipFile.files)
-    .filter(([path]) => !path.startsWith('.') && !path.startsWith('_') && !path.startsWith('/')) // ignore dot files and __MACOSX
-  let done = 0
-  const upStatus = () => {
-    progressReporter.reportProgress('copy-files-resourcepack', done / allFilesArr.length)
-  }
-  const createdDirs = new Set<string>()
-  const copyTasks = [] as Array<Promise<void>>
-  console.time('resourcePackCopy')
-  await Promise.all(allFilesArr.map(async ([path, file]) => {
-    const writePath = join(installPath, path)
-    if (path.endsWith('/')) return
-    const dir = dirname(writePath)
-    if (!createdDirs.has(dir)) {
-      await mkdirRecursive(dir)
-      createdDirs.add(dir)
+  const installPath = resourcepackPackBasePath + name
+  if (isServer) {
+    // mount the zip as is (ZenFS) instead of copying all files into the fs
+    await mountServerResourcePack(file instanceof File ? await file.arrayBuffer() : file)
+    if (!(await existsAsync('/resourcepack/pack.mcmeta'))) {
+      unmountServerResourcePack()
+      throw new Error('Not a resource pack: missing /pack.mcmeta')
     }
-    if (copyTasks.length > 100) {
-      await Promise.all(copyTasks)
-      copyTasks.length = 0
+  } else {
+    try {
+      await progressReporter.executeWithMessage('Uninstalling resource pack', async () => {
+        await uninstallResourcePack(name)
+      })
+    } catch (err) {
     }
-    const promise = fs.promises.writeFile(writePath, Buffer.from(await file.async('arraybuffer')) as any)
-    copyTasks.push(promise)
-    await promise
-    done++
-    upStatus()
-  }))
-  console.timeEnd('resourcePackCopy')
+    const status = 'Installing resource pack: copying all files'
+    progressReporter.beginStage('copy-files-resourcepack', status)
+
+    // extract the zip and write to fs every file in it
+    const zip = new JSZip()
+    const zipFile = await zip.loadAsync(file)
+    if (!zipFile.file('pack.mcmeta')) throw new Error('Not a resource pack: missing /pack.mcmeta')
+    await mkdirRecursive(installPath)
+
+    const allFilesArr = Object.entries(zipFile.files)
+      .filter(([path]) => !path.startsWith('.') && !path.startsWith('_') && !path.startsWith('/')) // ignore dot files and __MACOSX
+    let done = 0
+    const upStatus = () => {
+      progressReporter.reportProgress('copy-files-resourcepack', done / allFilesArr.length)
+    }
+    const createdDirs = new Set<string>()
+    const copyTasks = [] as Array<Promise<void>>
+    console.time('resourcePackCopy')
+    await Promise.all(allFilesArr.map(async ([path, file]) => {
+      const writePath = join(installPath, path)
+      if (path.endsWith('/')) return
+      const dir = dirname(writePath)
+      if (!createdDirs.has(dir)) {
+        await mkdirRecursive(dir)
+        createdDirs.add(dir)
+      }
+      if (copyTasks.length > 100) {
+        await Promise.all(copyTasks)
+        copyTasks.length = 0
+      }
+      const promise = fs.promises.writeFile(writePath, Buffer.from(await file.async('arraybuffer')) as any)
+      copyTasks.push(promise)
+      await promise
+      done++
+      upStatus()
+    }))
+    console.timeEnd('resourcePackCopy')
+  }
+
   await completeResourcepackPackInstall(displayName, name, isServer, progressReporter)
   console.log('resource pack install done')
   console.timeEnd('processResourcePack')
@@ -125,7 +135,8 @@ export const installResourcepackPack = async (file: File | ArrayBuffer, progress
 // or enablement
 export const completeResourcepackPackInstall = async (displayName: string | undefined, name: string, isServer: boolean, progressReporter: ProgressReporter) => {
   const basePath = isServer ? '/resourcepack/' : resourcepackPackBasePath + name
-  if (displayName) {
+  if (displayName && !isServer) { // a server pack is a read-only zip mount
+
     await fs.promises.writeFile(join(basePath, 'name.txt'), displayName, 'utf8')
   }
 

@@ -16,7 +16,6 @@ export type AppQsParams = {
   chunkTemplate?: string
   chunkTemplateBlockMap?: string
   // googledrive.ts params
-  state?: string
   // ServersListProvider.tsx params
   serversList?: string
   // Map and texture params
