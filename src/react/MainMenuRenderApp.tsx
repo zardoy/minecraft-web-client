@@ -10,6 +10,7 @@ import { openFilePicker, copyFilesAsync, mkdirRecursive, openWorldDirectory, rem
 import { hadModsActivated } from '../clientMods'
 import MainMenu from './MainMenu'
 import { withInjectableUi } from './extendableSystem'
+import { knownNoLocalWorlds } from './SingleplayerProvider'
 
 const isMainMenu = () => {
   return activeModalStack.length === 0 && !miscUiState.gameLoaded
@@ -136,6 +137,11 @@ const MainMenuRenderAppBase = () => {
             singleplayerAvailable={singleplayerAvailable}
             connectToServerAction={() => showModal({ reactType: 'serversList' })}
             singleplayerAction={async () => {
+              // no worlds yet: straight to Create World (opening the list first and switching once it loaded empty flickered)
+              if (knownNoLocalWorlds()) {
+                showModal({ reactType: 'create-world' })
+                return
+              }
               showModal({ reactType: 'singleplayer' })
             }}
             githubAction={() => openGithub()}
