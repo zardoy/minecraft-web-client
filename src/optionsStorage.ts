@@ -129,6 +129,14 @@ subscribe(options, (ops) => {
     // }
     const key = path[0] as string
     if (disabledSettings.value.has(key) || serverChangedSettings.value.has(key)) continue
+    // a value equal to the default is not a change: keeping it saved would freeze today's default for this player (a later default
+    // would never reach them, which happened to the touch button layout)
+    const defaults = initialAppConfig.defaultSettings as Record<string, unknown> | undefined
+    const defaultValue = defaults && key in defaults ? defaults[key] : defaultOptions[key as keyof typeof defaultOptions]
+    if (isDeepEqual(options[key], defaultValue)) {
+      delete appStorage.changedSettings[key]
+      continue
+    }
     appStorage.changedSettings[key] = options[key]
   }
 })

@@ -23,6 +23,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* one height for all (the text buttons were taller than the icon ones): square tiles, wider only for longer text */
+  height: 20px;
+  min-width: 20px;
+  padding: 0 4px;
+  line-height: 1;
   color: rgba(255, 255, 255, 0.85);
   background: rgba(24, 24, 24, 0.5);
   border: 1px solid rgba(0, 0, 0, 0.55);
@@ -39,26 +44,20 @@
 }
 
 .pause-btn,
-.chat-btn {
-  --scale: 1.3;
-  width: calc(14px * var(--scale));
-  height: calc(14px * var(--scale));
+.chat-btn,
+.tab-btn:has(> div) {
+  width: 20px;
+  padding: 0;
   font-size: 12px;
 }
 
 .debug-btn {
   font-size: 8px;
   font-family: minecraft, mojangles, monospace;
-  padding: 4px 6px;
 }
 
 .tab-btn {
-  padding: 4px 6px;
   font-family: pixelarticons, mojangles, monospace;
   font-size: 8px;
 }
 
-.tab-btn:has(> div) {
-  padding: 3px 5px;
-  font-size: 12px;
-}
