@@ -55,7 +55,7 @@ function previewJavaSeed (raw: string): SeedPreview {
 
 /** optional third-party worldgen datapack (.jar / .zip) chosen by the player; stored on this device only, layered on top of vanilla (see worldgen/datapack.ts) */
 const DatapackField = () => {
-  const { status, name, files, bytes, error, builtinExt } = useSnapshot(worldgenPackState)
+  const { status, name, error } = useSnapshot(worldgenPackState)
   const input = useRef<HTMLInputElement>(null)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
@@ -72,27 +72,19 @@ const DatapackField = () => {
       />
       <div style={{ display: 'flex' }}>
         <Button onClick={() => input.current?.click()}>
-          Worldgen datapack: {status === 'loaded' ? name : status === 'loading' ? '...' : 'none (vanilla)'}
+          Additional worldgen datapack: {status === 'loaded' ? name : status === 'loading' ? '...' : 'none'}
         </Button>
         {status === 'loaded' && <Button onClick={() => { void removeExtraDatapack() }}>Remove</Button>}
-      </div>
-      <div className='muted' style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.3, maxWidth: 300 }}>
-        {status === 'loaded'
-          ? <>{files} files, {filesize(bytes)}. Stored only in this browser and used for new worlds; keep using the same pack for a world's later chunks.</>
-          : builtinExt ? <>This build already layers its own worldgen datapack (gendata-ext.zip) on top of vanilla. You can load another one on top of it. It never leaves your device.</>
-            : <>Optional: load a worldgen datapack (.jar / .zip, e.g. a terrain mod you downloaded) to replace vanilla biomes and terrain. It never leaves your device.</>}
       </div>
       {error && <div style={{ fontSize: 8, color: '#ff8a8a', maxWidth: 300, textAlign: 'center' }}>{error}</div>}
     </div>
   )
 }
 
-const SeedField = ({ seed, worldType }: { seed: string, worldType: string }) => {
-  const [open, setOpen] = useState(false)
+const SeedField = ({ seed }: { seed: string }) => {
   const preview = previewJavaSeed(seed)
   const looksLikeNumber = seed.length > 0 && /\d/.test(seed)
   const hashedButLooksNumeric = preview.kind === 'hashed' && looksLikeNumber
-  const defaultWorld = worldType === 'default'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
       <Input
@@ -104,32 +96,26 @@ const SeedField = ({ seed, worldType }: { seed: string, worldType: string }) => 
         spellCheck={false}
         validateInput={() => (hashedButLooksNumeric ? { outline: '1px solid #e6c84c' } : undefined)}
       />
-      <div className='muted' style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.3 }}>
-        {preview.kind === 'empty' && 'Empty → random'}
-        {preview.kind === 'numeric' && <>Java seed <span style={{ color: '#c6ffc6' }}>{preview.value}</span></>}
-        {preview.kind === 'hashed' && <>Hashed → <span style={{ color: hashedButLooksNumeric ? '#ffe08a' : '#c6ffc6' }}>{preview.value}</span></>}
-        {' '}
-        <span
-          role='button'
-          tabIndex={0}
-          onClick={() => setOpen(o => !o)}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setOpen(o => !o) }}
-          style={{ color: '#9cf', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          {open ? 'hide' : 'about'}
-        </span>
-      </div>
-      {open && (
-        <div className='muted' style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.35, maxWidth: 280 }}>
-          {preview.kind === 'hashed' && hashedButLooksNumeric && <><div>{preview.why}.</div></>}
-          Java Edition create-world parse (1.18–26.3): a Java long as-is, otherwise String.hashCode(). Not Bedrock. No commas, no leading +.
-          {defaultWorld
-            ? <> Terrain is MC 26.3 noise worldgen (plus the worldgen datapack you load below, if any). The version dropdown is client protocol only. Trees/structures still WIP.</>
-            : <> This world type is not vanilla overworld generation.</>}
+      {/* what the typed seed becomes (Java Edition parse): a word, or a number out of range, is hashed */}
+      {preview.kind !== 'empty' && (
+        <div className='muted' style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.3, maxWidth: 280 }}>
+          {preview.kind === 'numeric' && <>Java seed <span style={{ color: '#c6ffc6' }}>{preview.value}</span></>}
+          {preview.kind === 'hashed' && <>Hashed → <span style={{ color: hashedButLooksNumeric ? '#ffe08a' : '#c6ffc6' }}>{preview.value}</span>{hashedButLooksNumeric && <> ({preview.why})</>}</>}
         </div>
       )}
     </div>
   )
+}
+
+/** today's date as the world name ("2026-11-22"), "-2", "-3"... when a world of that name exists */
+const defaultWorldName = (existing: string[]) => {
+  const now = new Date()
+  const base = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const taken = new Set(existing.map(name => name.toLowerCase()))
+  if (!taken.has(base)) return base
+  let i = 2
+  while (taken.has(`${base}-${i}`)) i++
+  return `${base}-${i}`
 }
 
 export const creatingWorldState = proxy({
@@ -141,12 +127,26 @@ export const creatingWorldState = proxy({
   plugins: [] as string[]
 })
 
-const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, defaultVersion }) => {
+const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, defaultVersion, existingWorldNames }: {
+  cancelClick: () => void
+  createClick: () => void
+  customizeClick: () => void
+  versions: Array<{ version: any, label: any }>
+  defaultVersion: string
+  /** names of the worlds already saved (folder names), for the default name */
+  existingWorldNames?: () => Promise<string[]>
+}) => {
   const [quota, setQuota] = useState('')
+  const [moreOptions, setMoreOptions] = useState(false)
 
   const { title, type, version, gameMode, plugins, seed } = useSnapshot(creatingWorldState)
   useEffect(() => {
     creatingWorldState.version = defaultVersion
+    creatingWorldState.title = defaultWorldName([])
+    void existingWorldNames?.().then(names => {
+      // only while the player has not typed a name yet
+      if (creatingWorldState.title === defaultWorldName([])) creatingWorldState.title = defaultWorldName(names)
+    }).catch(() => {})
     void navigator.storage?.estimate?.().then(({ quota, usage }) => {
       setQuota(`Storage usage: ${usage === undefined ? '?' : filesize(usage)} / ${quota ? filesize(quota) : '?'}`)
     })
@@ -167,18 +167,26 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
         }}
         placeholder='World name'
       />
-      <SelectGameVersion
-        versions={versions.map((obj) => { return { value: obj.version, label: obj.version } })}
-        selected={{ value: defaultVersion, label: defaultVersion }}
-        onChange={(value) => {
-          creatingWorldState.version = value ?? defaultVersion
-        }}
-        containerStyle={{ width: '100px' }}
-      />
       <button type='submit' style={{ visibility: 'hidden' }} />
     </form>
-    <SeedField seed={seed} worldType={type} />
-    {type === 'default' && <DatapackField />}
+    <SeedField seed={seed} />
+    <Button onClick={() => setMoreOptions(open => !open)}>{moreOptions ? 'Fewer options' : 'More options...'}</Button>
+    {moreOptions && (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span className='muted' style={{ fontSize: 9 }}>Version</span>
+          <SelectGameVersion
+            versions={versions.map((obj) => { return { value: obj.version, label: obj.label } })}
+            selected={{ value: version || defaultVersion, label: version || defaultVersion }}
+            onChange={(value) => {
+              creatingWorldState.version = value ?? defaultVersion
+            }}
+            containerStyle={{ width: '120px' }}
+          />
+        </div>
+        {type === 'default' && <DatapackField />}
+      </div>
+    )}
     <div style={{ display: 'flex' }}>
       <Button onClick={() => {
         const index = worldTypes.indexOf(type)

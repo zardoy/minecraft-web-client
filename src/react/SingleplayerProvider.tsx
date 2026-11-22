@@ -32,6 +32,25 @@ const providersEnableFeatures = {
   }
 }
 
+const LOCAL_WORLDS_FLAG = 'hasLocalWorlds'
+
+/** remembered whether local worlds exist (the list updates it on every read, creating a world sets it): reading the folder on click took ~400 ms on a slow CPU */
+export const setHasLocalWorlds = (has: boolean) => {
+  try {
+    localStorage.setItem(LOCAL_WORLDS_FLAG, has ? '1' : '0')
+  } catch {}
+}
+
+/** true only when the last read of the local worlds found none (unknown = false: the list opens and switches to Create World itself) */
+export const knownNoLocalWorlds = () => {
+  if (worldsProxy.selectedProvider !== 'local') return false
+  try {
+    return localStorage.getItem(LOCAL_WORLDS_FLAG) === '0'
+  } catch {
+    return false
+  }
+}
+
 export const readWorlds = (abortController: AbortController) => {
   if (abortController.signal.aborted) return
   worldsProxy.error = ''
@@ -95,6 +114,7 @@ export const readWorlds = (abortController: AbortController) => {
       })
       if (abortController.signal.aborted) return
       worldsProxy.value = newMappedWorlds
+      if (provider === 'local') setHasLocalWorlds(newMappedWorlds.length > 0)
     } catch (err) {
       if (err.name === 'AbortError') return
       console.warn(err)
