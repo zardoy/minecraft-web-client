@@ -84,6 +84,5 @@ export default () => {
     clientId={clientId}
     tablistHeader={bot.tablist.header}
     tablistFooter={bot.tablist.footer}
-    serverIP={serverIp ?? ''}
   />
 }
