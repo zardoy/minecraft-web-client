@@ -49,20 +49,19 @@ jobs:
         with:
           run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
         id: deploy
-      - name: Start servers for testing
-        run: |
-          nohup pnpm prod-start &
-          nohup pnpm test-mc-server &
-      - name: Run Cypress smoke tests
-        uses: cypress-io/github-action@v5
-        with:
-          install: false
-          spec: cypress/e2e/smoke.spec.ts
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+      # Playwright starts `pnpm prod-start` itself (playwright.config.ts webServer)
+      - name: Smoke tests
+        timeout-minutes: 8
+        run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-smoke-test-screenshots
-          path: cypress/screenshots/
+          name: playwright-smoke-test-results
+          path: |
+            test-results/
+            playwright-report/
       - name: Set deployment aliases
         run: |
           for alias in $(echo ${{ vars.TEST_PREVIEW_DOMAIN }} | tr "," "\n"); do

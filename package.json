@@ -16,14 +16,12 @@
     "build-single-file-slim": "SINGLE_FILE_BUILD=true SLIM_BUILD=true MIN_MC_VERSION=1.18 MAX_MC_VERSION=1.21.4 rsbuild build",
     "prepare-project": "tsx scripts/genShims.ts && tsx scripts/makeOptimizedMcData.mjs && tsx scripts/genLargeDataAliases.ts",
     "check-build": "pnpm prepare-project && tsc && pnpm build",
-    "test:cypress": "cypress run",
-    "test:benchmark": "PERFORMANCE_TEST=true cypress run",
-    "test:cypress:open": "cypress open",
+    "test:benchmark": "PERFORMANCE_TEST=true playwright test",
     "test-unit": "vitest",
-    "test:e2e": "start-test http-get://localhost:8080 test:cypress",
+    "test:e2e": "playwright test",
     "prod-start": "node server.js --prod",
-    "test-mc-server": "tsx cypress/minecraft-server.mjs",
-    "lint": "eslint \"{src,cypress}/**/*.{ts,js,jsx,tsx}\"",
+    "test-mc-server": "tsx e2e/minecraft-server.mjs",
+    "lint": "eslint \"{src,e2e}/**/*.{ts,js,jsx,tsx}\"",
     "lint-fix": "pnpm lint --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build && node scripts/build.js moveStorybookFiles",
@@ -124,6 +122,7 @@
     "ws": "^8.18.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@rsbuild/core": "1.3.5",
     "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "1.2.0",
@@ -147,7 +146,6 @@
     "constants-browserify": "^1.0.0",
     "contro-max": "^0.1.12",
     "crypto-browserify": "^3.12.0",
-    "cypress-esbuild-preprocessor": "^1.0.2",
     "eslint": "^8.50.0",
     "eslint-config-zardoy": "^0.2.17",
     "events": "^3.3.0",
@@ -174,8 +172,6 @@
     "yaml": "^2.3.2"
   },
   "optionalDependencies": {
-    "cypress": "^10.11.0",
-    "cypress-plugin-snapshots": "^1.4.4",
     "sharp": "^0.33.5",
     "systeminformation": "^5.21.22"
   },
@@ -232,7 +228,6 @@
     ],
     "onlyBuiltDependencies": [
       "sharp",
-      "cypress",
       "esbuild",
       "fsevents"
     ],

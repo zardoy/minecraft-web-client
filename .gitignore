@@ -23,3 +23,8 @@ logs/
 
 src/react/npmReactComponents.ts
 .env*.local
+
+# playwright
+/test-results/
+/playwright-report/
+/benchmark.txt

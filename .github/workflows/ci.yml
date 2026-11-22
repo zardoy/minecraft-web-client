@@ -74,18 +74,19 @@ jobs:
       #       core.setOutput('stats', comparison);
 
       # - run: pnpm tsx scripts/buildNpmReact.ts
-      - run: nohup pnpm prod-start &
-      - run: nohup pnpm test-mc-server &
-      - uses: cypress-io/github-action@v5
-        # a frozen browser never trips cypress' own command timeouts, so bound the whole step
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+      # Playwright starts `pnpm prod-start` itself (playwright.config.ts webServer) and times out a frozen page on its own
+      - name: Smoke tests
         timeout-minutes: 8
-        with:
-          install: false
+        run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-images
-          path: cypress/screenshots/
+          name: playwright-results
+          path: |
+            test-results/
+            playwright-report/
       # - run: node scripts/outdatedGitPackages.mjs
       #   if: ${{ github.event.pull_request.base.ref == 'release' }}
       #   env:
