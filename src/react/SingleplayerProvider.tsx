@@ -15,7 +15,7 @@ import Input from './Input'
 const worldsProxy = proxy({
   value: null as null | WorldProps[],
   brokenWorlds: [] as string[],
-  selectedProvider: 'local' as 'local',
+  selectedProvider: 'local' as const,
   error: '',
 })
 
