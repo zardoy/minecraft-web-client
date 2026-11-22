@@ -4,6 +4,8 @@ import SharedHudVars from './SharedHudVars'
 import { useUseIndicatorVisual } from './useItemIndicator'
 
 export default () => {
+  // In VR the HUD is a floating panel and aiming doesn't follow it, a crosshair there points at nothing
+  const { inVrSession } = useSnapshot(appViewer.rendererState)
   const { itemUseSession } = useSnapshot(appViewer.playerState.reactive)
   const session = itemUseSession
   const action = session?.itemSnapshot.action
@@ -13,7 +15,7 @@ export default () => {
   const indicatorColor = pending ? '#ffd54f' : 'white'
 
   return <SharedHudVars>
-    <div className='crosshair' />
+    {!inVrSession && <div className='crosshair' />}
     {displayIndicator && <div
       className={pending ? 'crosshair-indicator crosshair-indicator-pending' : 'crosshair-indicator'} style={{
       //@ts-expect-error
