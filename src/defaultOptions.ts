@@ -3,10 +3,6 @@ import {
   RENDERER_OPTIONS_META
 } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 
-/** iPhone / iPad (an iPad asks for the desktop site and calls itself a Mac, but has a touch screen) */
-const isIosDevice = typeof navigator !== 'undefined' &&
-  (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
-
 export const defaultOptions = {
   renderDistance: 3,
   closeConfirmation: true,
@@ -42,8 +38,6 @@ export const defaultOptions = {
   debugLogNotFrequentPackets: false,
   unimplementedContainers: false,
   ...RENDERER_DEFAULT_OPTIONS,
-  /** keeping the frame for screenshots (F2) costs GPU work; iPhones and iPads skip it by default (Render > Advanced: Screenshot Buffer) */
-  preserveDrawingBuffer: !isIosDevice,
   enabledResourcepack: null as string | null,
   useVersionsTextures: 'latest',
   serverResourcePacks: 'prompt' as 'prompt' | 'always' | 'never',

@@ -129,7 +129,14 @@ export const completeResourcepackPackInstall = async (displayName: string | unde
     await fs.promises.writeFile(join(basePath, 'name.txt'), displayName, 'utf8')
   }
 
-  await updateTextures(progressReporter)
+  try {
+    await updateTextures(progressReporter)
+  } catch (err) {
+    // installed from a link before any world was opened (a ?texturepack= link): the resources manager has no config yet. The files are in place, the pack is enabled below and the
+    // textures are built from it when the world starts
+    if (!(err instanceof Error) || !err.message.includes('No config loaded')) throw err
+    console.log('resource pack installed: textures will be applied when a world opens')
+  }
   if (currentErrors.length > 0) {
     showNotification(`Resource pack installed & enabled with ${currentErrors.length} errors`)
     console.error('Resource pack installed & enabled with errors:', currentErrors)
