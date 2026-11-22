@@ -181,6 +181,8 @@ export const guiOptionsScheme: {
       rendererPerfDebugOverlay: {
         text: 'Performance Debug',
       },
+      // label and tooltip come from the renderer's option meta (minecraft-renderer #92)
+      rendererSmartCull: {},
       preserveDrawingBuffer: {
         text: 'Screenshot Buffer (F2)',
         tooltip: 'Keeps the last frame so F2 can save a screenshot. Turning it off saves some GPU work, mostly on older GPUs and phones, but F2 then does nothing. Applies after a reload.',
