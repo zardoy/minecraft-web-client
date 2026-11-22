@@ -23,7 +23,8 @@ const inner = async () => {
   return downloadAndOpenMapFromUrl(map, texturepack, mapDir, replayFileUrl)
 }
 
-export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, texturepackUrl: string | undefined, mapUrlDir: string[] | undefined, replayFileUrl: string | undefined, connectOptions?: Partial<ConnectOptions>) => {
+/** @param temporaryPack mount the pack (ZenFS, like a server resource pack) instead of copying it into the browser storage: it lasts for this session and the link applies it again on every load */
+export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, texturepackUrl: string | undefined, mapUrlDir: string[] | undefined, replayFileUrl: string | undefined, connectOptions?: Partial<ConnectOptions>, temporaryPack = false) => {
   if (replayFileUrl) {
     setLoadingScreenStatus('Downloading replay file')
     const response = await fetch(replayFileUrl)
@@ -72,8 +73,8 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
 
   if (texturepackUrl && (mapUrl || mapUrlDir?.length)) {
     // a link with a map AND a resource pack (?texturepack=...&mapDir=...): the map branches below never look at the pack, so install the pack first (the texturepack-only path of
-    // this function), then open the map
-    await downloadAndOpenMapFromUrl(undefined, texturepackUrl, undefined, undefined)
+    // this function), then open the map. The pack is only mounted (nothing is copied into IndexedDB: the copy sometimes hangs, and the link brings the pack back on every load)
+    await downloadAndOpenMapFromUrl(undefined, texturepackUrl, undefined, undefined, undefined, true)
     texturepackUrl = undefined
   }
 
@@ -93,7 +94,7 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   if (texturepackUrl) mapUrl = texturepackUrl
   if (!mapUrl) return false
 
-  if (texturepackUrl) {
+  if (texturepackUrl && !temporaryPack) {
     await updateTexturePackInstalledState()
     if (resourcePackState.resourcePackInstalled) {
       if (!confirm(`You are going to install a new resource pack, which will REPLACE the current one: ${await getResourcePackNames()[0]} Continue?`)) return
@@ -140,7 +141,7 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   })).arrayBuffer()
   if (texturepackUrl) {
     const name = mapUrl.slice(mapUrl.lastIndexOf('/') + 1).slice(-30)
-    await installResourcepackPack(buffer, createFullScreenProgressReporter(), name)
+    await installResourcepackPack(buffer, createFullScreenProgressReporter(), name, undefined, temporaryPack)
   } else {
     await openWorldZip(buffer, undefined, connectOptions)
   }
