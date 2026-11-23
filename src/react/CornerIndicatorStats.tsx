@@ -34,6 +34,7 @@ export default () => {
       position: 'fixed',
       right: 0,
       zIndex: 10,
+      pointerEvents: 'none',
       ...(useBottom
         ? { bottom: narrowForBottomOffset ? 62 : 0 }
         : { top: 0 }),
