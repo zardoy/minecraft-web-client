@@ -1,6 +1,6 @@
 .panel {
   /* the GUI scale makes buttons huge, this is a tuning HUD: keep it smallish */
-  --panel-scale: 0.6;
+  --panel-scale: 0.85;
   position: absolute;
   /* below the fullscreen button in the top left corner, clear of the notch in landscape */
   top: 16px;

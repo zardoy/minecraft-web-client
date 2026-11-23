@@ -682,6 +682,14 @@
                 16,
                 16,
                 16
+            ],
+            "up=false,west=false,east=false,north=false,south=false": [
+                0,
+                0,
+                0,
+                16,
+                1,
+                16
             ]
         }
     },

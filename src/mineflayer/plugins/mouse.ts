@@ -48,6 +48,8 @@ export default (bot: Bot) => {
   bot.loadPlugin(createMouse({
     useMineflayerInteractMethods: false,
     preventVehicleInteraction: false,
+    // vanilla mines in the air too (5x slower, which bot.digTime already applies; instant blocks like fire stay instant)
+    allowInAirMining: true,
   }))
 
   domListeners(bot)
