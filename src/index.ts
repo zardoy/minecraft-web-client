@@ -111,6 +111,7 @@ import { isWorldgenPerf, startWorldgenPerf } from './worldgen/perf'
 import { appLoadBackend } from './appViewerLoad'
 import { getCameraMovementMode, shouldSnapCameraOnMount } from './cameraMovementMode'
 import { FORBIDDEN_VERSION_THRESHOLD } from './supportedVersions.mjs'
+import { Vec3 } from 'vec3'
 
 window.debug = debug
 
@@ -890,6 +891,11 @@ export async function connect (connectOptions: ConnectOptions) {
         localStorage.removeItem('lastConnectOptions')
       }
       connectOptions.onSuccessfulPlay?.()
+      if (singleplayer && connectOptions.startPosition) {
+        const { x, y, z } = connectOptions.startPosition
+        const serverPlayer = localServer?.players?.[0]
+        if (serverPlayer?.teleport) void serverPlayer.teleport(new Vec3(x, y, z))
+      }
       updateDataAfterJoin()
       const password = findServerPassword()
       if (password) {

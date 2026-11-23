@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react'
 import { activeModalStack, miscUiState, openOptionsMenu, showModal } from '../globalState'
 import { openGithub } from '../utils'
 import { setLoadingScreenStatus } from '../appStatus'
-import { openFilePicker, copyFilesAsync, mkdirRecursive, openWorldDirectory, removeFileRecursiveAsync } from '../browserfs'
+import { openFilePicker, copyFilesAsync, mkdirRecursive, removeFileRecursiveAsync } from '../browserfs'
+import { pickWorldDirectory } from '../worldDrop/droppedWorld'
 
 import { hadModsActivated } from '../clientMods'
 import MainMenu from './MainMenu'
@@ -149,7 +150,7 @@ const MainMenuRenderAppBase = () => {
             bottomRightLinks={process.env.MAIN_MENU_LINKS}
             openFileAction={e => {
               if (!!window.showDirectoryPicker && !e.shiftKey) {
-                void openWorldDirectory()
+                void pickWorldDirectory()
               } else {
                 openFilePicker()
               }

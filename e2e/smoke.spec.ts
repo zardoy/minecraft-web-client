@@ -12,5 +12,8 @@ test('Loads & renders zip world', async ({ page }) => {
   const fileChooser = page.waitForEvent('filechooser')
   await page.locator('[data-test-id="select-file-folder"]').click({ modifiers: ['Shift'] })
   await (await fileChooser).setFiles('e2e/superflat.zip')
+  // the world screen describes it first (read only by default)
+  await page.getByText('superflat.zip (zip)').waitFor()
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
   await waitForWorld(page)
 })

@@ -6,6 +6,8 @@ import { appQueryParams, appQueryParamsArray } from './appParams'
 import { VALID_REPLAY_EXTENSIONS, openFile } from './packetsReplay/replayPackets'
 import { createFullScreenProgressReporter } from './core/progressReporter'
 import { ConnectOptions } from './connect'
+import { showNotification } from './react/NotificationProvider'
+import { showOptionsModal } from './react/SelectOption'
 
 export const getFixedFilesize = (bytes: number) => {
   return prettyBytes(bytes, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -97,7 +99,8 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   if (texturepackUrl && !temporaryPack) {
     await updateTexturePackInstalledState()
     if (resourcePackState.resourcePackInstalled) {
-      if (!confirm(`You are going to install a new resource pack, which will REPLACE the current one: ${await getResourcePackNames()[0]} Continue?`)) return
+      const choice = await showOptionsModal(`This resource pack will REPLACE the current one: ${await getResourcePackNames()[0]}`, ['Replace'])
+      if (!choice) return
     }
   }
   const name = mapUrl.slice(mapUrl.lastIndexOf('/') + 1).slice(-25)
@@ -107,7 +110,7 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   const response = await fetch(mapUrl)
   const contentType = response.headers.get('Content-Type')
   if (!contentType || !contentType.startsWith('application/zip')) {
-    alert('Invalid map file')
+    showNotification('This may not be a map file', `The server sent ${contentType || 'no content type'} instead of a zip.`, true)
   }
   const contentLengthStr = response.headers?.get('Content-Length')
   const contentLength = contentLengthStr && +contentLengthStr

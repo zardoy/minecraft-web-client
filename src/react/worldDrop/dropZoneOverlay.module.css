@@ -1,0 +1,41 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(3px);
+  display: flex;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.frame {
+  flex: 1;
+  border: 3px dashed rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  text-shadow: 2px 2px #222;
+  text-align: center;
+  font-family: minecraft, mojangles, monospace;
+}
+
+.title {
+  font-size: 48px;
+}
+
+.subtitle {
+  font-size: 24px;
+  color: #e0e0e0;
+}
+
+.hint {
+  font-size: 16px;
+  color: #a0a0a0;
+  margin-top: 12px;
+}
