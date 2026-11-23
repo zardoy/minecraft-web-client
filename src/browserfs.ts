@@ -17,6 +17,7 @@ import { getFixedFilesize } from './downloadAndOpenFile'
 import { packetsReplayState } from './react/state/packetsReplayState'
 import { createFullScreenProgressReporter } from './core/progressReporter'
 import { showNotification } from './react/NotificationProvider'
+import { showOptionsModal } from './react/SelectOption'
 import { resetAppStorage } from './react/appStorageProvider'
 import { ConnectOptions } from './connect'
 // Google Drive world provider: DISABLED (commented out). Nobody uses it; it was a custom BrowserFS-only backend (google-drive-browserfs) and is NOT migrated to ZenFS (issue #113).
@@ -307,30 +308,9 @@ export async function removeFileRecursiveAsync (path, removeDirectoryItself = tr
 }
 
 
-const SUPPORT_WRITE = true
-
-export const openWorldDirectory = async (dragndropHandle?: FileSystemDirectoryHandle) => {
-  let _directoryHandle: FileSystemDirectoryHandle
-  if (dragndropHandle) {
-    _directoryHandle = dragndropHandle
-  } else {
-    try {
-      _directoryHandle = await window.showDirectoryPicker({
-        id: 'select-world', // important: this is used to remember user choice (start directory)
-      })
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      throw err
-    }
-  }
-  const directoryHandle = _directoryHandle
-
-  const requestResult = SUPPORT_WRITE && !options.preferLoadReadonly ? await directoryHandle.requestPermission?.({ mode: 'readwrite' }) : undefined
-  const writeAccess = requestResult === 'granted'
-
-  const doContinue = writeAccess || !SUPPORT_WRITE || options.disableLoadPrompts || confirm('Continue in readonly mode?')
-  if (!doContinue) return
-  await new Promise<void>(resolve => {
+/** Mount a folder (File System Access handle) at /world. Writes need readwrite permission on the handle, reads don't. */
+export const mountWorldDirectoryHandle = async (directoryHandle: FileSystemDirectoryHandle) => {
+  await new Promise<void>((resolve, reject) => {
     browserfs.configure({
       fs: 'MountableFileSystem',
       options: {
@@ -343,22 +323,39 @@ export const openWorldDirectory = async (dragndropHandle?: FileSystemDirectoryHa
         }
       },
     }, (e) => {
-      if (e) throw e
-      resolve()
+      if (e) reject(e)
+      else resolve()
     })
   })
-
-  fsState.isReadonly = !writeAccess
-  fsState.syncFs = false
-  fsState.inMemorySave = false
-  fsState.remoteBackend = false
-  await loadSave()
 }
 
-const tryToDetectResourcePack = async () => {
+/** Mount a zip (read only) at /world. */
+export const mountWorldZip = async (file: File | ArrayBuffer, name = file['name']) => {
+  const zipData = Buffer.from(file instanceof File ? (await file.arrayBuffer()) : file)
+  await new Promise<void>((resolve, reject) => {
+    browserfs.configure({
+      fs: 'MountableFileSystem',
+      options: {
+        ...defaultMountablePoints,
+        '/world': {
+          fs: 'ZipFS',
+          options: {
+            zipData,
+            name
+          }
+        }
+      },
+    }, (e) => {
+      if (e) reject(e)
+      else resolve()
+    })
+  })
+}
+
+export const tryToDetectResourcePack = async () => {
   const askInstall = async () => {
     // todo investigate browserfs read errors
-    return alert('ATM You can install texturepacks only via options menu.')
+    showNotification('Resource pack detected', 'Install resource packs from Options > Resource Packs for now.')
     // if (confirm('Resource pack detected, do you want to install it?')) {
     //   await installTexturePackFromHandle()
     // }
@@ -589,25 +586,7 @@ export const unmountServerResourcePack = () => {
 
 // todo rename method
 const openWorldZipInner = async (file: File | ArrayBuffer, name = file['name'], connectOptions?: Partial<ConnectOptions>) => {
-  await new Promise<void>(async resolve => {
-    browserfs.configure({
-      // todo
-      fs: 'MountableFileSystem',
-      options: {
-        ...defaultMountablePoints,
-        '/world': {
-          fs: 'ZipFS',
-          options: {
-            zipData: Buffer.from(file instanceof File ? (await file.arrayBuffer()) : file),
-            name
-          }
-        }
-      },
-    }, (e) => {
-      if (e) throw e
-      resolve()
-    })
-  })
+  await mountWorldZip(file, name)
 
   fsState.saveLoaded = false
   fsState.isReadonly = true
@@ -628,7 +607,7 @@ const openWorldZipInner = async (file: File | ArrayBuffer, name = file['name'], 
 
     if (availableWorlds.length === 0) {
       if (await tryToDetectResourcePack()) return
-      alert('No worlds found in the zip')
+      showNotification('No Minecraft world in the zip', 'It should contain a world folder with level.dat.', true)
       return
     }
 
@@ -637,9 +616,9 @@ const openWorldZipInner = async (file: File | ArrayBuffer, name = file['name'], 
       return
     }
 
-    alert(`Many (${availableWorlds.length}) worlds found in the zip!`)
-    // todo prompt picker
-    // const selectWorld
+    // a link can't ask which one (the world screen does for drops): open the first
+    showNotification(`${availableWorlds.length} worlds in the zip`, `Opening ${availableWorlds[0]}`)
+    await loadSave(`/world/${availableWorlds[0]}`, connectOptions)
   }
 }
 
@@ -671,11 +650,13 @@ export const openFilePicker = (specificCase?: 'resourcepack') => {
       picker.value = ''
       if (!file) return
       if (specificCase === 'resourcepack') {
-        if (!file.name.endsWith('.zip')) {
-          const doContinue = confirm(`Are you sure ${file.name.slice(-20)} is .zip file? ONLY .zip files are supported. Continue?`)
-          if (!doContinue) return
-        }
-        void installResourcepackPack(file, createFullScreenProgressReporter()).catch((err) => {
+        void (async () => {
+          if (!file.name.endsWith('.zip')) {
+            const choice = await showOptionsModal(`${file.name.slice(-20)} doesn't look like a .zip. Only .zip resource packs are supported.`, ['Install anyway'])
+            if (!choice) return
+          }
+          await installResourcepackPack(file, createFullScreenProgressReporter())
+        })().catch((err) => {
           setLoadingScreenStatus(err.message, true)
         })
       } else {
@@ -689,7 +670,8 @@ export const openFilePicker = (specificCase?: 'resourcepack') => {
             })
           })
         } else {
-          void openWorldZip(file)
+          // same world screen as a dropped zip
+          void import('./worldDrop/droppedWorld').then(async ({ openDroppedWorld }) => openDroppedWorld({ kind: 'zip', name: file.name, file }))
         }
       }
     })

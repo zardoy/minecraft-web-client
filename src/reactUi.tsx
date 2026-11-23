@@ -13,6 +13,8 @@ import CreateWorldProvider from './react/CreateWorldProvider'
 import AppStatusProvider from './react/AppStatusProvider'
 import SelectOption from './react/SelectOption'
 import SettingReloadModal from './react/SettingReloadModal'
+import DroppedWorldScreen from './react/worldDrop/DroppedWorldScreen'
+import DropZoneOverlay from './react/worldDrop/DropZoneOverlay'
 import AutoFillLoginModal from './react/AutoFillLoginModal'
 import MobilePortraitButtons from './react/MobilePortraitButtons'
 import ChatProvider from './react/ChatProvider'
@@ -273,6 +275,7 @@ const AppBase = () => {
             <ModsPage />
             <SelectOption />
             <SettingReloadModal />
+            <DroppedWorldScreen />
             <AutoFillLoginModal />
             <CreditsAboutModal />
             <AllSettingsEditor />
@@ -290,6 +293,7 @@ const AppBase = () => {
             <IframeModal />
             <DebugResponseTimeIndicator />
             <CornerIndicatorStats />
+            <DropZoneOverlay />
           </RobustPortal>
         </ButtonAppProvider>
       </div>

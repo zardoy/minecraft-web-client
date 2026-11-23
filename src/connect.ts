@@ -26,6 +26,9 @@ export type ConnectOptions = {
   viewerWsConnect?: string
   saveServerToHistory?: boolean
 
+  /** singleplayer: teleport here once the player spawned (world screen "Start at": world spawn / a warp) */
+  startPosition?: { x: number, y: number, z: number }
+
   /** Will enable local replay server */
   worldStateFileContents?: string
 
