@@ -4,10 +4,10 @@ import * as nbt from 'prismarine-nbt'
 import RegionFile from 'prismarine-provider-anvil/src/region'
 import { versions } from 'minecraft-data'
 import { getThreeJsRendererMethods } from 'minecraft-renderer/src/three/threeJsMethods'
-import { openWorldDirectory, openWorldZip } from './browserfs'
 import { isGameActive } from './globalState'
 import { showNotification } from './react/NotificationProvider'
 import { openFile, VALID_REPLAY_EXTENSIONS } from './packetsReplay/replayPackets'
+import { openDroppedWorld } from './worldDrop/droppedWorld'
 
 const parseNbt = promisify(nbt.parse)
 const simplifyNbt = nbt.simplify
@@ -38,7 +38,7 @@ const fileToDataUrl = async (file: File) => new Promise<string>((resolve, reject
   reader.readAsDataURL(file)
 })
 
-// todo display drop zone
+// the drop zone hint is react/worldDrop/DropZoneOverlay.tsx
 for (const event of ['drag', 'dragstart', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop']) {
   window.addEventListener(event, (e: any) => {
     if (e.dataTransfer && !e.dataTransfer.types.includes('Files')) {
@@ -59,11 +59,8 @@ window.addEventListener('drop', async e => {
 
       await handleDroppedFile(file)
     } else {
-      if (isGameActive(false)) {
-        alert('Exit current world first, before loading a new one.')
-        return
-      }
-      await openWorldDirectory(filehandle)
+      // world screen: read only by default, saving back is opt-in there
+      await openDroppedWorld({ kind: 'folder', name: filehandle.name, handle: filehandle })
     }
   } else {
     await handleDroppedFile(item.getAsFile()!)
@@ -118,12 +115,12 @@ async function handleDroppedFile (file: File) {
   }
 
   if (file.name.endsWith('.zip')) {
-    void openWorldZip(file)
+    await openDroppedWorld({ kind: 'zip', name: file.name, file })
     return
   }
   // if (file.name.endsWith('.mca')) // TODO let's do something interesting with it: viewer?
   if (file.name.endsWith('.rar')) {
-    alert('Rar files are not supported yet!')
+    showNotification('Rar files are not supported', 'Use a .zip of the world instead.', true)
     return
   }
   if (VALID_REPLAY_EXTENSIONS.some(ext => file.name.endsWith(ext)) || file.name.startsWith('packets-replay')) {
@@ -182,7 +179,7 @@ async function handleDroppedFile (file: File) {
 
   const buffer = await file.arrayBuffer()
   const parsed = await parseNbt(Buffer.from(buffer)).catch((err) => {
-    alert('Couldn\'t parse nbt, ensure you are opening .dat or file (or .zip/folder with a world)')
+    showNotification(`Couldn't read ${file.name}`, 'Drop a world folder or .zip, a .dat / .mca file, or an image.', true)
     throw err
   })
   showNotification(`${file.name} data available in browser console`)

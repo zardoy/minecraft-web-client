@@ -1,9 +1,37 @@
 import { LocalServer } from './customServer'
+import './worldgen/datapack'
+import { createWorldgenWorker } from './worldgen/workerFactory'
+import { currentDeviceInfo, lowMemoryWorldgenWorkers } from './worldgen/lowMemoryDevice'
 
 const { createMCServer } = require('flying-squid/dist')
 
+/** world types flying-squid generates with the noise generator (Create World sends `default`) */
+const NOISE_GENERATION_ALIASES = new Set(['noise', 'default', 'diamond_square'])
+
+/**
+ * Chunk generation of the noise generator runs in Web Workers (otherwise it blocks the main thread: ~100-600 ms per chunk).
+ * Single file builds can't emit a separate worker script, so they keep generating in-process.
+ * `generation.options.workers`: number of workers (default min(4, cores - 1), 1 on iOS and low memory Android, see lowMemoryDevice.ts), 0 = in-process.
+ */
+const withWorldgenWorkers = (serverOptions) => {
+  const rawGen = serverOptions.generation
+  // without this a world made in Create World ('default') generated every chunk on the main thread: 0.5-2 s freezes while moving
+  const gen = rawGen && NOISE_GENERATION_ALIASES.has(rawGen.name) ? { ...rawGen, name: 'noise' } : rawGen
+  if (gen !== rawGen) serverOptions = { ...serverOptions, generation: gen }
+  if (process.env.SINGLE_FILE_BUILD === 'true' || typeof Worker === 'undefined') return serverOptions
+  // debugging override: ?worldgenWorkers=N (0 = generate on the main thread)
+  const override = new URLSearchParams(globalThis.location?.search ?? '').get('worldgenWorkers')
+  const configured: number | undefined = override === null ? gen?.options?.workers : Number(override)
+  const workers = configured ?? lowMemoryWorldgenWorkers(currentDeviceInfo())
+  if (gen?.name !== 'noise' || workers === 0 || gen.options?.workerFactory) {
+    return workers === 0 && gen?.name === 'noise' ? { ...serverOptions, generation: { ...gen, options: { ...gen.options, workers: 0 } } } : serverOptions
+  }
+  const workerFactory = createWorldgenWorker
+  return { ...serverOptions, generation: { ...gen, options: { ...gen.options, workers, workerFactory } } }
+}
+
 export const startLocalServer = (serverOptions) => {
-  const passOptions = { ...serverOptions, Server: LocalServer }
+  const passOptions = { ...withWorldgenWorkers(serverOptions), Server: LocalServer }
   const server: NonNullable<typeof localServer> = createMCServer(passOptions)
   server.formatMessage = (message) => `[server] ${message}`
   server.options = passOptions
@@ -14,4 +42,6 @@ export const startLocalServer = (serverOptions) => {
 
 // features that flying-squid doesn't support at all
 // todo move & generate in flying-squid
-export const unsupportedLocalServerFeatures = ['transactionPacketExists', 'teleportUsesOwnPacket']
+// (`teleportUsesOwnPacket` was here too: flying-squid now waits for `teleport_confirm` and ignores every movement until it
+// arrives, so without the confirm the server kept the player at the first /tp target and never sent the chunks around them)
+export const unsupportedLocalServerFeatures = ['transactionPacketExists']

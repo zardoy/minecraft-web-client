@@ -6,6 +6,8 @@ import { appQueryParams, appQueryParamsArray } from './appParams'
 import { VALID_REPLAY_EXTENSIONS, openFile } from './packetsReplay/replayPackets'
 import { createFullScreenProgressReporter } from './core/progressReporter'
 import { ConnectOptions } from './connect'
+import { showNotification } from './react/NotificationProvider'
+import { showOptionsModal } from './react/SelectOption'
 
 export const getFixedFilesize = (bytes: number) => {
   return prettyBytes(bytes, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -23,7 +25,8 @@ const inner = async () => {
   return downloadAndOpenMapFromUrl(map, texturepack, mapDir, replayFileUrl)
 }
 
-export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, texturepackUrl: string | undefined, mapUrlDir: string[] | undefined, replayFileUrl: string | undefined, connectOptions?: Partial<ConnectOptions>) => {
+/** @param temporaryPack mount the pack (ZenFS, like a server resource pack) instead of copying it into the browser storage: it lasts for this session and the link applies it again on every load */
+export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, texturepackUrl: string | undefined, mapUrlDir: string[] | undefined, replayFileUrl: string | undefined, connectOptions?: Partial<ConnectOptions>, temporaryPack = false) => {
   if (replayFileUrl) {
     setLoadingScreenStatus('Downloading replay file')
     const response = await fetch(replayFileUrl)
@@ -70,6 +73,13 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
     return true
   }
 
+  if (texturepackUrl && (mapUrl || mapUrlDir?.length)) {
+    // a link with a map AND a resource pack (?texturepack=...&mapDir=...): the map branches below never look at the pack, so install the pack first (the texturepack-only path of
+    // this function), then open the map. The pack is only mounted (nothing is copied into IndexedDB: the copy sometimes hangs, and the link brings the pack back on every load)
+    await downloadAndOpenMapFromUrl(undefined, texturepackUrl, undefined, undefined, undefined, true)
+    texturepackUrl = undefined
+  }
+
   const mapUrlDirGuess = appQueryParams.mapDirGuess
   const mapUrlDirBaseUrl = appQueryParams.mapDirBaseUrl
   if (mapUrlDir?.length) {
@@ -86,10 +96,11 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   if (texturepackUrl) mapUrl = texturepackUrl
   if (!mapUrl) return false
 
-  if (texturepackUrl) {
+  if (texturepackUrl && !temporaryPack) {
     await updateTexturePackInstalledState()
     if (resourcePackState.resourcePackInstalled) {
-      if (!confirm(`You are going to install a new resource pack, which will REPLACE the current one: ${await getResourcePackNames()[0]} Continue?`)) return
+      const choice = await showOptionsModal(`This resource pack will REPLACE the current one: ${await getResourcePackNames()[0]}`, ['Replace'])
+      if (!choice) return
     }
   }
   const name = mapUrl.slice(mapUrl.lastIndexOf('/') + 1).slice(-25)
@@ -99,7 +110,7 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   const response = await fetch(mapUrl)
   const contentType = response.headers.get('Content-Type')
   if (!contentType || !contentType.startsWith('application/zip')) {
-    alert('Invalid map file')
+    showNotification('This may not be a map file', `The server sent ${contentType || 'no content type'} instead of a zip.`, true)
   }
   const contentLengthStr = response.headers?.get('Content-Length')
   const contentLength = contentLengthStr && +contentLengthStr
@@ -133,7 +144,7 @@ export const downloadAndOpenMapFromUrl = async (mapUrl: string | undefined, text
   })).arrayBuffer()
   if (texturepackUrl) {
     const name = mapUrl.slice(mapUrl.lastIndexOf('/') + 1).slice(-30)
-    await installResourcepackPack(buffer, createFullScreenProgressReporter(), name)
+    await installResourcepackPack(buffer, createFullScreenProgressReporter(), name, undefined, temporaryPack)
   } else {
     await openWorldZip(buffer, undefined, connectOptions)
   }

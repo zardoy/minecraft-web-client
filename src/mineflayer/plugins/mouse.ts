@@ -48,15 +48,17 @@ export default (bot: Bot) => {
   bot.loadPlugin(createMouse({
     useMineflayerInteractMethods: false,
     preventVehicleInteraction: false,
+    // vanilla mines in the air too (5x slower, which bot.digTime already applies; instant blocks like fire stay instant)
+    allowInAirMining: true,
   }))
 
   domListeners(bot)
   cursorBlockDisplay(bot)
 
-  otherListeners()
+  otherListeners(bot)
 }
 
-const otherListeners = () => {
+const otherListeners = (bot: Bot) => {
   bot.on('startDigging', (block) => {
     customEvents.emit('digStart')
   })
@@ -75,11 +77,16 @@ const otherListeners = () => {
 
   bot.on('startUsingItem', (item, slot, isOffhand, duration) => {
     customEvents.emit('activateItem', item, isOffhand ? 45 : bot.quickBarSlot, isOffhand)
-    playerState.startUsingItem()
+    playerState.startUsingItem(item, isOffhand ? 1 : 0)
   })
 
-  bot.on('stopUsingItem', () => {
-    playerState.stopUsingItem()
+  bot.on('stopUsingItem', (item, slot, isOffhand) => {
+    playerState.stopUsingItem(item, isOffhand ? 1 : 0)
+  })
+
+  bot._client.on('entity_status', (data) => {
+    if (data.entityId !== bot.entity?.id || data.entityStatus !== 9) return
+    playerState.completeUse()
   })
 }
 

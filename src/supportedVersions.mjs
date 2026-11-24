@@ -17,8 +17,14 @@ export const versionToNumber = (ver) => {
 
 const forbiddenVersionThresholdNum = versionToNumber(FORBIDDEN_VERSION_THRESHOLD)
 
+// optional clipping (slim build): MIN_MC_VERSION / MAX_MC_VERSION, same variables as scripts/makeOptimizedMcData.mjs
+const minVersion = process.env.MIN_MC_VERSION
+const maxVersion = process.env.MAX_MC_VERSION
+
 export default versionsFromProtocol.filter(x => {
   if (x === '1.7' || x.startsWith('1.7.')) return false
+  if (minVersion && versionToNumber(x) < versionToNumber(minVersion)) return false
+  if (maxVersion && versionToNumber(x) > versionToNumber(maxVersion)) return false
   // Filter out versions >= 1.21.7
   const versionNum = versionToNumber(x)
   return versionNum < forbiddenVersionThresholdNum

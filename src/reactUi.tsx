@@ -13,6 +13,8 @@ import CreateWorldProvider from './react/CreateWorldProvider'
 import AppStatusProvider from './react/AppStatusProvider'
 import SelectOption from './react/SelectOption'
 import SettingReloadModal from './react/SettingReloadModal'
+import DroppedWorldScreen from './react/worldDrop/DroppedWorldScreen'
+import DropZoneOverlay from './react/worldDrop/DropZoneOverlay'
 import AutoFillLoginModal from './react/AutoFillLoginModal'
 import MobilePortraitButtons from './react/MobilePortraitButtons'
 import ChatProvider from './react/ChatProvider'
@@ -25,6 +27,7 @@ import MinimapProvider, { DrawerAdapterImpl } from './react/MinimapProvider'
 import HudBarsProvider from './react/HudBarsProvider'
 import XPBarProvider from './react/XPBarProvider'
 import DebugOverlay from './react/DebugOverlay'
+import VisualEffectsPanel from './react/VisualEffectsPanel'
 import MobileTopButtons from './react/MobileTopButtons'
 import PauseScreen from './react/PauseScreen'
 import SoundMuffler from './react/SoundMuffler'
@@ -64,6 +67,7 @@ import ConnectOnlyServerUi from './react/ConnectOnlyServerUi'
 import ControDebug from './react/ControDebug'
 import ChunksDebug from './react/ChunksDebug'
 import ChunksDebugScreen from './react/ChunksDebugScreen'
+import RecipeEditorScreen from './react/RecipeEditorScreen'
 import DebugResponseTimeIndicator from './react/debugs/DebugResponseTimeIndicator'
 import RendererDebugMenu from './react/RendererDebugMenu'
 import CreditsAboutModal from './react/CreditsAboutModal'
@@ -187,6 +191,7 @@ const InGameUi = () => {
           {!disabledUiParts.includes('bossbars') && displayBossBars && <BossBarOverlayProvider />}
           <VoiceMicrophone />
           <ChunksDebugScreen />
+          <RecipeEditorScreen />
           <RendererDebugMenu />
           {!disabledUiParts.includes('fire') && <FireRenderer />}
         </PerComponentErrorBoundary>
@@ -260,6 +265,7 @@ const AppBase = () => {
             <VoiceChatMenuProvider />
             <ServersListProvider />
             <OptionsRenderApp />
+            <VisualEffectsPanel />
             <MainMenuRenderApp />
             <ConnectOnlyServerUi />
             <TouchAreasControlsProvider />
@@ -269,6 +275,7 @@ const AppBase = () => {
             <ModsPage />
             <SelectOption />
             <SettingReloadModal />
+            <DroppedWorldScreen />
             <AutoFillLoginModal />
             <CreditsAboutModal />
             <AllSettingsEditor />
@@ -286,6 +293,7 @@ const AppBase = () => {
             <IframeModal />
             <DebugResponseTimeIndicator />
             <CornerIndicatorStats />
+            <DropZoneOverlay />
           </RobustPortal>
         </ButtonAppProvider>
       </div>

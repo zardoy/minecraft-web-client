@@ -3,6 +3,10 @@ import {
   RENDERER_OPTIONS_META
 } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 
+/** iPhone / iPad (an iPad asks for the desktop site and calls itself a Mac, but has a touch screen) */
+const isIosDevice = typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
 export const defaultOptions = {
   renderDistance: 3,
   closeConfirmation: true,
@@ -38,6 +42,8 @@ export const defaultOptions = {
   debugLogNotFrequentPackets: false,
   unimplementedContainers: false,
   ...RENDERER_DEFAULT_OPTIONS,
+  /** keeping the frame for screenshots (F2) costs GPU work; iPhones and iPads skip it by default (Render > Advanced: Screenshot Buffer) */
+  preserveDrawingBuffer: !isIosDevice,
   enabledResourcepack: null as string | null,
   useVersionsTextures: 'latest',
   serverResourcePacks: 'prompt' as 'prompt' | 'always' | 'never',
@@ -50,7 +56,8 @@ export const defaultOptions = {
   language: 'auto',
   preciseMouseInput: false,
   // todo ui setting, maybe enable by default?
-  waitForChunksRender: false as 'sp-only' | boolean,
+  /** keep the loading screen (with its progress bar) until the chunks around the player are loaded; 'sp-only' = only in singleplayer */
+  waitForChunksRender: 'sp-only' as 'sp-only' | boolean,
   inventoryJei: true as boolean | Array<'creative' | 'survival' | 'adventure' | 'spectator'>,
   inventoryNotes: true as boolean,
   inventoryPlaceholders: false,
@@ -79,6 +86,8 @@ export const defaultOptions = {
   autoDisplayRotation: false,
   excludeCommunicationDebugEvents: [] as string[],
   preventDevReloadWhilePlaying: false,
+  /** anonymous frame rate / stutter / device numbers for servers that ask for them (the play.mcraft.fun proxy), see core/perfStats */
+  sendPerfData: true,
   localServerOptions: {
     gameMode: 1
   } as any,
@@ -130,17 +139,18 @@ function getDefaultTouchControlsPositions () {
       70,
       76
     ],
+    // jump above sneak at the right edge, high like Bedrock: clear of the hand, the hotbar and the bottom corner
     sneak: [
-      84,
-      76
+      87,
+      56
     ],
     break: [
       70,
       57
     ],
     jump: [
-      84,
-      57
+      87,
+      36
     ],
   } as Record<string, [number, number]>
 }

@@ -1,30 +1,26 @@
 import fs from 'fs'
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { useEffect, useRef, useState } from 'react'
-import { loadScript } from 'minecraft-renderer/src/lib/utils'
 import { fsState, loadSave, longArrayToNumber, readLevelDat } from '../loadSave'
-import { googleDriveGetFileIdFromPath, mountExportFolder, mountGoogleDriveFolder, removeFileRecursiveAsync } from '../browserfs'
+import { mountExportFolder, removeFileRecursiveAsync } from '../browserfs'
 import { hideCurrentModal, showModal } from '../globalState'
 import { haveDirectoryPicker } from '../utils'
 import { setLoadingScreenStatus } from '../appStatus'
 import { exportWorld } from '../builtinCommands'
-import { googleProviderState, useGoogleLogIn, GoogleDriveProvider, isGoogleDriveAvailable, APP_ID } from '../googledrive'
 import Singleplayer, { WorldProps } from './Singleplayer'
 import { useIsModalActive } from './utilsApp'
 import { showOptionsModal } from './SelectOption'
 import Input from './Input'
-import GoogleButton from './GoogleButton'
 
 const worldsProxy = proxy({
   value: null as null | WorldProps[],
   brokenWorlds: [] as string[],
-  selectedProvider: 'local' as 'local' | 'google',
-  selectedGoogleId: '',
+  selectedProvider: 'local' as const,
   error: '',
 })
 
 export const getWorldsPath = () => {
-  return worldsProxy.selectedProvider === 'local' ? `/data/worlds` : worldsProxy.selectedProvider === 'google' ? `/google/${'/'.replace(/\/$/, '')}` : ''
+  return '/data/worlds'
 }
 
 const providersEnableFeatures = {
@@ -33,13 +29,25 @@ const providersEnableFeatures = {
     delete: true,
     export: true,
     icon: true
-  },
-  google: {
-    calculateSize: false,
-    // TODO
-    delete: false,
-    export: false,
-    icon: true
+  }
+}
+
+const LOCAL_WORLDS_FLAG = 'hasLocalWorlds'
+
+/** remembered whether local worlds exist (the list updates it on every read, creating a world sets it): reading the folder on click took ~400 ms on a slow CPU */
+export const setHasLocalWorlds = (has: boolean) => {
+  try {
+    localStorage.setItem(LOCAL_WORLDS_FLAG, has ? '1' : '0')
+  } catch {}
+}
+
+/** true only when the last read of the local worlds found none (unknown = false: the list opens and switches to Create World itself) */
+export const knownNoLocalWorlds = () => {
+  if (worldsProxy.selectedProvider !== 'local') return false
+  try {
+    return localStorage.getItem(LOCAL_WORLDS_FLAG) === '0'
+  } catch {
+    return false
   }
 }
 
@@ -50,28 +58,26 @@ export const readWorlds = (abortController: AbortController) => {
   (async () => {
     const brokenWorlds = [] as string[]
     try {
-      const loggedIn = !!googleProviderState.accessToken
       worldsProxy.value = null
-      if (worldsProxy.selectedProvider === 'google' && !loggedIn) {
-        worldsProxy.value = []
-        return
-      }
       const worldsPath = getWorldsPath()
       const provider = worldsProxy.selectedProvider
 
       const worlds = await fs.promises.readdir(worldsPath)
 
       const newMappedWorlds = (await Promise.allSettled(worlds.map(async (folder) => {
-        const { levelDat } = (await readLevelDat(`${worldsPath}/${folder}`))!
-        const levelDatStat = await fs.promises.stat(`${worldsPath}/${folder}/level.dat`)
+        // a folder without level.dat (a world closed before its first autosave, written by older builds) is still a world: it is listed and level.dat is created on load
+        const levelDat: Record<string, any> = (await readLevelDat(`${worldsPath}/${folder}`))?.levelDat ?? {}
+        const levelDatStat = await fs.promises.stat(`${worldsPath}/${folder}/level.dat`).catch(async () => fs.promises.stat(`${worldsPath}/${folder}`))
         let size = 0
         if (providersEnableFeatures[provider].calculateSize) {
           // todo use whole dir size
-          for (const region of await fs.promises.readdir(`${worldsPath}/${folder}/region`)) {
-            // eslint-disable-next-line no-await-in-loop -- it's still fast enough, nobody complains about it
-            const stat = await fs.promises.stat(`${worldsPath}/${folder}/region/${region}`)
-            size += stat.size
-          }
+          try {
+            for (const region of await fs.promises.readdir(`${worldsPath}/${folder}/region`)) {
+              // eslint-disable-next-line no-await-in-loop -- it's still fast enough, nobody complains about it
+              const stat = await fs.promises.stat(`${worldsPath}/${folder}/region/${region}`)
+              size += stat.size
+            }
+          } catch {} // no chunks saved yet
         }
         let iconBase64 = ''
         if (providersEnableFeatures[provider].icon) {
@@ -108,6 +114,7 @@ export const readWorlds = (abortController: AbortController) => {
       })
       if (abortController.signal.aborted) return
       worldsProxy.value = newMappedWorlds
+      if (provider === 'local') setHasLocalWorlds(newMappedWorlds.length > 0)
     } catch (err) {
       if (err.name === 'AbortError') return
       console.warn(err)
@@ -134,61 +141,32 @@ export default () => {
 
   if (!active) return null
 
-  return <GoogleDriveProvider>
-    <Inner />
-  </GoogleDriveProvider>
-}
-
-export const loadGoogleDriveApi = async () => {
-  const scriptEl = await loadScript('https://apis.google.com/js/api.js')
-  if (!scriptEl) return // already loaded
-  return new Promise<void>((resolve) => {
-    gapi.load('client', () => {
-      gapi.load('client:picker', () => {
-        void gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest').then(() => {
-          googleProviderState.isReady = true
-          resolve()
-        })
-      })
-    })
-  })
+  return <Inner />
 }
 
 const Inner = () => {
   const worlds = useSnapshot(worldsProxy).value as WorldProps[] | null
-  const { selectedProvider, error, brokenWorlds, selectedGoogleId } = useSnapshot(worldsProxy)
+  const { selectedProvider, error, brokenWorlds } = useSnapshot(worldsProxy)
   const readWorldsAbortController = useRef(new AbortController())
 
-  // 3rd party providers
+  // like vanilla: with no worlds there is nothing to pick, so go straight to "Create New World" (its Cancel returns to the title screen).
+  // worldsProxy keeps the list of the previous visit, so only trust an empty list after this visit saw the list loading
+  const sawWorldsLoading = useRef(false)
+  const openedCreateWorld = useRef(false)
   useEffect(() => {
-    if (selectedProvider !== 'google') return
-    void loadGoogleDriveApi()
-  }, [selectedProvider])
-
-  const loggedIn = !!useSnapshot(googleProviderState).accessToken
-  const googleDriveReadonly = useSnapshot(googleProviderState).readonlyMode
+    if (worlds === null) {
+      sawWorldsLoading.current = true
+      return
+    }
+    if (!sawWorldsLoading.current || openedCreateWorld.current) return
+    if (selectedProvider !== 'local' || worlds.length > 0 || error || brokenWorlds.length > 0) return
+    openedCreateWorld.current = true
+    hideCurrentModal()
+    showModal({ reactType: 'create-world' })
+  }, [worlds, selectedProvider, error, brokenWorlds])
 
   useEffect(() => {
     (async () => {
-      if (selectedProvider === 'google') {
-        if (!selectedGoogleId) {
-          worldsProxy.value = []
-          return
-        }
-        await mountGoogleDriveFolder(googleProviderState.readonlyMode, selectedGoogleId)
-        const exists = async (path) => {
-          try {
-            await fs.promises.stat(path)
-            return true
-          } catch {
-            return false
-          }
-        }
-        if (await exists(`${getWorldsPath()}/level.dat`)) {
-          await loadInMemorySave(getWorldsPath())
-          return
-        }
-      }
       if (selectedProvider === 'local' && !(await fs.promises.stat('/data/worlds').catch(() => false))) {
         await fs.promises.mkdir('/data/worlds')
       }
@@ -199,98 +177,15 @@ const Inner = () => {
       readWorldsAbortController.current.abort()
       readWorldsAbortController.current = new AbortController()
     }
-  }, [selectedProvider, loggedIn, googleDriveReadonly, selectedGoogleId])
-
-  const googleLogIn = useGoogleLogIn()
-
-  const googlePicker = useRef/* <google.picker.Picker | null> */(null as any)
-
-  useEffect(() => {
-    return () => {
-      googlePicker.current?.dispose()
-    }
-  })
-
-  const selectGoogleFolder = async () => {
-    if (googleProviderState.lastSelectedFolder) {
-      // ask to use saved previous fodler
-      const choice = await showOptionsModal(`Use previously selected folder "${googleProviderState.lastSelectedFolder.name}"?`, ['Yes', 'No'])
-      if (!choice) return
-      if (choice === 'Yes') {
-        worldsProxy.selectedGoogleId = googleProviderState.lastSelectedFolder.id
-        return
-      }
-    }
-
-    const { google } = window
-
-    const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-      .setIncludeFolders(true)
-      .setMimeTypes('application/vnd.google-apps.folder')
-      .setSelectFolderEnabled(true)
-      .setParent('root')
-
-
-    googlePicker.current = new google.picker.PickerBuilder()
-      .enableFeature(google.picker.Feature.NAV_HIDDEN)
-      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-      .setDeveloperKey('AIzaSyBTiHpEqaLL7mEcrsnSS4M-z8cpRH5UwY0')
-      .setAppId(APP_ID)
-      .setOAuthToken(googleProviderState.accessToken)
-      .addView(view)
-      .addView(new google.picker.DocsUploadView())
-      .setTitle('Select a folder with your worlds')
-      .setCallback((data) => {
-        if (data.action === google.picker.Action.PICKED) {
-          googleProviderState.lastSelectedFolder = {
-            id: data.docs[0].id,
-            name: data.docs[0].name,
-          }
-          worldsProxy.selectedGoogleId = data.docs[0].id
-        }
-      })
-      .build()
-    googlePicker.current.setVisible(true)
-  }
-
-  const isGoogleProviderReady = useSnapshot(googleProviderState).isReady
-  const providerActions = loggedIn && selectedProvider === 'google' && isGoogleProviderReady && !selectedGoogleId ? {
-    'Select Folder': selectGoogleFolder
-  } : selectedProvider === 'google' ? isGoogleProviderReady ? loggedIn ? {
-    'Log Out' () {
-      googleProviderState.hasEverLoggedIn = false
-      googleProviderState.accessToken = null
-      googleProviderState.lastSelectedFolder = null
-      window.google.accounts.oauth2.revoke(googleProviderState.accessToken)
-    },
-    async [`Read Only: ${googleDriveReadonly ? 'ON' : 'OFF'}`] () {
-      if (googleProviderState.readonlyMode) {
-        const choice = await showOptionsModal('[Unstable Feature] Enabling world save might corrupt your worlds, eg remove entities (note: you can always restore previous version of files in Drive)', ['Continue'])
-        if (choice !== 'Continue') return
-      }
-      googleProviderState.readonlyMode = !googleProviderState.readonlyMode
-    },
-    'Select Folder': selectGoogleFolder,
-    // 'Worlds Path': <Input rootStyles={{ width: 100 }} placeholder='Worlds path' defaultValue={worldsPath} onBlur={(e) => {
-    //   googleProviderData.worldsPath = e.target.value
-    // }} />
-  } : {
-    'Log In': <GoogleButton onClick={googleLogIn} />
-  } : {
-    'Loading...' () { }
-  } : undefined
-  // end
+  }, [selectedProvider])
 
   return <Singleplayer
     error={error}
-    isReadonly={selectedProvider === 'google' && (googleDriveReadonly || !isGoogleProviderReady || !selectedGoogleId)}
     // providers={{
     //   local: 'Local',
     //   google: 'Google Drive',
     // }}
-    disabledProviders={[...isGoogleDriveAvailable() ? [] : ['google']]}
     worldData={worlds}
-    providerActions={providerActions}
     activeProvider={selectedProvider}
     setActiveProvider={(provider) => {
       worldsProxy.selectedProvider = provider as any
@@ -307,23 +202,12 @@ const Inner = () => {
     warningActionLabel='Remove broken worlds'
     onWorldAction={async (action, worldName) => {
       const worldPath = `${getWorldsPath()}/${worldName}`
-      const openInGoogleDrive = () => {
-        const fileId = googleDriveGetFileIdFromPath(worldPath.replace('/google/', ''))
-        if (!fileId) return alert('File not found')
-        window.open(`https://drive.google.com/drive/folders/${fileId}`)
-      }
-
       if (action === 'load') {
         setLoadingScreenStatus(`Starting loading world ${worldName}`)
         await loadInMemorySave(worldPath)
         return
       }
       if (action === 'delete') {
-        if (selectedProvider === 'google') {
-          openInGoogleDrive()
-          return
-        }
-
         if (!confirm('Are you sure you want to delete current world')) return
         setLoadingScreenStatus(`Removing world ${worldName}`)
         await removeFileRecursiveAsync(worldPath)
@@ -331,11 +215,6 @@ const Inner = () => {
         readWorlds(readWorldsAbortController.current)
       }
       if (action === 'export') {
-        if (selectedProvider === 'google') {
-          openInGoogleDrive()
-          return
-        }
-
         const selectedVariant =
           haveDirectoryPicker()
             ? await showOptionsModal('Select export type', ['Select folder (recommended)', 'Download ZIP file'])

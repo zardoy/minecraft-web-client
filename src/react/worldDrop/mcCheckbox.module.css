@@ -1,0 +1,36 @@
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  color: #fff;
+  text-shadow: 1px 1px #222;
+}
+
+.checkbox input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkboxBox {
+  width: 17px;
+  height: 17px;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.checkbox input:focus-visible + .checkboxBox {
+  outline: 1px solid #fff;
+}
+
+.disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.checkboxLabel {
+  line-height: 1;
+}

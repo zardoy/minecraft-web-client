@@ -235,10 +235,13 @@ export default () => {
 
   return <Screen title='Game Menu'>
     <div style={{ position: 'fixed', top: '5px', left: 'calc(env(safe-area-inset-left) + 5px)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <Button
-        icon="pixelarticons:folder"
-        onClick={async () => openWorldActions()}
-      />
+      {/* the only action is saving a local world to browser memory: nothing to show on a server or an in-memory save */}
+      {!fsStateSnap.inMemorySave && singleplayer && (
+        <Button
+          icon="pixelarticons:folder"
+          onClick={async () => openWorldActions()}
+        />
+      )}
       {displayPacketsButtons && (
         <>
           <Button

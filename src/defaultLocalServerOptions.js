@@ -11,17 +11,15 @@ module.exports = {
   'pluginsFolder': true,
   // todo set sid, disable entities auto-spawn
   'generation': {
-    // grass_field
-    // diamond_square
+    // noise (Minecraft 26.3 noise worldgen from the minecraft-worldgen package; an optional worldgen datapack the player loads is layered on top)
     // empty
     // superflat
     // all_the_blocks
     // nether
-    'name': 'diamond_square',
-    options: {}
-    // 'options': {
-    //   'worldHeight': 80
-    // }
+    'name': 'noise',
+    options: {
+      // chunks are generated in Web Workers (see createLocalServer.ts); `workers: 0` forces in-process generation
+    }
   },
   'kickTimeout': 10_000,
   'plugins': {},
@@ -34,6 +32,6 @@ module.exports = {
   keepAlive: false,
   'everybody-op': true,
   'max-entities': 100,
-  'version': '1.18',
-  versionMajor: '1.18'
+  'version': '1.21.4',
+  versionMajor: '1.21'
 }

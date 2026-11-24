@@ -43,9 +43,9 @@ How different modules are used:
 
 To start the main web app and playground, run `pnpm run-all`. Note is doesn't start storybook and tests.
 
-## Cypress Tests (Browser Integration)
+## Browser Smoke Tests (Playwright)
 
-Cypress tests are located in `cypress` folder. To run them, run `pnpm test-mc-server` and then `pnpm test:cypress` when the `pnpm prod-start` is running (or change the port to 3000 to test with the dev server). Usually you don't need to run these until you get issues on the CI.
+Smoke tests are in the `e2e` folder. Install the browser once with `pnpm exec playwright install chromium`, then run `pnpm test:e2e` while `pnpm prod-start` is running (or point them at the dev server with `E2E_BASE_URL=http://localhost:3000 pnpm test:e2e`). A failed test leaves a screenshot and a trace in `test-results/` (`pnpm exec playwright show-trace <trace.zip>`). Usually you don't need to run these until you get issues on the CI.
 
 ## Unit Tests
 

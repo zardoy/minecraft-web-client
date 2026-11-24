@@ -111,6 +111,12 @@ const MainMenuBase = ({
     { delay: 500 }
   )
 
+  // relative build time instead of the commit hash (the hash stays in the tooltip; click still opens it on GitHub)
+  const buildTimeMs = Number(process.env.BUILD_TIME)
+  const hasBuildTime = !!process.env.BUILD_TIME && Number.isFinite(buildTimeMs)
+  const builtAgo = hasBuildTime ? `built ${formatTimeAgo(Date.now() - buildTimeMs)}` : undefined
+  const versionTooltip = [versionText, hasBuildTime ? `built ${new Date(buildTimeMs).toLocaleString()}` : undefined].filter(Boolean).join(' · ')
+
   const versionLongPress = useLongPress(
     () => {
       const buildDate = process.env.BUILD_VERSION ? new Date(process.env.BUILD_VERSION + ':00:00.000Z') : null
@@ -202,7 +208,7 @@ const MainMenuBase = ({
 
       <div className={styles['bottom-info']}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 10, color: 'gray' }} {...versionLongPress}>{versionText}</span>
+          <span style={{ fontSize: 10, color: 'gray' }} title={versionTooltip || undefined} {...versionLongPress}>{builtAgo ?? versionText}</span>
           <span
             title={`${versionTitle} (click to reload)`}
             onClick={onVersionStatusClick}
@@ -253,6 +259,16 @@ const MainMenuBase = ({
       </div>
     </div>
   )
+}
+
+/** "just now", "12m ago", "3h ago", "5d ago" */
+const formatTimeAgo = (ms: number) => {
+  const minutes = Math.floor(Math.max(0, ms) / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 48) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
 }
 
 export default withInjectableUi(MainMenuBase, 'mainMenu')

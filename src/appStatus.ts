@@ -2,6 +2,7 @@ import { resetStateAfterDisconnect } from './browserfs'
 import type { ConnectOptions } from './connect'
 import { hideModal, activeModalStack, showModal, miscUiState } from './globalState'
 import { appStatusState, resetAppStatusState } from './react/AppStatusProvider'
+import { endLoadingProgress } from './loadingProgress'
 
 let ourLastStatus: string | undefined = ''
 
@@ -40,6 +41,7 @@ export const setLoadingScreenStatus = function (status: string | undefined | nul
 
   if (status === undefined) {
     appStatusState.status = ''
+    endLoadingProgress()
 
     hideModal({ reactType: 'app-status' }, {}, { force: true })
     return
@@ -59,6 +61,8 @@ export const setLoadingScreenStatus = function (status: string | undefined | nul
   appStatusState.status = status
   appStatusState.minecraftJsonMessage = minecraftJsonMessage ?? null
 
+  // an error ends the load: the bar is hidden on error screens and must not keep its stages for the next attempt
+  if (isError) endLoadingProgress()
   if (isError && miscUiState.gameLoaded) {
     resetStateAfterDisconnect()
   }

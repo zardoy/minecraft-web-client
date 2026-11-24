@@ -13,6 +13,7 @@ import { activeModalStacks, insertActiveModalStack, miscUiState } from './global
 import supportedVersions from './supportedVersions.mjs'
 import { ConnectOptions } from './connect'
 import { appQueryParams } from './appParams'
+import { showNotification } from './react/NotificationProvider'
 
 // todo include name of opened handle (zip)!
 // additional fs metadata
@@ -29,9 +30,10 @@ export const fsState = proxy({
 
 const PROPOSE_BACKUP = true
 
+/** NBT long as [high, low] int32s (prismarine-nbt simplify) → number (`high << 32` in JS shifts mod 32, so it went through BigInt) */
 export function longArrayToNumber (longArray: number[]) {
   const [high, low] = longArray
-  return (high << 32) + low
+  return Number(BigInt.asIntN(64, (BigInt(high) << 32n) | BigInt(low >>> 0)))
 }
 
 export const readLevelDat = async (path) => {
@@ -50,7 +52,22 @@ export const readLevelDat = async (path) => {
   return { levelDat, dataRaw: parsed.value.Data!.value as Record<string, any> }
 }
 
-export const loadSave = async (root = '/world', connectOptions?: Partial<ConnectOptions>) => {
+export type LoadSaveOptions = {
+  /** version to play the world with (the world screen picks a supported one), instead of level.dat's */
+  version?: string
+}
+
+/** Nearest supported version for a world version (worlds older / newer than the supported range load with its first / last). */
+// 1.8 and older don't store the version: 1.8.8
+export const getPlayableVersion = (version = '1.8.8') => {
+  const lastSupportedVersion = supportedVersions.at(-1)!
+  const firstSupportedVersion = supportedVersions[0]
+  if (isMajorVersionGreater(firstSupportedVersion, version)) return { version: firstSupportedVersion, supported: false }
+  if (versionToNumber(version) > versionToNumber(lastSupportedVersion)) return { version: lastSupportedVersion, supported: false }
+  return { version, supported: true }
+}
+
+export const loadSave = async (root = '/world', connectOptions?: Partial<ConnectOptions>, loadOptions: LoadSaveOptions = {}) => {
   // todo test
   if (miscUiState.gameLoaded) {
     await disconnect()
@@ -59,7 +76,6 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
     })
   }
 
-  const disablePrompts = options.disableLoadPrompts
 
   // todo do it in singleplayer as well
   // eslint-disable-next-line guard-for-in
@@ -75,7 +91,7 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
   // todo check jsHeapSizeLimit
 
   const warnings: string[] = []
-  const { levelDat, dataRaw } = (await readLevelDat(root))!
+  const { levelDat, dataRaw } = (await readLevelDat(root)) ?? {} as { levelDat?: import('./mcTypes').LevelDat, dataRaw?: Record<string, any> }
   if (levelDat === undefined) {
     if (fsState.isReadonly) {
       throw new Error('level.dat not found, ensure you are loading world folder')
@@ -86,7 +102,7 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
 
   let version: string | undefined | null
   if (levelDat) {
-    version = appQueryParams.mapVersion ?? levelDat.Version?.Name
+    version = loadOptions.version ?? appQueryParams.mapVersion ?? levelDat.Version?.Name
     if (!version) {
       // const newVersion = disablePrompts ? '1.8.8' : prompt(`In 1.8 and before world save doesn't contain version info, please enter version you want to use to load the world.\nSupported versions ${supportedVersions.join(', ')}`, '1.8.8')
       // if (!newVersion) return
@@ -94,18 +110,16 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
       const newVersion = '1.8.8'
       version = newVersion
     }
-    const lastSupportedVersion = supportedVersions.at(-1)!
-    const firstSupportedVersion = supportedVersions[0]
-    const lowerBound = isMajorVersionGreater(firstSupportedVersion, version)
-    const upperBound = versionToNumber(version) > versionToNumber(lastSupportedVersion)
-    if (lowerBound || upperBound) {
-      version = prompt(`Version ${version} is not supported, supported versions are ${supportedVersions.join(', ')}, what try to use instead?`, lowerBound ? firstSupportedVersion : lastSupportedVersion)
-      if (!version) return
+    // unsupported versions load with the nearest supported one (the world screen shows that before Play)
+    const playable = getPlayableVersion(version)
+    if (!playable.supported) {
+      showNotification(`Version ${version} is not supported`, `Loading the world as ${playable.version}`)
+      version = playable.version
     }
 
     const playerUuid = nameToMcOfflineUUID(options.localUsername)
     const playerDatPath = `${root}/playerdata/${playerUuid}.dat`
-    const playerDataOverride = dataRaw.Player
+    const playerDataOverride = dataRaw?.Player
     if (playerDataOverride) {
       const playerDat = await gzip(nbt.writeUncompressed({ name: '', ...playerDataOverride }))
       if (fsState.isReadonly) {
@@ -117,9 +131,8 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
     }
   }
 
-  if (warnings.length && !disablePrompts) {
-    const doContinue = confirm(`Continue with following warnings?\n${warnings.join('\n')}`)
-    if (!doContinue) return
+  for (const warning of warnings) {
+    showNotification(warning)
   }
 
   if (PROPOSE_BACKUP) {
@@ -138,9 +151,9 @@ export const loadSave = async (root = '/world', connectOptions?: Partial<Connect
     // }
   }
 
-  if (!fsState.isReadonly && !fsState.inMemorySave && !disablePrompts) {
+  if (!fsState.isReadonly && !fsState.inMemorySave) {
     // todo allow also to ctrl+s
-    alert('Note: the world is saved on interval, /save or disconnect! Ensure you have backup and be careful of new chunks writes!')
+    showNotification('Saving to the world folder', 'On an interval, on /save and when you leave')
   }
 
   // improve compatibility with community saves

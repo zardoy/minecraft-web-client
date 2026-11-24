@@ -8,20 +8,20 @@
     "p2p-relay": "node scripts/p2pRelayServer.mjs",
     "start": "run-p dev-proxy dev-rsbuild",
     "start2": "run-p dev-rsbuild",
+    "build-worldgen-datapack": "minecraft-worldgen-pack generated/mc-worldgen-data.zip --vanilla",
     "start-metrics": "ENABLE_METRICS=true rsbuild dev",
     "build": "rsbuild build",
     "build-analyze": "BUNDLE_ANALYZE=true rsbuild build && pnpm build-other-workers",
     "build-single-file": "SINGLE_FILE_BUILD=true rsbuild build",
+    "build-single-file-slim": "SINGLE_FILE_BUILD=true SLIM_BUILD=true MIN_MC_VERSION=1.18 MAX_MC_VERSION=1.21.4 rsbuild build",
     "prepare-project": "tsx scripts/genShims.ts && tsx scripts/makeOptimizedMcData.mjs && tsx scripts/genLargeDataAliases.ts",
     "check-build": "pnpm prepare-project && tsc && pnpm build",
-    "test:cypress": "cypress run",
-    "test:benchmark": "PERFORMANCE_TEST=true cypress run",
-    "test:cypress:open": "cypress open",
+    "test:benchmark": "PERFORMANCE_TEST=true playwright test",
     "test-unit": "vitest",
-    "test:e2e": "start-test http-get://localhost:8080 test:cypress",
+    "test:e2e": "playwright test",
     "prod-start": "node server.js --prod",
-    "test-mc-server": "tsx cypress/minecraft-server.mjs",
-    "lint": "eslint \"{src,cypress}/**/*.{ts,js,jsx,tsx}\"",
+    "test-mc-server": "tsx e2e/minecraft-server.mjs",
+    "lint": "eslint \"{src,e2e}/**/*.{ts,js,jsx,tsx}\"",
     "lint-fix": "pnpm lint --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build && node scripts/build.js moveStorybookFiles",
@@ -36,7 +36,7 @@
     "client"
   ],
   "release": {
-    "attachReleaseFiles": "{self-host.zip,minecraft.html}"
+    "attachReleaseFiles": "{self-host.zip,minecraft.html,minecraft-slim.html}"
   },
   "publish": {
     "preset": {
@@ -51,17 +51,17 @@
     "@monaco-editor/react": "^4.7.0",
     "@nxg-org/mineflayer-auto-jump": "^0.8.0",
     "@nxg-org/mineflayer-tracker": "1.3.0",
-    "@react-oauth/google": "^0.12.1",
     "@royalscome/nextconsole": "^1.0.7",
     "@stylistic/eslint-plugin": "^2.6.1",
     "@trystero-p2p/ws-relay": "0.25.4",
-    "@types/gapi": "^0.0.47",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
     "@types/wicg-file-system-access": "^2023.10.2",
     "@xmcl/text-component": "^2.1.3",
     "@zardoy/react-util": "^0.2.4",
     "@zardoy/utils": "^0.0.11",
+    "@zenfs/archives": "^1.5.0",
+    "@zenfs/core": "^2.9.0",
     "adm-zip": "^0.5.12",
     "browserfs": "github:zardoy/browserfs#build",
     "change-case": "^5.1.2",
@@ -75,11 +75,10 @@
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "express": "^4.18.2",
     "filesize": "^10.0.12",
-    "flying-squid": "npm:@zardoy/flying-squid@^0.0.122",
+    "flying-squid": "npm:@zardoy/flying-squid@^0.0.129",
     "framer-motion": "^12.9.2",
     "fs-extra": "^11.1.1",
     "glob": "^10.4.5",
-    "google-drive-browserfs": "github:zardoy/browserfs#google-drive",
     "jszip": "^3.10.1",
     "lil-gui": "^0.21.0",
     "livekit-client": "^2.22.0",
@@ -88,7 +87,7 @@
     "minecraft-data": "0.0.0",
     "minecraft-inventory": "^0.1.47",
     "minecraft-protocol": "github:PrismarineJS/node-minecraft-protocol#master",
-    "minecraft-renderer": "^0.1.106",
+    "minecraft-renderer": "^0.1.138",
     "mineflayer-item-map-downloader": "github:zardoy/mineflayer-item-map-downloader",
     "mojangson": "^2.0.4",
     "net-browserify": "github:zardoy/prismarinejs-net-browserify",
@@ -123,6 +122,7 @@
     "ws": "^8.18.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@rsbuild/core": "1.3.5",
     "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "1.2.0",
@@ -146,7 +146,6 @@
     "constants-browserify": "^1.0.0",
     "contro-max": "^0.1.12",
     "crypto-browserify": "^3.12.0",
-    "cypress-esbuild-preprocessor": "^1.0.2",
     "eslint": "^8.50.0",
     "eslint-config-zardoy": "^0.2.17",
     "events": "^3.3.0",
@@ -154,7 +153,8 @@
     "http-browserify": "^1.7.0",
     "http-server": "^14.1.1",
     "https-browserify": "^1.0.0",
-    "mc-assets": "^0.2.90",
+    "mc-assets": "^0.2.91",
+    "minecraft-worldgen": "^0.1.2",
     "mineflayer": "0.0.0",
     "mineflayer-mouse": "0.1.28",
     "npm-run-all": "^4.1.5",
@@ -172,8 +172,6 @@
     "yaml": "^2.3.2"
   },
   "optionalDependencies": {
-    "cypress": "^10.11.0",
-    "cypress-plugin-snapshots": "^1.4.4",
     "sharp": "^0.33.5",
     "systeminformation": "^5.21.22"
   },
@@ -215,8 +213,7 @@
     },
     "updateConfig": {
       "ignoreDependencies": [
-        "browserfs",
-        "google-drive-browserfs"
+        "browserfs"
       ]
     },
     "patchedDependencies": {
@@ -231,7 +228,6 @@
     ],
     "onlyBuiltDependencies": [
       "sharp",
-      "cypress",
       "esbuild",
       "fsevents"
     ],

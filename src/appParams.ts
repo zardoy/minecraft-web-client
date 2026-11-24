@@ -16,7 +16,6 @@ export type AppQsParams = {
   chunkTemplate?: string
   chunkTemplateBlockMap?: string
   // googledrive.ts params
-  state?: string
   // ServersListProvider.tsx params
   serversList?: string
   // Map and texture params
@@ -27,6 +26,7 @@ export type AppQsParams = {
   // Singleplayer params
   singleplayer?: string
   sp?: string
+  seed?: string
   loadSave?: string
   // Server params
   reconnect?: string
@@ -38,6 +38,8 @@ export type AppQsParams = {
   modal?: string
   viewerConnect?: string
   playground?: string
+  /** world generation benchmark page (worldgen/perf.ts) */
+  worldgenPerf?: string
   // Map version param
   mapVersion?: string
   // Command params

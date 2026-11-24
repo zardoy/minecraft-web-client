@@ -12,6 +12,8 @@ declare namespace NodeJS {
     LOCAL_CONFIG_FILE?: string
     CONFIG_JSON?: string
     BUILD_VERSION?: string
+    /** build time in ms (production builds), for the relative build time in the main menu */
+    BUILD_TIME?: string
     /** Resolved from installed minecraft-renderer package.json at build time. */
     MINECRAFT_RENDERER_VERSION?: string
     /** Set at compile time: DD.MM.YY (local date when the config ran). */

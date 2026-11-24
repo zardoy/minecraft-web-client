@@ -5,11 +5,13 @@ import { useEffect, useState } from 'react'
 import { activeModalStack, miscUiState, openOptionsMenu, showModal } from '../globalState'
 import { openGithub } from '../utils'
 import { setLoadingScreenStatus } from '../appStatus'
-import { openFilePicker, copyFilesAsync, mkdirRecursive, openWorldDirectory, removeFileRecursiveAsync } from '../browserfs'
+import { openFilePicker, copyFilesAsync, mkdirRecursive, removeFileRecursiveAsync } from '../browserfs'
+import { pickWorldDirectory } from '../worldDrop/droppedWorld'
 
 import { hadModsActivated } from '../clientMods'
 import MainMenu from './MainMenu'
 import { withInjectableUi } from './extendableSystem'
+import { knownNoLocalWorlds } from './SingleplayerProvider'
 
 const isMainMenu = () => {
   return activeModalStack.length === 0 && !miscUiState.gameLoaded
@@ -136,6 +138,11 @@ const MainMenuRenderAppBase = () => {
             singleplayerAvailable={singleplayerAvailable}
             connectToServerAction={() => showModal({ reactType: 'serversList' })}
             singleplayerAction={async () => {
+              // no worlds yet: straight to Create World (opening the list first and switching once it loaded empty flickered)
+              if (knownNoLocalWorlds()) {
+                showModal({ reactType: 'create-world' })
+                return
+              }
               showModal({ reactType: 'singleplayer' })
             }}
             githubAction={() => openGithub()}
@@ -143,7 +150,7 @@ const MainMenuRenderAppBase = () => {
             bottomRightLinks={process.env.MAIN_MENU_LINKS}
             openFileAction={e => {
               if (!!window.showDirectoryPicker && !e.shiftKey) {
-                void openWorldDirectory()
+                void pickWorldDirectory()
               } else {
                 openFilePicker()
               }
