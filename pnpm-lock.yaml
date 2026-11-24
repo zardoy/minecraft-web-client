@@ -126,8 +126,8 @@ importers:
         specifier: ^10.0.12
         version: 10.1.6
       flying-squid:
-        specifier: npm:@zardoy/flying-squid@^0.0.128
-        version: '@zardoy/flying-squid@0.0.128(encoding@0.1.13)'
+        specifier: npm:@zardoy/flying-squid@^0.0.129
+        version: '@zardoy/flying-squid@0.0.129(encoding@0.1.13)'
       framer-motion:
         specifier: ^12.9.2
         version: 12.9.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -162,8 +162,8 @@ importers:
         specifier: github:PrismarineJS/node-minecraft-protocol#master
         version: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/1c83189272348b9e12076465a748a5ecdd14acce(patch_hash=09462c5aa19586a0c2b55f33724cda3e415281669f5b11f7d3c8470e9eea7b99)(encoding@0.1.13)
       minecraft-renderer:
-        specifier: ^0.1.134
-        version: 0.1.134(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.91)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0)
+        specifier: ^0.1.136
+        version: 0.1.136(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.91)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0)
       mineflayer-item-map-downloader:
         specifier: github:zardoy/mineflayer-item-map-downloader
         version: https://codeload.github.com/zardoy/mineflayer-item-map-downloader/tar.gz/a8d210ecdcf78dd082fa149a96e1612cc9747824(patch_hash=a731ebbace2d8790c973ab3a5ba33494a6e9658533a9710dd8ba36f86db061ad)(encoding@0.1.13)
@@ -3208,8 +3208,8 @@ packages:
     resolution: {integrity: sha512-6xm38yGVIa6mKm/DUCF2zFFJhERh/QWp1ufm4cNUvxsONBmfPg8uZ9pZBdOmF6qFGr/HlT6ABBkCSx/dlEtvWg==}
     engines: {node: '>=12 <14 || 14.2 - 14.9 || >14.10.0'}
 
-  '@zardoy/flying-squid@0.0.128':
-    resolution: {integrity: sha512-1LwyPpQqExLx8bRhl2S2/IE/rJGHxEZ+bOodf78x17+GSCfKFs4J6zq6eeXW0ItH1j0V787URqmyzG56orQASw==}
+  '@zardoy/flying-squid@0.0.129':
+    resolution: {integrity: sha512-5IA+YXzOrzmmlGHcL8AM0jP3rq5+TpyoPkRjS6Vec7ISKNUB9qV3bI/+IukYwuONdl6JmQxCUygTCKtU+FyShw==}
     engines: {node: '>=8'}
     hasBin: true
 
@@ -5808,8 +5808,8 @@ packages:
     version: 1.68.0
     engines: {node: '>=22'}
 
-  minecraft-renderer@0.1.134:
-    resolution: {integrity: sha512-mGnkIFadhWYvLfrSUziHNBm/WgWQCGhGBLzXnGu47u/aOn2PhcZrIJEVywfuxO3kgpfDdwTdltxBDTsRbWkvxw==}
+  minecraft-renderer@0.1.136:
+    resolution: {integrity: sha512-c3ZdR6K3kIdyQROQM9Iq1mZvd41kDaNOTi47nZueXUVpI4Xsikjd0q4T4FFV+umQXMX+3jt/jKkD/LBxeNDDWA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     peerDependencies:
       contro-max: '*'
@@ -11449,7 +11449,7 @@ snapshots:
       '@types/emscripten': 1.40.0
       tslib: 1.14.1
 
-  '@zardoy/flying-squid@0.0.128(encoding@0.1.13)':
+  '@zardoy/flying-squid@0.0.129(encoding@0.1.13)':
     dependencies:
       '@tootallnate/once': 2.0.0
       chalk: 5.4.1
@@ -14700,7 +14700,7 @@ snapshots:
       - encoding
       - supports-color
 
-  minecraft-renderer@0.1.134(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.91)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0):
+  minecraft-renderer@0.1.136(@types/react@18.3.18)(contro-max@0.1.12(typescript@5.5.4))(mc-assets@0.2.91)(minecraft-data@3.117.0)(react@18.3.1)(three@0.184.0):
     dependencies:
       '@tweenjs/tween.js': 20.0.3
       '@types/events': 3.0.3
