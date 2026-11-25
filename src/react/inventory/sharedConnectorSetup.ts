@@ -126,6 +126,22 @@ export function enrichItemStack (item: ItemStack & { name?: string; nbt?: any; c
   if (resolved.blockTexture !== undefined) item.blockTexture = resolved.blockTexture
 }
 
+/**
+ * Like enrichItemStack, but the textures are resolved the first time `texture` / `blockTexture` is read.
+ * For long item lists (the JEI panel has every item of the version, ~1300 in 1.21.4) of which only one page is shown:
+ * resolving all of them up front made the first inventory open stall for about a second (a canvas + PNG encode per item).
+ */
+export function enrichItemStackLazily (item: ItemStack & { name?: string; nbt?: any; components?: any[] }): void {
+  if (!item.name) return
+  let resolved: ReturnType<typeof resolveItemTextures> | undefined
+  const resolve = () => {
+    resolved ??= resolveItemTextures({ name: item.name!, nbt: item.nbt, components: (item as any).components })
+    return resolved
+  }
+  Object.defineProperty(item, 'texture', { get: () => resolve().texture, configurable: true, enumerable: true })
+  Object.defineProperty(item, 'blockTexture', { get: () => resolve().blockTexture, configurable: true, enumerable: true })
+}
+
 // ----- Item mapper – enriches raw bot slots with textures and display info -----
 
 export function buildItemMapper (version: string) {

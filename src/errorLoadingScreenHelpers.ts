@@ -2,6 +2,10 @@ export const guessProblem = (errorMessage: string) => {
   if (errorMessage.endsWith('Socket error: ECONNREFUSED')) {
     return 'Most probably the server is not running.'
   }
+  // a script chunk of an older build is gone from the server (new release deployed while this page was open)
+  if (/chunkloaderror|loading (css )?chunk \S+ failed|failed to fetch dynamically imported module|importing a module script failed/i.test(errorMessage)) {
+    return 'The game was updated while this page was open: reload the page.'
+  }
 }
 
 export const loadingTexts = [

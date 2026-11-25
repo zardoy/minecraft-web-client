@@ -6,6 +6,7 @@ import { stopAllSounds } from '../basicSounds'
 import { musicSystem } from './musicSystem'
 import { computeEffectiveVolume, DEFAULT_ATTENUATION_DISTANCE } from './soundAttenuation'
 import { parseSoundMapVariant, type SoundEntry } from './soundMapFormat'
+import { getEmbeddedSoundUrl } from './embeddedSounds'
 
 interface SoundMeta {
   format: string
@@ -184,6 +185,15 @@ export class SoundMap {
       random -= s.weight
       return random <= 0
     }) ?? sounds[0]
+
+    const embeddedUrl = getEmbeddedSoundUrl(sound.file)
+    if (embeddedUrl) {
+      return {
+        url: embeddedUrl,
+        volume: effectiveVolume(sound.volume),
+        attenuationDistance: sound.attenuationDistance
+      }
+    }
 
     const versionedSound = this.getVersionedSound(sound.file)
 
