@@ -26,6 +26,8 @@ export const appAndRendererSharedConfig = () => defineConfig({
         alias: {
             // bundled vanilla worldgen datapack (slim build: without structures)
             'worldgen-bundled-pack.zip': path.join(__dirname, process.env.SLIM_BUILD === 'true' ? 'generated/mc-worldgen-data-slim.zip' : 'generated/mc-worldgen-data.zip'),
+            // chest loot tables + cooking recipes of the local server (JSON bundle, ~10 KB gzipped), see scripts/buildGamedataPack.mjs
+            'gamedata-bundle.gamedata': path.join(__dirname, 'generated/mc-gamedata.gamedata'),
             // slim build: drop big optional dependencies (see scripts/slim)
             ...(process.env.SLIM_BUILD === 'true' ? {
                 'mc-assets/dist/blockStatesModels.json$': path.join(__dirname, 'scripts/slim/blockStatesModels.ts'),
@@ -166,6 +168,13 @@ export const rspackViewerConfig = (config: any, { appendPlugins, addRules, rspac
         {
             test: /\.gltf$/,
             type: 'asset/resource',
+        },
+        {
+            // game data bundle of the local server: fetched at runtime, a data: url in the single file build
+            test: /\.gamedata$/,
+            type: process.env.SINGLE_FILE_BUILD === 'true' ? 'asset/inline' : 'asset/resource',
+            // a data: url needs a mimetype and the unknown `.gamedata` extension has none (rspack 1.3: `generator.dataUrl.mimetype`)
+            generator: process.env.SINGLE_FILE_BUILD === 'true' ? { dataUrl: { mimetype: 'application/json' } } : undefined,
         },
         {
             // worldgen datapack: fetched at runtime; has to be a data: url in the single file build (nothing else is served)

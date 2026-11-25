@@ -59,6 +59,10 @@ declare module '*.wgsl' {
   const png: string
   export default png
 }
+declare module 'gamedata-bundle.gamedata' {
+  const url: string
+  export default url
+}
 declare module 'worldgen-bundled-pack.zip' {
   const url: string
   export default url
