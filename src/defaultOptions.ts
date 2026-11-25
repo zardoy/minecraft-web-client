@@ -6,6 +6,7 @@ import {
 /** iPhone / iPad (an iPad asks for the desktop site and calls itself a Mac, but has a touch screen) */
 const isIosDevice = typeof navigator !== 'undefined' &&
   (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+const isAndroidDevice = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent)
 
 export const defaultOptions = {
   renderDistance: 3,
@@ -42,8 +43,8 @@ export const defaultOptions = {
   debugLogNotFrequentPackets: false,
   unimplementedContainers: false,
   ...RENDERER_DEFAULT_OPTIONS,
-  /** keeping the frame for screenshots (F2) costs GPU work; iPhones and iPads skip it by default (Render > Advanced: Screenshot Buffer) */
-  preserveDrawingBuffer: !isIosDevice,
+  /** keeping the frame for screenshots (F2) costs GPU work (a full-screen copy on some mobile GPUs); phones and tablets skip it by default (Render > Advanced: Screenshot Buffer) */
+  preserveDrawingBuffer: !isIosDevice && !isAndroidDevice,
   enabledResourcepack: null as string | null,
   useVersionsTextures: 'latest',
   serverResourcePacks: 'prompt' as 'prompt' | 'always' | 'never',
