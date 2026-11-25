@@ -68,9 +68,16 @@ const encode = async (file, baseUrl) => {
   if (!fs.existsSync(out)) {
     fs.mkdirSync(path.dirname(out), { recursive: true })
     const src = `${out}.src.mp3`
-    fs.writeFileSync(src, await readSource(file, baseUrl))
-    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', src, ...(isMusic ? MUSIC_ARGS : SFX_ARGS), '-codec:a', 'libmp3lame', out])
-    fs.rmSync(src)
+    // encode next to the cache entry and publish it only once ffmpeg succeeded: an interrupted run must not leave a truncated file that later builds embed
+    const tmp = `${out}.tmp.mp3`
+    try {
+      fs.writeFileSync(src, await readSource(file, baseUrl))
+      execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', src, ...(isMusic ? MUSIC_ARGS : SFX_ARGS), '-codec:a', 'libmp3lame', tmp])
+      fs.renameSync(tmp, out)
+    } finally {
+      fs.rmSync(src, { force: true })
+      fs.rmSync(tmp, { force: true })
+    }
   }
   return fs.readFileSync(out)
 }
