@@ -18,6 +18,19 @@
   /* fixed width: the same on every stage (the longest label fits) */
   width: 170px;
   margin: 8px auto 0;
+  /* anchor for .progress-extra */
+  position: relative;
+}
+
+/* step line and stall notice: under the bar but out of the layout, so they don't move the centred content */
+.progress-extra {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(300px, 90vw);
+  text-align: center;
 }
 
 .hidden {
@@ -58,8 +71,6 @@
 
 /* the sub-step under the bar: which file / module is loading now (wraps, the bar itself is narrow) */
 .progress-step {
-  margin: 4px auto 0;
-  max-width: 260px;
   color: #aaa;
   font-size: 7px;
   text-shadow: 1px 1px #222;

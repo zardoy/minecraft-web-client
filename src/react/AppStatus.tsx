@@ -94,11 +94,14 @@ const AppStatusBase = ({
                 <span>{progress?.detail ?? ''}</span>
                 <span>{Math.round((progress?.value ?? 0) * 100)}%</span>
               </div>
-            </div>}
-            {!isError && progress?.step && <div className={styles.progressStep}>{progress.step}</div>}
-            {!isError && progress && stalledSeconds !== undefined && <div className={styles.progressStall}>
-              <span>No progress for {stalledSeconds} s</span>
-              <Button style={{ width: 60 }} onClick={() => window.location.reload()}>Reload</Button>
+              {/* positioned under the bar, out of the layout: the loading screen stays centred as before */}
+              {progress && (progress.step || stalledSeconds !== undefined) && <div className={styles.progressExtra}>
+                {progress.step && <div className={styles.progressStep}>{progress.step}</div>}
+                {stalledSeconds !== undefined && <div className={styles.progressStall}>
+                  <span>No progress for {stalledSeconds} s</span>
+                  <Button style={{ width: 60 }} onClick={() => window.location.reload()}>Reload</Button>
+                </div>}
+              </div>}
             </div>}
             <p className={styles.description}>{description}</p>
             <p className={styles['last-status']}>{lastStatus ? `Last status: ${lastStatus}` : lastStatus}</p>
