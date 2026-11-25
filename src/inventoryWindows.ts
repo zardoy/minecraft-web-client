@@ -16,7 +16,7 @@ import { getItemDescription } from './itemsDescriptions'
 import { MessageFormatPart } from './chatUtils'
 import { getItemNameRaw, RenderItem } from './mineflayer/items'
 import { clearInventoryCaches } from './react/inventory/Inventory'
-import { enrichItemStack } from './react/inventory/sharedConnectorSetup'
+import { enrichItemStack, enrichItemStackLazily } from './react/inventory/sharedConnectorSetup'
 
 let PrismarineItem: typeof Item
 
@@ -386,8 +386,9 @@ export const getJeiItems = (): JEIItem[] => {
 
   const allItems = [...customItems, ...vanillaItems]
 
+  // textures resolve when a slot shows the item (one page at a time), not all ~1300 on the first open
   for (const item of allItems) {
-    enrichItemStack(item as any)
+    enrichItemStackLazily(item as any)
   }
 
   jeiItemsCache = allItems
