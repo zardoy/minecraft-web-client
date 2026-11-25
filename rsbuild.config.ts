@@ -259,6 +259,16 @@ const appConfig = defineConfig({
                             childProcess.execSync(`node node_modules/minecraft-worldgen/dist/cli.js generated/${file} --vanilla --download 26.3 ${flags}`, { stdio: 'inherit' })
                         }
                     }
+                    // chest loot tables and cooking recipes (reads the vanilla jar the step above downloaded)
+                    if (!fs.existsSync('./generated/mc-gamedata.gamedata')) {
+                        try {
+                            childProcess.execSync('node scripts/buildGamedataPack.mjs generated/mc-gamedata.gamedata', { stdio: 'inherit' })
+                        } catch {
+                            // no vanilla jar: an empty bundle keeps the build going, chests then have no loot and furnaces use the built-in recipes
+                            console.warn('mc-gamedata was not built (vanilla client jar missing?); the local server has no chest loot tables')
+                            fs.writeFileSync('./generated/mc-gamedata.gamedata', '{}')
+                        }
+                    }
                     childProcess.execSync('tsx ./scripts/genShims.ts', { stdio: 'inherit' })
                     if (!fs.existsSync('./generated/latestBlockCollisionsShapes.json') || require('./generated/latestBlockCollisionsShapes.json').versionKey !== require('minecraft-data/package.json').version) {
                         childProcess.execSync('tsx ./scripts/optimizeBlockCollisions.ts', { stdio: 'inherit' })

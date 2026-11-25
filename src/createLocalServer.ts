@@ -1,5 +1,6 @@
 import { LocalServer } from './customServer'
 import './worldgen/datapack'
+import './worldgen/gamedata'
 import { createWorldgenWorker } from './worldgen/workerFactory'
 import { currentDeviceInfo, lowMemoryWorldgenWorkers } from './worldgen/lowMemoryDevice'
 
