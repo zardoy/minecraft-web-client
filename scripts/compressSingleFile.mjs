@@ -43,7 +43,8 @@ const loader = `(async () => {
 })()`
 
 export const compressSingleFile = (html) => {
-  const scripts = findInlineScripts(html).filter(s => !/\bsrc=|type="module"/.test(s.attrs) && s.content.length >= MIN_SIZE)
+  // JSON data blocks (the embedded sounds) stay as they are: the loader would run them as scripts, and base64 media doesn't shrink anyway
+  const scripts = findInlineScripts(html).filter(s => !/\bsrc=|type="module"|type="application\/json"/.test(s.attrs) && s.content.length >= MIN_SIZE)
   if (!scripts.length) return html
   let out = ''
   let last = 0

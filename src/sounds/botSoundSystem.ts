@@ -13,6 +13,7 @@ import { watchUnloadForCleanup } from '../gameUnload'
 import { createSoundMap, SoundMap } from './soundsMap'
 import { isWaterBlock, UNDERWATER_ENTER_SOUND, UNDERWATER_EXIT_SOUND, WaterSoundTracker } from './waterSounds'
 import { musicSystem } from './musicSystem'
+import { loadEmbeddedSounds } from './embeddedSounds'
 import './customSoundSystem'
 
 let soundMap: SoundMap | undefined
@@ -317,6 +318,8 @@ subscribeKey(resourcePackState, 'resourcePackInstalled', async () => {
 
 export const downloadSoundsIfNeeded = async () => {
   if (!window.allSoundsMap) {
+    // single file builds: the small inline sound pack, there is no sounds.js next to the page
+    if (loadEmbeddedSounds()) return
     try {
       await loadScript('./sounds.js')
     } catch (err) {
