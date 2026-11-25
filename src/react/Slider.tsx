@@ -149,7 +149,7 @@ const SliderBase: React.FC<Props> = ({
     throttledUpdateValue(v, dragEnd)
   }
 
-  const labelText = `${label}: ${valueDisplay ?? value} ${unit}`
+  const labelText = label ? `${label}: ${valueDisplay ?? value} ${unit}` : `${valueDisplay ?? value} ${unit}`
 
   const arrowRef = useRef<any>(null)
   const { refs, floatingStyles, context } = useFloating({

@@ -10,7 +10,7 @@ import { appQueryParams } from '../appParams'
 import { fetchServerStatus, isServerValid } from '../api/mcStatusApi'
 import { getServerInfo } from '../mineflayer/mc-protocol'
 import { parseServerAddress } from '../parseServerAddress'
-import ServersList, { getConnectProxy, getCurrentProxy, getCurrentUsername } from './ServersList'
+import ServersList, { getConnectProxy, getCurrentProxy, getCurrentUsername, ServerListItem } from './ServersList'
 import AddServerOrConnect, { BaseServerInfo } from './AddServerOrConnect'
 import { useDidUpdateEffect } from './utils'
 import { useIsModalActive } from './utilsApp'
@@ -18,8 +18,6 @@ import { showOptionsModal } from './SelectOption'
 import { useCopyKeybinding } from './simpleHooks'
 import { AuthenticatedAccount, setNewServersList } from './serversStorage'
 import { appStorage, StoreServerItem } from './appStorageProvider'
-import Button from './Button'
-import { pixelartIcons } from './PixelartIcon'
 import { showNotification } from './NotificationProvider'
 
 const firstProtocolVersion = versionToNumber(supportedVersions[0])
@@ -33,10 +31,12 @@ if (appQueryParams.lockConnect) {
 }
 
 type AdditionalDisplayData = {
-  textNameRightGrayed: string
-  formattedText: string
-  textNameRight: string
+  /** MOTD, a § formatted string or a chat component */
+  motd?: string | Record<string, any>
   icon?: string
+  ping?: number
+  players?: string
+  version?: string
   offline?: boolean
 }
 
@@ -165,24 +165,28 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
               if (isWebSocket) {
                 try {
                   const pingResult = await getServerInfo(server.ip, undefined, undefined, true)
-                  console.log('pingResult.fullInfo.description', pingResult.fullInfo.description)
                   data = {
-                    formattedText: pingResult.fullInfo.description,
+                    motd: pingResult.fullInfo.description,
                     icon: pingResult.fullInfo.favicon,
-                    textNameRight: `ws ${pingResult.latency}ms`,
-                    textNameRightGrayed: `${pingResult.fullInfo.players?.online ?? '??'}/${pingResult.fullInfo.players?.max ?? '??'}`,
+                    ping: pingResult.latency,
+                    players: `${pingResult.fullInfo.players?.online ?? '??'}/${pingResult.fullInfo.players?.max ?? '??'}`,
                     offline: false
-                  }
+                  } satisfies AdditionalDisplayData
                 } catch (err) {
-                  data = {
-                    formattedText: 'Failed to connect',
-                    textNameRight: '',
-                    textNameRightGrayed: '',
-                    offline: true
-                  }
+                  data = { offline: true } satisfies AdditionalDisplayData
                 }
               } else {
-                data = await fetchServerStatus(server.ip, /* signal */undefined, server.versionOverride) // DONT ADD SIGNAL IT WILL CRUSH JS RUNTIME
+                const status = await fetchServerStatus(server.ip, /* signal */undefined, server.versionOverride) // DONT ADD SIGNAL IT WILL CRUSH JS RUNTIME
+                if (status) {
+                  const { raw } = status
+                  data = {
+                    motd: status.formattedText,
+                    icon: status.icon,
+                    offline: status.offline,
+                    players: raw.online && raw.players ? `${raw.players.online}/${raw.players.max}` : undefined,
+                    version: raw.online ? raw.version?.name_raw.replace(/^[^\d.]+/, '') : undefined,
+                  } satisfies AdditionalDisplayData
+                }
               }
               if (data) {
                 setAdditionalServerData(old => ({
@@ -273,173 +277,172 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
     versions={protocolSupportedVersions}
   /> : null
 
-  const serversListJsx = <ServersList
-    joinServer={(overridesOrIp, { shouldSave }) => {
-      let overrides: BaseServerInfo
-      if (typeof overridesOrIp === 'string') {
-        let msAuth = false
-        const parts = overridesOrIp.split(':')
-        if (parts.at(-1) === 'ms') {
-          msAuth = true
-          parts.pop()
-        }
-        const parsed = parseServerAddress(parts.join(':'))
-        overrides = {
-          ip: parsed.serverIpFull,
-          versionOverride: parsed.version,
-          authenticatedAccountOverride: msAuth ? true : undefined, // todo popup selector
-        }
+  const joinServer = (overridesOrIp: BaseServerInfo | string, { shouldSave }: { shouldSave?: boolean }) => {
+    let overrides: BaseServerInfo
+    if (typeof overridesOrIp === 'string') {
+      let msAuth = false
+      const parts = overridesOrIp.split(':')
+      if (parts.at(-1) === 'ms') {
+        msAuth = true
+        parts.pop()
+      }
+      const parsed = parseServerAddress(parts.join(':'))
+      overrides = {
+        ip: parsed.serverIpFull,
+        versionOverride: parsed.version,
+        authenticatedAccountOverride: msAuth ? true : undefined, // todo popup selector
+      }
+    } else {
+      overrides = overridesOrIp
+    }
+
+    const indexOrIp = overrides.ip
+    let ip = indexOrIp
+    let server: StoreServerItem | undefined
+    if (shouldSave === undefined) {
+      // hack: inner component doesn't know of overrides for existing servers
+      server = serversListSorted.find(s => s.index.toString() === indexOrIp)!
+      ip = server.ip
+      overrides = server
+    }
+
+    const lastJoinedUsername = serversListProvided.find(s => s.usernameOverride)?.usernameOverride
+    let username = overrides.usernameOverride || getCurrentUsername() || ''
+    if (!username) {
+      const promptUsername = prompt('Enter username', lastJoinedUsername || '')
+      if (!promptUsername) return
+      username = promptUsername
+    }
+    let authenticatedAccount: AuthenticatedAccount | true | undefined
+    if (overrides.authenticatedAccountOverride) {
+      if (overrides.authenticatedAccountOverride === true) {
+        authenticatedAccount = true
       } else {
-        overrides = overridesOrIp
+        authenticatedAccount = authenticatedAccounts.find(a => a.username === overrides.authenticatedAccountOverride) ?? true
       }
-
-      const indexOrIp = overrides.ip
-      let ip = indexOrIp
-      let server: StoreServerItem | undefined
-      if (shouldSave === undefined) {
-        // hack: inner component doesn't know of overrides for existing servers
-        server = serversListSorted.find(s => s.index.toString() === indexOrIp)!
-        ip = server.ip
-        overrides = server
-      }
-
-      const lastJoinedUsername = serversListProvided.find(s => s.usernameOverride)?.usernameOverride
-      let username = overrides.usernameOverride || getCurrentUsername() || ''
-      if (!username) {
-        const promptUsername = prompt('Enter username', lastJoinedUsername || '')
-        if (!promptUsername) return
-        username = promptUsername
-      }
-      let authenticatedAccount: AuthenticatedAccount | true | undefined
-      if (overrides.authenticatedAccountOverride) {
-        if (overrides.authenticatedAccountOverride === true) {
-          authenticatedAccount = true
-        } else {
-          authenticatedAccount = authenticatedAccounts.find(a => a.username === overrides.authenticatedAccountOverride) ?? true
+    }
+    const options = {
+      username,
+      server: normalizeIp(ip),
+      proxy: overrides.proxyOverride || getConnectProxy(),
+      botVersion: overrides.versionOverride ?? /* legacy */ overrides['version'],
+      ignoreQs: true,
+      authenticatedAccount,
+      saveServerToHistory: shouldSave,
+      onSuccessfulPlay () {
+        if (shouldSave !== false && !serversListProvided.some(s => s.ip === ip)) {
+          const newServersList: StoreServerItem[] = [
+            {
+              ip,
+              lastJoined: Date.now(),
+              versionOverride: overrides.versionOverride,
+              numConnects: 1
+            },
+            ...serversListProvided
+          ]
+          setNewServersList(newServersList)
+          miscUiState.loadedServerIndex = (newServersList.length - 1).toString()
         }
+
+        if (shouldSave === undefined) { // loading saved
+          // find and update
+          const server = serversListProvided.find(s => s.ip === ip)
+          if (server) {
+            // move to top
+            const newList = [...serversListProvided]
+            const index = newList.indexOf(server)
+            const thisItem = newList[index]
+            newList.splice(index, 1)
+            newList.unshift(thisItem)
+
+            server.lastJoined = Date.now()
+            server.numConnects = (server.numConnects || 0) + 1
+            setNewServersList(newList)
+          }
+        }
+      },
+      serverIndex: shouldSave ? serversListProvided.length.toString() : indexOrIp // assume last
+    } satisfies ConnectOptions
+    dispatchEvent(new CustomEvent('connect', { detail: options }))
+  }
+
+  const shareServer = async (server: StoreServerItem) => {
+    try {
+      const qs = new URLSearchParams()
+      qs.set('ip', server.ip)
+      if (server.proxyOverride) qs.set('proxy', server.proxyOverride)
+      if (server.versionOverride) qs.set('version', server.versionOverride)
+      qs.set('username', server.usernameOverride ?? '')
+      const shareUrl = `${window.location.origin}${window.location.pathname}?${qs.toString()}`
+      await navigator.clipboard.writeText(shareUrl)
+      const MESSAGE = 'Server link copied to clipboard'
+      if (EXPLICIT_SHARE_SERVER_MODE) {
+        await showOptionsModal(MESSAGE, [])
+      } else {
+        showNotification(MESSAGE)
       }
-      const options = {
-        username,
-        server: normalizeIp(ip),
-        proxy: overrides.proxyOverride || getConnectProxy(),
-        botVersion: overrides.versionOverride ?? /* legacy */ overrides['version'],
-        ignoreQs: true,
-        authenticatedAccount,
-        saveServerToHistory: shouldSave,
-        onSuccessfulPlay () {
-          if (shouldSave !== false && !serversListProvided.some(s => s.ip === ip)) {
-            const newServersList: StoreServerItem[] = [
-              {
-                ip,
-                lastJoined: Date.now(),
-                versionOverride: overrides.versionOverride,
-                numConnects: 1
-              },
-              ...serversListProvided
-            ]
-            setNewServersList(newServersList)
-            miscUiState.loadedServerIndex = (newServersList.length - 1).toString()
-          }
+    } catch (err) {
+      console.error(err)
+      showNotification('Failed to copy server link to clipboard')
+    }
+  }
 
-          if (shouldSave === undefined) { // loading saved
-            // find and update
-            const server = serversListProvided.find(s => s.ip === ip)
-            if (server) {
-              // move to top
-              const newList = [...serversListProvided]
-              const index = newList.indexOf(server)
-              const thisItem = newList[index]
-              newList.splice(index, 1)
-              newList.unshift(thisItem)
-
-              server.lastJoined = Date.now()
-              server.numConnects = (server.numConnects || 0) + 1
-              setNewServersList(newList)
-            }
-          }
-        },
-        serverIndex: shouldSave ? serversListProvided.length.toString() : indexOrIp // assume last
-      } satisfies ConnectOptions
-      dispatchEvent(new CustomEvent('connect', { detail: options }))
-      // qsOptions
-    }}
+  const serversListJsx = <ServersList
+    joinServer={joinServer}
     lockedEditing={!!customServersList}
+    customListTitle={customServersList ? 'Provided Servers' : undefined}
     setQuickConnectIp={setQuickConnectIp}
     onProfileClick={async () => {
       const username = await showOptionsModal('Select authenticated account to remove', authenticatedAccounts.map(a => a.username))
       if (!username) return
       appStorage.authenticatedAccounts = authenticatedAccounts.filter(a => a.username !== username)
     }}
-    onWorldAction={(action, index) => {
+    onServerAction={(action, key) => {
+      const index = Number(key)
+      if (action === 'load') {
+        joinServer({ ip: key }, {})
+        return
+      }
+      if (action === 'share') {
+        const server = serversListSorted[index]
+        if (server) void shareServer(server)
+        return
+      }
       const server = serversListProvided[index]
       if (!server) return
-
       if (action === 'edit') {
         setServerEditScreen(server)
       }
       if (action === 'delete') {
-        appStorage.serversList = appStorage.serversList!.filter(s => s !== server)
+        void showOptionsModal(`Remove ${server.name || server.ip} from your servers?`, ['Remove']).then(confirmed => {
+          if (!confirmed) return
+          appStorage.serversList = appStorage.serversList!.filter(s => s !== server)
+        })
       }
     }}
-    onGeneralAction={(action) => {
-      if (action === 'create') {
-        setServerEditScreen(true)
-      }
-      if (action === 'cancel') {
-        hideCurrentModal()
-      }
-    }}
-    worldData={serversListSorted.map(server => {
+    onAdd={() => setServerEditScreen(true)}
+    onClose={() => hideCurrentModal()}
+    servers={serversListSorted.map((server): ServerListItem => {
       const additional = additionalServerData[server.ip]
-      const handleShare = async () => {
-        try {
-          const qs = new URLSearchParams()
-          qs.set('ip', server.ip)
-          if (server.proxyOverride) qs.set('proxy', server.proxyOverride)
-          if (server.versionOverride) qs.set('version', server.versionOverride)
-          qs.set('username', server.usernameOverride ?? '')
-          const shareUrl = `${window.location.origin}${window.location.pathname}?${qs.toString()}`
-          await navigator.clipboard.writeText(shareUrl)
-          const MESSAGE = 'Server link copied to clipboard'
-          if (EXPLICIT_SHARE_SERVER_MODE) {
-            await showOptionsModal(MESSAGE, [])
-          } else {
-            showNotification(MESSAGE)
-          }
-        } catch (err) {
-          console.error(err)
-          showNotification('Failed to copy server link to clipboard')
-        }
-      }
-
       return {
-        name: server.index.toString(),
+        key: server.index.toString(),
         title: server.name || server.ip,
-        detail: (server.versionOverride ?? '') + ' ' + (server.usernameOverride ?? ''),
-        formattedTextOverride: additional?.formattedText,
-        worldNameRight: additional?.textNameRight ?? '',
-        worldNameRightGrayed: additional?.textNameRightGrayed ?? '',
-        iconSrc: additional?.icon,
-        offline: additional?.offline,
-        afterTitleUi: (
-          <Button
-            tabIndex={-1}
-            icon="external-link"
-            style={{ marginRight: 8, width: 20, height: 20 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              void handleShare()
-            }}
-          />
-        ),
-        group: customServersList ? 'Provided Servers' : (server.isRecommended ? '⭐️ Recommended Servers' : '💾 Saved Servers')
+        address: server.ip,
+        icon: additional?.icon,
+        motd: additional?.motd ?? server.description,
+        status: isServerValid(server.ip, true) ? additional ? (additional.offline ? 'offline' : 'online') : 'loading' : 'unknown',
+        ping: additional?.ping,
+        players: additional?.players,
+        version: server.versionOverride ?? additional?.version,
+        featured: !!server.isRecommended,
+        overrides: server.usernameOverride ? `as ${server.usernameOverride}` : undefined,
       }
     })}
     hidden={hidden}
-    onRowSelect={(serverIndex) => {
-      setSelectedIndex(Number(serverIndex))
+    onRowSelect={(key) => {
+      setSelectedIndex(Number(key))
     }}
-    selectedRow={selectedIndex}
+    selectedKey={String(selectedIndex)}
     retriggerFocusCounter={retriggerFocusCounter}
   />
   return <>

@@ -1,0 +1,591 @@
+/* Settings screen. Sizes are in GUI pixels (the screen is scaled by --guiScale), the smallest common viewport is ~420x230.
+   Colours are variables so UI mods can restyle the whole screen without overriding every rule. */
+
+.root {
+  --settings-bg: rgba(12, 12, 16, 0.88);
+  --settings-rail-bg: rgba(0, 0, 0, 0.35);
+  --settings-border: rgba(255, 255, 255, 0.14);
+  --settings-row-hover: rgba(255, 255, 255, 0.06);
+  --settings-text: #fff;
+  --settings-muted: #a8a8a8;
+  --settings-accent: #6cc349;
+  --settings-accent-bg: #3b7a26;
+  --settings-control-bg: #2b2b2b;
+  --settings-control-border: #5c5c5c;
+  --settings-danger: #ff6b6b;
+
+  align-items: center;
+  padding: 6px calc(6px + env(safe-area-inset-right) / 2) 6px calc(6px + env(safe-area-inset-left) / 2);
+  font-family: minecraft, mojangles, monospace;
+  color: var(--settings-text);
+  text-shadow: 1px 1px #000;
+  box-sizing: border-box;
+}
+
+.root * {
+  box-sizing: border-box;
+}
+
+.panel {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 470px);
+  height: min(100%, 330px);
+  background: var(--settings-bg);
+  border: 1px solid var(--settings-border);
+  box-shadow: 0 0 0 1px #000;
+}
+
+/* header: back, title, search */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  border-bottom: 1px solid var(--settings-border);
+}
+
+.headerButton {
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 200px;
+  height: 16px;
+  margin-left: auto;
+  background: #000;
+  border: 1px solid var(--settings-control-border);
+}
+
+.search:focus-within {
+  border-color: #fff;
+}
+
+.searchIcon {
+  flex-shrink: 0;
+  margin: 0 3px;
+  font-size: 9px;
+  color: var(--settings-muted);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 9px;
+  color: #fff;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.search input::placeholder {
+  color: #6f6f6f;
+}
+
+.searchClear {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 3px;
+  font-size: 8px;
+  color: var(--settings-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* body: tab rail + rows */
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 1px;
+  width: 88px;
+  padding: 3px 0;
+  overflow-y: auto;
+  background: var(--settings-rail-bg);
+  border-right: 1px solid var(--settings-border);
+  scrollbar-width: none;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 20px;
+  padding: 0 5px 0 7px;
+  font: inherit;
+  font-size: 10px;
+  color: var(--settings-muted);
+  text-align: left;
+  text-shadow: inherit;
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.tab:hover,
+.tab:focus-visible {
+  color: #fff;
+  background: var(--settings-row-hover);
+}
+
+.tabActive {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tabActive::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  background: var(--settings-accent);
+}
+
+.tabIcon {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.tabLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  padding: 0 4px 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #666 transparent;
+}
+
+.empty {
+  padding: 20px 0;
+  font-size: 10px;
+  color: var(--settings-muted);
+  text-align: center;
+}
+
+.section {
+  margin: 7px 2px 2px;
+  padding-bottom: 2px;
+  font-size: 8px;
+  color: var(--settings-accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--settings-border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 2px 3px;
+}
+
+.row:hover {
+  background: var(--settings-row-hover);
+}
+
+.rowWide {
+  flex-wrap: wrap;
+}
+
+.rowDisabled .rowLabelText {
+  color: #8a8a8a;
+}
+
+.rowLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+}
+
+.rowLabelText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowControl {
+  flex-shrink: 0;
+  width: 126px;
+}
+
+.rowControl > div,
+.rowControl :global(.slider) {
+  width: 100%;
+}
+
+/* changed from default: a dot, click resets */
+.changed {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  padding: 0;
+  background: rgb(77, 160, 255);
+  border: none;
+  cursor: pointer;
+}
+
+.changed:hover {
+  outline: 1px solid #fff;
+}
+
+/* performance cost tag (graphics effects) */
+.cost {
+  flex-shrink: 0;
+  padding: 0 2px;
+  font-size: 7px;
+  line-height: 9px;
+  text-transform: uppercase;
+  text-shadow: none;
+  border: 1px solid currentColor;
+}
+
+.cost_free {
+  color: #7fd36b;
+}
+
+.cost_light {
+  color: #d8d86a;
+}
+
+.cost_moderate {
+  color: #f0a24a;
+}
+
+.cost_heavy {
+  color: #ff6b6b;
+}
+
+/* info bar under the rows */
+.info {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 3px 6px;
+  overflow: hidden;
+  font-size: 8px;
+  line-height: 9px;
+  color: var(--settings-muted);
+  white-space: pre-line;
+  border-top: 1px solid var(--settings-border);
+}
+
+.infoTitle {
+  color: #fff;
+}
+
+.infoCost {
+  color: #d8d86a;
+}
+
+.infoText::before {
+  content: ' - ';
+}
+
+.infoHint {
+  color: #747474;
+}
+
+/* controls: all 20px tall like the game buttons and sliders */
+
+.switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 20px;
+  padding: 0 6px 0 22px;
+  font: inherit;
+  font-size: 9px;
+  color: var(--settings-muted);
+  text-shadow: inherit;
+  background: var(--settings-control-bg);
+  border: 1px solid var(--settings-control-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.switchText {
+  pointer-events: none;
+}
+
+.switchKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 12px;
+  background: #8b8b8b;
+  box-shadow: inset -1px -1px #555, inset 1px 1px #c6c6c6;
+  transition: left 0.12s ease-out;
+}
+
+.switchOn {
+  justify-content: flex-start;
+  padding: 0 22px 0 6px;
+  color: #fff;
+  background: var(--settings-accent-bg);
+  border-color: var(--settings-accent);
+}
+
+.switchOn .switchKnob {
+  left: calc(100% - 17px);
+  background: #e6e6e6;
+  box-shadow: inset -1px -1px #9a9a9a, inset 1px 1px #fff;
+}
+
+.switch:not(:disabled):hover,
+.switch:focus-visible,
+.segment:not(:disabled):hover,
+.segment:focus-visible,
+.pickerArrow:not(:disabled):hover,
+.pickerValue:not(:disabled):hover,
+.pickerArrow:focus-visible,
+.pickerValue:focus-visible {
+  border-color: #fff;
+}
+
+.switch:disabled,
+.segment:disabled,
+.pickerArrow:disabled,
+.pickerValue:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.segmented {
+  display: flex;
+  width: 100%;
+  height: 20px;
+}
+
+.segment {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 2px;
+  margin-left: -1px;
+  overflow: hidden;
+  font: inherit;
+  font-size: 9px;
+  color: var(--settings-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: inherit;
+  background: var(--settings-control-bg);
+  border: 1px solid var(--settings-control-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.segment:first-child {
+  margin-left: 0;
+}
+
+.segmentActive {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  background: var(--settings-accent-bg);
+  border-color: var(--settings-accent);
+}
+
+.picker {
+  display: flex;
+  width: 100%;
+  height: 20px;
+}
+
+.pickerArrow,
+.pickerValue {
+  height: 100%;
+  font: inherit;
+  color: #fff;
+  text-shadow: inherit;
+  background: var(--settings-control-bg);
+  border: 1px solid var(--settings-control-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.pickerArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  padding: 0;
+  font-size: 10px;
+  color: var(--settings-muted);
+}
+
+.pickerValue {
+  flex: 1;
+  min-width: 0;
+  margin: 0 -1px;
+  padding: 0 2px;
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actionButton {
+  width: 100%;
+}
+
+.danger {
+  color: var(--settings-danger) !important;
+}
+
+/* narrow screens (phone portrait): tabs become a scrolling strip on top, labels stay visible */
+@container (max-width: 380px) {
+  .body {
+    flex-direction: column;
+  }
+
+  .main {
+    min-height: 0;
+  }
+
+  .segment {
+    font-size: 8px;
+  }
+
+  .tabs {
+    flex-direction: row;
+    width: auto;
+    padding: 0 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--settings-border);
+  }
+
+  .tab {
+    flex-shrink: 0;
+    gap: 3px;
+    min-height: 22px;
+    padding: 0 5px;
+    font-size: 9px;
+  }
+
+  .tabActive::before {
+    top: auto;
+    bottom: 0;
+    left: 3px;
+    right: 3px;
+    width: auto;
+    height: 2px;
+  }
+
+  .rowControl {
+    width: 110px;
+  }
+
+  .title {
+    display: none;
+  }
+
+  .search {
+    max-width: none;
+  }
+}
+
+/* portrait phones: use the whole height, keep clear of the rotate / fullscreen buttons in the top left corner */
+@media (orientation: portrait) {
+  .root {
+    padding-top: 28px;
+  }
+
+  .panel {
+    height: 100%;
+  }
+}
+
+/* touch: taller rows, a bigger target around the reset dot */
+@media (pointer: coarse) {
+  .row {
+    min-height: 28px;
+  }
+
+  .changed {
+    position: relative;
+  }
+
+  .changed::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+  }
+}
+
+.infoHidden {
+  display: none;
+}
+
+/* pixel icons: a 1em square centred box (the icon font's default line box sits higher than the game font) */
+.root :global([class*='pixelart-icons-font-']),
+.button :global([class*='pixelart-icons-font-']) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+}
+
+.root :global([class*='pixelart-icons-font-'])::before,
+.button :global([class*='pixelart-icons-font-'])::before {
+  display: block;
+  line-height: 1;
+  /* measured: the icon font draws ~0.085em above the middle of its box, the game font ~0.04em below; this puts both on one axis */
+  transform: translateY(0.125em);
+}

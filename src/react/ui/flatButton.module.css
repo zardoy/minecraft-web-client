@@ -1,0 +1,106 @@
+.button {
+  --flat-bg: #2b2b2b;
+  --flat-border: #5c5c5c;
+  --flat-color: #fff;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 20px;
+  min-width: 0;
+  padding: 0 6px;
+  font-family: minecraft, mojangles, monospace;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--flat-color);
+  text-shadow: 1px 1px #000;
+  white-space: nowrap;
+  background: var(--flat-bg);
+  border: 1px solid var(--flat-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.button:not(:disabled):hover,
+.button:focus-visible {
+  --flat-border: #fff;
+  --flat-bg: #383838;
+}
+
+.button:not(:disabled):active {
+  --flat-bg: #222;
+}
+
+.button:disabled {
+  --flat-color: #8a8a8a;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.primary {
+  --flat-bg: #3b7a26;
+  --flat-border: #6cc349;
+}
+
+.primary:not(:disabled):hover,
+.primary:focus-visible {
+  --flat-bg: #4a9330;
+}
+
+.danger {
+  --flat-color: #ff8a8a;
+}
+
+.small {
+  height: 14px;
+  padding: 0 4px;
+  gap: 3px;
+  font-size: 8px;
+}
+
+.iconOnly {
+  width: 20px;
+  padding: 0;
+}
+
+.small.iconOnly {
+  width: 14px;
+}
+
+/* the pixel icon font and the game font share one line box, so both centre on the same axis */
+.icon,
+.text {
+  display: block;
+  line-height: 1;
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 1.1em;
+}
+
+/* the game font sits ~0.05em low in its line box */
+.text {
+  margin-bottom: 0.1em;
+}
+
+/* pixel icons: a 1em square centred box (the icon font's default line box sits higher than the game font) */
+.root :global([class*='pixelart-icons-font-']),
+.button :global([class*='pixelart-icons-font-']) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+}
+
+.root :global([class*='pixelart-icons-font-'])::before,
+.button :global([class*='pixelart-icons-font-'])::before {
+  display: block;
+  line-height: 1;
+  /* measured: the icon font draws ~0.085em above the middle of its box, the game font ~0.04em below; this puts both on one axis */
+  transform: translateY(0.125em);
+}
