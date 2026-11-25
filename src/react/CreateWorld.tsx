@@ -184,6 +184,20 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
             containerStyle={{ width: '120px' }}
           />
         </div>
+        <div style={{ display: 'flex' }}>
+          {/* survival worlds start with a stack of ender pearls (server side), see space-squid `startingPearls` */}
+          <Button
+            onClick={() => {
+              const index = gameModes.indexOf(gameMode)
+              creatingWorldState.gameMode = gameModes[index === gameModes.length - 1 ? 0 : index + 1]
+            }}
+          >
+            Game Mode: {gameMode}
+          </Button>
+          <Button disabled>
+            Save Type: Java
+          </Button>
+        </div>
         {type === 'default' && <DatapackField />}
       </div>
     )}
@@ -197,17 +211,6 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
       {/* <Button onClick={() => customizeClick()} disabled>
         Customize
       </Button> */}
-      <Button
-        onClick={() => {
-          const index = gameModes.indexOf(gameMode)
-          creatingWorldState.gameMode = gameModes[index === gameModes.length - 1 ? 0 : index + 1]
-        }}
-        disabled
-      >
-        Game Mode: {gameMode}
-      </Button>
-    </div>
-    <div style={{ display: 'flex' }}>
       <Button onClick={async () => {
         const availableServerPlugins = await getAvailableServerPlugins()
         const availableModNames = availableServerPlugins.map(mod => mod.name)
@@ -227,15 +230,6 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
         creatingWorldState.plugins = availableModNames.filter(modName => choice[modName])
       }}
       >Use Mods ({plugins.length})
-      </Button>
-      <Button
-        onClick={() => {
-          const index = gameModes.indexOf(gameMode)
-          creatingWorldState.gameMode = gameModes[index === gameModes.length - 1 ? 0 : index + 1]
-        }}
-        disabled
-      >
-        Save Type: Java
       </Button>
     </div>
     <div style={{ display: 'flex' }}>
