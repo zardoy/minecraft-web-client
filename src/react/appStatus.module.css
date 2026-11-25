@@ -55,3 +55,24 @@
   text-shadow: 1px 1px #222;
   min-height: 1.2em;
 }
+
+/* the sub-step under the bar: which file / module is loading now (wraps, the bar itself is narrow) */
+.progress-step {
+  margin: 4px auto 0;
+  max-width: 260px;
+  color: #aaa;
+  font-size: 7px;
+  text-shadow: 1px 1px #222;
+  overflow-wrap: anywhere;
+}
+
+.progress-stall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: #ffcf4d;
+  font-size: 8px;
+  text-shadow: 1px 1px #222;
+}

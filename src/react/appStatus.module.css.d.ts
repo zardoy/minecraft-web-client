@@ -12,6 +12,10 @@ interface CssExports {
   progress: string;
   'progress-info': string;
   progressInfo: string;
+  'progress-stall': string;
+  progressStall: string;
+  'progress-step': string;
+  progressStep: string;
   track: string;
 }
 declare const cssExports: CssExports;

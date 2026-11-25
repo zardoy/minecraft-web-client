@@ -18,8 +18,10 @@ const AppStatusBase = ({
   actionsSlot = null as React.ReactNode | null,
   showReconnect = false,
   onReconnect = undefined as undefined | (() => void),
-  /** overall progress of a long load: 0..1 with what is being done now */
-  progress = undefined as undefined | { value: number, label: string, detail?: string },
+  /** overall progress of a long load: 0..1 with what is being done now; `step` = the sub-step running right now (which file, which module) */
+  progress = undefined as undefined | { value: number, label: string, detail?: string, step?: string },
+  /** seconds without any change on the loading screen (shown with a Reload button), undefined while it moves */
+  stalledSeconds = undefined as undefined | number,
   children
 }) => {
   const [loadingDotIndex, setLoadingDotIndex] = useState(0)
@@ -92,6 +94,11 @@ const AppStatusBase = ({
                 <span>{progress?.detail ?? ''}</span>
                 <span>{Math.round((progress?.value ?? 0) * 100)}%</span>
               </div>
+            </div>}
+            {!isError && progress?.step && <div className={styles.progressStep}>{progress.step}</div>}
+            {!isError && progress && stalledSeconds !== undefined && <div className={styles.progressStall}>
+              <span>No progress for {stalledSeconds} s</span>
+              <Button style={{ width: 60 }} onClick={() => window.location.reload()}>Reload</Button>
             </div>}
             <p className={styles.description}>{description}</p>
             <p className={styles['last-status']}>{lastStatus ? `Last status: ${lastStatus}` : lastStatus}</p>
