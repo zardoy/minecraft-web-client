@@ -111,10 +111,10 @@ const MainMenuBase = ({
     { delay: 500 }
   )
 
-  // relative build time instead of the commit hash (the hash stays in the tooltip; click still opens it on GitHub)
+  // "version (3h ago)": the version / commit hash and, in brackets, how long ago this build was made (the exact time is in the tooltip; click still opens the commit on GitHub)
   const buildTimeMs = Number(process.env.BUILD_TIME)
   const hasBuildTime = !!process.env.BUILD_TIME && Number.isFinite(buildTimeMs)
-  const builtAgo = hasBuildTime ? `built ${formatTimeAgo(Date.now() - buildTimeMs)}` : undefined
+  const builtAgo = hasBuildTime ? (versionText ? `${versionText} (${formatTimeAgo(Date.now() - buildTimeMs)})` : `built ${formatTimeAgo(Date.now() - buildTimeMs)}`) : undefined
   const versionTooltip = [versionText, hasBuildTime ? `built ${new Date(buildTimeMs).toLocaleString()}` : undefined].filter(Boolean).join(' · ')
 
   const versionLongPress = useLongPress(
