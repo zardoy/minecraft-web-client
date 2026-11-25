@@ -4,6 +4,7 @@ import { options } from '../optionsStorage'
 import { activeModalStack } from '../globalState'
 import { videoCursorInteraction } from '../customChannels'
 // import PixelartIcon, { pixelartIcons } from './PixelartIcon'
+import { getCursorEntity } from '../mineflayer/cursorEntity'
 import styles from './TouchInteractionHint.module.css'
 import { useUsingTouch } from './utilsApp'
 import Button from './Button'
@@ -22,9 +23,10 @@ export default () => {
         setHintText(`Interact with video`)
         setEntityName(null)
       } else {
-        const cursorState = bot.mouse.getCursorState()
-        if (cursorState.entity) {
-          const name = cursorState.entity.displayName ?? cursorState.entity.name ?? 'Entity'
+        // the entity raycast is cached per tick by the mouse plugin (its own physicsTick update ran it); getCursorState() would also raycast the blocks again
+        const entity = getCursorEntity()
+        if (entity) {
+          const name = entity.displayName ?? entity.name ?? 'Entity'
           setHintText(`Attack ${name}`)
           setEntityName(name)
         } else {

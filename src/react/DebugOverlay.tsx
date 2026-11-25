@@ -9,6 +9,7 @@ import { formatLightingLine } from 'minecraft-renderer/src/lighting/lightingDebu
 import { miscUiState } from '../globalState'
 import { getFixedFilesize } from '../downloadAndOpenFile'
 import { options } from '../optionsStorage'
+import { getCursorEntity } from '../mineflayer/cursorEntity'
 import styles from './DebugOverlay.module.css'
 import { withInjectableUi } from './extendableSystem'
 
@@ -133,7 +134,9 @@ const DebugOverlayBase = () => {
       updateTps(false)
     })
 
+    // the overlay is mounted all the time: skip the work while F3 is closed (it raycast the cursor and set ~9 states every 100 ms for every player)
     const freqUpdateInterval = setInterval(() => {
+      if (!miscUiState.showDebugHud) return
       setPos({ ...bot.entity.position })
       // light and where it comes from (server, client engine, disabled), from the renderer's own light data
       const worldRenderer = window.world as WorldRendererCommon | undefined
@@ -147,12 +150,13 @@ const DebugOverlayBase = () => {
       setDimension(bot.game.dimension)
       setDay(bot.time.day)
       setTimeOfDay(bot.time.timeOfDay)
-      const cursorState = bot.mouse.getCursorState()
-      setCursorBlock(cursorState.cursorBlock)
-      setCursorEntity(cursorState.entity)
+      // what the mouse plugin found on its last tick: no second raycast
+      setCursorBlock(bot.mouse.cursorBlock)
+      setCursorEntity(getCursorEntity())
     }, 100)
 
     const notFrequentUpdateInterval = setInterval(async () => {
+      if (!miscUiState.showDebugHud) return
       const block = bot.mouse.cursorBlock
       if (!block) {
         setBlockInfo(null)
