@@ -142,6 +142,8 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
   const { title, type, version, gameMode, plugins, seed } = useSnapshot(creatingWorldState)
   useEffect(() => {
     creatingWorldState.version = defaultVersion
+    // the game mode lives in the collapsed advanced options: do not carry a previous choice over unseen
+    creatingWorldState.gameMode = 'creative'
     creatingWorldState.title = defaultWorldName([])
     void existingWorldNames?.().then(names => {
       // only while the player has not typed a name yet

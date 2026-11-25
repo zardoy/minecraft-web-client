@@ -173,6 +173,8 @@ export const rspackViewerConfig = (config: any, { appendPlugins, addRules, rspac
             // game data bundle of the local server: fetched at runtime, a data: url in the single file build
             test: /\.gamedata$/,
             type: process.env.SINGLE_FILE_BUILD === 'true' ? 'asset/inline' : 'asset/resource',
+            // a data: url needs a mimetype and the unknown `.gamedata` extension has none
+            generator: process.env.SINGLE_FILE_BUILD === 'true' ? { mimetype: 'application/json' } : undefined,
         },
         {
             // worldgen datapack: fetched at runtime; has to be a data: url in the single file build (nothing else is served)
