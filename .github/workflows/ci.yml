@@ -21,6 +21,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
       - run: pnpm install
+      - name: Install ffmpeg (encodes the sounds of the single file builds)
+        run: command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg)
       - run: pnpm build-single-file
       - run: pnpm build-single-file-slim
       - name: Check the slim single file stays under 10 MB
