@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install ffmpeg (encodes the sounds of the single file builds)
+        run: command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg)
+
       - name: Build single-file version - minecraft.html
         run: pnpm build-single-file && mv dist/single/index.html minecraft.html
         env:

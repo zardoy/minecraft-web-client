@@ -3,10 +3,16 @@
 interface CssExports {
   actionBinds: string;
   actionName: string;
+  awaiting: string;
+  awaitingPanel: string;
   button: string;
   'chat-command': string;
   chatCommand: string;
   container: string;
+  embedded: string;
+  embeddedEmpty: string;
+  embeddedHeader: string;
+  embeddedNote: string;
   group: string;
   'group-category': string;
   groupCategory: string;

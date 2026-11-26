@@ -15,6 +15,8 @@ import { appAndRendererSharedConfig } from './rsbuildSharedConfig'
 import { genLargeDataAliases } from './scripts/genLargeDataAliases'
 // @ts-ignore
 import { compressSingleFile } from './scripts/compressSingleFile.mjs'
+// @ts-ignore
+import { buildEmbeddedSounds } from './scripts/embeddedSounds.mjs'
 import sharp from 'sharp'
 import supportedVersions from './src/supportedVersions.mjs'
 import { startWsServer } from './scripts/wsServer'
@@ -259,6 +261,20 @@ const appConfig = defineConfig({
                             childProcess.execSync(`node node_modules/minecraft-worldgen/dist/cli.js generated/${file} --vanilla --download 26.3 ${flags}`, { stdio: 'inherit' })
                         }
                     }
+                    // chest loot tables and cooking recipes (reads the vanilla jar the step above downloaded)
+                    // `.failed` marks the empty fallback below, so the next build tries again instead of keeping it
+                    const gamedataFile = './generated/mc-gamedata.gamedata'
+                    if (!fs.existsSync(gamedataFile) || fs.existsSync(`${gamedataFile}.failed`)) {
+                        try {
+                            childProcess.execSync(`node scripts/buildGamedataPack.mjs ${gamedataFile}`, { stdio: 'inherit' })
+                            fs.rmSync(`${gamedataFile}.failed`, { force: true })
+                        } catch {
+                            // no vanilla jar: an empty bundle keeps the build going, chests then have no loot and furnaces use the built-in recipes
+                            console.warn('mc-gamedata was not built (vanilla client jar missing?); the local server has no chest loot tables')
+                            fs.writeFileSync(gamedataFile, '{}')
+                            fs.writeFileSync(`${gamedataFile}.failed`, '')
+                        }
+                    }
                     childProcess.execSync('tsx ./scripts/genShims.ts', { stdio: 'inherit' })
                     if (!fs.existsSync('./generated/latestBlockCollisionsShapes.json') || require('./generated/latestBlockCollisionsShapes.json').versionKey !== require('minecraft-data/package.json').version) {
                         childProcess.execSync('tsx ./scripts/optimizeBlockCollisions.ts', { stdio: 'inherit' })
@@ -346,6 +362,9 @@ const appConfig = defineConfig({
                             html = html.replace('favicon.png', `data:image/png;base64,${resizedImage}`)
                             html = html.replace('src="./loading-bg.jpg"', `src="data:image/png;base64,${fs.readFileSync('./assets/loading-bg.jpg', 'base64')}"`)
                             html += '<script id="mesher-worker-code">' + fs.readFileSync('./dist/mesher.js', 'utf8') + '</script>'
+                            // basic sounds (hurt, steps, place / break, one music track), read by src/sounds/embeddedSounds.ts
+                            const embeddedSounds = await buildEmbeddedSounds()
+                            if (embeddedSounds) html += `<script type="application/json" id="embedded-sounds">${embeddedSounds}</script>`
                             // slim build: gzip the inline scripts (decompressed at load time), roughly halves the file
                             if (SLIM_BUILD) html = compressSingleFile(html)
                             fs.writeFileSync(singleBuildHtml, html, 'utf8')

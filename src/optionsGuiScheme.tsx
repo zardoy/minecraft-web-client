@@ -1,847 +1,659 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSnapshot } from 'valtio'
-import { noCase } from 'change-case'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
+import { detectGpuRenderer, isWeakMobileGpu } from 'minecraft-renderer/src/graphicsBackend/gpuTier'
 import Logo from 'minecraft-renderer/logo.webp'
-import { gameAdditionalState, miscUiState, openOptionsMenu, showModal } from './globalState'
-import { AppOptions, getChangedSettings, options } from './optionsStorage'
+import {
+  RENDERER_EFFECT_OPTION_KEYS,
+  RENDERER_VISUAL_PROFILES,
+  detectVisualProfile,
+  type RendererVisualProfileId
+} from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
+import { gameAdditionalState, miscUiState, showModal } from './globalState'
+import { AppOptions, options } from './optionsStorage'
 import { showResetSettingsModal } from './react/AllSettingsEditor'
-import Button from './react/Button'
-import { OptionMeta, OptionSlider } from './react/OptionsItems'
-import Slider from './react/Slider'
 import { getScreenRefreshRate } from './utils'
 import { setLoadingScreenStatus } from './appStatus'
 import { openFilePicker, resetLocalStorage } from './browserfs'
 import { completeResourcepackPackInstall, getResourcePackNames, resourcepackReload, resourcePackState, uninstallResourcePack } from './resourcePack'
 import { downloadPacketsReplay, packetsRecordingState } from './packetsReplay/packetsReplayLegacy'
-import { showInputsModal, showOptionsModal } from './react/SelectOption'
+import { showOptionsModal } from './react/SelectOption'
 import { ClientMod, getAllMods, modsUpdateStatus } from './clientMods'
 import supportedVersions from './supportedVersions.mjs'
 import { getVersionAutoSelect } from './connect'
 import { createNotificationProgressReporter } from './core/progressReporter'
-import { customKeymaps } from './controls'
 import { appStorage } from './react/appStorageProvider'
 import { exportData, importData } from './core/importExport'
 import { appGraphicBackends, getCurrentGraphicsBackend } from './appViewerLoad'
 import { openVisualEffectsPanel } from './visualEffectsPanel'
+import { ActionRow, ChoicePicker, OptionRow, Segmented, SettingRow, SettingsViewContext, Switch } from './react/settings/SettingsControls'
+import Slider from './react/Slider'
+import FlatButton from './react/ui/FlatButton'
+import schemeStyles from './react/settings/settings.module.css'
 
-export const guiOptionsScheme: {
-  [t in OptionsGroupType]: Array<{ [K in keyof AppOptions]?: Partial<OptionMeta<AppOptions[K]>> } & { custom? }>
-} = {
-  render: [
-    {
-      custom () {
-        const { activeRenderer } = useSnapshot(options)
-        const { name, id } = useMemo(() => getCurrentGraphicsBackend(), [activeRenderer])
+// Settings screen layout: tabs, each a list of sections and rows.
+// An option row only names the option: its label, description, choices and limits come from `optionsMeta` (defaultOptions.ts / the renderer),
+// the fields here override them. A `custom` row renders itself (usually with SettingRow / ActionRow) and is found by search with `text` + `keywords`.
 
-        return <Button
-          label={`Backend: ${name}`}
-          inScreen
-          onClick={async () => {
-            const newBackendName = await showOptionsModal(
-              'Change Renderer (Builtin Graphics Backends)',
-              [...appGraphicBackends.map(backend => backend.displayName ?? backend.id), 'Disable Graphics Rendering'],
-              {
-                descriptions: appGraphicBackends.map(backend => backend.description || backend.displayName || ''),
-                hoveredOptionIndex: appGraphicBackends.findIndex(backend => backend.id === id)
-              }
-            )
-            if (!newBackendName) return
-            const newBackend = appGraphicBackends.find(backend => (backend.displayName ?? backend.id) === newBackendName)!.id
-            options.activeRenderer = newBackend
-          }}
-        />
-      },
-    },
-    {
-      custom () {
-        return (
-          <div style={{
-            // span 2
-            gridColumn: 'span 2',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-            <img
-              src={Logo}
-              alt="Renderer logo"
-              style={{
-                width: 150,
-                objectFit: 'contain',
-              }}
-            />
-          </div>
-        )
-      },
-    },
-    {
-      custom () {
-        const frameLimitValue = useSnapshot(options).frameLimit
-        const [frameLimitMax, setFrameLimitMax] = useState(null as number | null)
+export interface OptionItem {
+  option: keyof AppOptions
+  text?: string
+  tooltip?: string
+  /** forced control kind, by default it follows the value type and number of choices */
+  control?: 'switch' | 'segmented' | 'picker' | 'slider'
+  possibleValues?: Array<[string, string]>
+  min?: number
+  max?: number
+  unit?: string
+  valueText?: (value: number) => string
+  valueOverride?: number
+  onChange?: (value: number) => void
+  /** slider applies the value when released */
+  delayApply?: boolean
+  disabledReason?: string
+  disabledDuringGame?: boolean
+  disableIf?: [option: keyof AppOptions, value: unknown]
+  enableWarning?: string
+  requiresRestart?: boolean
+  requiresRestartWhenInGame?: boolean
+  requiresChunksReload?: boolean
+}
 
-        return <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Slider
-            style={{ width: 130 }}
-            label='Frame Limit'
-            disabledReason={frameLimitMax ? undefined : 'press lock button first'}
-            unit={frameLimitValue ? 'fps' : ''}
-            valueDisplay={frameLimitValue || 'VSync'}
-            value={frameLimitValue || frameLimitMax! + 1} min={20}
-            max={frameLimitMax! + 1} updateValue={(newVal) => {
-              options.frameLimit = newVal > frameLimitMax! ? false : newVal
-            }}
-          />
-          <Button
-            style={{ width: 20 }} icon='pixelarticons:lock-open' onClick={async () => {
-              const rate = await getScreenRefreshRate()
-              setFrameLimitMax(rate)
-            }}
-          />
-        </div>
+export interface CustomItem {
+  custom: () => React.ReactNode
+  /** for search, also the row's React key: unique */
+  text: string
+  keywords?: string
+  /** false: the row renders nothing now, search skips it too */
+  available?: () => boolean
+}
+
+export interface SectionItem {
+  section: string
+  /** old sub-page id, `openOptionsMenu(anchor)` scrolls here */
+  anchor?: OptionsGroupType
+}
+
+export type SettingsItem = OptionItem | CustomItem | SectionItem
+
+export type SettingsTabId = 'quick' | 'general' | 'graphics' | 'interface' | 'controls' | 'audio' | 'advanced' | 'vr'
+
+export interface SettingsTab {
+  id: SettingsTabId
+  label: string
+  icon: string
+  items: SettingsItem[]
+  /** rarely changed rows, behind "Show advanced settings" at the end of the tab */
+  advanced?: SettingsItem[]
+  /** only repeats rows of other tabs: left out of search */
+  shortcuts?: boolean
+}
+
+/** the old sub-pages: `openOptionsMenu(group)` still works and opens the tab (and section) that holds them now */
+export type OptionsGroupType = 'main' | 'render' | 'renderer-advanced' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import' | 'inventory'
+
+export const groupToTab: Record<OptionsGroupType, SettingsTabId> = {
+  main: 'quick',
+  render: 'graphics',
+  'renderer-advanced': 'graphics',
+  VR: 'vr',
+  interface: 'interface',
+  inventory: 'interface',
+  controls: 'controls',
+  sound: 'audio',
+  advanced: 'advanced',
+  'export-import': 'advanced',
+}
+
+// #region custom rows
+
+const RenderDistanceRow = () => {
+  const { singleplayer, gameLoaded } = useSnapshot(miscUiState)
+  const sp = singleplayer || !gameLoaded
+  return <OptionRow item={{ option: 'renderDistance', text: 'Render Distance', tooltip: 'How far the world is loaded around you, in chunks. Servers can limit it; more costs memory and loading time.', unit: '', min: 1, max: sp ? 16 : 12 }} />
+}
+
+const ResourcePackRow = () => {
+  const { resourcePackInstalled } = useSnapshot(resourcePackState)
+  const { usingServerResourcePack } = useSnapshot(gameAdditionalState)
+  const { enabledResourcepack } = useSnapshot(options)
+  const status = usingServerResourcePack ? 'Server pack' : resourcePackInstalled ? (enabledResourcepack ? 'On' : 'Off') : 'None'
+  return <ActionRow
+    label={`Resource Pack: ${status}`}
+    description='Install a .zip resource pack, or turn off / remove the installed one.'
+    buttonLabel={resourcePackInstalled ? 'Manage...' : 'Install...'}
+    onClick={async () => {
+      if (!resourcePackState.resourcePackInstalled) {
+        openFilePicker('resourcepack')
+        return
       }
-    },
-    {
-      backgroundRendering: {
-        text: 'Background FPS limit',
-      },
-      menuBackgroundMode: {
-        text: 'Menu Background',
-      },
-      renderDebug: {
-      },
-    },
-    {
-      custom () {
-        return <Category>World Settings</Category>
-      },
-    },
-    {
-      custom () {
-        const { gameLoaded } = useSnapshot(miscUiState)
-        return (
-          <Button
-            label='Visual Effects Panel (F7)'
-            title={gameLoaded ? 'Tune shadows, bloom, color grading etc. live on screen' : 'Available in game'}
-            disabled={!gameLoaded}
-            inScreen
-            onClick={openVisualEffectsPanel}
-          />
-        )
-      },
-    },
-    {
-      rendererWorldPerformance: {
-        text: 'World Performance',
-        tooltip: 'Controls how many background workers process chunk geometry. Requires app reload to apply.',
-        requiresRestartWhenInGame: true,
-      },
-      rendererMesher: {},
-    },
-    {
-      custom () {
-        return <Button label='Advanced...' onClick={() => openOptionsMenu('renderer-advanced')} inScreen />
-      },
-    },
-  ],
-  'renderer-advanced': [
-    {
-      custom () {
-        return <Category>Debug Performance</Category>
-      },
-      renderEntities: {},
-      disableBlockEntityTextures: {
-        text: 'No Block Entity Textures',
-        tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps',
-      },
-    },
-    {
-      custom () {
-        return <Category>Other Settings</Category>
-      },
-      dayCycleAndLighting: {
-        text: 'Day Cycle',
-      },
-      newVersionsLighting: {
-        text: 'Lighting in Newer Versions',
-      },
-      clientLighting: {},
-      animatedTextures: {},
-      starfieldRendering: {},
-      cloudsRendering: {},
-      keepChunksDistance: {
-        max: 5,
-        unit: '',
-        tooltip: 'Additional distance to keep the chunks loading before unloading them by marking them as too far',
-      },
-      renderEars: {
-        tooltip: 'Enable rendering Deadmau5 ears for all players if their skin contains textures for it',
-      },
-      rendererPerfDebugOverlay: {
-        text: 'Performance Debug',
-      },
-      // label and tooltip come from the renderer's option meta (minecraft-renderer #92)
-      rendererSmartCull: {},
-      preserveDrawingBuffer: {
+      const names = Object.keys(await getResourcePackNames())
+      const name = names[0]
+      const choice = await showOptionsModal(`Resource Pack ${name}`, [options.enabledResourcepack ? 'Disable' : 'Enable', 'Uninstall'])
+      if (!choice) return
+      switch (choice) {
+        case 'Disable': {
+          options.enabledResourcepack = null
+          await resourcepackReload()
+          break
+        }
+        case 'Enable': {
+          // installed packs live in the 'default' folder, `name` is only the display name
+          options.enabledResourcepack = 'default'
+          await completeResourcepackPackInstall(name, 'default', false, createNotificationProgressReporter())
+          break
+        }
+        case 'Uninstall': {
+          setLoadingScreenStatus('Uninstalling texturepack')
+          try {
+            await uninstallResourcePack()
+          } finally {
+            setLoadingScreenStatus(undefined)
+          }
+          break
+        }
+      }
+    }}
+  />
+}
+
+const ClientModsRow = () => {
+  const { appConfig } = useSnapshot(miscUiState)
+  const modsUpdateSnapshot = useSnapshot(modsUpdateStatus)
+  const [clientMods, setClientMods] = useState<ClientMod[]>([])
+  useEffect(() => {
+    void getAllMods().then(setClientMods)
+  }, [])
+  if (appConfig?.showModsButton === false) return null
+  const enabled = clientMods.filter(mod => mod.enabled).length
+  const updates = Object.keys(modsUpdateSnapshot).length
+  return <ActionRow
+    label={`Client Mods: ${enabled} on`}
+    description={updates ? `${updates} update(s) available` : 'Mods change the interface, add features or connect to custom servers.'}
+    buttonLabel='Manage...'
+    onClick={() => showModal({ reactType: 'mods' })}
+  />
+}
+
+const LanguageRow = () => {
+  const { appConfig } = useSnapshot(miscUiState)
+  const { language } = useSnapshot(options)
+  if (!appConfig?.displayLanguageSelector) return null
+  return <ActionRow
+    label={`Language: ${language}`}
+    buttonLabel='Change...'
+    onClick={async () => {
+      const newLang = await showOptionsModal('Set Language', (appConfig.supportedLanguages ?? []) as string[])
+      if (!newLang) return
+      options.language = newLang.split(' - ')[0]
+    }}
+  />
+}
+
+const applyProfile = (id: RendererVisualProfileId) => {
+  Object.assign(options, RENDERER_VISUAL_PROFILES[id].options)
+}
+
+const VisualPresetRow = () => {
+  const snapshot = useSnapshot(options)
+  const active = detectVisualProfile(snapshot)
+  return <SettingRow
+    label='Visual Preset'
+    description={active ? RENDERER_VISUAL_PROFILES[active].description : 'Custom: the effects below were changed by hand. Pick a preset to set them all at once.'}
+  >
+    <Segmented
+      choices={Object.entries(RENDERER_VISUAL_PROFILES).map(([id, profile]) => [id, profile.label])}
+      value={active ?? ''}
+      onChange={id => applyProfile(id as RendererVisualProfileId)}
+    />
+  </SettingRow>
+}
+
+/** which engine draws the world: a small logo at the top of Graphics */
+const PoweredByRow = () => {
+  const { name } = useMemo(() => getCurrentGraphicsBackend(), [useSnapshot(options).activeRenderer])
+  return <div className={schemeStyles.poweredBy}>
+    <span>{translate('Graphics powered by')}</span>
+    <img src={Logo} alt={name} title={name} />
+  </div>
+}
+
+/** what the renderer detected about the GPU: it picks the defaults of the Default preset (shadows and colour grading start off on weak GPUs) */
+const DetectedDeviceRow = () => {
+  const renderer = useMemo(() => detectGpuRenderer(), [])
+  const weak = isWeakMobileGpu(renderer)
+  const gpu = renderer?.replace(/^ANGLE \((.*)\)$/, '$1').replace(/, or similar$/, '')
+  return <SettingRow
+    label='Detected Device'
+    description={`${gpu ?? 'The browser does not tell which GPU this is'}. ${weak
+      ? 'A low-end GPU: the Default preset starts with sun shadows and colour grading off, they cost too much frame rate here.'
+      : 'Default preset with all its effects: sun shadows and warm colour grading.'}`}
+  >
+    <div className={`${schemeStyles.deviceTier} ${weak ? schemeStyles.deviceTierLow : ''}`}>{translate(weak ? 'Low-end' : 'Normal')}</div>
+  </SettingRow>
+}
+
+const LiveEffectsRow = () => {
+  const { gameLoaded } = useSnapshot(miscUiState)
+  return <ActionRow
+    label='Live Tuning (F7)'
+    description='A small panel over the game to tune the effects while you look at the world.'
+    buttonLabel={gameLoaded ? 'Open' : 'In game only'}
+    disabled={!gameLoaded}
+    onClick={openVisualEffectsPanel}
+  />
+}
+
+const FrameLimitRow = () => {
+  const { frameLimit } = useSnapshot(options)
+  const [frameLimitMax, setFrameLimitMax] = useState(null as number | null)
+  return <SettingRow label='Frame Limit' description='Caps the frame rate to save battery. Press the lock to read your screen refresh rate first; the rightmost value is VSync.'>
+    <div style={{ display: 'flex', gap: 2 }}>
+      <Slider
+        label=''
+        disabledReason={frameLimitMax ? undefined : 'Press the lock button first'}
+        unit={frameLimit ? 'fps' : ''}
+        valueDisplay={frameLimit || 'VSync'}
+        value={frameLimit || frameLimitMax! + 1}
+        min={20}
+        max={frameLimitMax! + 1}
+        updateValue={(newVal) => {
+          options.frameLimit = newVal > frameLimitMax! ? false : newVal
+        }}
+      />
+      <FlatButton
+        icon={frameLimitMax ? 'lock-open' : 'lock'}
+        title='Read the screen refresh rate'
+        onClick={async () => setFrameLimitMax(await getScreenRefreshRate())}
+      />
+    </div>
+  </SettingRow>
+}
+
+const BackendRow = () => {
+  const { activeRenderer } = useSnapshot(options)
+  const { name, id } = useMemo(() => getCurrentGraphicsBackend(), [activeRenderer])
+  const choices = appGraphicBackends.map(backend => [backend.id, backend.displayName ?? backend.id] as [string, string])
+  return <SettingRow label='Graphics Backend' description={appGraphicBackends.find(b => b.id === id)?.description || `Draws the world: ${name}`}>
+    <ChoicePicker
+      title='Change Renderer (Builtin Graphics Backends)'
+      choices={choices}
+      value={id ?? ''}
+      onChange={value => { options.activeRenderer = value }}
+    />
+  </SettingRow>
+}
+
+const UiPartRow = ({ name, label, description }: { name: string, label: string, description?: string }) => {
+  const { disabledUiParts } = useSnapshot(options)
+  const shown = !disabledUiParts.includes(name)
+  return <SettingRow label={label} description={description}>
+    <Switch
+      value={shown}
+      onChange={(show) => {
+        options.disabledUiParts = show ? disabledUiParts.filter(x => x !== name) : [...disabledUiParts, name]
+      }}
+    />
+  </SettingRow>
+}
+
+const JeiRow = () => {
+  const { inventoryJei } = useSnapshot(options)
+  const isOff = inventoryJei === false || (Array.isArray(inventoryJei) && inventoryJei.length === 0)
+  const partial = Array.isArray(inventoryJei) && !isOff
+  return <SettingRow
+    label='Item List (JEI)'
+    description={`Recipe and item list beside the inventory, chests and crafting.${partial ? ' Now: only in some game modes (set in the all settings editor).' : ''}`}
+  >
+    <Switch value={!isOff} onChange={(on) => { options.inventoryJei = on }} />
+  </SettingRow>
+}
+
+const MusicVolumeRow = () => {
+  const { enableMusic } = useSnapshot(options)
+  return <OptionRow item={{ option: 'musicVolume', text: 'Music Volume', unit: '%', min: 0, max: 100, valueOverride: enableMusic ? undefined : 0, disableIf: ['enableMusic', false] }} />
+}
+
+const DefaultVersionRow = () => {
+  const { serversAutoVersionSelect } = useSnapshot(options)
+  // the automatic choices first, then the versions newest first
+  const allVersions = ['auto', 'latest', ...[...supportedVersions].sort((a, b) => versionToNumber(b) - versionToNumber(a))]
+  const label = (version: string) => {
+    const resolved = getVersionAutoSelect(version)
+    if (version === 'latest') return `Latest (${resolved})`
+    if (version === 'auto') return `Auto (${resolved})`
+    return version
+  }
+  return <SettingRow label='Default Version' description='For servers without a version set: the version the client offers when it asks the server which one to use. Servers that support several versions answer with this one.'>
+    <ChoicePicker
+      title='Default Version'
+      choices={allVersions.map(v => [v, label(v)])}
+      value={serversAutoVersionSelect}
+      onChange={(v) => { options.serversAutoVersionSelect = v }}
+    />
+  </SettingRow>
+}
+
+const StorageRow = () => {
+  const { cookieStorage } = useSnapshot(appStorage)
+  return <SettingRow label='Storage' description='Where settings, servers and accounts are kept. Applies after a reload.'>
+    <Segmented
+      choices={[['local', 'Local'], ['cookies', 'Cookies']]}
+      value={cookieStorage ? 'cookies' : 'local'}
+      onChange={(v) => {
+        appStorage.cookieStorage = v === 'cookies'
+        alert('Reload the page to apply this change')
+      }}
+    />
+  </SettingRow>
+}
+
+const PacketsLoggingRow = () => {
+  const { active, hasRecordedPackets } = useSnapshot(packetsRecordingState)
+  return <SettingRow label='Packets Replay Logging' description='Records the network packets of the session, to attach to a bug report. The button downloads the recording.'>
+    <div style={{ display: 'flex', gap: 2 }}>
+      <Switch value={active} onChange={(v) => { packetsRecordingState.active = v }} />
+      <FlatButton icon='download' title='Download Packets Replay' disabled={!hasRecordedPackets} onClick={() => { void downloadPacketsReplay() }} />
+    </div>
+  </SettingRow>
+}
+
+/** Quick tab: both fullscreen settings at once (enter on click into the game, leave with Escape) */
+const FullscreenRow = () => {
+  const { autoFullScreen, autoExitFullscreen } = useSnapshot(options)
+  return <SettingRow label='Auto Fullscreen' description='Go fullscreen when you click into the game, and leave it when the pause menu opens. Separate switches are in Controls > Advanced.'>
+    <Switch
+      value={autoFullScreen && autoExitFullscreen}
+      onChange={(on) => {
+        options.autoFullScreen = on
+        options.autoExitFullscreen = on
+      }}
+    />
+  </SettingRow>
+}
+
+const AllSettingsRow = () => {
+  const openView = useContext(SettingsViewContext)
+  return <ActionRow label='All Settings' description='Every setting by its key, also the ones without a row in these tabs.' buttonLabel='Show...' onClick={() => openView('all')} />
+}
+
+const TouchLayoutRow = () => {
+  const { touchInteractionType, touchMovementType } = useSnapshot(options)
+  return <ActionRow
+    label='Touch Buttons Layout'
+    description='Move and resize the touch buttons on screen.'
+    buttonLabel='Setup...'
+    disabled={touchInteractionType === 'classic' && touchMovementType === 'classic'}
+    onClick={() => showModal({ reactType: 'touch-buttons-setup' })}
+  />
+}
+
+// #endregion
+
+const custom = (text: string, render: () => React.ReactNode, keywords?: string, available?: () => boolean): CustomItem => ({ custom: render, text, keywords, available })
+
+const KeybindingsRow = () => {
+  const openView = useContext(SettingsViewContext)
+  return <ActionRow label='Keybindings' description='Keyboard and gamepad buttons for every action.' buttonLabel='Edit...' onClick={() => openView('keybindings')} />
+}
+const keybindingsRow = custom('Keybindings', () => <KeybindingsRow />, 'keys keyboard bindings')
+const renderDistanceRow = custom('Render Distance', () => <RenderDistanceRow />, 'chunks view distance')
+const musicVolumeRow = custom('Music Volume', () => <MusicVolumeRow />, 'music volume')
+const visualPresetRow = custom('Visual Preset', () => <VisualPresetRow />, 'profile vanilla default maximum quality')
+const isTouchDevice = () => matchMedia('(pointer: coarse)').matches
+
+export const settingsTabs: SettingsTab[] = [
+  {
+    // what people change most, repeated from the other tabs
+    id: 'quick',
+    label: 'Quick',
+    icon: 'zap',
+    shortcuts: true,
+    items: [
+      renderDistanceRow,
+      { option: 'fov', text: 'Field of View', min: 30, max: 110, unit: '', tooltip: 'How wide you see. Higher shows more around you, lower looks zoomed in.' },
+      { option: 'mouseSensX', text: 'Mouse Sensitivity' },
+      { option: 'guiScale', max: 4, min: 1, unit: '', delayApply: true, text: 'GUI Scale', tooltip: 'Size of the whole interface. Applies when you release the slider.' },
+      { option: 'volume', text: 'Master Volume' },
+      musicVolumeRow,
+      visualPresetRow,
+      { option: 'renderDebug', text: 'Debug Overlay', tooltip: 'Frame rate and renderer numbers in the corner.' },
+      { option: 'autoJump', disableIf: ['autoParkour', true], tooltip: 'Jump up one block without pressing jump.' },
+      custom('Touch Movement', () => <OptionRow item={{ option: 'touchMovementType', text: 'Touch Movement' }} />, 'touch joystick', isTouchDevice),
+      keybindingsRow,
+      custom('Auto Fullscreen', () => <FullscreenRow />, 'fullscreen exit escape keyboard lock'),
+    ],
+  },
+  {
+    // field of view and render distance live in Quick
+    id: 'general',
+    label: 'Content',
+    icon: 'folder',
+    items: [
+      { section: 'Resource Packs & Mods' },
+      custom('Resource Pack', () => <ResourcePackRow />, 'texture pack textures'),
+      custom('Client Mods', () => <ClientModsRow />, 'mods plugins', () => miscUiState.appConfig?.showModsButton !== false),
+      custom('Language', () => <LanguageRow />, 'translation', () => !!miscUiState.appConfig?.displayLanguageSelector),
+    ],
+  },
+  {
+    id: 'graphics',
+    label: 'Graphics',
+    icon: 'monitor',
+    items: [
+      custom('Graphics powered by', () => <PoweredByRow />, 'three.js renderer engine'),
+      { section: 'Quality', anchor: 'render' },
+      { option: 'renderDebug', text: 'Debug Overlay', tooltip: 'Frame rate and renderer numbers in the corner.' },
+      custom('Frame Limit', () => <FrameLimitRow />, 'fps vsync'),
+      { option: 'backgroundRendering', text: 'Background FPS Limit', tooltip: 'Frame rate while the tab is not focused. "No" keeps the full rate.' },
+      { option: 'rendererMesher' },
+      { section: 'Effects' },
+      visualPresetRow,
+      custom('Detected Device', () => <DetectedDeviceRow />, 'gpu tier low-end weak phone performance'),
+      ...RENDERER_EFFECT_OPTION_KEYS.map((option): OptionItem => ({ option })),
+      custom('Live Tuning', () => <LiveEffectsRow />, 'visual effects panel f7'),
+      { section: 'World' },
+      { option: 'animatedTextures' },
+      { option: 'chunkFadeMs' },
+      { option: 'cloudsRendering' },
+      { option: 'starfieldRendering' },
+      { option: 'renderEntities' },
+      { option: 'renderEars', text: 'Deadmau5 Ears', tooltip: 'Render ears for all players whose skin has them. Turn it off if some skins show ears that should not be there (skins made for other games draw that part of the texture wrong).' },
+      { section: 'Menu' },
+      { option: 'menuBackgroundMode', text: 'Menu Background' },
+    ],
+    advanced: [
+      { section: 'Performance', anchor: 'renderer-advanced' },
+      { option: 'rendererWorldPerformance', text: 'World Performance', requiresRestartWhenInGame: true },
+      { option: 'rendererSmartCull' },
+      { option: 'keepChunksDistance', max: 5, unit: '', text: 'Keep Chunks Distance', tooltip: 'Additional distance to keep the chunks loading before unloading them by marking them as too far' },
+      custom('Graphics Backend', () => <BackendRow />, 'renderer three.js'),
+      { section: 'Lighting' },
+      { option: 'dayCycleAndLighting', text: 'Day Cycle' },
+      { option: 'newVersionsLighting' },
+      { option: 'clientLighting' },
+      { section: 'Debug' },
+      { option: 'disableBlockEntityTextures', text: 'No Block Entity Textures', tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps' },
+      { option: 'rendererPerfDebugOverlay', text: 'Performance Debug' },
+      {
+        option: 'preserveDrawingBuffer',
         text: 'Screenshot Buffer (F2)',
         tooltip: 'Keeps the last frame so F2 can save a screenshot. Turning it off saves some GPU work, mostly on older GPUs and phones, but F2 then does nothing. Applies after a reload.',
         requiresRestart: true,
       },
-    },
-    {
-      custom () {
-        return <Button label='Guide: Disable VSync' onClick={() => openURL('https://gist.github.com/zardoy/6e5ce377d2b4c1e322e660973da069cd')} inScreen />
-      },
-    },
-  ],
-  main: [
-    {
-      fov: {
-        min: 30,
-        max: 110,
-        unit: '',
-      }
-    },
-    {
-      custom () {
-        const sp = miscUiState.singleplayer || !miscUiState.gameLoaded
-        return <OptionSlider item={{
-          type: 'slider',
-          id: 'renderDistance',
-          text: 'Render Distance',
-          unit: '',
-          max: sp ? 16 : 12,
-          min: 1
-        }}
-        />
-      },
-    },
-    {
-      custom () {
-        return <Button label='Render...' onClick={() => openOptionsMenu('render')} inScreen />
-      },
-    },
-    {
-      custom () {
-        return <Button label='Interface...' onClick={() => openOptionsMenu('interface')} inScreen />
-      },
-    },
-    {
-      custom () {
-        return <Button label='Controls...' onClick={() => openOptionsMenu('controls')} inScreen />
-      },
-    },
-    {
-      custom () {
-        return <Button label='Sound...' onClick={() => openOptionsMenu('sound')} inScreen />
-      },
-    },
-    {
-      custom () {
-        const { resourcePackInstalled } = useSnapshot(resourcePackState)
-        const { usingServerResourcePack } = useSnapshot(gameAdditionalState)
-        const { enabledResourcepack } = useSnapshot(options)
-        return <Button
-          label={`Resource Pack: ${usingServerResourcePack ? 'SERVER ON' : resourcePackInstalled ? enabledResourcepack ? 'ON' : 'OFF' : 'NO'}`} inScreen onClick={async () => {
-            if (resourcePackState.resourcePackInstalled) {
-              const names = Object.keys(await getResourcePackNames())
-              const name = names[0]
-              const choices = [
-                options.enabledResourcepack ? 'Disable' : 'Enable',
-                'Uninstall',
-              ]
-              const choice = await showOptionsModal(`Resource Pack ${name} action`, choices)
-              if (!choice) return
-              if (choice === 'Disable') {
-                options.enabledResourcepack = null
-                await resourcepackReload()
-                return
-              }
-              if (choice === 'Enable') {
-                options.enabledResourcepack = name
-                await completeResourcepackPackInstall(name, name, false, createNotificationProgressReporter())
-                return
-              }
-              if (choice === 'Uninstall') {
-                // todo make hidable
-                setLoadingScreenStatus('Uninstalling texturepack')
-                await uninstallResourcePack()
-                setLoadingScreenStatus(undefined)
-              }
-            } else {
-              // if (!fsState.inMemorySave && isGameActive(false)) {
-              //   alert('Unable to install resource pack in loaded save for now')
-              //   return
-              // }
-              openFilePicker('resourcepack')
-            }
-          }}
-        />
-      },
-    },
-    {
-      custom () {
-        return <Button label='Advanced...' onClick={() => openOptionsMenu('advanced')} inScreen />
-      },
-    },
-    {
-      custom () {
-        const { appConfig } = useSnapshot(miscUiState)
-        const modsUpdateSnapshot = useSnapshot(modsUpdateStatus)
-        const [clientMods, setClientMods] = useState<ClientMod[]>([])
-        useEffect(() => {
-          void getAllMods().then(setClientMods)
-        }, [])
-
-        if (appConfig?.showModsButton === false) return null
-        const enabledModsCount = Object.keys(clientMods.filter(mod => mod.enabled)).length
-        return <Button label={`Client Mods: ${enabledModsCount} (${Object.keys(modsUpdateSnapshot).length})`} onClick={() => showModal({ reactType: 'mods' })} inScreen />
-      },
-    },
-    {
-      custom () {
-        return <Button label='VR...' onClick={() => openOptionsMenu('VR')} inScreen />
-      },
-    },
-    {
-      custom () {
-        const { appConfig } = useSnapshot(miscUiState)
-        if (!appConfig?.displayLanguageSelector) return null
-        return <Button
-          label='Language...' onClick={async () => {
-            const newLang = await showOptionsModal('Set Language', (appConfig.supportedLanguages ?? []) as string[])
-            if (!newLang) return
-            options.language = newLang.split(' - ')[0]
-          }} inScreen />
-      },
-    }
-  ],
-  interface: [
-    {
-      guiScale: {
-        max: 4,
-        min: 1,
-        unit: '',
-        delayApply: true,
-      },
-    },
-    {
-      custom () {
-        return <Button label='Inventory & containers...' onClick={() => openOptionsMenu('inventory')} inScreen />
-      },
-    },
-    {
-      custom () {
-        return <Category>Chat</Category>
-      },
-      chatWidth: {
-        max: 320,
-        unit: 'px',
-      },
-      chatHeight: {
-        max: 180,
-        unit: 'px',
-      },
-      chatOpacity: {
-      },
-      chatOpacityOpened: {
-      },
-      chatSelect: {
-        text: 'Text Select',
-      },
-      chatPingExtension: {
-      },
-      chatAlwaysDisplayTypingIndicator: {
-        text: 'Always Show Typing Indicator',
-      },
-    },
-    {
-      custom () {
-        return <Category>Map</Category>
-      },
-      showMinimap: {
-        text: 'Enable Minimap',
-        enableWarning: 'App reload is required to apply this setting',
-      },
-    },
-    {
-      custom () {
-        return <Category>World</Category>
-      },
-      highlightBlockColor: {
-        text: 'Block Highlight Color',
-      },
-      showHand: {
-        text: 'Show Hand',
-      },
-      viewBobbing: {
-        text: 'View Bobbing',
-      },
-    },
-    {
-      custom () {
-        return <Category>Sign Editor</Category>
-      },
-      autoSignEditor: {
-        text: 'Enable Sign Editor',
-      },
-      wysiwygSignEditor: {
-        text: 'WYSIWG Editor',
-      },
-    },
-    {
-      custom () {
-        return <Category>Experimental</Category>
-      },
-      displayBossBars: {
-        text: 'Boss Bars',
-      },
-    },
-    {
-      custom () {
-        return <UiToggleButton name='title' addUiText />
-      },
-    },
-    {
-      custom () {
-        return <UiToggleButton name='chat' addUiText />
-      },
-    },
-    {
-      custom () {
-        return <UiToggleButton name='scoreboard' addUiText />
-      },
-    },
-    {
-      custom () {
-        return <UiToggleButton name='effects' label='Effects' />
-      },
-    },
-    {
-      custom () {
-        return <UiToggleButton name='indicators' label='Game Indicators' />
-      },
-    },
-    {
-      custom () {
-        return <UiToggleButton name='hotbar' />
-      },
-    },
-    {
-      custom () {
-        return <Category>Other</Category>
-      },
-      displayLoadingMessages: {}
-    }
-  ],
-  controls: [
-    {
-      custom () {
-        return <Category>Keyboard & Mouse</Category>
-      },
-    },
-    {
-      custom () {
-        return <Button
-          inScreen
-          onClick={() => {
-            showModal({ reactType: 'keybindings' })
-          }}
-        >Keybindings
-        </Button>
-      },
-      mouseSensX: {},
-      mouseSensY: {
-        min: -1,
-        valueText (value) {
-          return value === -1 ? 'Same as X' : `${value}`
-        },
-      },
-      mouseRawInput: {
-        tooltip: 'Wether to disable any mouse acceleration (MC does it by default). Most probably it is still supported only by Chrome.',
+      custom('Disable VSync guide', () => <ActionRow label='Disable VSync' description='How to unlock the frame rate above your screen refresh rate in the browser.' buttonLabel='Open Guide' onClick={() => openURL('https://gist.github.com/zardoy/6e5ce377d2b4c1e322e660973da069cd')} />),
+    ],
+  },
+  {
+    id: 'interface',
+    label: 'Interface',
+    icon: 'layout',
+    items: [
+      { section: 'Display', anchor: 'interface' },
+      { option: 'guiScale', max: 4, min: 1, unit: '', delayApply: true, text: 'GUI Scale', tooltip: 'Size of the whole interface. Applies when you release the slider.' },
+      { option: 'highlightBlockColor', text: 'Block Highlight Color' },
+      { option: 'showMinimap', text: 'Minimap', requiresRestart: true },
+      { section: 'First Person' },
+      { option: 'viewBobbing', text: 'View Bobbing', tooltip: 'The camera sways while walking.' },
+      { option: 'showHand', text: 'Show Hand' },
+      { section: 'Chat' },
+      { option: 'chatWidth', max: 320, unit: 'px' },
+      { option: 'chatHeight', max: 180, unit: 'px' },
+      { option: 'chatOpacity' },
+      { option: 'chatOpacityOpened' },
+      { option: 'chatAlwaysDisplayTypingIndicator', text: 'Always Show Typing' },
+      { section: 'Inventory & Containers', anchor: 'inventory' },
+      custom('Item List (JEI)', () => <JeiRow />, 'jei recipes'),
+      { option: 'inventoryPlaceholders', text: 'Slot Hints', tooltip: 'Show placeholder hints in empty inventory slots when supported.' },
+      { section: 'HUD' },
+      custom('Show Hotbar', () => <UiPartRow name='hotbar' label='Hotbar' />, 'hud ui'),
+      custom('Show Chat', () => <UiPartRow name='chat' label='Chat' />, 'hud ui'),
+      custom('Show Title', () => <UiPartRow name='title' label='Titles' description='Big title texts servers show in the middle of the screen.' />, 'hud ui'),
+      custom('Show Scoreboard', () => <UiPartRow name='scoreboard' label='Scoreboard' />, 'hud ui'),
+      { option: 'displayBossBars', text: 'Boss Bars' },
+      custom('Show Effects', () => <UiPartRow name='effects' label='Effects' description='Potion effects with their time left.' />, 'hud ui'),
+      custom('Show Indicators', () => <UiPartRow name='indicators' label='Game Indicators' description='Network, recording and other status icons.' />, 'hud ui'),
+    ],
+    advanced: [
+      { section: 'Chat Details' },
+      { option: 'chatSelect', text: 'Text Select' },
+      { option: 'chatPingExtension' },
+      { option: 'displayLoadingMessages', text: 'Loading Messages' },
+      { section: 'Signs' },
+      { option: 'autoSignEditor', text: 'Sign Editor' },
+      { option: 'wysiwygSignEditor', text: 'WYSIWYG Editor' },
+      { section: 'Inventory / Containers GUI' },
+      { option: 'inventoryPlayerModel', text: 'Player Preview', tooltip: 'Show the rotating player model in the survival inventory when supported.' },
+      { option: 'inventoryNotes', text: 'Side Notes Panel', tooltip: 'Show extra note slots in container UIs where supported.' },
+      { option: 'unimplementedContainers', text: 'Try Unknown Containers', tooltip: 'If the server opens a container type the client does not implement yet, show a generic chest-style UI instead of failing.' },
+    ],
+  },
+  {
+    id: 'controls',
+    label: 'Controls',
+    icon: 'gamepad',
+    items: [
+      { section: 'Keyboard & Mouse', anchor: 'controls' },
+      {
+        option: 'mouseRawInput',
+        text: 'Raw Input',
+        tooltip: 'Mouse movement without the acceleration of the system (Minecraft does the same). Supported by Chrome and other Chromium browsers.',
         // eslint-disable-next-line no-extra-boolean-cast
         disabledReason: Boolean(document.documentElement.requestPointerLock) ? undefined : 'Your browser does not support pointer lock.',
       },
-      autoFullScreen: {
+      keybindingsRow,
+      { option: 'mouseSensX', text: 'Mouse Sensitivity X' },
+      { option: 'mouseSensY', text: 'Mouse Sensitivity Y', min: -1, valueText: (value) => (value === -1 ? 'Same as X' : `${value} %`) },
+      { section: 'Movement' },
+      { option: 'autoJump', disableIf: ['autoParkour', true], tooltip: 'Jump up one block without pressing jump.' },
+      { option: 'autoParkour', tooltip: 'Also jump over gaps automatically.' },
+      { section: 'Touch' },
+      { option: 'touchMovementType', text: 'Movement Controls' },
+      { option: 'touchInteractionType', text: 'Interaction Controls' },
+      custom('Touch Buttons Layout', () => <TouchLayoutRow />, 'touch buttons setup position size'),
+      { option: 'alwaysShowMobileControls', text: 'Always Show Touch Controls', disableIf: ['forceDisableTouchControls', true] },
+      { option: 'forceDisableTouchControls', text: 'Never Show Touch Controls', tooltip: 'Never show touch controls, even if your device has a touchscreen. Useful for touch laptops used with mouse and keyboard.' },
+      { option: 'autoDisplayRotation', text: 'Auto Landscape Rotation', tooltip: 'On portrait screens, automatically rotate the game to landscape layout (same as the rotate button).' },
+    ],
+    advanced: [
+      { section: 'Fullscreen' },
+      {
+        option: 'autoFullScreen',
         tooltip: 'Auto Fullscreen allows you to use Ctrl+W and Escape having to wait/click on screen again.',
         disabledReason: navigator['keyboard'] ? undefined : 'Your browser doesn\'t support keyboard lock API'
       },
-      autoExitFullscreen: {
-        tooltip: 'Exit fullscreen on escape (pause menu open). But note you can always do it with F11.',
+      { option: 'autoExitFullscreen', tooltip: 'Exit fullscreen on escape (pause menu open). But note you can always do it with F11.' },
+      { section: 'Classic Touch Buttons' },
+      { option: 'touchButtonsSize', min: 40, disableIf: ['touchMovementType', 'modern'] },
+      { option: 'touchButtonsOpacity', min: 10, max: 90, disableIf: ['touchMovementType', 'modern'] },
+      { option: 'touchButtonsPosition', max: 80, disableIf: ['touchMovementType', 'modern'] },
+    ],
+  },
+  {
+    id: 'audio',
+    label: 'Audio',
+    icon: 'volume-3',
+    items: [
+      { section: 'Volume', anchor: 'sound' },
+      { option: 'volume', text: 'Master Volume' },
+      { option: 'enableMusic', text: 'Music' },
+      musicVolumeRow,
+      custom('Sound Muffler', () => <ActionRow label='Sound Muffler' description='Mute or quiet down single sounds that annoy you.' buttonLabel='Open...' onClick={() => showModal({ reactType: 'sound-muffler' })} />, 'mute sounds'),
+      { section: 'Voice Chat' },
+      { option: 'voiceChatEnabled', text: 'Voice Chat', tooltip: 'Join voice chat when a server offers it.' },
+    ],
+  },
+  {
+    id: 'advanced',
+    label: 'Advanced',
+    icon: 'code',
+    items: [
+      { section: 'Server Connection', anchor: 'advanced' },
+      { option: 'serverResourcePacks', text: 'Server Resource Packs' },
+      { option: 'saveLoginPassword', text: 'Save Login Passwords', tooltip: 'Controls whether to save login passwords for servers in this browser memory.' },
+      custom('Default Version', () => <DefaultVersionRow />, 'version auto latest'),
+      {
+        option: 'preventBackgroundTimeoutKick',
+        text: 'Stay Connected In Background',
+        tooltip: 'Browsers slow down the timers of background tabs, and servers then kick you for not responding. This plays a silent sound while connected, so the browser keeps the tab running at full speed.',
       },
-    },
-    {
-      custom () {
-        return <Category>Touch Controls</Category>
-      },
-      alwaysShowMobileControls: {
-        text: 'Always Mobile Controls',
-        disableIf: ['forceDisableTouchControls', true],
-      },
-      forceDisableTouchControls: {
-        text: 'Force Disable Touch Controls',
-        tooltip: 'Never show touch controls, even if your device has a touchscreen. Useful for touch laptops used with mouse and keyboard.',
-      },
-      autoDisplayRotation: {
-        text: 'Auto Landscape Rotation',
-        tooltip: 'On portrait screens, automatically rotate the game to landscape layout (same as the rotate button).',
-      },
-      touchButtonsSize: {
-        min: 40,
-        disableIf: [
-          'touchMovementType',
-          'modern'
-        ],
-      },
-      touchButtonsOpacity: {
-        min: 10,
-        max: 90,
-        disableIf: [
-          'touchMovementType',
-          'modern'
-        ],
-      },
-      touchButtonsPosition: {
-        max: 80,
-        disableIf: [
-          'touchMovementType',
-          'modern'
-        ],
-      },
-      touchMovementType: {
-        text: 'Movement Controls',
-      },
-      touchInteractionType: {
-        text: 'Interaction Controls',
-      },
-    },
-    {
-      custom () {
-        const { touchInteractionType, touchMovementType } = useSnapshot(options)
-        return <Button label='Setup Touch Buttons' onClick={() => showModal({ reactType: 'touch-buttons-setup' })} inScreen disabled={touchInteractionType === 'classic' && touchMovementType === 'classic'} />
-      },
-    },
-    {
-      custom () {
-        return <Category>Auto Jump</Category>
-      },
-      autoJump: {
-        disableIf: [
-          'autoParkour',
-          true
-        ],
-      },
-      autoParkour: {},
-    }
-  ],
-  sound: [
-    { volume: {} },
-    {
-      custom () {
-        return <OptionSlider
-          valueOverride={options.enableMusic ? undefined : 0}
-          onChange={(value) => {
-            options.musicVolume = value
-          }}
-          item={{
-            type: 'slider',
-            id: 'musicVolume',
-            text: 'Music Volume',
-            min: 0,
-            max: 100,
-            unit: '%',
-          }}
-        />
-      },
-    },
-    {
-      custom () {
-        return <Button label='Sound Muffler' onClick={() => showModal({ reactType: 'sound-muffler' })} inScreen />
-      },
-    }
-    // { ignoreSilentSwitch: {} },
-  ],
-
-  VR: [
-    {
-      custom () {
-        return (
-          <>
-            <span style={{ fontSize: 9, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              VR currently has basic support
-            </span>
-            <div />
-          </>
-        )
-      },
-      vrSupport: {},
-      vrPageGameRendering: {
-        text: 'Page Game Rendering',
-        tooltip: 'Wether to continue rendering page even when vr is active.',
-      }
-    },
-  ],
-  advanced: [
-    {
-      custom () {
-        return <Button
-          inScreen
-          onClick={() => {
-            void showResetSettingsModal()
-          }}
-        >Reset settings</Button>
-      },
-    },
-    {
-      custom () {
-        return <Button
-          inScreen
-          onClick={() => {
-            if (confirm('Are you sure you want to remove all data (settings, keybindings, servers, username, auth, proxies)?')) resetLocalStorage()
-          }}
-        >Remove all data</Button>
-      },
-    },
-    {
-      custom () {
-        return <Button label='Export/Import...' onClick={() => openOptionsMenu('export-import')} inScreen />
-      }
-    },
-    {
-      custom () {
-        const { cookieStorage } = useSnapshot(appStorage)
-        return <Button
-          label={`Storage: ${cookieStorage ? 'Synced Cookies' : 'Local Storage'}`} onClick={() => {
-            appStorage.cookieStorage = !cookieStorage
-            alert('Reload the page to apply this change')
-          }}
-          inScreen
-        />
-      }
-    },
-    {
-      custom () {
-        return <Category>Server Connection</Category>
-      },
-    },
-    {
-      serverResourcePacks: {
-      },
-      saveLoginPassword: {
-        tooltip: 'Controls whether to save login passwords for servers in this browser memory.',
-      },
-    },
-    {
-      sendPerfData: {
-        text: 'Send anonymous performance data',
-        tooltip: 'Sends frame rate, stutters, loading times, and your device and graphics settings to servers that ask for it, to find and fix slow spots. Also off when your browser sends Do Not Track. Applies from the next connection.',
-      },
-    },
-    {
-      custom () {
-        const { serversAutoVersionSelect } = useSnapshot(options)
-        const allVersions = [...[...supportedVersions].sort((a, b) => versionToNumber(a) - versionToNumber(b)), 'latest', 'auto']
-        const currentIndex = allVersions.indexOf(serversAutoVersionSelect)
-
-        const getDisplayValue = (version: string) => {
-          const versionAutoSelect = getVersionAutoSelect(version)
-          if (version === 'latest') return `latest (${versionAutoSelect})`
-          if (version === 'auto') return `auto (${versionAutoSelect})`
-          return version
-        }
-
-        return <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Slider
-            style={{ width: 150 }}
-            label='Default Version'
-            title='First version to try to connect with'
-            value={currentIndex}
-            min={0}
-            max={allVersions.length - 1}
-            unit=''
-            valueDisplay={getDisplayValue(serversAutoVersionSelect)}
-            updateValue={(newVal) => {
-              options.serversAutoVersionSelect = allVersions[newVal]
-            }}
-          />
-        </div>
-      },
-    },
-    {
-      preventBackgroundTimeoutKick: {},
-      preventSleep: {
+      {
+        option: 'preventSleep',
         text: 'Prevent Device Sleep',
         disabledReason: navigator.wakeLock ? undefined : 'Your browser does not support wake lock API',
         enableWarning: 'When connected to a server, prevent PC from sleeping or screen dimming. Useful for purpusely staying AFK for long time. Some events might still prevent this like loosing tab focus or going low power mode.',
       },
-    },
-    {
-      custom () {
-        return <Category>Developer</Category>
+      {
+        option: 'sendPerfData',
+        text: 'Send Performance Data',
+        tooltip: 'Sends frame rate, stutters, loading times, and your device and graphics settings to servers that ask for it, to find and fix slow spots. Also off when your browser sends Do Not Track. Applies from the next connection.',
       },
-    },
-    {
-      custom () {
-        const { active } = useSnapshot(packetsRecordingState)
-        return <Button
-          inScreen
-          onClick={() => {
-            packetsRecordingState.active = !active
-          }}
-        >{active ? 'Stop' : 'Start'} Packets Replay Logging</Button>
-      },
-    },
-    {
-      custom () {
-        const { active, hasRecordedPackets } = useSnapshot(packetsRecordingState)
-        return <Button
-          disabled={!hasRecordedPackets}
-          inScreen
-          onClick={() => {
-            void downloadPacketsReplay()
-          }}
-        >Download Packets Replay</Button>
-      },
-    },
-    {
-      packetsLoggerPreset: {
-        text: 'Packets Logger Preset',
-      },
-    },
-    {
-      debugContro: {
-        text: 'Debug Controls',
-      },
-    },
-    {
-      debugResponseTimeIndicator: {
-        text: 'Debug Input Lag',
-      },
-    },
-    {
-      debugChatScroll: {
-      },
-    }
-  ],
-  'export-import': [
-    {
-      custom () {
-        return <Category>Export/Import Data</Category>
-      }
-    },
-    {
-      custom () {
-        return <Button
-          inScreen
-          onClick={importData}
-        >Import Data</Button>
-      }
-    },
-    {
-      custom () {
-        return <Button
-          inScreen
-          onClick={exportData}
-        >Export Data</Button>
-      }
-    },
-    {
-      custom () {
-        return <Button
-          inScreen
-          disabled
-        >Export Worlds</Button>
-      }
-    },
-    {
-      custom () {
-        return <Button
-          inScreen
-          disabled
-        >Export Resource Pack</Button>
-      }
-    }
-  ],
-  inventory: [
-    {
-      custom () {
-        return <Category>Inventory & containers</Category>
-      },
-    },
-    {
-      custom () {
-        const { inventoryJei } = useSnapshot(options)
-        const isOff = inventoryJei === false || (Array.isArray(inventoryJei) && inventoryJei.length === 0)
-        const displayLabel = isOff ? 'Off' : inventoryJei === true ? 'On' : 'Partial'
-        return (
-          <Button
-            inScreen
-            label={`JEI sidebar: ${displayLabel}`}
-            title='Recipe/item list beside the inventory (chests, crafting, player inventory, etc.). Click toggles JEI fully on or off; Partial means per-game-mode filtering is set (e.g. from advanced settings).'
-            onClick={() => {
-              options.inventoryJei = !!isOff
-            }}
-          />
-        )
-      },
-    },
-    {
-      inventoryNotes: {
-        text: 'Side notes panel',
-        tooltip: 'Show extra note slots in container UIs where supported.',
-      },
-    },
-    {
-      inventoryPlaceholders: {
-        text: 'Slot hints',
-        tooltip: 'Show placeholder hints in empty inventory slots when supported.',
-      },
-    },
-    {
-      inventoryPlayerModel: {
-        text: 'Dynamic player preview',
-        tooltip: 'Show the rotating player model in the survival inventory when supported.',
-      },
-    },
-    {
-      unimplementedContainers: {
-        text: 'Try unknown containers',
-        tooltip: 'If the server opens a container type the client does not implement yet, show a generic chest-style UI instead of failing.',
-      },
-    },
-  ],
-}
-export type OptionsGroupType = 'main' | 'render' | 'renderer-advanced' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import' | 'inventory'
+      { section: 'Data', anchor: 'export-import' },
+      custom('Export Data', () => <ActionRow label='Export Data' description='Settings, keybindings, servers and accounts as a file.' buttonLabel='Export' onClick={exportData} />, 'backup'),
+      custom('Import Data', () => <ActionRow label='Import Data' description='Load a file made with Export.' buttonLabel='Import' onClick={importData} />, 'restore backup'),
+      custom('Storage', () => <StorageRow />, 'cookies local storage'),
+      custom('Reset Settings', () => <ActionRow label='Reset Settings' description='Pick which changed settings go back to their defaults.' buttonLabel='Reset...' onClick={() => { void showResetSettingsModal() }} />, 'defaults'),
+      custom('Remove All Data', () => <ActionRow
+        label='Remove All Data'
+        description='Deletes settings, keybindings, servers, username, accounts and proxies from this browser.'
+        buttonLabel='Remove...'
+        danger
+        onClick={() => {
+          if (confirm('Are you sure you want to remove all data (settings, keybindings, servers, username, auth, proxies)?')) resetLocalStorage()
+        }}
+      />, 'clear wipe'),
+      { section: 'Developer' },
+      custom('All Settings', () => <AllSettingsRow />, 'raw json editor every key'),
+      custom('Packets Replay Logging', () => <PacketsLoggingRow />, 'packets record replay download'),
+      { option: 'packetsLoggerPreset', text: 'Packets Logger Preset' },
+      { option: 'debugContro', text: 'Debug Controls' },
+      { option: 'debugResponseTimeIndicator', text: 'Debug Input Lag' },
+      { option: 'debugChatScroll' },
+    ],
+  },
+  {
+    id: 'vr',
+    label: 'VR',
+    icon: 'eye',
+    items: [
+      { section: 'VR', anchor: 'VR' },
+      custom('VR note', () => <div className={schemeStyles.note}>{translate('Play in VR from the browser of your headset (WebXR).')}</div>),
+      { option: 'vrSupport', tooltip: 'Only offers VR: shows a button to enter it when a headset is available. It does not switch VR on by itself.' },
+      { option: 'vrPageGameRendering', text: 'Page Game Rendering', tooltip: 'Wether to continue rendering page even when vr is active.' },
+    ],
+  },
+]
 
-const Category = ({ children }) => <div style={{
-  fontSize: 9,
-  textAlign: 'center',
-  gridColumn: 'span 2'
-}}>{children}</div>
-
-const UiToggleButton = ({ name, addUiText = false, label = noCase(name) }: { name: string, addUiText?: boolean, label?: string }) => {
-  const { disabledUiParts } = useSnapshot(options)
-
-  const currentlyDisabled = disabledUiParts.includes(name)
-  if (addUiText) label = `${label} UI`
-  return <Button
-    inScreen
-    onClick={() => {
-      const newDisabledUiParts = currentlyDisabled ? disabledUiParts.filter(x => x !== name) : [...disabledUiParts, name]
-      options.disabledUiParts = newDisabledUiParts
-    }}
-  >{currentlyDisabled ? 'Enable' : 'Disable'} {label}</Button>
-}
+export const isOptionItem = (item: SettingsItem): item is OptionItem => 'option' in item
+export const isSectionItem = (item: SettingsItem): item is SectionItem => 'section' in item
+export const isCustomItem = (item: SettingsItem): item is CustomItem => 'custom' in item
 
 export const tryFindOptionConfig = (option: keyof AppOptions) => {
-  for (const group of Object.values(guiOptionsScheme)) {
-    for (const optionConfig of group) {
-      if (option in optionConfig) {
-        return optionConfig[option]
-      }
+  for (const tab of settingsTabs) {
+    for (const item of tab.items) {
+      if (isOptionItem(item) && item.option === option) return item
     }
   }
-
   return null
 }

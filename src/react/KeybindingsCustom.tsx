@@ -15,6 +15,13 @@ export type CustomCommand = {
 
 export type CustomCommandsMap = Record<string, CustomCommand>
 
+/** readable names of the custom command kinds (customCommandsConfig keys) */
+const customGroupTitles: Record<string, string> = {
+  chat: 'Chat Macros',
+  setOrToggleSetting: 'Setting Toggles',
+  jsScripts: 'JS Scripts',
+}
+
 export default ({
   customCommands,
   updateCurrBind,
@@ -50,7 +57,7 @@ export default ({
     <div className={styles.group}>
       {Object.entries(customCommandsConfig).map(([group, { input }]) => (
         <div key={`group-container-${group}`} className={styles.group}>
-          <div key={`category-${group}`} className={styles['group-category']}>{group}</div>
+          <div key={`category-${group}`} className={styles['group-category']}>{customGroupTitles[group] ?? group}</div>
           {Object.entries(customConfig).filter(([key, data]) => data.type === group).map((commandData, indexOption) => {
             return <CustomCommandContainer
               key={indexOption}

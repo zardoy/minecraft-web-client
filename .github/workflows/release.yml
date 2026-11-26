@@ -79,6 +79,8 @@ jobs:
             vercel alias set ${{ steps.deploy.outputs.stdout }} $alias --token=${{ secrets.VERCEL_TOKEN }} --scope=zaro
           done
 
+      - name: Install ffmpeg (encodes the sounds of the single file builds)
+        run: command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg)
       - name: Build single-file version - minecraft.html
         run: pnpm build-single-file && mv dist/single/index.html minecraft.html
       - name: Build slim single-file version - minecraft-slim.html

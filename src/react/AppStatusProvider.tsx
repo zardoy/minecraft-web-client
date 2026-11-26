@@ -9,6 +9,7 @@ import { downloadAutoCapturedPackets, getLastAutoCapturedPackets } from '../mine
 import { appQueryParams } from '../appParams'
 import { lastConnectOptions } from '../appStatus'
 import { loadingProgressState } from '../loadingProgress'
+import { useLoadingStall } from './useLoadingStall'
 import AppStatus from './AppStatus'
 import DiveTransition from './DiveTransition'
 import { useDidUpdateEffect } from './utils'
@@ -77,6 +78,9 @@ const AppStatusProviderBase = () => {
 
   const usingState = (isOpen ? currentState : lastState.current) as typeof currentState
   const { isError, lastStatus, maybeRecoverable, status, hideDots, descriptionHint, loadingChunksData, loadingChunksDataPlayerChunk, minecraftJsonMessage, showReconnect } = usingState
+  // the step reporter's message (e.g. "Downloading Minecraft data - (mc-data)") is more precise than the bar's stage label
+  const progressStep = loadingProgress.active && status && status !== loadingProgress.label ? status : undefined
+  const stalledSeconds = useLoadingStall(`${loadingProgress.label}|${loadingProgress.detail}|${status}`, isOpen && !isError && loadingProgress.active)
 
   useDidUpdateEffect(() => {
     // todo play effect only when world successfully loaded
@@ -174,7 +178,8 @@ const AppStatusProviderBase = () => {
   }
   return <DiveTransition open={isOpen} isError={isError}>
     <AppStatus
-      progress={loadingProgress.active ? { value: loadingProgress.value, label: loadingProgress.label, detail: loadingProgress.detail } : undefined}
+      progress={loadingProgress.active ? { value: loadingProgress.value, label: loadingProgress.label, detail: loadingProgress.detail, step: progressStep } : undefined}
+      stalledSeconds={stalledSeconds}
       status={status}
       isError={isError || status === ''} // display back button if status is empty as probably our app is errored
       hideDots={hideDots}

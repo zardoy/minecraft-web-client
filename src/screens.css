@@ -102,4 +102,6 @@ body.rotated .fullscreen {
     margin-top: 0;
     justify-content: center;
     max-height: 100%;
+    /* the step line and stall notice hang under the progress bar out of the layout (position: absolute); a short loading screen never scrolls */
+    overflow: visible;
 }

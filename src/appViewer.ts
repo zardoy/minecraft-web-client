@@ -209,7 +209,11 @@ const connectAppWorldViewToBot = () => {
       appViewer.worldView?.chunkProgress()
     },
     chunkColumnUnload (pos: Vec3) {
-      appViewer.worldView?.unloadChunk(pos)
+      const worldView = appViewer.worldView as (typeof appViewer.worldView & { columnUnloadedByServer?: (pos: Vec3) => void }) | undefined
+      // stays drawn one ring past the server's view distance: no blinking far row when stepping back and forth over a chunk border
+      // (renderer >= the release with zardoy/minecraft-renderer#136; older ones unload at once)
+      if (worldView?.columnUnloadedByServer) worldView.columnUnloadedByServer(pos)
+      else worldView?.unloadChunk(pos)
     },
     blockUpdate (oldBlock: any, newBlock: any) {
       const stateId = newBlock.stateId ?? ((newBlock.type << 4) | newBlock.metadata)
