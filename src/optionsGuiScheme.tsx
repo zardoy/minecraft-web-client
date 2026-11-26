@@ -59,9 +59,11 @@ export interface OptionItem {
 
 export interface CustomItem {
   custom: () => React.ReactNode
-  /** for search */
+  /** for search, also the row's React key: unique */
   text: string
   keywords?: string
+  /** false: the row renders nothing now, search skips it too */
+  available?: () => boolean
 }
 
 export interface SectionItem {
@@ -130,14 +132,18 @@ const ResourcePackRow = () => {
           break
         }
         case 'Enable': {
-          options.enabledResourcepack = name
-          await completeResourcepackPackInstall(name, name, false, createNotificationProgressReporter())
+          // installed packs live in the 'default' folder, `name` is only the display name
+          options.enabledResourcepack = 'default'
+          await completeResourcepackPackInstall(name, 'default', false, createNotificationProgressReporter())
           break
         }
         case 'Uninstall': {
           setLoadingScreenStatus('Uninstalling texturepack')
-          await uninstallResourcePack()
-          setLoadingScreenStatus(undefined)
+          try {
+            await uninstallResourcePack()
+          } finally {
+            setLoadingScreenStatus(undefined)
+          }
           break
         }
       }
@@ -334,7 +340,7 @@ const TouchLayoutRow = () => {
 
 // #endregion
 
-const custom = (text: string, render: () => React.ReactNode, keywords?: string): CustomItem => ({ custom: render, text, keywords })
+const custom = (text: string, render: () => React.ReactNode, keywords?: string, available?: () => boolean): CustomItem => ({ custom: render, text, keywords, available })
 
 export const settingsTabs: SettingsTab[] = [
   {
@@ -349,8 +355,8 @@ export const settingsTabs: SettingsTab[] = [
       { option: 'showHand', text: 'Show Hand' },
       { section: 'Content' },
       custom('Resource Pack', () => <ResourcePackRow />, 'texture pack textures'),
-      custom('Client Mods', () => <ClientModsRow />, 'mods plugins'),
-      custom('Language', () => <LanguageRow />, 'translation'),
+      custom('Client Mods', () => <ClientModsRow />, 'mods plugins', () => miscUiState.appConfig?.showModsButton !== false),
+      custom('Language', () => <LanguageRow />, 'translation', () => !!miscUiState.appConfig?.displayLanguageSelector),
     ],
   },
   {

@@ -151,17 +151,26 @@ div.chat-wrapper.chat-messages-wrapper.display-mobile.chat-opened {
   top: 40px;
 }
 
-/* touch: the open chat is read and tapped with fingers, so it is a quarter bigger (still within the screen) */
+/* touch: the open chat is read and tapped with fingers, so it is a quarter bigger, still within the screen:
+   it starts 40px from the top and ends above the hotbar (25px tall, 21px from the bottom) */
 .chat-messages-wrapper.display-mobile.chat-opened {
   --chat-touch-scale: calc(var(--chatScale) * 1.25);
+  --chat-layout-width: 100dvw;
+  --chat-layout-height: 100dvh;
   transform-origin: top left;
   transform: scale(var(--chat-touch-scale));
-  width: min(var(--chatWidth), calc(100dvw / var(--guiScale, 1) / var(--chat-touch-scale) - 12px));
+  width: min(var(--chatWidth), calc(var(--chat-layout-width) / var(--guiScale, 1) / var(--chat-touch-scale) - 12px));
+}
+
+/* rotated to landscape on a portrait screen: the layout axes are swapped */
+body.rotated .chat-messages-wrapper.display-mobile.chat-opened {
+  --chat-layout-width: 100dvh;
+  --chat-layout-height: 100dvw;
 }
 
 .chat-messages-wrapper.display-mobile.chat-opened,
 .chat-messages-wrapper.display-mobile.chat-opened .chat {
-  max-height: min(var(--chatHeight), calc((100dvh / var(--guiScale, 1) - 72px) / var(--chat-touch-scale)));
+  max-height: min(var(--chatHeight), calc((var(--chat-layout-height) / var(--guiScale, 1) - 96px) / var(--chat-touch-scale)));
 }
 
 .chat,

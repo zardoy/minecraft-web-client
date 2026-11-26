@@ -106,7 +106,8 @@ const ServerRow = ({ server, selected, lockedEditing, onSelect, onAction, rowRef
     onClick={onSelect}
     onDoubleClick={() => onAction('load')}
     onKeyDown={(e) => {
-      if (e.code === 'Enter') {
+      // only the row itself: Enter on its Edit / Copy Link / Remove buttons activates them
+      if (e.code === 'Enter' && e.target === e.currentTarget) {
         e.preventDefault()
         onAction('load')
       }
@@ -218,7 +219,8 @@ const ProxyButton = () => {
 
 const UsernameField = ({ onAccountsClick }: { onAccountsClick?: () => void }) => {
   const snap = useSnapshot(appStorage)
-  const username = getCurrentUsername() ?? ''
+  // read through the snapshot so typing re-renders the field
+  const username = appQueryParams.username ?? snap.username ?? ''
   const locked = appQueryParams.username !== undefined
   const valid = /^\w{3,16}$/.test(username)
   return <label className={styles.username} title={translate('Name used on offline (cracked) servers. Servers with Microsoft login use your account name.')}>
@@ -409,7 +411,7 @@ const ServersListBase = ({
 
         <div className={styles.footer}>
           <ProxyButton />
-          {(servers?.length ?? 0) > 6 && <label className={styles.filter}>
+          {((servers?.length ?? 0) > 6 || search) && <label className={styles.filter}>
             <PixelartIcon iconName='search' />
             <input value={search} placeholder={translate('Filter')} onChange={e => setSearch(e.target.value)} />
           </label>}

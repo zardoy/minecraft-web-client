@@ -430,7 +430,8 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
         address: server.ip,
         icon: additional?.icon,
         motd: additional?.motd ?? server.description,
-        status: isServerValid(server.ip, true) ? additional ? (additional.offline ? 'offline' : 'online') : 'loading' : 'unknown',
+        // the status API is not asked about local network addresses (only websocket servers are pinged directly): no status, not "Pinging..." forever
+        status: isServerValid(server.ip, /^wss?:\/\//.test(server.ip)) ? additional ? (additional.offline ? 'offline' : 'online') : 'loading' : 'unknown',
         ping: additional?.ping,
         players: additional?.players,
         version: server.versionOverride ?? additional?.version,

@@ -26,11 +26,14 @@ const ItemRender = ({ item }: { item: SettingsItem }) => {
   return <CustomItemRender render={item.custom} />
 }
 
-const itemKey = (item: SettingsItem, index: number) => {
+/** stable across search results: a row keeps its state while the query changes */
+const itemKey = (item: SettingsItem) => {
   if (isSectionItem(item)) return `section-${item.section}`
   if (isOptionItem(item)) return `option-${item.option}`
-  return `custom-${item.text}-${index}`
+  return `custom-${item.text}`
 }
+
+const isAvailable = (item: SettingsItem) => !isCustomItem(item) || !item.available || item.available()
 
 const searchText = (item: SettingsItem) => {
   if (isSectionItem(item)) return ''
@@ -39,6 +42,7 @@ const searchText = (item: SettingsItem) => {
 }
 
 const matchesSearch = (item: SettingsItem, words: string[]) => {
+  if (!isAvailable(item)) return false
   const text = searchText(item).toLowerCase()
   return text !== '' && words.every(word => text.includes(word))
 }
@@ -47,9 +51,11 @@ interface Props {
   /** the old sub-page that was asked for, picks the tab and scrolls to its section */
   group?: OptionsGroupType
   onClose: () => void
+  /** false while another modal (a value list, the reload prompt) is on top: the screen stays mounted and keeps its state */
+  active?: boolean
 }
 
-const SettingsScreenBase = ({ group = 'main', onClose }: Props) => {
+const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) => {
   const [activeTab, setActiveTab] = useState<SettingsTabId>(groupToTab[group] ?? 'general')
   const [search, setSearch] = useState('')
   const [info, setInfo] = useState<SettingInfo | undefined>()
@@ -79,8 +85,24 @@ const SettingsScreenBase = ({ group = 'main', onClose }: Props) => {
     setInfo(undefined)
   }, [activeTab, search])
 
+  // a modal opened from the settings (value list, reload prompt) hides them and the browser drops the scroll position: put it back
+  const savedScroll = useRef(0)
+  useLayoutEffect(() => {
+    const content = contentRef.current
+    if (!content) return
+    if (active) {
+      content.scrollTop = savedScroll.current
+      const onScroll = () => {
+        savedScroll.current = content.scrollTop
+      }
+      content.addEventListener('scroll', onScroll)
+      return () => content.removeEventListener('scroll', onScroll)
+    }
+  }, [active])
+
   // type anywhere to search (desktop)
   useEffect(() => {
+    if (!active) return
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return
       const target = e.target as HTMLElement
@@ -92,7 +114,7 @@ const SettingsScreenBase = ({ group = 'main', onClose }: Props) => {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [active])
 
   const selectTab = (id: SettingsTabId) => {
     setSearch('')
@@ -100,11 +122,22 @@ const SettingsScreenBase = ({ group = 'main', onClose }: Props) => {
     if (contentRef.current) contentRef.current.scrollTop = 0
   }
 
-  const renderItems = (items: SettingsItem[]) => items.map((item, i) => <ItemRender key={itemKey(item, i)} item={item} />)
+  const renderItems = (items: SettingsItem[]) => items.filter(isAvailable).map(item => <ItemRender key={itemKey(item)} item={item} />)
+
+  // tabs: one Tab stop, arrow keys move between them (up/down on the rail, left/right on the phone strip)
+  const onTabsKeyDown = (e: React.KeyboardEvent) => {
+    const dir = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0
+    if (!dir) return
+    e.preventDefault()
+    const index = settingsTabs.findIndex(t => t.id === activeTab)
+    const next = settingsTabs[(index + dir + settingsTabs.length) % settingsTabs.length]
+    selectTab(next.id)
+    document.getElementById(`settings-tab-${next.id}`)?.focus()
+  }
 
   return <SettingInfoContext.Provider value={setInfo}>
-    <div className='backdrop' />
-    <div className={`fullscreen ${styles.root} settings-screen`}>
+    <div className='backdrop' style={active ? undefined : { visibility: 'hidden' }} />
+    <div className={`fullscreen ${styles.root} settings-screen`} style={active ? undefined : { visibility: 'hidden' }}>
       <div className={styles.panel}>
         <div className={styles.header}>
           <FlatButton className={styles.headerButton} icon='chevron-left' title={translate('Back')} onClick={onClose} />
@@ -129,11 +162,11 @@ const SettingsScreenBase = ({ group = 'main', onClose }: Props) => {
           </label>
         </div>
         <div className={styles.body}>
-          <nav className={styles.tabs} role='tablist'>
-            {settingsTabs.map(t => <TabButton key={t.id} tab={t} active={!searchResults && t.id === activeTab} onClick={() => selectTab(t.id)} />)}
+          <nav className={styles.tabs} role='tablist' aria-label={translate('Settings sections')} onKeyDown={onTabsKeyDown}>
+            {settingsTabs.map(t => <TabButton key={t.id} tab={t} active={!searchResults && t.id === activeTab} focusable={t.id === activeTab} onClick={() => selectTab(t.id)} />)}
           </nav>
           <div className={styles.main}>
-            <div className={styles.content} ref={contentRef} role='tabpanel'>
+            <div className={styles.content} ref={contentRef} role='tabpanel' id='settings-tabpanel' aria-labelledby={searchResults ? undefined : `settings-tab-${activeTab}`}>
               {searchResults
                 ? searchResults.length === 0
                   ? <div className={styles.empty}>{translate('Nothing found')}</div>
@@ -159,11 +192,14 @@ const SettingsScreenBase = ({ group = 'main', onClose }: Props) => {
   </SettingInfoContext.Provider>
 }
 
-const TabButton = ({ tab, active, onClick }: { tab: SettingsTab, active: boolean, onClick: () => void }) => {
+const TabButton = ({ tab, active, focusable, onClick }: { tab: SettingsTab, active: boolean, focusable: boolean, onClick: () => void }) => {
   return <button
     type='button'
     role='tab'
+    id={`settings-tab-${tab.id}`}
+    aria-controls='settings-tabpanel'
     aria-selected={active}
+    tabIndex={focusable ? 0 : -1}
     title={translate(tab.label)}
     aria-label={translate(tab.label)}
     className={`${styles.tab} ${active ? styles.tabActive : ''} settings-tab`}

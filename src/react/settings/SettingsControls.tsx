@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, useContext, useId, useMemo, useRef } from 'react'
 import { useSnapshot } from 'valtio'
 import { noCase } from 'change-case'
 import { titleCase } from 'title-case'
@@ -28,6 +28,9 @@ export interface SettingInfo {
 
 export const SettingInfoContext = createContext<(info: SettingInfo | undefined) => void>(() => {})
 
+/** id of the row label: the row's control is named by it (screen readers read "Music, switch, on") */
+const RowLabelContext = createContext<string | undefined>(undefined)
+
 // #endregion
 
 // #region primitive controls
@@ -40,10 +43,12 @@ export const normalizeChoices = (values: OptionPossibleValues | undefined): Choi
 
 /** pixel switch, the value is shown with a word too so it reads without colours */
 export const Switch = ({ value, onChange, disabled, title }: { value: boolean, onChange: (value: boolean) => void, disabled?: boolean, title?: string }) => {
+  const labelId = useContext(RowLabelContext)
   return <button
     type='button'
     role='switch'
     aria-checked={value}
+    aria-labelledby={labelId}
     disabled={disabled}
     title={title}
     className={`${styles.switch} ${value ? styles.switchOn : ''} settings-switch`}
@@ -54,14 +59,39 @@ export const Switch = ({ value, onChange, disabled, title }: { value: boolean, o
   </button>
 }
 
-/** all choices visible at once (2-3 short values) */
+/** all choices visible at once (2-3 short values); a radio group: one Tab stop, arrow keys pick the neighbour */
 export const Segmented = ({ choices, value, onChange, disabled }: { choices: Choice[], value: string, onChange: (value: string) => void, disabled?: boolean }) => {
-  return <div className={`${styles.segmented} settings-segmented`} role='radiogroup'>
-    {choices.map(([choice, label]) => <button
+  const labelId = useContext(RowLabelContext)
+  const groupRef = useRef<HTMLDivElement>(null)
+  const selectedIndex = choices.findIndex(([choice]) => choice === value)
+  const focusIndex = selectedIndex === -1 ? 0 : selectedIndex
+  const move = (dir: 1 | -1) => {
+    const next = (focusIndex + dir + choices.length) % choices.length
+    onChange(choices[next][0])
+    groupRef.current?.querySelectorAll<HTMLButtonElement>('[role=radio]')[next]?.focus()
+  }
+  return <div
+    ref={groupRef}
+    className={`${styles.segmented} settings-segmented`}
+    role='radiogroup'
+    aria-labelledby={labelId}
+    onKeyDown={(e) => {
+      if (disabled) return
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        move(1)
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        move(-1)
+      }
+    }}
+  >
+    {choices.map(([choice, label], i) => <button
       key={choice}
       type='button'
       role='radio'
       aria-checked={choice === value}
+      tabIndex={i === focusIndex ? 0 : -1}
       disabled={disabled}
       className={`${styles.segment} ${choice === value ? styles.segmentActive : ''}`}
       onClick={() => choice !== value && onChange(choice)}
@@ -72,12 +102,13 @@ export const Segmented = ({ choices, value, onChange, disabled }: { choices: Cho
 
 /** ◀ value ▶ picker for longer lists; the value itself opens the whole list */
 export const ChoicePicker = ({ choices, value, onChange, disabled, title }: { choices: Choice[], value: string, onChange: (value: string) => void, disabled?: boolean, title: string }) => {
+  const labelId = useContext(RowLabelContext)
   const index = choices.findIndex(([choice]) => String(choice) === String(value))
   const step = (dir: 1 | -1) => {
     const next = choices[((index === -1 ? 0 : index) + dir + choices.length) % choices.length]
     if (next) onChange(next[0])
   }
-  return <div className={`${styles.picker} settings-picker`}>
+  return <div className={`${styles.picker} settings-picker`} role='group' aria-labelledby={labelId}>
     <button type='button' className={styles.pickerArrow} disabled={disabled} aria-label='Previous' onClick={() => step(-1)}>
       <PixelartIcon iconName='chevron-left' />
     </button>
@@ -101,6 +132,12 @@ export const ChoicePicker = ({ choices, value, onChange, disabled, title }: { ch
 
 // #endregion
 
+/** a slider named by its row label */
+const SliderControl = (props: Omit<React.ComponentProps<typeof Slider>, 'label' | 'inputProps'>) => {
+  const labelId = useContext(RowLabelContext)
+  return <Slider label='' {...props} inputProps={{ 'aria-labelledby': labelId }} />
+}
+
 // #region rows
 
 export const SettingRow = ({ label, description, changed, onReset, cost, disabledReason, children, wide }: {
@@ -115,6 +152,7 @@ export const SettingRow = ({ label, description, changed, onReset, cost, disable
   wide?: boolean
 }) => {
   const setInfo = useContext(SettingInfoContext)
+  const labelId = useId()
   const info: SettingInfo = { label: translate(label), description: description && translate(description), cost, disabledReason }
   return <div
     className={`${styles.row} ${wide ? styles.rowWide : ''} ${disabledReason ? styles.rowDisabled : ''} settings-row`}
@@ -123,17 +161,20 @@ export const SettingRow = ({ label, description, changed, onReset, cost, disable
     onFocus={() => setInfo(info)}
   >
     <div className={styles.rowLabel}>
-      <span className={styles.rowLabelText}>{translate(label)}</span>
+      <span className={styles.rowLabelText} id={labelId}>{translate(label)}</span>
       {cost && <span className={`${styles.cost} ${styles[`cost_${cost.level}`]}`} title={cost.note}>{RENDERER_PERFORMANCE_LEVEL_LABELS[cost.level] ?? cost.level}</span>}
-      {changed && onReset && <button
-        type='button'
-        className={styles.changed}
-        title={translate('Changed. Click to reset to default')}
-        aria-label={translate('Reset to default')}
-        onClick={onReset}
-      />}
+      {/* a locked or disabled row shows that it was changed but can't be reset from here */}
+      {changed && (onReset && !disabledReason
+        ? <button
+          type='button'
+          className={styles.changed}
+          title={translate('Changed. Click to reset to default')}
+          aria-label={`${translate('Reset to default')}: ${translate(label)}`}
+          onClick={onReset}
+        />
+        : <span className={styles.changed} title={translate('Changed from default')} />)}
     </div>
-    <div className={styles.rowControl}>{children}</div>
+    <div className={styles.rowControl}><RowLabelContext.Provider value={labelId}>{children}</RowLabelContext.Provider></div>
   </div>
 }
 
@@ -182,10 +223,13 @@ export const getItemDescription = (item: OptionItem) => {
 }
 
 /** applies a picked value: the enable warning and the reload prompt work as they did on the old settings buttons */
+/** off for the enable warning: false, or an "off" word of a choice (Minimap is 'never' by default) */
+const isOffValue = (value: unknown) => !value || value === 'never' || value === 'off'
+
 const applyOptionValue = async (item: OptionItem, value: unknown) => {
   const meta = optionsMeta[item.option]
   const current = options[item.option]
-  if (item.enableWarning && !current && value) {
+  if (item.enableWarning && isOffValue(current) && !isOffValue(value)) {
     const confirmed = await showOptionsModal(item.enableWarning, ['Enable'])
     if (!confirmed) return
   }
@@ -245,25 +289,21 @@ export const OptionRow = ({ item }: { item: OptionItem }) => {
   switch (control_) {
     case 'switch': {
       control = <Switch value={!!value} disabled={disabled} onChange={async v => applyOptionValue(item, v)} />
-
       break
     }
     case 'segmented': {
       control = <Segmented choices={choices} value={String(value)} disabled={disabled} onChange={async v => applyOptionValue(item, v)} />
-
       break
     }
     case 'picker': {
       control = <ChoicePicker title={translate(text)} choices={choices} value={String(value)} disabled={disabled} onChange={async v => applyOptionValue(item, v)} />
-
       break
     }
     default: {
       const min = item.min ?? meta?.min ?? 0
       const max = item.max ?? meta?.max ?? 100
       const unit = item.unit ?? meta?.unit ?? '%'
-      control = <Slider
-        label=''
+      control = <SliderControl
         data-setting={item.option}
         value={item.valueOverride ?? (value as number)}
         min={min}
