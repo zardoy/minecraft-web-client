@@ -722,3 +722,20 @@
     border-right: none;
   }
 }
+
+/* Graphics > Detected Device: a tag, not a control */
+.deviceTier {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  font-size: 9px;
+  color: var(--settings-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px dashed var(--settings-border);
+}
+
+.deviceTierLow {
+  color: #f0a24a;
+}

@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
+import { detectGpuRenderer, isWeakMobileGpu } from 'minecraft-renderer/src/graphicsBackend/gpuTier'
 import Logo from 'minecraft-renderer/logo.webp'
 import {
   RENDERER_EFFECT_OPTION_KEYS,
@@ -218,6 +219,21 @@ const PoweredByRow = () => {
   </div>
 }
 
+/** what the renderer detected about the GPU: it picks the defaults of the Default preset (shadows and colour grading start off on weak GPUs) */
+const DetectedDeviceRow = () => {
+  const renderer = useMemo(() => detectGpuRenderer(), [])
+  const weak = isWeakMobileGpu(renderer)
+  const gpu = renderer?.replace(/^ANGLE \((.*)\)$/, '$1').replace(/, or similar$/, '')
+  return <SettingRow
+    label='Detected Device'
+    description={`${gpu ?? 'The browser does not tell which GPU this is'}. ${weak
+      ? 'A low-end GPU: the Default preset starts with sun shadows and colour grading off, they cost too much frame rate here.'
+      : 'Default preset with all its effects: sun shadows and warm colour grading.'}`}
+  >
+    <div className={`${schemeStyles.deviceTier} ${weak ? schemeStyles.deviceTierLow : ''}`}>{translate(weak ? 'Low-end' : 'Normal')}</div>
+  </SettingRow>
+}
+
 const LiveEffectsRow = () => {
   const { gameLoaded } = useSnapshot(miscUiState)
   return <ActionRow
@@ -396,7 +412,7 @@ export const settingsTabs: SettingsTab[] = [
     shortcuts: true,
     items: [
       renderDistanceRow,
-      { option: 'fov', text: 'Field of View', min: 30, max: 110, unit: '' },
+      { option: 'fov', text: 'Field of View', min: 30, max: 110, unit: '', tooltip: 'How wide you see. Higher shows more around you, lower looks zoomed in.' },
       { option: 'mouseSensX', text: 'Mouse Sensitivity' },
       { option: 'guiScale', max: 4, min: 1, unit: '', delayApply: true, text: 'GUI Scale', tooltip: 'Size of the whole interface. Applies when you release the slider.' },
       { option: 'volume', text: 'Master Volume' },
@@ -410,14 +426,12 @@ export const settingsTabs: SettingsTab[] = [
     ],
   },
   {
+    // field of view and render distance live in Quick
     id: 'general',
-    label: 'General',
-    icon: 'sliders',
+    label: 'Content',
+    icon: 'folder',
     items: [
-      { section: 'View', anchor: 'main' },
-      { option: 'fov', text: 'Field of View', min: 30, max: 110, unit: '', tooltip: 'How wide you see. Higher shows more around you, lower looks zoomed in.' },
-      renderDistanceRow,
-      { section: 'Content' },
+      { section: 'Resource Packs & Mods' },
       custom('Resource Pack', () => <ResourcePackRow />, 'texture pack textures'),
       custom('Client Mods', () => <ClientModsRow />, 'mods plugins', () => miscUiState.appConfig?.showModsButton !== false),
       custom('Language', () => <LanguageRow />, 'translation', () => !!miscUiState.appConfig?.displayLanguageSelector),
@@ -436,6 +450,7 @@ export const settingsTabs: SettingsTab[] = [
       { option: 'rendererMesher' },
       { section: 'Effects' },
       visualPresetRow,
+      custom('Detected Device', () => <DetectedDeviceRow />, 'gpu tier low-end weak phone performance'),
       ...RENDERER_EFFECT_OPTION_KEYS.map((option): OptionItem => ({ option })),
       custom('Live Tuning', () => <LiveEffectsRow />, 'visual effects panel f7'),
       { section: 'World' },

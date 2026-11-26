@@ -260,6 +260,8 @@
 }
 
 .server {
+  position: relative;
+  overflow: hidden;
   margin-bottom: 2px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid transparent;
@@ -657,4 +659,22 @@
 /* right after the avatar */
 .username > input {
   padding-left: 1px;
+}
+
+/* blurred server icon behind the card (clipped by it), the content stays on top */
+.serverGlow {
+  position: absolute;
+  inset: -12px;
+  z-index: 0;
+  background-position: center;
+  background-size: cover;
+  filter: blur(10px) saturate(1.4);
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.serverMain,
+.serverActions {
+  position: relative;
+  z-index: 1;
 }

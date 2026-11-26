@@ -113,6 +113,8 @@ const ServerRow = ({ server, selected, lockedEditing, onSelect, onAction, rowRef
       }
     }}
   >
+    {/* the server icon, blurred, fills the card behind its content */}
+    {server.icon && <div className={styles.serverGlow} style={{ backgroundImage: `url(${JSON.stringify(server.icon)})` }} aria-hidden />}
     <div className={styles.serverMain}>
       {server.icon
         ? <img className={styles.serverIcon} src={server.icon} alt='' />

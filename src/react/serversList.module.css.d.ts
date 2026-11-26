@@ -51,6 +51,7 @@ interface CssExports {
   selectWrap: string;
   server: string;
   serverActions: string;
+  serverGlow: string;
   serverIcon: string;
   serverIconEmpty: string;
   serverInfo: string;

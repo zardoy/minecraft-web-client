@@ -21,6 +21,8 @@ interface CssExports {
   cost_light: string;
   cost_moderate: string;
   danger: string;
+  deviceTier: string;
+  deviceTierLow: string;
   empty: string;
   header: string;
   headerButton: string;
