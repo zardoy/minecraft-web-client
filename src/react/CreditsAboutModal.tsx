@@ -35,6 +35,7 @@ export default () => {
           <h3 className={styles.sectionTitle}>Current contributors:</h3>
           <ul className={styles.list}>
             <li className={styles.listItem}>- <span className={styles.link}><a className={styles.link} href="http://github.com/sandexzx" target="_blank" rel="noopener noreferrer">sandexzx</a></span> - 3D Renderer Engine Developer & Maintainer</li>
+            <li className={styles.listItem}>- <span className={styles.link}><a className={styles.link} href="https://www.anthropic.com/claude" target="_blank" rel="noopener noreferrer">Claude Opus 5.5</a></span> - Project Maintainer that fixed all the bugs</li>
             <li className={styles.listItem}>- And many more community contributors!</li>
           </ul>
 

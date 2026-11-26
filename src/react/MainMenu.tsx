@@ -226,7 +226,7 @@ const MainMenuBase = ({
               Prismarine Web Client
             </span>
 
-            V2 Presented by Sandexzx {versionStatus}
+            {appConfig?.rightSideText} {versionStatus}
           </span>
         </div>
         <span className={styles['product-description']}>
@@ -243,6 +243,7 @@ const MainMenuBase = ({
                   style={{
                     whiteSpace: 'nowrap',
                     cursor: 'pointer',
+                    textDecoration: 'underline',
                   }}
                   onClick={(e) => {
                     e.preventDefault()
@@ -254,7 +255,6 @@ const MainMenuBase = ({
               </div>
             })}
           </div>
-          <span>{appConfig?.rightSideText}</span>
         </span>
       </div>
     </div>
