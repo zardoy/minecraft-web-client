@@ -343,6 +343,20 @@ const PacketsLoggingRow = () => {
   </SettingRow>
 }
 
+/** Quick tab: both fullscreen settings at once (enter on click into the game, leave with Escape) */
+const FullscreenRow = () => {
+  const { autoFullScreen, autoExitFullscreen } = useSnapshot(options)
+  return <SettingRow label='Auto Fullscreen' description='Go fullscreen when you click into the game, and leave it when the pause menu opens. Separate switches are in Controls > Advanced.'>
+    <Switch
+      value={autoFullScreen && autoExitFullscreen}
+      onChange={(on) => {
+        options.autoFullScreen = on
+        options.autoExitFullscreen = on
+      }}
+    />
+  </SettingRow>
+}
+
 const AllSettingsRow = () => {
   const openView = useContext(SettingsViewContext)
   return <ActionRow label='All Settings' description='Every setting by its key, also the ones without a row in these tabs.' buttonLabel='Show...' onClick={() => openView('all')} />
@@ -392,6 +406,7 @@ export const settingsTabs: SettingsTab[] = [
       { option: 'autoJump', disableIf: ['autoParkour', true], tooltip: 'Jump up one block without pressing jump.' },
       custom('Touch Movement', () => <OptionRow item={{ option: 'touchMovementType', text: 'Touch Movement' }} />, 'touch joystick', isTouchDevice),
       keybindingsRow,
+      custom('Auto Fullscreen', () => <FullscreenRow />, 'fullscreen exit escape keyboard lock'),
     ],
   },
   {
@@ -415,32 +430,32 @@ export const settingsTabs: SettingsTab[] = [
     items: [
       custom('Graphics powered by', () => <PoweredByRow />, 'three.js renderer engine'),
       { section: 'Quality', anchor: 'render' },
-      visualPresetRow,
       { option: 'renderDebug', text: 'Debug Overlay', tooltip: 'Frame rate and renderer numbers in the corner.' },
       custom('Frame Limit', () => <FrameLimitRow />, 'fps vsync'),
+      { option: 'backgroundRendering', text: 'Background FPS Limit', tooltip: 'Frame rate while the tab is not focused. "No" keeps the full rate.' },
+      { option: 'rendererMesher' },
       { section: 'Effects' },
+      visualPresetRow,
       ...RENDERER_EFFECT_OPTION_KEYS.map((option): OptionItem => ({ option })),
       custom('Live Tuning', () => <LiveEffectsRow />, 'visual effects panel f7'),
       { section: 'World' },
-      { option: 'dayCycleAndLighting', text: 'Day Cycle' },
       { option: 'animatedTextures' },
       { option: 'chunkFadeMs' },
       { option: 'cloudsRendering' },
       { option: 'starfieldRendering' },
       { option: 'renderEntities' },
-      { option: 'renderEars', text: 'Deadmau5 Ears', tooltip: 'Render ears for all players whose skin has them' },
+      { option: 'renderEars', text: 'Deadmau5 Ears', tooltip: 'Render ears for all players whose skin has them. Turn it off if some skins show ears that should not be there (skins made for other games draw that part of the texture wrong).' },
       { section: 'Menu' },
       { option: 'menuBackgroundMode', text: 'Menu Background' },
     ],
     advanced: [
       { section: 'Performance', anchor: 'renderer-advanced' },
-      { option: 'backgroundRendering', text: 'Background FPS Limit', tooltip: 'Frame rate while the tab is not focused. "No" keeps the full rate.' },
       { option: 'rendererWorldPerformance', text: 'World Performance', requiresRestartWhenInGame: true },
-      { option: 'rendererMesher' },
       { option: 'rendererSmartCull' },
       { option: 'keepChunksDistance', max: 5, unit: '', text: 'Keep Chunks Distance', tooltip: 'Additional distance to keep the chunks loading before unloading them by marking them as too far' },
       custom('Graphics Backend', () => <BackendRow />, 'renderer three.js'),
       { section: 'Lighting' },
+      { option: 'dayCycleAndLighting', text: 'Day Cycle' },
       { option: 'newVersionsLighting' },
       { option: 'clientLighting' },
       { section: 'Debug' },
@@ -464,38 +479,38 @@ export const settingsTabs: SettingsTab[] = [
       { option: 'guiScale', max: 4, min: 1, unit: '', delayApply: true, text: 'GUI Scale', tooltip: 'Size of the whole interface. Applies when you release the slider.' },
       { option: 'highlightBlockColor', text: 'Block Highlight Color' },
       { option: 'showMinimap', text: 'Minimap', requiresRestart: true },
-      { option: 'displayBossBars', text: 'Boss Bars' },
       { section: 'First Person' },
       { option: 'viewBobbing', text: 'View Bobbing', tooltip: 'The camera sways while walking.' },
       { option: 'showHand', text: 'Show Hand' },
-      { section: 'HUD' },
-      custom('Show Hotbar', () => <UiPartRow name='hotbar' label='Hotbar' />, 'hud ui'),
-      custom('Show Chat', () => <UiPartRow name='chat' label='Chat' />, 'hud ui'),
-      custom('Show Title', () => <UiPartRow name='title' label='Titles' description='Big title texts servers show in the middle of the screen.' />, 'hud ui'),
-      custom('Show Scoreboard', () => <UiPartRow name='scoreboard' label='Scoreboard' />, 'hud ui'),
-      custom('Show Effects', () => <UiPartRow name='effects' label='Effects' description='Potion effects with their time left.' />, 'hud ui'),
-      custom('Show Indicators', () => <UiPartRow name='indicators' label='Game Indicators' description='Network, recording and other status icons.' />, 'hud ui'),
       { section: 'Chat' },
       { option: 'chatWidth', max: 320, unit: 'px' },
       { option: 'chatHeight', max: 180, unit: 'px' },
       { option: 'chatOpacity' },
       { option: 'chatOpacityOpened' },
+      { option: 'chatAlwaysDisplayTypingIndicator', text: 'Always Show Typing' },
       { section: 'Inventory & Containers', anchor: 'inventory' },
       custom('Item List (JEI)', () => <JeiRow />, 'jei recipes'),
-      { option: 'inventoryPlayerModel', text: 'Player Preview', tooltip: 'Show the rotating player model in the survival inventory when supported.' },
+      { option: 'inventoryPlaceholders', text: 'Slot Hints', tooltip: 'Show placeholder hints in empty inventory slots when supported.' },
+      { section: 'HUD' },
+      custom('Show Hotbar', () => <UiPartRow name='hotbar' label='Hotbar' />, 'hud ui'),
+      custom('Show Chat', () => <UiPartRow name='chat' label='Chat' />, 'hud ui'),
+      custom('Show Title', () => <UiPartRow name='title' label='Titles' description='Big title texts servers show in the middle of the screen.' />, 'hud ui'),
+      custom('Show Scoreboard', () => <UiPartRow name='scoreboard' label='Scoreboard' />, 'hud ui'),
+      { option: 'displayBossBars', text: 'Boss Bars' },
+      custom('Show Effects', () => <UiPartRow name='effects' label='Effects' description='Potion effects with their time left.' />, 'hud ui'),
+      custom('Show Indicators', () => <UiPartRow name='indicators' label='Game Indicators' description='Network, recording and other status icons.' />, 'hud ui'),
     ],
     advanced: [
       { section: 'Chat Details' },
       { option: 'chatSelect', text: 'Text Select' },
       { option: 'chatPingExtension' },
-      { option: 'chatAlwaysDisplayTypingIndicator', text: 'Always Show Typing' },
       { option: 'displayLoadingMessages', text: 'Loading Messages' },
       { section: 'Signs' },
       { option: 'autoSignEditor', text: 'Sign Editor' },
       { option: 'wysiwygSignEditor', text: 'WYSIWYG Editor' },
-      { section: 'Containers' },
+      { section: 'Inventory / Containers GUI' },
+      { option: 'inventoryPlayerModel', text: 'Player Preview', tooltip: 'Show the rotating player model in the survival inventory when supported.' },
       { option: 'inventoryNotes', text: 'Side Notes Panel', tooltip: 'Show extra note slots in container UIs where supported.' },
-      { option: 'inventoryPlaceholders', text: 'Slot Hints', tooltip: 'Show placeholder hints in empty inventory slots when supported.' },
       { option: 'unimplementedContainers', text: 'Try Unknown Containers', tooltip: 'If the server opens a container type the client does not implement yet, show a generic chest-style UI instead of failing.' },
     ],
   },
@@ -505,6 +520,13 @@ export const settingsTabs: SettingsTab[] = [
     icon: 'gamepad',
     items: [
       { section: 'Keyboard & Mouse', anchor: 'controls' },
+      {
+        option: 'mouseRawInput',
+        text: 'Raw Input',
+        tooltip: 'Mouse movement without the acceleration of the system (Minecraft does the same). Supported by Chrome and other Chromium browsers.',
+        // eslint-disable-next-line no-extra-boolean-cast
+        disabledReason: Boolean(document.documentElement.requestPointerLock) ? undefined : 'Your browser does not support pointer lock.',
+      },
       keybindingsRow,
       { option: 'mouseSensX', text: 'Mouse Sensitivity X' },
       { option: 'mouseSensY', text: 'Mouse Sensitivity Y', min: -1, valueText: (value) => (value === -1 ? 'Same as X' : `${value} %`) },
@@ -520,14 +542,7 @@ export const settingsTabs: SettingsTab[] = [
       { option: 'autoDisplayRotation', text: 'Auto Landscape Rotation', tooltip: 'On portrait screens, automatically rotate the game to landscape layout (same as the rotate button).' },
     ],
     advanced: [
-      { section: 'Mouse & Fullscreen' },
-      {
-        option: 'mouseRawInput',
-        text: 'Raw Input',
-        tooltip: 'Wether to disable any mouse acceleration (MC does it by default). Most probably it is still supported only by Chrome.',
-        // eslint-disable-next-line no-extra-boolean-cast
-        disabledReason: Boolean(document.documentElement.requestPointerLock) ? undefined : 'Your browser does not support pointer lock.',
-      },
+      { section: 'Fullscreen' },
       {
         option: 'autoFullScreen',
         tooltip: 'Auto Fullscreen allows you to use Ctrl+W and Escape having to wait/click on screen again.',
@@ -608,8 +623,8 @@ export const settingsTabs: SettingsTab[] = [
     icon: 'eye',
     items: [
       { section: 'VR', anchor: 'VR' },
-      custom('VR note', () => <div className={schemeStyles.note}>{translate('Play in VR from the browser of your headset (WebXR): with VR Support on, the game shows an Enter VR button.')}</div>),
-      { option: 'vrSupport' },
+      custom('VR note', () => <div className={schemeStyles.note}>{translate('Play in VR from the browser of your headset (WebXR).')}</div>),
+      { option: 'vrSupport', tooltip: 'Only offers VR: shows a button to enter it when a headset is available. It does not switch VR on by itself.' },
       { option: 'vrPageGameRendering', text: 'Page Game Rendering', tooltip: 'Wether to continue rendering page even when vr is active.' },
     ],
   },

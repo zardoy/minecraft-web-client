@@ -88,7 +88,6 @@
   color: var(--servers-muted);
   background: none;
   border: none;
-  border-right: 1px solid var(--servers-field-border);
   cursor: pointer;
 }
 
@@ -103,7 +102,18 @@
 }
 
 .username input,
-.addressField input,
+.addressField input {
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 9px;
+  color: #fff;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  outline: none;
+}
 
 .username input {
   width: 86px;
@@ -644,7 +654,7 @@
   transform: translateY(0.125em);
 }
 
-/* after the avatar button's divider */
+/* right after the avatar */
 .username > input {
-  padding-left: 4px;
+  padding-left: 1px;
 }
