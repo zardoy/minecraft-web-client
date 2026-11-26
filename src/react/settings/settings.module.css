@@ -195,8 +195,8 @@
   padding: 0 4px 6px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #666 transparent;
+  /* the game's square scrollbar (::-webkit-scrollbar in Chat.css): standard scrollbar properties would replace it in Chrome, so only Firefox gets "thin" */
+  scrollbar-width: var(--thin-if-firefox);
 }
 
 .empty {
