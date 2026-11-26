@@ -301,7 +301,8 @@ const MusicVolumeRow = () => {
 
 const DefaultVersionRow = () => {
   const { serversAutoVersionSelect } = useSnapshot(options)
-  const allVersions = [...[...supportedVersions].sort((a, b) => versionToNumber(b) - versionToNumber(a)), 'latest', 'auto']
+  // the automatic choices first, then the versions newest first
+  const allVersions = ['auto', 'latest', ...[...supportedVersions].sort((a, b) => versionToNumber(b) - versionToNumber(a))]
   const label = (version: string) => {
     const resolved = getVersionAutoSelect(version)
     if (version === 'latest') return `Latest (${resolved})`
