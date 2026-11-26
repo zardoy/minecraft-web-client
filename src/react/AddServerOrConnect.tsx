@@ -1,13 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { appQueryParams } from '../appParams'
 import { fetchServerStatus, isServerValid } from '../api/mcStatusApi'
 import { parseServerAddress } from '../parseServerAddress'
-import Screen from './Screen'
-import Input, { INPUT_LABEL_WIDTH, InputWithLabel } from './Input'
-import Button from './Button'
-import SelectGameVersion from './SelectGameVersion'
-import { usePassesScaledDimensions } from './UIProvider'
+import FlatButton from './ui/FlatButton'
+import PixelartIcon from './PixelartIcon'
 import { withInjectableUi } from './extendableSystem'
+import styles from './serversList.module.css'
 
 export interface BaseServerInfo {
   ip: string
@@ -32,8 +30,30 @@ interface Props {
   versions?: string[]
 }
 
+type ServerCheck = { state: 'idle' } | { state: 'checking' } | { state: 'online', version?: string, players: string[], playersText: string } | { state: 'offline' }
+
+const Field = ({ label, hint, children }: { label: string, hint?: React.ReactNode, children: React.ReactNode }) => {
+  return <label className={styles.formField}>
+    <span className={styles.formLabel}>{translate(label)}</span>
+    <span className={styles.formControl}>
+      {children}
+      {hint && <span className={styles.formHint}>{hint}</span>}
+    </span>
+  </label>
+}
+
+const TextInput = ({ invalid, ...props }: React.ComponentProps<'input'> & { invalid?: boolean }) => {
+  return <input
+    autoComplete='off'
+    autoCorrect='off'
+    autoCapitalize='off'
+    spellCheck={false}
+    {...props}
+    className={`${styles.formInput} ${invalid ? styles.formInputInvalid : ''}`}
+  />
+}
+
 const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', initialData, parseQs, onQsConnect, placeholders, accounts, versions }: Props) => {
-  const isSmallHeight = !usePassesScaledDimensions(null, 350)
   const qsParamName = parseQs ? appQueryParams.name : undefined
   const qsParamIp = parseQs ? appQueryParams.ip : undefined
   const qsParamVersion = parseQs ? appQueryParams.version : undefined
@@ -44,23 +64,22 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
   const parsedQsIp = parseServerAddress(qsParamIp)
   const parsedInitialIp = parseServerAddress(initialData?.ip)
 
-  const [serverName, setServerName] = React.useState(initialData?.name ?? qsParamName ?? '')
-  const [serverIp, setServerIp] = React.useState(parsedQsIp.serverIpFull || parsedInitialIp.serverIpFull || '')
-  const [versionOverride, setVersionOverride] = React.useState(initialData?.versionOverride ?? /* legacy */ initialData?.['version'] ?? qsParamVersion ?? '')
-  const [proxyOverride, setProxyOverride] = React.useState(initialData?.proxyOverride ?? qsParamProxy ?? '')
-  const [usernameOverride, setUsernameOverride] = React.useState(initialData?.usernameOverride ?? qsParamUsername ?? '')
+  const [serverName, setServerName] = useState(initialData?.name ?? qsParamName ?? '')
+  const [serverIp, setServerIp] = useState(parsedQsIp.serverIpFull || parsedInitialIp.serverIpFull || '')
+  const [versionOverride, setVersionOverride] = useState(initialData?.versionOverride ?? /* legacy */ initialData?.['version'] ?? qsParamVersion ?? '')
+  const [proxyOverride, setProxyOverride] = useState(initialData?.proxyOverride ?? qsParamProxy ?? '')
+  const [usernameOverride, setUsernameOverride] = useState(initialData?.usernameOverride ?? qsParamUsername ?? '')
   const lockConnect = qsParamLockConnect === 'true'
 
-  const smallWidth = !usePassesScaledDimensions(400)
   const initialAccount = initialData?.authenticatedAccountOverride
-  const [accountIndex, setAccountIndex] = React.useState(initialAccount === true ? -2 : initialAccount ? (accounts?.includes(initialAccount) ? accounts.indexOf(initialAccount) : -2) : -1)
+  const [accountIndex, setAccountIndex] = useState(initialAccount === true ? -2 : initialAccount ? (accounts?.includes(initialAccount) ? accounts.indexOf(initialAccount) : -2) : -1)
+  const [showAdvanced, setShowAdvanced] = useState(!!(versionOverride || proxyOverride || initialAccount))
 
   const freshAccount = accountIndex === -2
   const noAccountSelected = accountIndex === -1
   const authenticatedAccountOverride = noAccountSelected ? undefined : freshAccount ? true : accounts?.[accountIndex]
 
-  let ipFinal = serverIp
-  ipFinal = ipFinal.replace(/:$/, '')
+  const ipFinal = serverIp.replace(/:$/, '')
   const commonUseOptions: BaseServerInfo = {
     name: serverName,
     ip: ipFinal,
@@ -70,190 +89,172 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
     authenticatedAccountOverride,
   }
 
-  const [fetchedServerInfoIp, setFetchedServerInfoIp] = React.useState<string | undefined>(undefined)
-  const [serverOnline, setServerOnline] = React.useState(null as boolean | null)
-  const [onlinePlayersList, setOnlinePlayersList] = React.useState<string[]>([])
-
+  // live check of the typed address (Java servers through the status API; websocket servers are pinged when the list opens)
+  const [check, setCheck] = useState<ServerCheck>({ state: 'idle' })
+  const isWebsocket = /^wss?:\/\//.test(serverIp)
   useEffect(() => {
-    const controller = new AbortController()
-
-    const checkServer = async () => {
-      if (!qsParamIp || !isServerValid(qsParamIp)) return
-
+    const address = parseServerAddress(serverIp)
+    const host = address.serverIpFull.replace(/:$/, '')
+    if (!host || isWebsocket || !isServerValid(host)) {
+      setCheck({ state: 'idle' })
+      return
+    }
+    setCheck({ state: 'checking' })
+    let cancelled = false
+    // only the page link is checked right away, a typed address waits for the typing to stop
+    const timeout = setTimeout(async () => {
       try {
-        const status = await fetchServerStatus(qsParamIp)
-        if (!status) return
-
-        setServerOnline(status.raw.online)
-        setOnlinePlayersList(status.raw.players?.list.map(p => p.name_raw) ?? [])
-        setFetchedServerInfoIp(qsParamIp)
+        const status = await fetchServerStatus(host)
+        if (cancelled || !status) return
+        const { raw } = status
+        setCheck(raw.online
+          ? { state: 'online', version: raw.version?.name_raw, players: raw.players?.list.map(p => p.name_raw) ?? [], playersText: `${raw.players?.online ?? '?'}/${raw.players?.max ?? '?'}` }
+          : { state: 'offline' })
       } catch (err) {
         console.error('Failed to fetch server status:', err)
+        if (!cancelled) setCheck({ state: 'idle' })
       }
+    }, serverIp === parsedQsIp.serverIpFull ? 0 : 700)
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
     }
+  }, [serverIp])
 
-    void checkServer()
-    return () => controller.abort()
-  }, [qsParamIp])
-
-  const validateUsername = (username: string) => {
-    if (!username) return undefined
-    if (onlinePlayersList.includes(username)) {
-      return { border: 'red solid 1px' }
-    }
-    const MINECRAFT_USERNAME_REGEX = /^\w{3,16}$/
-    if (!MINECRAFT_USERNAME_REGEX.test(username)) {
-      return { border: 'red solid 1px' }
-    }
+  const usernameProblem = (() => {
+    if (!usernameOverride) return undefined
+    if (!/^\w{3,16}$/.test(usernameOverride)) return '3-16 letters, digits or _'
+    if (check.state === 'online' && check.players.includes(usernameOverride)) return 'Someone with this name is online'
     return undefined
-  }
+  })()
 
-  const validateServerIp = () => {
-    if (!serverIp) return undefined
-    if (serverOnline) {
-      return { border: 'lightgreen solid 1px' }
-    } else {
-      return { border: 'red solid 1px' }
-    }
-  }
+  const addressHint = isWebsocket
+    ? <span className={styles.muted}>{translate('Websocket server: connects directly, no proxy needed')}</span>
+    : check.state === 'checking' ? <span className={styles.muted}>{translate('Checking...')}</span>
+      : check.state === 'online' ? <span className={styles.onlineText}>● {translate('Online')} · {check.version} · {check.playersText}</span>
+        : check.state === 'offline' ? <span className={styles.offlineText}>● {translate('Offline or not found')}</span>
+          : <span className={styles.muted}>{translate('Java server address. Add :port if it is not 25565')}</span>
 
-  const displayConnectButton = qsParamIp
-  const serverExamples = ['example.com:25565', 'play.hypixel.net', 'ws://play.mcraft.fun', 'wss://play.webmc.fun']
-  // pick random example
-  const example = serverExamples[Math.floor(Math.random() * serverExamples.length)]
+  const displayConnectButton = !!qsParamIp
+  const [example] = useState(() => {
+    const serverExamples = ['play.example.net', 'mc.example.com:25565', 'wss://play.mcraft.fun']
+    return serverExamples[Math.floor(Math.random() * serverExamples.length)]
+  })
 
-  return <Screen title={qsParamIp ? 'Connect to Server' : title} backdrop>
+  return <div className={`fullscreen ${styles.root} add-server-screen`}>
+    <div className='backdrop' />
     <form
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%'
-      }}
+      className={`${styles.panel} ${styles.formPanel}`}
       onSubmit={(e) => {
         e.preventDefault()
         onConfirm(commonUseOptions)
       }}
     >
-      <div style={{
-        display: smallWidth ? 'flex' : 'grid',
-        gap: 3,
-        ...(smallWidth ? {
-          flexDirection: 'column',
-        } : {
-          gridTemplateColumns: '1fr 1fr'
-        })
-      }}
-      >
-        <InputWithLabel
-          required
-          label="Server IP"
-          autoFocus={!lockConnect}
-          value={serverIp}
-          disabled={lockConnect && parsedQsIp.host !== null}
-          onChange={({ target: { value } }) => {
-            setServerIp(value)
-            setServerOnline(false)
-          }}
-          validateInput={serverOnline === null || fetchedServerInfoIp !== serverIp ? undefined : validateServerIp}
-          placeholder={example}
-        />
-        {!lockConnect && <>
-          <div style={{ display: 'flex' }}>
-            <InputWithLabel label="Server Name" value={serverName} onChange={({ target: { value } }) => setServerName(value)} placeholder='Defaults to IP' />
-          </div>
-        </>}
-        {isSmallHeight ? <div style={{ gridColumn: 'span 2', marginTop: 10, }} /> : <div style={{ gridColumn: smallWidth ? '' : 'span 2' }}>Overrides:</div>}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          <label style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>Version Override</label>
-          <SelectGameVersion
-            selected={{ value: versionOverride, label: versionOverride }}
-            versions={versions?.map(v => { return { value: v, label: v } }) ?? []}
-            onChange={(value) => {
-              setVersionOverride(value)
-            }}
-            placeholder="Optional, but recommended to specify"
-            disabled={lockConnect}
+      <div className={styles.header}>
+        {!lockConnect && <FlatButton icon='chevron-left' title={translate('Cancel')} onClick={onBack} />}
+        <span className={styles.title}>{translate(qsParamIp ? 'Connect to Server' : title)}</span>
+      </div>
+
+      <div className={styles.formBody}>
+        <Field label='Address' hint={addressHint}>
+          <TextInput
+            required
+            autoFocus={!lockConnect}
+            value={serverIp}
+            disabled={lockConnect && parsedQsIp.host !== null}
+            placeholder={example}
+            onChange={({ target: { value } }) => setServerIp(value)}
+            invalid={check.state === 'offline'}
           />
-        </div>
+        </Field>
+        {!lockConnect && <Field label='Server Name'>
+          <TextInput value={serverName} placeholder={translate('Defaults to the address')} onChange={({ target: { value } }) => setServerName(value)} />
+        </Field>}
 
-        <InputWithLabel
-          label="Proxy Override"
-          value={proxyOverride}
-          disabled={lockConnect && (qsParamProxy !== null || !!placeholders?.proxyOverride) || serverIp.startsWith('ws://') || serverIp.startsWith('wss://')}
-          onChange={({ target: { value } }) => setProxyOverride(value)}
-          placeholder={serverIp.startsWith('ws://') || serverIp.startsWith('wss://') ? 'Not needed for websocket servers' : placeholders?.proxyOverride}
-        />
-        <InputWithLabel
-          label="Username Override"
-          value={usernameOverride}
-          disabled={!noAccountSelected || (lockConnect && qsParamUsername !== null)}
-          onChange={({ target: { value } }) => setUsernameOverride(value)}
-          placeholder={placeholders?.usernameOverride}
-          validateInput={!serverOnline || fetchedServerInfoIp !== serverIp ? undefined : validateUsername}
-        />
-        <label style={{
-          display: 'flex',
-          flexDirection: 'column',
-        }}
+        {/* the username is generated on first start: visible here so it is clear which name the server sees */}
+        <Field
+          label='Username'
+          hint={noAccountSelected
+            ? usernameProblem && <span className={styles.offlineText}>{translate(usernameProblem)}</span>
+            : <span className={styles.muted}>{translate('The Microsoft account name is used')}</span>}
         >
-          <span style={{ fontSize: 12, marginBottom: 1, color: 'lightgray' }}>Account Override</span>
-          <select
-            onChange={({ target: { value } }) => setAccountIndex(Number(value))}
-            style={{
-              background: 'gray',
-              color: 'white',
-              height: 20,
-              fontSize: 13,
-            }}
-            defaultValue={initialAccount === true ? -2 : initialAccount === undefined ? -1 : (fallbackIfNotFound((accounts ?? []).indexOf(initialAccount)) ?? -2)}
-            disabled={lockConnect && qsParamUsername !== null}
-          >
-            <option value={-1}>Offline Account (Username)</option>
-            {accounts?.map((account, i) => <option key={i} value={i}>{account} (Logged In)</option>)}
-            <option value={-2}>Any other MS account</option>
-          </select>
-        </label>
+          <TextInput
+            value={noAccountSelected ? usernameOverride : ''}
+            disabled={!noAccountSelected || (lockConnect && qsParamUsername !== null)}
+            placeholder={placeholders?.usernameOverride ? `${translate('Default')}: ${placeholders.usernameOverride}` : ''}
+            onChange={({ target: { value } }) => setUsernameOverride(value)}
+            invalid={!!usernameProblem}
+          />
+        </Field>
 
-        {!lockConnect && <>
-          <ButtonWrapper onClick={() => {
-            onBack()
-          }}>
-            Cancel
-          </ButtonWrapper>
-          <ButtonWrapper type='submit'>
-            {displayConnectButton ? translate('Save') : <strong>{translate('Save')}</strong>}
-          </ButtonWrapper>
+        <button type='button' className={styles.advancedToggle} aria-expanded={showAdvanced} onClick={() => setShowAdvanced(!showAdvanced)}>
+          <PixelartIcon iconName={showAdvanced ? 'chevron-down' : 'chevron-right'} />
+          {translate('Advanced')}
+          {!showAdvanced && <span className={styles.muted}>{translate('version, proxy, account')}</span>}
+        </button>
+
+        {showAdvanced && <>
+          <Field
+            label='Version'
+            hint={versionOverride && versions && !versions.includes(versionOverride)
+              ? <span className={styles.warnText}>{translate('Not a supported version, the closest one is used')}</span>
+              : <span className={styles.muted}>{translate('Empty: detected from the server')}</span>}
+          >
+            <TextInput
+              value={versionOverride}
+              list='server-versions'
+              placeholder={translate('Auto-detect')}
+              disabled={lockConnect}
+              onChange={({ target: { value } }) => setVersionOverride(value.trim())}
+            />
+            <datalist id='server-versions'>
+              {[...versions ?? []].reverse().map(v => <option key={v} value={v} />)}
+            </datalist>
+          </Field>
+          <Field label='Proxy' hint={isWebsocket ? <span className={styles.muted}>{translate('Not needed for websocket servers')}</span> : undefined}>
+            <TextInput
+              value={proxyOverride}
+              disabled={lockConnect && (qsParamProxy !== null || !!placeholders?.proxyOverride) || isWebsocket}
+              placeholder={placeholders?.proxyOverride ? `${translate('Default')}: ${placeholders.proxyOverride.replace(/^https?:\/\//, '')}` : ''}
+              onChange={({ target: { value } }) => setProxyOverride(value)}
+            />
+          </Field>
+          <Field label='Account'>
+            <span className={styles.selectWrap}>
+              <select
+                className={`${styles.formInput} ${styles.formSelect}`}
+                value={accountIndex}
+                onChange={({ target: { value } }) => setAccountIndex(Number(value))}
+                disabled={lockConnect && qsParamUsername !== null}
+              >
+                <option value={-1}>{translate('Offline (username only)')}</option>
+                {accounts?.map((account, i) => <option key={i} value={i}>{account} ({translate('Microsoft')})</option>)}
+                <option value={-2}>{translate('Sign in with Microsoft...')}</option>
+              </select>
+              <PixelartIcon iconName='chevron-down' className={styles.selectChevron} />
+            </span>
+          </Field>
+
         </>}
-        {displayConnectButton && (
-          <div style={{
-            gridColumn: smallWidth ? '' : 'span 2',
-            display: 'flex',
-            justifyContent: 'center'
-          }}>
-            <ButtonWrapper
-              data-test-id='connect-qs'
-              onClick={() => {
-                onQsConnect?.(commonUseOptions)
-              }}
-            >
-              <strong>{translate('Connect')}</strong>
-            </ButtonWrapper>
-          </div>
-        )}
+      </div>
+
+      <div className={`${styles.footer} ${styles.formFooter}`}>
+        {!lockConnect && <>
+          <FlatButton label='Cancel' className={styles.formButton} onClick={onBack} />
+          <FlatButton type='submit' variant={displayConnectButton ? 'default' : 'primary'} label='Save' className={styles.formButton} />
+        </>}
+        {displayConnectButton && <FlatButton
+          data-test-id='connect-qs'
+          variant='primary'
+          label='Connect'
+          className={styles.formButton}
+          onClick={() => {
+            onQsConnect?.(commonUseOptions)
+          }}
+        />}
       </div>
     </form>
-  </Screen>
+  </div>
 }
-
-const ButtonWrapper = ({ ...props }: React.ComponentProps<typeof Button>) => {
-  props.style ??= {}
-  props.style.width = INPUT_LABEL_WIDTH
-  return <Button {...props} />
-}
-
-const fallbackIfNotFound = (index: number) => (index === -1 ? undefined : index)
 
 export default withInjectableUi(AddServerOrConnectBase, 'addServerOrConnect')

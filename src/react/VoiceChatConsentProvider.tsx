@@ -2,10 +2,11 @@ import { hideModal } from '../globalState'
 import { enableVoice, declineVoice } from '../voice/voiceChat'
 import Screen from './Screen'
 import Button from './Button'
-import { useIsModalActive } from './utilsApp'
+import { useIsModalActive, useUsingTouch } from './utilsApp'
 
 export default () => {
   const isModalActive = useIsModalActive('voice-chat-consent')
+  const usingTouch = useUsingTouch()
   if (!isModalActive) return null
 
   return <Screen title="Voice Chat" backdrop>
@@ -14,9 +15,10 @@ export default () => {
       <div style={{ color: '#ffcc00' }}>
         Voice chat is not moderated. You may hear anything other players say.
       </div>
-      <div style={{ color: '#aaa' }}>
+      {/* keyboard keys only: on touch the microphone indicator itself is held to talk */}
+      {!usingTouch && <div style={{ color: '#aaa' }}>
         Hold <b>`</b> to talk. You can mute individual players at any time from the voice menu (V).
-      </div>
+      </div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
         <Button
           label="Enable"

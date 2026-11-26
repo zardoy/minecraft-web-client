@@ -1,17 +1,18 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSnapshot } from 'valtio'
+import { isMobile } from 'minecraft-renderer/src/lib/simpleUtils'
 import { miscUiState, showModal } from '../globalState'
 import { appQueryParams } from '../appParams'
 import { proxyPingState, selectBestProxy } from '../core/proxyAutoSelect'
-import Singleplayer from './Singleplayer'
-import Input from './Input'
-import Button from './Button'
-import PixelartIcon, { pixelartIcons } from './PixelartIcon'
-import Select from './Select'
+import FlatButton from './ui/FlatButton'
+import PixelartIcon from './PixelartIcon'
+import MessageFormattedString from './MessageFormattedString'
+import { showOptionsModal } from './SelectOption'
 import { BaseServerInfo } from './AddServerOrConnect'
-import { useIsSmallWidth } from './simpleHooks'
-import { appStorage, SavedProxiesData, ServerHistoryEntry } from './appStorageProvider'
+import { appStorage, SavedProxiesData } from './appStorageProvider'
 import { withInjectableUi } from './extendableSystem'
+import { ScreenDirtBg } from './Screen'
+import styles from './serversList.module.css'
 
 export const getDefaultProxies = () => {
   const { defaultProxies, defaultProxy } = miscUiState.appConfig ?? {}
@@ -42,15 +43,6 @@ export const getCurrentUsername = () => {
   return appQueryParams.username ?? appStorage.username
 }
 
-interface Props extends React.ComponentProps<typeof Singleplayer> {
-  joinServer: (info: BaseServerInfo | string, additional: {
-    shouldSave?: boolean
-    index?: number
-  }) => void
-  onProfileClick?: () => void
-  setQuickConnectIp?: (ip: string) => void
-}
-
 const HIGH_PING_MS = 150
 
 const PingIndicator = ({ status, latency }: { status: 'checking' | 'success' | 'error', latency?: number }) => {
@@ -64,64 +56,119 @@ export const ProxyPingIndicator = ({ proxy }: { proxy: string }) => {
   return pingState ? <PingIndicator status={pingState.status} latency={pingState.latency} /> : null
 }
 
-/** Ping of the currently fastest proxy, which auto-select would use */
-const BestProxyPingIndicator = () => {
-  const statuses = Object.values(useSnapshot(proxyPingState).proxyStatus)
-  if (statuses.length === 0) return null
-  const successful = statuses.filter(x => x.status === 'success')
-  if (successful.length > 0) {
-    return <PingIndicator status="success" latency={Math.min(...successful.map(x => x.latency!))} />
-  }
-  return <PingIndicator status={statuses.some(x => x.status === 'checking') ? 'checking' : 'error'} />
+// #region server rows
+
+export interface ServerListItem {
+  /** index in the provider's list, passed back in actions */
+  key: string
+  title: string
+  address: string
+  icon?: string
+  /** MOTD: § formatted string or a chat component */
+  motd?: string | Record<string, any>
+  status: 'loading' | 'online' | 'offline' | 'unknown'
+  ping?: number
+  /** "12/40" */
+  players?: string
+  version?: string
+  /** promoted by the app config, can't be edited or removed */
+  featured?: boolean
+  /** "username · version override" */
+  overrides?: string
 }
 
-const AUTO_OPTION = 'auto'
-const MANAGE_OPTION = 'manage'
+export type ServerAction = 'load' | 'edit' | 'delete' | 'share'
 
-const ProxyOptionLabel = ({ value, label }: { value: string, label: string }) => {
-  const icon = value === AUTO_OPTION ? pixelartIcons.reload : value === MANAGE_OPTION ? pixelartIcons.sliders : undefined
-  return <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between', overflow: 'hidden' }}>
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {icon && <PixelartIcon iconName={icon} styles={{ fontSize: 10 }} />}
-      {label}
-    </span>
-    {value === AUTO_OPTION ? <BestProxyPingIndicator /> : !icon && <ProxyPingIndicator proxy={value} />}
+const SignalBars = ({ status, ping }: { status: ServerListItem['status'], ping?: number }) => {
+  const level = status === 'online' ? ping === undefined ? 4 : ping < 100 ? 4 : ping < 200 ? 3 : ping < 400 ? 2 : 1 : 0
+  return <span className={`${styles.bars} ${status === 'loading' ? styles.barsLoading : ''} ${status === 'offline' ? styles.barsOffline : ''}`} aria-hidden>
+    {[1, 2, 3, 4].map(i => <span key={i} className={i <= level ? styles.barOn : ''} style={{ height: 2 + i * 2 }} />)}
+  </span>
+}
+
+const ServerRow = ({ server, selected, lockedEditing, onSelect, onAction, rowRef }: {
+  server: ServerListItem
+  selected: boolean
+  lockedEditing?: boolean
+  onSelect: () => void
+  onAction: (action: ServerAction) => void
+  rowRef: (el: HTMLDivElement | null) => void
+}) => {
+  const statusText = server.status === 'offline' ? translate('Offline') : server.status === 'loading' ? translate('Pinging...') : server.ping === undefined ? '' : `${server.ping} ms`
+  const canEdit = !server.featured && !lockedEditing
+  return <div
+    ref={rowRef}
+    role='option'
+    aria-selected={selected}
+    tabIndex={0}
+    className={`${styles.server} ${selected ? styles.serverSelected : ''} server-row`}
+    onFocus={onSelect}
+    onClick={onSelect}
+    onDoubleClick={() => onAction('load')}
+    onKeyDown={(e) => {
+      // only the row itself: Enter on its Edit / Copy Link / Remove buttons activates them
+      if (e.code === 'Enter' && e.target === e.currentTarget) {
+        e.preventDefault()
+        onAction('load')
+      }
+    }}
+  >
+    {/* the server icon, blurred, fills the card behind its content */}
+    {server.icon && <div className={styles.serverGlow} style={{ backgroundImage: `url(${JSON.stringify(server.icon)})` }} aria-hidden />}
+    <div className={styles.serverMain}>
+      {server.icon
+        ? <img className={styles.serverIcon} src={server.icon} alt='' />
+        : <div className={`${styles.serverIcon} ${styles.serverIconEmpty}`}><PixelartIcon iconName='server' /></div>}
+      <div className={styles.serverInfo}>
+        <div className={styles.serverTitleLine}>
+          <span className={styles.serverTitle}>{server.title}</span>
+          <span className={styles.serverStatus}>
+            {server.players && <span className={styles.serverPlayers}><PixelartIcon iconName='users' />{server.players}</span>}
+            <span className={server.status === 'offline' ? styles.offlineText : ''}>{statusText}</span>
+            <SignalBars status={server.status} ping={server.ping} />
+          </span>
+        </div>
+        <div className={styles.serverMotd}>
+          {server.motd ? <MessageFormattedString message={server.motd} fallbackColor='#aaaaaa' /> : <span className={styles.muted}>{server.address}</span>}
+        </div>
+        {(server.version || server.overrides) && <div className={styles.serverMeta}>
+          {server.motd && server.title !== server.address ? `${server.address} · ` : ''}{[server.version, server.overrides].filter(Boolean).join(' · ')}
+        </div>}
+      </div>
+      <FlatButton
+        className={styles.joinButton}
+        variant='primary'
+        tabIndex={-1}
+        label='Join'
+        onClick={(e) => {
+          e.stopPropagation()
+          onAction('load')
+        }}
+      />
+    </div>
+    {selected && <div className={styles.serverActions}>
+      {canEdit && <FlatButton small icon='edit' label='Edit' onClick={() => onAction('edit')} />}
+      <FlatButton small icon='link' label='Copy Join Link' title={translate('Copy a link that opens this server: send it to friends so they can join')} onClick={() => onAction('share')} />
+      {canEdit && <FlatButton small variant='danger' icon='trash' label='Remove' onClick={() => onAction('delete')} />}
+      {canEdit && !isMobile() && <span className={styles.reorderHint}>{translate('Shift+↑↓ to reorder')}</span>}
+    </div>}
   </div>
 }
 
-const ServersListBase = ({
-  joinServer,
-  onProfileClick,
-  setQuickConnectIp,
-  ...props
-}: Props) => {
+// #endregion
+
+// #region proxy and account (footer)
+
+const AUTO_LABEL = 'Auto-select (fastest)'
+const MANAGE_LABEL = 'Manage proxies...'
+const shortenProxy = (proxy: string) => proxy.replace(/^(https?|wss?):\/\//, '')
+
+const ProxyButton = () => {
   const snap = useSnapshot(appStorage)
-  const username = useMemo(() => getCurrentUsername(), [appQueryParams.username, appStorage.username])
-  const [serverIp, setServerIp] = React.useState('')
-  const [save, setSave] = React.useState(true)
-  const [activeHighlight, setActiveHighlight] = React.useState(undefined as 'quick-connect' | 'server-list' | undefined)
-
-  const updateProxies = (newData: SavedProxiesData) => {
-    appStorage.proxiesData = newData
-  }
-
-  const setUsername = (username: string) => {
-    appStorage.username = username
-  }
-
-  const getActiveHighlightStyles = (type: typeof activeHighlight) => {
-    const styles: React.CSSProperties = {
-      transition: 'filter 0.2s',
-    }
-    if (activeHighlight && activeHighlight !== type) {
-      styles.filter = 'brightness(0.7)'
-    }
-    return styles
-  }
-
-  const isSmallWidth = useIsSmallWidth()
-
+  const pings = useSnapshot(proxyPingState).proxyStatus
   const proxiesData = snap.proxiesData ?? getProxiesData()
+  const lockedByLink = !!appQueryParams.proxy
+
   const proxiesKey = proxiesData.proxies.join('\n')
   useEffect(() => {
     if (appQueryParams.proxy || proxiesData.proxies.length === 0) return
@@ -131,121 +178,240 @@ const ServersListBase = ({
     }, 1000)
     return () => clearTimeout(timeout)
   }, [proxiesKey])
-  const selectedValue = proxiesData.isAutoSelect ? AUTO_OPTION : proxiesData.selected
-  const shortenProxy = (proxy: string) => proxy.replace(/^(https?|wss?):\/\//, '')
-  return <Singleplayer
-    {...props}
-    worldData={props.worldData ? props.worldData.map(world => ({
-      ...world
-    })) : null}
-    firstRowChildrenOverride={<form
-      style={{ width: '100%', display: 'flex', justifyContent: 'center' }} onSubmit={(e) => {
-        e.preventDefault()
-        joinServer(serverIp, { shouldSave: save })
-      }}
-    >
-      <div
-        style={{ display: 'flex', gap: 5, alignItems: 'center', ...getActiveHighlightStyles('quick-connect') }}
-        className='quick-connect-row'
-        onMouseEnter={() => setActiveHighlight('quick-connect')}
-        onMouseLeave={() => setActiveHighlight(undefined)}
-      >
-        <Input
-          required
-          placeholder='Quick Connect IP (:version)'
-          value={serverIp}
-          onChange={({ target: { value } }) => {
-            setQuickConnectIp?.(value)
-            setServerIp(value)
+
+  const pingText = (proxy: string) => {
+    const state = pings[proxy]
+    if (!state) return ''
+    return state.status === 'success' ? `${state.latency} ms` : state.status === 'error' ? 'offline' : '...'
+  }
+  const best = Object.values(pings).filter(p => p.status === 'success').map(p => p.latency!)
+  const current = lockedByLink ? shortenProxy(appQueryParams.proxy!) : proxiesData.isAutoSelect ? 'Auto' : shortenProxy(proxiesData.selected || 'none')
+  const currentPing = proxiesData.isAutoSelect ? (best.length ? `${Math.min(...best)} ms` : '') : pingText(proxiesData.selected)
+
+  return <button
+    type='button'
+    className={styles.footerChip}
+    disabled={lockedByLink}
+    title={translate('Proxy: the server that connects you to Java servers from the browser. Websocket (ws://) servers do not need one.')}
+    onClick={async () => {
+      const labels = [AUTO_LABEL, ...proxiesData.proxies.map(p => `${shortenProxy(p)}${pingText(p) ? ` (${pingText(p)})` : ''}`), MANAGE_LABEL]
+      const picked = await showOptionsModal('Connection proxy', labels, {
+        descriptions: ['Pings the proxies and uses the fastest one', ...proxiesData.proxies.map(() => ''), 'Add your own proxy or remove one'],
+        hoveredOptionIndex: proxiesData.isAutoSelect ? 0 : proxiesData.proxies.indexOf(proxiesData.selected) + 1,
+      })
+      if (!picked) return
+      if (picked === MANAGE_LABEL) {
+        showModal({ reactType: 'proxies' })
+        return
+      }
+      if (picked === AUTO_LABEL) {
+        appStorage.proxiesData = { proxies: [...proxiesData.proxies], selected: proxiesData.selected, isAutoSelect: true }
+        return
+      }
+      const proxy = proxiesData.proxies[labels.indexOf(picked) - 1]
+      appStorage.proxiesData = { proxies: [...proxiesData.proxies], selected: proxy, isAutoSelect: false }
+    }}
+  >
+    <PixelartIcon iconName='cellular-signal-3' />
+    <span className={styles.footerChipLabel}>{translate('Proxy')}:</span>
+    <span className={styles.footerChipValue}>{current}</span>
+    {currentPing && <span className={styles.footerChipPing}>{currentPing}</span>}
+  </button>
+}
+
+const UsernameField = ({ onAccountsClick }: { onAccountsClick?: () => void }) => {
+  const snap = useSnapshot(appStorage)
+  // read through the snapshot so typing re-renders the field
+  const username = appQueryParams.username ?? snap.username ?? ''
+  const locked = appQueryParams.username !== undefined
+  const valid = /^\w{3,16}$/.test(username)
+  return <div className={styles.username}>
+    {/* the avatar manages the signed in Microsoft accounts, as before */}
+    <button type='button' className={styles.usernameIcon} title={translate('Microsoft accounts')} onClick={onAccountsClick}>
+      <PixelartIcon iconName='user' />
+    </button>
+    <input
+      title={translate('Name used on offline (cracked) servers. Servers with Microsoft login use your account name.')}
+      aria-label={translate('Username')}
+      value={username}
+      disabled={locked}
+      placeholder={translate('Username')}
+      maxLength={16}
+      autoComplete='off'
+      autoCorrect='off'
+      autoCapitalize='off'
+      spellCheck={false}
+      className={valid || !username ? '' : styles.invalid}
+      onChange={({ target: { value } }) => { appStorage.username = value }}
+    />
+    {snap.authenticatedAccounts.length > 0 && <button type='button' className={styles.accountsButton} title={translate('Signed in Microsoft accounts')} onClick={onAccountsClick}>
+      <PixelartIcon iconName='shield' />{snap.authenticatedAccounts.length}
+    </button>}
+  </div>
+}
+
+// #endregion
+
+interface Props {
+  /** null while loading */
+  servers: ServerListItem[] | null
+  joinServer: (info: BaseServerInfo | string, additional: {
+    shouldSave?: boolean
+    index?: number
+  }) => void
+  onServerAction: (action: ServerAction, key: string) => void
+  onAdd: () => void
+  onClose: () => void
+  onProfileClick?: () => void
+  setQuickConnectIp?: (ip: string) => void
+  onRowSelect?: (key: string) => void
+  selectedKey?: string
+  retriggerFocusCounter?: number
+  lockedEditing?: boolean
+  hidden?: boolean
+  /** "Provided servers" title for lists from the page link */
+  customListTitle?: string
+}
+
+const ServersListBase = ({
+  servers,
+  joinServer,
+  onServerAction,
+  onAdd,
+  onClose,
+  onProfileClick,
+  setQuickConnectIp,
+  onRowSelect,
+  selectedKey,
+  retriggerFocusCounter,
+  lockedEditing,
+  hidden,
+  customListTitle,
+}: Props) => {
+  const snap = useSnapshot(appStorage)
+  const [serverIp, setServerIp] = useState('')
+  const [save, setSave] = useState(true)
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (selectedKey === undefined || hidden) return
+    const el = rowRefs.current[selectedKey]
+    if (el && document.activeElement !== el && !(document.activeElement instanceof HTMLInputElement)) el.focus({ preventScroll: true })
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [selectedKey, retriggerFocusCounter, hidden])
+
+  const saved = servers?.filter(s => !s.featured) ?? []
+  const featured = servers?.filter(s => s.featured) ?? []
+  const ordered = [...saved, ...featured]
+
+  const moveSelection = (dir: 1 | -1) => {
+    if (ordered.length === 0) return
+    const index = ordered.findIndex(s => s.key === selectedKey)
+    const next = ordered[Math.max(0, Math.min(ordered.length - 1, index + dir))]
+    if (next) rowRefs.current[next.key]?.focus()
+  }
+
+  const renderGroup = (title: string, list: ServerListItem[], action?: React.ReactNode) => <>
+    <div className={styles.groupHeader}>
+      <span>{translate(title)} <span className={styles.muted}>{list.length}</span></span>
+      {action}
+    </div>
+    {list.map(server => <ServerRow
+      key={server.key}
+      server={server}
+      selected={server.key === selectedKey}
+      lockedEditing={lockedEditing}
+      rowRef={el => { rowRefs.current[server.key] = el }}
+      onSelect={() => onRowSelect?.(server.key)}
+      onAction={action => onServerAction(action, server.key)}
+    />)}
+  </>
+
+  return <div hidden={hidden}>
+    <ScreenDirtBg />
+    <div className={`fullscreen ${styles.root} servers-screen`}>
+      <div className={styles.panel}>
+        <div className={styles.header}>
+          <FlatButton icon='chevron-left' title={translate('Back')} onClick={onClose} />
+          <span className={styles.title}>{translate('Multiplayer')}</span>
+          <span className={styles.headerSpacer} />
+          <ProxyButton />
+          <UsernameField onAccountsClick={onProfileClick} />
+        </div>
+
+        <form
+          className={styles.quickConnect}
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!serverIp.trim()) return
+            joinServer(serverIp.trim(), { shouldSave: save })
           }}
-          width={isSmallWidth ? 120 : 180}
-          list="server-history"
-          autoComplete="on"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-        />
-        <datalist id="server-history">
-          {[...(snap.serversHistory ?? [])].sort((a, b) => b.numConnects - a.numConnects).map((server) => (
-            <option key={server.ip} value={`${server.ip}${server.version ? `:${server.version}` : ''}`} />
-          ))}
-        </datalist>
-        <label style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 5, height: '100%', marginTop: '-1px' }}>
-          <input
-            type='checkbox' checked={save}
-            style={{ borderRadius: 0 }}
-            onChange={({ target: { checked } }) => setSave(checked)}
-          /> Save
-        </label>
-        <Button style={{ width: 90 }} type='submit'>Connect</Button>
-      </div>
-    </form>}
-    searchRowChildrenOverride={
-      <div style={{
-        // marginTop: 12,
-      }}
-      >
-        <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-          {isSmallWidth
-            ? <PixelartIcon iconName={pixelartIcons.server} styles={{ fontSize: 14, color: 'lightgray', marginLeft: 2 }} onClick={onProfileClick} />
-            : <span style={{ color: 'lightgray', fontSize: 14 }}>Proxy:</span>}
-          <Select
-            key={selectedValue}
-            initialOptions={[
-              { value: AUTO_OPTION, label: 'Auto-select' },
-              ...proxiesData.proxies.map(p => ({ value: p, label: shortenProxy(p) })),
-              { value: MANAGE_OPTION, label: 'Manage proxies...' }
-            ]}
-            defaultValue={{ value: selectedValue, label: selectedValue === AUTO_OPTION ? 'Auto-select' : shortenProxy(selectedValue) }}
-            renderOption={(option) => <ProxyOptionLabel value={option.value} label={option.label} />}
-            updateOptions={(newSel) => {
-              if (newSel === MANAGE_OPTION) {
-                showModal({ reactType: 'proxies' })
-                return
-              }
-              if (newSel === AUTO_OPTION) {
-                updateProxies({ proxies: [...proxiesData.proxies], selected: proxiesData.selected, isAutoSelect: true })
-                return
-              }
-              if (!newSel) return
-              // option may be a custom typed proxy url
-              const proxies = proxiesData.proxies.includes(newSel) ? [...proxiesData.proxies] : [...proxiesData.proxies, newSel]
-              updateProxies({ proxies, selected: newSel, isAutoSelect: false })
-            }}
-            containerStyle={{
-              width: isSmallWidth ? 140 : 180,
-            }}
-          />
-          {/* proxies saved before auto-select existed: hint that the option is available */}
-          {snap.proxiesData && snap.proxiesData.isAutoSelect === undefined && <span style={{ color: 'gold', fontSize: 8, whiteSpace: 'nowrap' }}>(NEW!)</span>}
-          <PixelartIcon iconName='user' styles={{ fontSize: 14, color: 'lightgray', marginLeft: 2 }} onClick={onProfileClick} />
-          <Input
-            rootStyles={{ width: 80 }}
-            value={username}
-            disabled={appQueryParams.username !== undefined}
-            onChange={({ target: { value } }) => setUsername(value)}
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-          />
+        >
+          <label className={styles.addressField}>
+            <PixelartIcon iconName='server' className={styles.addressIcon} />
+            <input
+              value={serverIp}
+              placeholder={translate('Server address, e.g. play.example.net')}
+              title={translate('A version after the address picks it: play.example.net:1.20.4')}
+              list='server-history'
+              autoComplete='on'
+              autoCorrect='off'
+              autoCapitalize='off'
+              spellCheck={false}
+              onChange={({ target: { value } }) => {
+                setQuickConnectIp?.(value)
+                setServerIp(value)
+              }}
+            />
+            <datalist id='server-history'>
+              {[...(snap.serversHistory ?? [])].sort((a, b) => b.numConnects - a.numConnects).map((server) => (
+                <option key={server.ip} value={`${server.ip}${server.version ? `:${server.version}` : ''}`} />
+              ))}
+            </datalist>
+          </label>
+          <button
+            type='button'
+            role='checkbox'
+            aria-checked={save}
+            className={`${styles.saveToggle} ${save ? styles.saveToggleOn : ''}`}
+            title={translate('Add the server to your list after joining')}
+            onClick={() => setSave(!save)}
+          >
+            <span className={styles.checkbox}>{save && <PixelartIcon iconName='check' />}</span>{translate('Save')}
+          </button>
+          <FlatButton type='submit' variant='primary' className={styles.connectButton} label='Join' />
+        </form>
+
+        <div
+          className={styles.list}
+          ref={listRef}
+          role='listbox'
+          onKeyDown={(e) => {
+            if (e.shiftKey) return // reordering, handled by the provider
+            if (e.code === 'ArrowDown' || e.code === 'ArrowUp') {
+              e.preventDefault()
+              moveSelection(e.code === 'ArrowDown' ? 1 : -1)
+            }
+          }}
+        >
+          {servers
+            ? <>
+              {(saved.length > 0 || !lockedEditing) && renderGroup(
+                customListTitle ?? 'Your Servers',
+                saved,
+                !lockedEditing && <FlatButton small variant='primary' icon='plus' label='Add Server' onClick={onAdd} />
+              )}
+              {saved.length === 0 && !lockedEditing && <div className={styles.emptyGroup}>
+                {translate('Servers you join or add appear here.')}
+              </div>}
+              {featured.length > 0 && renderGroup('Featured', featured)}
+            </>
+            : <div className={styles.empty}>{translate('Loading servers...')}</div>}
         </div>
       </div>
-    }
-    serversLayout
-    onWorldAction={(action, serverName) => {
-      if (action === 'load') {
-        joinServer({
-          ip: serverName,
-        }, {})
-      }
-      props.onWorldAction?.(action, serverName)
-    }}
-    setListHovered={(hovered) => {
-      setActiveHighlight(hovered ? 'server-list' : undefined)
-    }}
-    listStyle={getActiveHighlightStyles('server-list')}
-    secondRowStyles={getActiveHighlightStyles('server-list')}
-  />
+    </div>
+  </div>
 }
 
 export default withInjectableUi(ServersListBase, 'serversList')

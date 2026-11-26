@@ -87,3 +87,138 @@
     height: 100%;
     flex-grow: 1;
 }
+
+/* ~~~~ inside the settings screen: rows like the other settings */
+
+.embedded {
+  gap: 0;
+  overflow: visible;
+  width: 100%;
+}
+
+.embedded .group {
+  gap: 1px;
+}
+
+.embedded .group-category {
+  margin: 7px 2px 2px;
+  padding-bottom: 2px;
+  font-size: 8px;
+  color: var(--settings-accent);
+  letter-spacing: 1px;
+  text-align: left;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--settings-border);
+}
+
+.embedded .actionBinds,
+.embeddedHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px 64px 64px 16px 64px;
+  align-items: center;
+  gap: 3px;
+  min-height: 22px;
+  padding: 1px 3px;
+}
+
+.embedded .actionBinds:hover {
+  background: var(--settings-row-hover);
+}
+
+.embedded .actionName {
+  margin: 0;
+  overflow: hidden;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.embedded .undo-keyboard,
+.embedded .undo-gamepad {
+  width: 16px;
+  min-width: 0;
+  height: 16px;
+}
+
+.embedded .warning-container {
+  position: relative;
+  min-width: 0;
+}
+
+.embedded .button {
+  width: 100%;
+  height: 18px;
+  padding: 0 2px;
+  overflow: hidden;
+  font-size: 8px;
+}
+
+.embedded .matched-bind-warning {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  font-size: 6px;
+  white-space: nowrap;
+}
+
+.embeddedHeader {
+  min-height: 0;
+  padding-top: 4px;
+  font-size: 7px;
+  color: var(--settings-muted);
+  text-transform: uppercase;
+}
+
+.embeddedNote {
+  padding: 4px 3px 0;
+  font-size: 7px;
+  color: var(--settings-muted);
+}
+
+.embeddedEmpty {
+  padding: 16px 0;
+  font-size: 10px;
+  color: var(--settings-muted);
+  text-align: center;
+}
+
+@container (max-width: 380px) {
+  .embedded .actionBinds,
+  .embeddedHeader {
+    grid-template-columns: minmax(0, 1fr) 14px 52px 52px 14px 52px;
+  }
+}
+
+.embeddedHeader span {
+  text-align: center;
+}
+
+.embeddedHeader span:first-child {
+  text-align: left;
+}
+
+/* waiting for the key: a small panel over the settings */
+.awaiting {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.awaitingPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  padding: 10px 14px;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: center;
+  background: var(--settings-bg, rgba(12, 12, 16, 0.92));
+  border: 1px solid var(--settings-accent, #6cc349);
+}

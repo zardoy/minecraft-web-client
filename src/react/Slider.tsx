@@ -18,6 +18,8 @@ interface Props extends React.ComponentProps<'div'> {
 
   updateValue?: (value: number) => void;
   updateOnDragEnd?: boolean;
+  /** extra attributes of the range input (its accessible name when the label is shown elsewhere) */
+  inputProps?: React.ComponentProps<'input'>;
 }
 
 const ARROW_HEIGHT = 7
@@ -36,6 +38,7 @@ const SliderBase: React.FC<Props> = ({
 
   updateOnDragEnd = false,
   updateValue,
+  inputProps,
   ...divProps
 }) => {
   label = translate(label)
@@ -131,7 +134,8 @@ const SliderBase: React.FC<Props> = ({
       const constrainedValue = Math.max(min, Math.min(max, newValue))
 
       setValue(constrainedValue)
-      fireValueUpdate(false, constrainedValue)
+      // a stick step is discrete: commit it even when the slider applies only on release (GUI scale)
+      fireValueUpdate(updateOnDragEnd, constrainedValue)
     }
 
     element.addEventListener('mouseover', handleMouseOver as EventListener)
@@ -149,7 +153,7 @@ const SliderBase: React.FC<Props> = ({
     throttledUpdateValue(v, dragEnd)
   }
 
-  const labelText = `${label}: ${valueDisplay ?? value} ${unit}`
+  const labelText = label ? `${label}: ${valueDisplay ?? value} ${unit}` : `${valueDisplay ?? value} ${unit}`
 
   const arrowRef = useRef<any>(null)
   const { refs, floatingStyles, context } = useFloating({
@@ -174,6 +178,7 @@ const SliderBase: React.FC<Props> = ({
         {...divProps}
       >
         <input
+          {...inputProps}
           type="range"
           className={styles.slider}
           min={min}

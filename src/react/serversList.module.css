@@ -1,0 +1,680 @@
+/* Multiplayer screen: quick connect on top, server cards, proxy in the footer. GUI pixels (scaled by --guiScale). */
+
+.root {
+  --servers-bg: rgba(10, 10, 12, 0.82);
+  --servers-border: rgba(255, 255, 255, 0.14);
+  --servers-muted: #a0a0a0;
+  --servers-accent: #6cc349;
+  --servers-accent-bg: #3b7a26;
+  --servers-field-border: #5c5c5c;
+
+  align-items: center;
+  padding: 6px calc(6px + env(safe-area-inset-right) / 2) 6px calc(6px + env(safe-area-inset-left) / 2);
+  font-family: minecraft, mojangles, monospace;
+  /* one line box for text and icons: they centre on the same axis */
+  line-height: 1;
+  color: #fff;
+  text-shadow: 1px 1px #000;
+  box-sizing: border-box;
+}
+
+.root * {
+  box-sizing: border-box;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 470px);
+  height: min(100%, 340px);
+  background: var(--servers-bg);
+  border: 1px solid var(--servers-border);
+  box-shadow: 0 0 0 1px #000;
+}
+
+.muted {
+  color: var(--servers-muted);
+}
+
+/* portrait phones: whole height, clear of the rotate / fullscreen buttons */
+@media (orientation: portrait) {
+  .root {
+    padding-top: 28px;
+  }
+
+  .panel:not(.formPanel) {
+    height: 100%;
+  }
+}
+
+/* header */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  border-bottom: 1px solid var(--servers-border);
+}
+
+.title {
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.headerSpacer {
+  flex: 1;
+}
+
+.username {
+  display: flex;
+  align-items: center;
+  height: 16px;
+  background: #000;
+  border: 1px solid var(--servers-field-border);
+}
+
+.username:focus-within {
+  border-color: #fff;
+}
+
+.usernameIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 3px;
+  font-size: 9px;
+  color: var(--servers-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.usernameIcon:hover,
+.usernameIcon:focus-visible {
+  color: #fff;
+  outline: none;
+}
+
+.username input {
+  padding-left: 3px;
+}
+
+.username input,
+.addressField input {
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 9px;
+  color: #fff;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  outline: none;
+}
+
+.username input {
+  width: 86px;
+}
+
+.username input.invalid {
+  color: #ff8080;
+}
+
+.username input:disabled {
+  color: var(--servers-muted);
+}
+
+.accountsButton {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0 3px;
+  font: inherit;
+  font-size: 8px;
+  color: var(--servers-accent);
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-left: 1px solid var(--servers-field-border);
+  cursor: pointer;
+}
+
+/* quick connect */
+
+.quickConnect {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px;
+}
+
+.addressField {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  background: #000;
+  border: 1px solid var(--servers-field-border);
+}
+
+.addressField:focus-within {
+  border-color: #fff;
+}
+
+.addressField input {
+  flex: 1;
+  font-size: 10px;
+}
+
+.addressField input::placeholder,
+.username input::placeholder {
+  color: #6c6c6c;
+}
+
+.addressIcon {
+  margin: 0 4px;
+  font-size: 10px;
+  color: var(--servers-muted);
+}
+
+.saveToggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 9px;
+  color: var(--servers-muted);
+  text-shadow: inherit;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.saveToggle:hover,
+.saveToggle:focus-visible {
+  border-color: var(--servers-field-border);
+  outline: none;
+}
+
+.saveToggleOn {
+  color: #fff;
+}
+
+.connectButton {
+  flex-shrink: 0;
+  width: 56px;
+}
+
+.quickHint {
+  padding: 2px 6px 4px;
+  overflow: hidden;
+  font-size: 7px;
+  color: #777;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: none;
+}
+
+/* list */
+
+.list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 4px 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--servers-border);
+  /* the game's square scrollbar (::-webkit-scrollbar in Chat.css): standard scrollbar properties would replace it in Chrome, so only Firefox gets "thin" */
+  scrollbar-width: var(--thin-if-firefox);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 2px 3px;
+  font-size: 8px;
+  color: var(--servers-accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+
+.empty,
+.emptyGroup {
+  padding: 12px 0;
+  font-size: 9px;
+  color: var(--servers-muted);
+  text-align: center;
+}
+
+.emptyGroup {
+  padding: 6px 0 10px;
+  border: 1px dashed #444;
+}
+
+.server {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+.server:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.serverSelected {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #fff;
+}
+
+.serverMain {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px;
+}
+
+.serverIcon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.serverIconEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #666;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.serverInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.serverTitleLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.serverTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.serverStatus {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 8px;
+  color: var(--servers-muted);
+}
+
+.serverPlayers {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.offlineText {
+  color: #ff6b6b;
+}
+
+.serverMotd {
+  max-height: 18px;
+  overflow: hidden;
+  font-size: 8px;
+  line-height: 9px;
+  white-space: pre;
+  text-overflow: ellipsis;
+}
+
+.serverMeta {
+  overflow: hidden;
+  font-size: 7px;
+  color: #808080;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: none;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 10px;
+}
+
+.bars > span {
+  width: 2px;
+  background: #444;
+}
+
+.bars > span.barOn {
+  background: var(--servers-accent);
+}
+
+.barsLoading > span {
+  animation: barsPulse 1s infinite;
+}
+
+.barsLoading > span:nth-child(2) { animation-delay: 0.15s; }
+.barsLoading > span:nth-child(3) { animation-delay: 0.3s; }
+.barsLoading > span:nth-child(4) { animation-delay: 0.45s; }
+
+.barsOffline > span {
+  background: #7a2f2f;
+}
+
+@keyframes barsPulse {
+  50% {
+    background: #9a9a9a;
+  }
+}
+
+.joinButton {
+  flex-shrink: 0;
+  width: 44px;
+}
+
+.serverActions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 2px 3px 39px;
+}
+
+
+.reorderHint {
+  margin-left: auto;
+  font-size: 7px;
+  color: #6f6f6f;
+  text-shadow: none;
+}
+
+/* footer */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-top: 1px solid var(--servers-border);
+}
+
+.footerChip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  height: 16px;
+  padding: 0 5px;
+  font: inherit;
+  font-size: 8px;
+  color: #ddd;
+  text-shadow: inherit;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #555;
+  cursor: pointer;
+}
+
+.footerChip:hover:not(:disabled),
+.footerChip:focus-visible {
+  border-color: #fff;
+  outline: none;
+}
+
+.footerChip:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.footerChipLabel {
+  color: var(--servers-muted);
+}
+
+.footerChipValue {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.footerChipPing {
+  color: limegreen;
+}
+
+
+/* add / edit server form (same panel) */
+
+.formPanel {
+  position: relative;
+  z-index: 13;
+  width: min(100%, 360px);
+  height: auto;
+  max-height: 100%;
+}
+
+.formBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  padding: 6px 6px 8px;
+  overflow-y: auto;
+}
+
+.formField {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.formLabel {
+  flex-shrink: 0;
+  width: 70px;
+  padding-top: 5px;
+  font-size: 9px;
+  color: var(--servers-muted);
+}
+
+.formControl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.formInput {
+  width: 100%;
+  height: 20px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 10px;
+  color: #fff;
+  background: #000;
+  border: 1px solid var(--servers-field-border);
+  border-radius: 0;
+  outline: none;
+}
+
+.formInput:focus {
+  border-color: #fff;
+}
+
+.formInput:disabled {
+  color: var(--servers-muted);
+  opacity: 0.7;
+}
+
+.formInput::placeholder {
+  color: #6c6c6c;
+}
+
+.formInputInvalid {
+  border-color: #c94c4c;
+}
+
+.formSelect {
+  padding-right: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.formSelect option {
+  color: #fff;
+  background: #111;
+}
+
+.selectWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.selectChevron {
+  position: absolute;
+  right: 4px;
+  font-size: 10px;
+  color: var(--servers-muted);
+  pointer-events: none;
+}
+
+.warnText {
+  color: #e0c050;
+}
+
+.formHint {
+  font-size: 7px;
+  text-shadow: none;
+}
+
+.onlineText {
+  color: limegreen;
+}
+
+.advancedToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 9px;
+  color: #fff;
+  text-align: left;
+  text-shadow: inherit;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--servers-border);
+  cursor: pointer;
+}
+
+.advancedToggle .muted {
+  font-size: 7px;
+}
+
+.formFooter {
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 9px;
+  height: 9px;
+  font-size: 8px;
+  color: #fff;
+  background: #000;
+  border: 1px solid var(--servers-field-border);
+}
+
+.saveToggleOn .checkbox {
+  background: var(--servers-accent-bg);
+  border-color: var(--servers-accent);
+}
+
+.formButton {
+  min-width: 70px;
+}
+
+/* pixel icons: a 1em square centred box (the icon font's default line box sits higher than the game font) */
+.root :global([class*='pixelart-icons-font-']),
+.button :global([class*='pixelart-icons-font-']) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+}
+
+.root :global([class*='pixelart-icons-font-'])::before,
+.button :global([class*='pixelart-icons-font-'])::before {
+  display: block;
+  line-height: 1;
+  /* measured: the icons are centred in their box, the game font's letters sit ~0.04em below the middle of theirs */
+  transform: translateY(0.04em);
+}
+
+/* icon alone: centred, without the shift that lines icons up with text */
+.usernameIcon :global([class*='pixelart-icons-font-'])::before,
+.addressIcon::before {
+  transform: none;
+}
+
+/* the "users" icon is drawn 0.085em above the middle of its glyph */
+.root :global(.pixelart-icons-font-users)::before {
+  transform: translateY(0.125em);
+}
+
+/* right after the avatar */
+.username > input {
+  padding-left: 1px;
+}
+
+/* blurred server icon behind the card (clipped by it), the content stays on top */
+.serverGlow {
+  position: absolute;
+  inset: -12px;
+  z-index: 0;
+  background-position: center;
+  background-size: cover;
+  filter: blur(10px) saturate(1.4);
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.serverMain,
+.serverActions {
+  position: relative;
+  z-index: 1;
+}

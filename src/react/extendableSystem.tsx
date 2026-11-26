@@ -20,7 +20,7 @@ const injectUiPlaces = [
   'fullmap',
   'input',
   'notification',
-  'optionsItems',
+  'settingsScreen',
   'title',
   'slider',
   'serversList',
