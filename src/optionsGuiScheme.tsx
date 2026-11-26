@@ -363,7 +363,11 @@ const TouchLayoutRow = () => {
 
 const custom = (text: string, render: () => React.ReactNode, keywords?: string, available?: () => boolean): CustomItem => ({ custom: render, text, keywords, available })
 
-const keybindingsRow = custom('Keybindings', () => <ActionRow label='Keybindings' description='Keyboard and gamepad buttons for every action.' buttonLabel='Edit...' onClick={() => showModal({ reactType: 'keybindings' })} />, 'keys keyboard bindings')
+const KeybindingsRow = () => {
+  const openView = useContext(SettingsViewContext)
+  return <ActionRow label='Keybindings' description='Keyboard and gamepad buttons for every action.' buttonLabel='Edit...' onClick={() => openView('keybindings')} />
+}
+const keybindingsRow = custom('Keybindings', () => <KeybindingsRow />, 'keys keyboard bindings')
 const renderDistanceRow = custom('Render Distance', () => <RenderDistanceRow />, 'chunks view distance')
 const musicVolumeRow = custom('Music Volume', () => <MusicVolumeRow />, 'music volume')
 const visualPresetRow = custom('Visual Preset', () => <VisualPresetRow />, 'profile vanilla default maximum quality')
@@ -604,7 +608,7 @@ export const settingsTabs: SettingsTab[] = [
     icon: 'eye',
     items: [
       { section: 'VR', anchor: 'VR' },
-      custom('VR note', () => <div className={schemeStyles.note}>{translate('VR currently has basic support.')}</div>),
+      custom('VR note', () => <div className={schemeStyles.note}>{translate('Play in VR from the browser of your headset (WebXR): with VR Support on, the game shows an Enter VR button.')}</div>),
       { option: 'vrSupport' },
       { option: 'vrPageGameRendering', text: 'Page Game Rendering', tooltip: 'Wether to continue rendering page even when vr is active.' },
     ],

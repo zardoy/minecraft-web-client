@@ -698,3 +698,27 @@
   font-size: 8px;
   color: var(--settings-muted);
 }
+
+.closeAll {
+  --flat-color: #ff6b6b;
+}
+
+.closeAll:not(:disabled):hover,
+.closeAll:focus-visible {
+  --flat-border: #ff6b6b;
+  --flat-bg: rgba(255, 107, 107, 0.15);
+}
+
+/* phones: the panel takes the whole width (only the notch insets are kept) */
+@media (pointer: coarse) and (max-width: 950px) {
+  .root {
+    padding-left: calc(env(safe-area-inset-left) / 2);
+    padding-right: calc(env(safe-area-inset-right) / 2);
+  }
+
+  .panel {
+    width: 100%;
+    border-left: none;
+    border-right: none;
+  }
+}

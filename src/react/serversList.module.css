@@ -104,17 +104,6 @@
 
 .username input,
 .addressField input,
-.filter input {
-  min-width: 0;
-  height: 100%;
-  padding: 0;
-  font: inherit;
-  font-size: 9px;
-  color: #fff;
-  background: transparent;
-  border: none;
-  outline: none;
-}
 
 .username input {
   width: 86px;
@@ -172,8 +161,7 @@
 }
 
 .addressField input::placeholder,
-.username input::placeholder,
-.filter input::placeholder {
+.username input::placeholder {
   color: #6c6c6c;
 }
 
@@ -466,24 +454,6 @@
   color: limegreen;
 }
 
-.filter {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 16px;
-  margin-left: auto;
-  flex: 0 1 140px;
-  padding: 0 3px;
-  font-size: 8px;
-  color: var(--servers-muted);
-  background: #000;
-  border: 1px solid var(--servers-field-border);
-}
-
-.filter input {
-  flex: 1;
-  width: 0;
-}
 
 /* add / edit server form (same panel) */
 

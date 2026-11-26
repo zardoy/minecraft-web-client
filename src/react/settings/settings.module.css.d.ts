@@ -9,6 +9,7 @@ interface CssExports {
   changed: string;
   changedButton: string;
   changedButtonActive: string;
+  closeAll: string;
   content: string;
   cost: string;
   costFree: string;

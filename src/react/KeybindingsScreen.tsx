@@ -7,6 +7,7 @@ import PixelartIcon, { pixelartIcons } from './PixelartIcon'
 import KeybindingsCustom, { CustomCommandsMap } from './KeybindingsCustom'
 import { BindingActionsContext } from './KeybindingsScreenProvider'
 import Button from './Button'
+import FlatButton from './ui/FlatButton'
 import Screen from './Screen'
 import Keybinding from './Keybinding'
 import styles from './KeybindingsScreen.module.css'
@@ -21,15 +22,23 @@ export const Context = createContext({
   userConfig: controEx?.userConfig ?? {} as UserOverridesConfig | undefined,
   setUserConfig (config) { },
   handleClick: (() => { }) as HandleClick,
-  bindsMap: { keyboard: {} as any, gamepad: {} as any }
+  bindsMap: { keyboard: {} as any, gamepad: {} as any },
+  /** inside the settings screen: flat buttons like the other settings rows */
+  embedded: false
 })
 
 export default ({
   contro,
   isPS,
+  embedded = false,
+  filter = '',
 }: {
   contro: typeof controEx,
   isPS?: boolean
+  /** shown as a view of the settings screen (no own screen and Back button) */
+  embedded?: boolean
+  /** words to find in the action name, its group or a bound key */
+  filter?: string
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const bindsMap = useRef({ keyboard: {} as any, gamepad: {} as any })
@@ -164,22 +173,129 @@ export default ({
     contro.on('pressedKeyOrButtonChanged', updateBinding)
     const preventDefault = (e) => e.preventDefault()
     document.addEventListener('keydown', preventDefault, { passive: false })
+    // Escape cancels waiting for a key; it must not also close the screen (the settings when embedded)
+    const cancelOnEscape = (e: KeyboardEvent) => {
+      if (e.code !== 'Escape') return
+      e.stopImmediatePropagation()
+      setAwaitingInputType(null)
+    }
+    window.addEventListener('keydown', cancelOnEscape, { capture: true })
 
     return () => {
       contro.off('pressedKeyOrButtonChanged', updateBinding)
       document.removeEventListener('keydown', preventDefault)
+      window.removeEventListener('keydown', cancelOnEscape, { capture: true })
     }
   }, [groupName, actionName, awaitingInputType])
 
+  const words = filter.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  const actionMatches = (group: string, action: string, keys?: readonly string[], gamepad?: readonly string[]) => {
+    if (words.length === 0) return true
+    const custom = userConfig?.[group]?.[action]
+    const text = `${group} ${parseActionName(action)} ${[...custom?.keys ?? keys ?? [], ...custom?.gamepad ?? gamepad ?? []].join(' ')}`.toLowerCase()
+    return words.every(word => text.includes(word))
+  }
 
-  return <Context.Provider value={{
+
+  const UndoButton = embedded ? FlatButton : Button
+
+  const groups = Object.entries(commands).map(([group, actions], index) => {
+    if (group === 'custom') return null
+    const shown = Object.entries(actions).filter(([action, { keys, gamepad }]) => actionMatches(group, action, keys, gamepad))
+    if (shown.length === 0) return null
+    return <div key={`group-container-${group}-${index}`} className={styles.group}>
+      <div className={styles['group-category']}>{group}</div>
+      {group === 'general' && !embedded ? (
+        <div style={{
+          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: '6px',
+          textAlign: 'center'
+        }}
+        >
+          Note: Left, right and middle click keybindings are hardcoded and cannot be changed currently.
+        </div>
+      ) : null}
+      {shown.map(([action, { keys, gamepad }]) => {
+        return <div key={`action-container-${action}`} className={styles.actionBinds}>
+          <div className={styles.actionName}>{parseActionName(action)}</div>
+
+          <UndoButton
+            onClick={() => {
+              updateCurrBind(group, action)
+              resetBinding(group, action, 'keyboard')
+            }}
+            style={{ opacity: userConfig?.[group]?.[action]?.keys?.length ? 1 : 0 }}
+            className={styles['undo-keyboard']}
+            icon={pixelartIcons.undo}
+            title='Reset the keys to default'
+          />
+
+          {[0, 1].map((key, index) => <ButtonWithMatchesAlert
+            key={`keyboard-${group}-${action}-${index}`}
+            group={group}
+            action={action}
+            index={index}
+            inputType="keyboard"
+            keys={keys}
+            gamepad={gamepad}
+          />)}
+
+          <UndoButton
+            key={`keyboard-${group}-${action}`}
+            onClick={() => {
+              updateCurrBind(group, action)
+              resetBinding(group, action, 'gamepad')
+            }}
+            style={{
+              opacity: userConfig?.[group]?.[action]?.gamepad?.length ? 1 : 0,
+              ...embedded ? {} : { width: '0px' }
+            }}
+            className={`${styles['undo-gamepad']} ${embedded ? '' : styles['margin-left']}`}
+            icon={pixelartIcons.undo}
+            title='Reset the gamepad button to default'
+          />
+          <ButtonWithMatchesAlert
+            key={`gamepad-${group}-${action}`}
+            group={group}
+            action={action}
+            index={0}
+            inputType="gamepad"
+            keys={keys}
+            gamepad={gamepad}
+          />
+        </div>
+      })}
+    </div>
+  })
+
+  const context = {
     isPS,
     userConfig,
     setUserConfig,
     handleClick,
-    bindsMap: bindsMap.current
-  }}
-  >
+    bindsMap: bindsMap.current,
+    embedded
+  }
+
+  if (embedded) {
+    return <Context.Provider value={context}>
+      {awaitingInputType && <AwaitingInputOverlay embedded isGamepad={awaitingInputType === 'gamepad'} />}
+      <div className={`${styles.container} ${styles.embedded}`} ref={containerRef}>
+        <div className={styles.embeddedNote}>Left, right and middle click cannot be rebound for now.</div>
+        <div className={styles.embeddedHeader}>
+          <span>Action</span><span /><span>Key</span><span>Alt Key</span><span /><span>Gamepad</span>
+        </div>
+        {groups.some(Boolean) ? groups : <div className={styles.embeddedEmpty}>No keybindings match</div>}
+        {words.length === 0 && <KeybindingsCustom
+          customCommands={customCommands}
+          updateCurrBind={updateCurrBind}
+          resetBinding={resetBinding}
+        />}
+      </div>
+    </Context.Provider>
+  }
+
+  return <Context.Provider value={context}>
     <Screen title="Keybindings" backdrop>
       {awaitingInputType && <AwaitingInputOverlay isGamepad={awaitingInputType === 'gamepad'} />}
       <div
@@ -192,70 +308,7 @@ export default ({
         >Back
         </Button>
 
-        {Object.entries(commands).map(([group, actions], index) => {
-          if (group === 'custom') return null
-          return <div key={`group-container-${group}-${index}`} className={styles.group}>
-            <div className={styles['group-category']}>{group}</div>
-            {group === 'general' ? (
-              <div style={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: '6px',
-                textAlign: 'center'
-              }}
-              >
-                Note: Left, right and middle click keybindings are hardcoded and cannot be changed currently.
-              </div>
-            ) : null}
-            {Object.entries(actions).map(([action, { keys, gamepad }]) => {
-              return <div key={`action-container-${action}`} className={styles.actionBinds}>
-                <div className={styles.actionName}>{parseActionName(action)}</div>
-
-                <Button
-                  onClick={() => {
-                    updateCurrBind(group, action)
-                    resetBinding(group, action, 'keyboard')
-                  }}
-                  style={{ opacity: userConfig?.[group]?.[action]?.keys?.length ? 1 : 0 }}
-                  className={styles['undo-keyboard']}
-                  icon={pixelartIcons.undo}
-                />
-
-                {[0, 1].map((key, index) => <ButtonWithMatchesAlert
-                  key={`keyboard-${group}-${action}-${index}`}
-                  group={group}
-                  action={action}
-                  index={index}
-                  inputType="keyboard"
-                  keys={keys}
-                  gamepad={gamepad}
-                />)}
-
-                <Button
-                  key={`keyboard-${group}-${action}`}
-                  onClick={() => {
-                    updateCurrBind(group, action)
-                    resetBinding(group, action, 'gamepad')
-                  }}
-                  style={{
-                    opacity: userConfig?.[group]?.[action]?.gamepad?.length ? 1 : 0,
-                    width: '0px'
-                  }}
-                  className={`${styles['undo-gamepad']} ${styles['margin-left']}`}
-                  icon={pixelartIcons.undo}
-                />
-                <ButtonWithMatchesAlert
-                  key={`gamepad-${group}-${action}`}
-                  group={group}
-                  action={action}
-                  index={0}
-                  inputType="gamepad"
-                  keys={keys}
-                  gamepad={gamepad}
-                />
-              </div>
-            })}
-          </div>
-        })}
+        {groups}
 
         <KeybindingsCustom
           customCommands={customCommands}
@@ -275,7 +328,8 @@ export const ButtonWithMatchesAlert = ({
   keys,
   gamepad,
 }) => {
-  const { isPS, userConfig, handleClick, bindsMap } = useContext(Context)
+  const { isPS, userConfig, handleClick, bindsMap, embedded } = useContext(Context)
+  const KeyButton = embedded ? FlatButton : Button
   const [buttonSign, setButtonSign] = useState('')
 
   useEffect(() => {
@@ -295,13 +349,13 @@ export const ButtonWithMatchesAlert = ({
     key={`warning-container-${inputType}-${action}`}
     className={`${styles['warning-container']}`}
   >
-    <Button
+    <KeyButton
       key={`${inputType}-${group}-${action}-${index}`}
       onClick={() => handleClick(group, action, index, inputType)}
       className={`${styles.button}`}
     >
       <Keybinding type={inputType} val={buttonSign as AllKeyCodes} />
-    </Button>
+    </KeyButton>
     {userConfig?.[group]?.[action]?.[inputType === 'keyboard' ? 'keys' : 'gamepad']?.some(key => Object.keys(bindsMap[inputType]).includes(key)
       && bindsMap[inputType][key].length > 1
       && bindsMap[inputType][key].some(prop => prop.index === index
@@ -329,7 +383,20 @@ export const ButtonWithMatchesAlert = ({
   </div>
 }
 
-export const AwaitingInputOverlay = ({ isGamepad }) => {
+export const AwaitingInputOverlay = ({ isGamepad, embedded = false }: { isGamepad: boolean, embedded?: boolean }) => {
+  const message = `${isGamepad ? 'Press the button on the gamepad ' : 'Press the key, side mouse button '}or ESC to cancel.`
+  const cancel = () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' }))
+  }
+  if (embedded) {
+    return <div className={styles.awaiting} onContextMenu={e => e.preventDefault()}>
+      <div className={styles.awaitingPanel}>
+        <span>{translate(message)}</span>
+        <FlatButton label='Cancel' onClick={cancel} />
+      </div>
+    </div>
+  }
   return <div
     style={{
       position: 'fixed',

@@ -7,6 +7,8 @@ import { hideAllModals, miscUiState } from '../../globalState'
 import { options } from '../../optionsStorage'
 import { appStorage } from '../appStorageProvider'
 import { showResetSettingsModal } from '../AllSettingsEditor'
+import { contro } from '../../controls'
+import KeybindingsScreen from '../KeybindingsScreen'
 import {
   groupToTab,
   isCustomItem,
@@ -105,7 +107,7 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean)
 
   const searchResults = useMemo(() => {
-    if (words.length === 0) return null
+    if (words.length === 0 || view === 'keybindings') return null
     const results = settingsTabs
       .filter(t => !t.shortcuts)
       .map(t => ({ tab: t, items: [...t.items, ...t.advanced ?? []].filter(item => matchesSearch(item, words)) }))
@@ -114,7 +116,7 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
     const shown = new Set(results.flatMap(r => shownKeysOf(r.items)))
     const other = allKeys().filter(key => !shown.has(key) && !optionItemsByKey.has(key) && keyMatches(key, words))
     return { results, other }
-  }, [search])
+  }, [search, view])
 
   // opened for a sub-page (inventory settings from the inventory, VR...): scroll to its section
   useLayoutEffect(() => {
@@ -171,6 +173,7 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
 
   const openView = (next: SettingsView) => {
     setSearch('')
+    if (next === 'keybindings') setActiveTab('controls')
     setView(next)
     if (contentRef.current) contentRef.current.scrollTop = 0
   }
@@ -197,6 +200,13 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
           <SectionHeader title='Other' />
           {renderKeys(searchResults.other)}
         </>}
+      </>
+    }
+    if (view === 'keybindings') {
+      const isPS = [...(navigator.getGamepads?.() ?? [])].some(gp => gp?.id.match(/playstation|dualsense|dualshock/i))
+      return <>
+        <SectionHeader title='Keybindings' />
+        <KeybindingsScreen embedded filter={search} contro={contro} isPS={isPS} />
       </>
     }
     if (view === 'changed') {
@@ -244,7 +254,14 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
     <div className={`fullscreen ${styles.root} settings-screen`} style={active ? undefined : { visibility: 'hidden' }}>
       <div className={styles.panel}>
         <div className={styles.header}>
-          <FlatButton className={styles.headerButton} icon='chevron-left' title={translate('Back')} onClick={onClose} />
+          <FlatButton
+            className={styles.headerButton}
+            icon='chevron-left'
+            title={translate(view === 'tabs' ? 'Back' : 'Back to the tabs')}
+            onClick={() => (view === 'tabs' ? onClose() : openView('tabs'))}
+          />
+          {/* in a game: close the settings and everything under them (pause menu) to get back to playing */}
+          {gameLoaded && <FlatButton className={`${styles.headerButton} ${styles.closeAll}`} icon='close' title={translate('Close all and return to the game')} onClick={() => hideAllModals()} />}
           <span className={styles.title}>{translate('Settings')}</span>
           <FlatButton
             className={`${styles.changedButton} ${view === 'changed' && !searchResults ? styles.changedButtonActive : ''}`}
@@ -260,7 +277,7 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
             <input
               ref={searchRef}
               value={search}
-              placeholder={translate('Search settings')}
+              placeholder={translate(view === 'keybindings' ? 'Filter keybindings' : 'Search settings')}
               autoComplete='off'
               spellCheck={false}
               onChange={e => setSearch(e.target.value)}
@@ -273,12 +290,11 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
             />
             {search && <button type='button' className={styles.searchClear} aria-label='Clear search' onClick={() => setSearch('')}><PixelartIcon iconName='close' /></button>}
           </label>
-          {/* in a game: close the settings and everything under them (pause menu) to get back to playing */}
-          {gameLoaded && <FlatButton className={styles.headerButton} icon='close' title={translate('Close all and return to the game')} onClick={() => hideAllModals()} />}
+
         </div>
         <div className={styles.body}>
           <nav className={styles.tabs} role='tablist' aria-label={translate('Settings sections')} onKeyDown={onTabsKeyDown}>
-            {settingsTabs.map(t => <TabButton key={t.id} tab={t} active={!searchResults && view === 'tabs' && t.id === activeTab} focusable={t.id === activeTab} onClick={() => selectTab(t.id)} />)}
+            {settingsTabs.map(t => <TabButton key={t.id} tab={t} active={!searchResults && (view === 'tabs' || view === 'keybindings') && t.id === activeTab} focusable={t.id === activeTab} onClick={() => selectTab(t.id)} />)}
           </nav>
           <div className={styles.main}>
             <div className={styles.content} ref={contentRef} role='tabpanel' id='settings-tabpanel' aria-labelledby={searchResults || view !== 'tabs' ? undefined : `settings-tab-${activeTab}`}>

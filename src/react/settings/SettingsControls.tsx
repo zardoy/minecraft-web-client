@@ -30,7 +30,7 @@ export interface SettingInfo {
 export const SettingInfoContext = createContext<(info: SettingInfo | undefined) => void>(() => {})
 
 /** other views of the settings screen, opened from rows (All Settings in Advanced) */
-export type SettingsView = 'tabs' | 'changed' | 'all'
+export type SettingsView = 'tabs' | 'changed' | 'all' | 'keybindings'
 export const SettingsViewContext = createContext<(view: SettingsView) => void>(() => {})
 
 /** id of the row label: the row's control is named by it (screen readers read "Music, switch, on") */

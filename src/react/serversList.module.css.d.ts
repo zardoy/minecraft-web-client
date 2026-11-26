@@ -15,7 +15,6 @@ interface CssExports {
   connectButton: string;
   empty: string;
   emptyGroup: string;
-  filter: string;
   footer: string;
   footerChip: string;
   footerChipLabel: string;

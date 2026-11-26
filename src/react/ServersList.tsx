@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { isMobile } from 'minecraft-renderer/src/lib/simpleUtils'
 import { miscUiState, showModal } from '../globalState'
@@ -289,7 +289,6 @@ const ServersListBase = ({
   const snap = useSnapshot(appStorage)
   const [serverIp, setServerIp] = useState('')
   const [save, setSave] = useState(true)
-  const [search, setSearch] = useState('')
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -300,14 +299,8 @@ const ServersListBase = ({
     el?.scrollIntoView({ block: 'nearest' })
   }, [selectedKey, retriggerFocusCounter, hidden])
 
-  const filtered = useMemo(() => {
-    const words = search.trim().toLowerCase()
-    if (!servers || !words) return servers
-    return servers.filter(s => `${s.title} ${s.address}`.toLowerCase().includes(words))
-  }, [servers, search])
-
-  const saved = filtered?.filter(s => !s.featured) ?? []
-  const featured = filtered?.filter(s => s.featured) ?? []
+  const saved = servers?.filter(s => !s.featured) ?? []
+  const featured = servers?.filter(s => s.featured) ?? []
   const ordered = [...saved, ...featured]
 
   const moveSelection = (dir: 1 | -1) => {
@@ -400,28 +393,20 @@ const ServersListBase = ({
             }
           }}
         >
-          {filtered
+          {servers
             ? <>
               {(saved.length > 0 || !lockedEditing) && renderGroup(
                 customListTitle ?? 'Your Servers',
                 saved,
                 !lockedEditing && <FlatButton small variant='primary' icon='plus' label='Add Server' onClick={onAdd} />
               )}
-              {saved.length === 0 && !lockedEditing && !search && <div className={styles.emptyGroup}>
+              {saved.length === 0 && !lockedEditing && <div className={styles.emptyGroup}>
                 {translate('Servers you join or add appear here.')}
               </div>}
               {featured.length > 0 && renderGroup('Featured', featured)}
-              {search && ordered.length === 0 && <div className={styles.empty}>{translate('No servers match')}</div>}
             </>
             : <div className={styles.empty}>{translate('Loading servers...')}</div>}
         </div>
-
-        {((servers?.length ?? 0) > 6 || search) && <div className={styles.footer}>
-          <label className={styles.filter}>
-            <PixelartIcon iconName='search' />
-            <input value={search} placeholder={translate('Filter servers')} onChange={e => setSearch(e.target.value)} />
-          </label>
-        </div>}
       </div>
     </div>
   </div>
