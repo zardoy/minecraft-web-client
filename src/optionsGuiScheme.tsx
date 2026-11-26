@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSnapshot } from 'valtio'
 import { versionToNumber } from 'mc-assets/dist/utils'
 import { openURL } from 'minecraft-renderer/src/lib/simpleUtils'
+import Logo from 'minecraft-renderer/logo.webp'
 import {
   RENDERER_EFFECT_OPTION_KEYS,
   RENDERER_VISUAL_PROFILES,
@@ -10,7 +11,7 @@ import {
 } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
 import { gameAdditionalState, miscUiState, showModal } from './globalState'
 import { AppOptions, options } from './optionsStorage'
-import { showAllSettingsEditor, showResetSettingsModal } from './react/AllSettingsEditor'
+import { showResetSettingsModal } from './react/AllSettingsEditor'
 import { getScreenRefreshRate } from './utils'
 import { setLoadingScreenStatus } from './appStatus'
 import { openFilePicker, resetLocalStorage } from './browserfs'
@@ -25,9 +26,10 @@ import { appStorage } from './react/appStorageProvider'
 import { exportData, importData } from './core/importExport'
 import { appGraphicBackends, getCurrentGraphicsBackend } from './appViewerLoad'
 import { openVisualEffectsPanel } from './visualEffectsPanel'
-import { ActionRow, ChoicePicker, OptionRow, Segmented, SettingRow, Switch } from './react/settings/SettingsControls'
+import { ActionRow, ChoicePicker, OptionRow, Segmented, SettingRow, SettingsViewContext, Switch } from './react/settings/SettingsControls'
 import Slider from './react/Slider'
 import FlatButton from './react/ui/FlatButton'
+import schemeStyles from './react/settings/settings.module.css'
 
 // Settings screen layout: tabs, each a list of sections and rows.
 // An option row only names the option: its label, description, choices and limits come from `optionsMeta` (defaultOptions.ts / the renderer),
@@ -74,23 +76,27 @@ export interface SectionItem {
 
 export type SettingsItem = OptionItem | CustomItem | SectionItem
 
-export type SettingsTabId = 'general' | 'graphics' | 'interface' | 'controls' | 'audio' | 'advanced'
+export type SettingsTabId = 'quick' | 'general' | 'graphics' | 'interface' | 'controls' | 'audio' | 'advanced' | 'vr'
 
 export interface SettingsTab {
   id: SettingsTabId
   label: string
   icon: string
   items: SettingsItem[]
+  /** rarely changed rows, behind "Show advanced settings" at the end of the tab */
+  advanced?: SettingsItem[]
+  /** only repeats rows of other tabs: left out of search */
+  shortcuts?: boolean
 }
 
 /** the old sub-pages: `openOptionsMenu(group)` still works and opens the tab (and section) that holds them now */
 export type OptionsGroupType = 'main' | 'render' | 'renderer-advanced' | 'interface' | 'controls' | 'sound' | 'advanced' | 'VR' | 'export-import' | 'inventory'
 
 export const groupToTab: Record<OptionsGroupType, SettingsTabId> = {
-  main: 'general',
+  main: 'quick',
   render: 'graphics',
   'renderer-advanced': 'graphics',
-  VR: 'graphics',
+  VR: 'vr',
   interface: 'interface',
   inventory: 'interface',
   controls: 'controls',
@@ -203,6 +209,15 @@ const VisualPresetRow = () => {
   </SettingRow>
 }
 
+/** which engine draws the world: a small logo at the top of Graphics */
+const PoweredByRow = () => {
+  const { name } = useMemo(() => getCurrentGraphicsBackend(), [useSnapshot(options).activeRenderer])
+  return <div className={schemeStyles.poweredBy}>
+    <span>{translate('Graphics powered by')}</span>
+    <img src={Logo} alt={name} title={name} />
+  </div>
+}
+
 const LiveEffectsRow = () => {
   const { gameLoaded } = useSnapshot(miscUiState)
   return <ActionRow
@@ -293,7 +308,7 @@ const DefaultVersionRow = () => {
     if (version === 'auto') return `Auto (${resolved})`
     return version
   }
-  return <SettingRow label='Default Version' description='The version tried first when a server does not say which one it runs.'>
+  return <SettingRow label='Default Version' description='For servers without a version set: the version the client offers when it asks the server which one to use. Servers that support several versions answer with this one.'>
     <ChoicePicker
       title='Default Version'
       choices={allVersions.map(v => [v, label(v)])}
@@ -327,6 +342,11 @@ const PacketsLoggingRow = () => {
   </SettingRow>
 }
 
+const AllSettingsRow = () => {
+  const openView = useContext(SettingsViewContext)
+  return <ActionRow label='All Settings' description='Every setting by its key, also the ones without a row in these tabs.' buttonLabel='Show...' onClick={() => openView('all')} />
+}
+
 const TouchLayoutRow = () => {
   const { touchInteractionType, touchMovementType } = useSnapshot(options)
   return <ActionRow
@@ -342,17 +362,41 @@ const TouchLayoutRow = () => {
 
 const custom = (text: string, render: () => React.ReactNode, keywords?: string, available?: () => boolean): CustomItem => ({ custom: render, text, keywords, available })
 
+const keybindingsRow = custom('Keybindings', () => <ActionRow label='Keybindings' description='Keyboard and gamepad buttons for every action.' buttonLabel='Edit...' onClick={() => showModal({ reactType: 'keybindings' })} />, 'keys keyboard bindings')
+const renderDistanceRow = custom('Render Distance', () => <RenderDistanceRow />, 'chunks view distance')
+const musicVolumeRow = custom('Music Volume', () => <MusicVolumeRow />, 'music volume')
+const visualPresetRow = custom('Visual Preset', () => <VisualPresetRow />, 'profile vanilla default maximum quality')
+const isTouchDevice = () => matchMedia('(pointer: coarse)').matches
+
 export const settingsTabs: SettingsTab[] = [
+  {
+    // what people change most, repeated from the other tabs
+    id: 'quick',
+    label: 'Quick',
+    icon: 'zap',
+    shortcuts: true,
+    items: [
+      renderDistanceRow,
+      { option: 'fov', text: 'Field of View', min: 30, max: 110, unit: '' },
+      { option: 'mouseSensX', text: 'Mouse Sensitivity' },
+      { option: 'guiScale', max: 4, min: 1, unit: '', delayApply: true, text: 'GUI Scale', tooltip: 'Size of the whole interface. Applies when you release the slider.' },
+      { option: 'volume', text: 'Master Volume' },
+      musicVolumeRow,
+      visualPresetRow,
+      { option: 'renderDebug', text: 'Debug Overlay', tooltip: 'Frame rate and renderer numbers in the corner.' },
+      { option: 'autoJump', disableIf: ['autoParkour', true], tooltip: 'Jump up one block without pressing jump.' },
+      custom('Touch Movement', () => <OptionRow item={{ option: 'touchMovementType', text: 'Touch Movement' }} />, 'touch joystick', isTouchDevice),
+      keybindingsRow,
+    ],
+  },
   {
     id: 'general',
     label: 'General',
     icon: 'sliders',
     items: [
-      { section: 'Camera', anchor: 'main' },
+      { section: 'View', anchor: 'main' },
       { option: 'fov', text: 'Field of View', min: 30, max: 110, unit: '', tooltip: 'How wide you see. Higher shows more around you, lower looks zoomed in.' },
-      custom('Render Distance', () => <RenderDistanceRow />, 'chunks view distance'),
-      { option: 'viewBobbing', text: 'View Bobbing', tooltip: 'The camera sways while walking.' },
-      { option: 'showHand', text: 'Show Hand' },
+      renderDistanceRow,
       { section: 'Content' },
       custom('Resource Pack', () => <ResourcePackRow />, 'texture pack textures'),
       custom('Client Mods', () => <ClientModsRow />, 'mods plugins', () => miscUiState.appConfig?.showModsButton !== false),
@@ -364,36 +408,38 @@ export const settingsTabs: SettingsTab[] = [
     label: 'Graphics',
     icon: 'monitor',
     items: [
+      custom('Graphics powered by', () => <PoweredByRow />, 'three.js renderer engine'),
       { section: 'Quality', anchor: 'render' },
-      custom('Visual Preset', () => <VisualPresetRow />, 'profile vanilla default maximum quality'),
+      visualPresetRow,
+      { option: 'renderDebug', text: 'Debug Overlay', tooltip: 'Frame rate and renderer numbers in the corner.' },
+      custom('Frame Limit', () => <FrameLimitRow />, 'fps vsync'),
+      { section: 'Effects' },
       ...RENDERER_EFFECT_OPTION_KEYS.map((option): OptionItem => ({ option })),
       custom('Live Tuning', () => <LiveEffectsRow />, 'visual effects panel f7'),
-      { section: 'Performance' },
-      custom('Frame Limit', () => <FrameLimitRow />, 'fps vsync'),
+      { section: 'World' },
+      { option: 'dayCycleAndLighting', text: 'Day Cycle' },
+      { option: 'animatedTextures' },
+      { option: 'chunkFadeMs' },
+      { option: 'cloudsRendering' },
+      { option: 'starfieldRendering' },
+      { option: 'renderEntities' },
+      { option: 'renderEars', text: 'Deadmau5 Ears', tooltip: 'Render ears for all players whose skin has them' },
+      { section: 'Menu' },
+      { option: 'menuBackgroundMode', text: 'Menu Background' },
+    ],
+    advanced: [
+      { section: 'Performance', anchor: 'renderer-advanced' },
       { option: 'backgroundRendering', text: 'Background FPS Limit', tooltip: 'Frame rate while the tab is not focused. "No" keeps the full rate.' },
       { option: 'rendererWorldPerformance', text: 'World Performance', requiresRestartWhenInGame: true },
       { option: 'rendererMesher' },
       { option: 'rendererSmartCull' },
       { option: 'keepChunksDistance', max: 5, unit: '', text: 'Keep Chunks Distance', tooltip: 'Additional distance to keep the chunks loading before unloading them by marking them as too far' },
       custom('Graphics Backend', () => <BackendRow />, 'renderer three.js'),
-      { section: 'World', anchor: 'renderer-advanced' },
-      { option: 'dayCycleAndLighting', text: 'Day Cycle' },
+      { section: 'Lighting' },
       { option: 'newVersionsLighting' },
       { option: 'clientLighting' },
-      { option: 'animatedTextures' },
-      { option: 'chunkFadeMs' },
-      { option: 'cloudsRendering' },
-      { option: 'starfieldRendering' },
-      { option: 'renderEntities' },
-      { option: 'disableBlockEntityTextures', text: 'No Block Entity Textures', tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps' },
-      { option: 'renderEars', text: 'Deadmau5 Ears', tooltip: 'Render ears for all players whose skin has them' },
-      { section: 'Menu' },
-      { option: 'menuBackgroundMode', text: 'Menu Background' },
-      { section: 'VR', anchor: 'VR' },
-      { option: 'vrSupport' },
-      { option: 'vrPageGameRendering', text: 'Page Game Rendering', tooltip: 'Wether to continue rendering page even when vr is active.' },
       { section: 'Debug' },
-      { option: 'renderDebug', text: 'Debug Overlay', tooltip: 'Frame rate and renderer numbers in the corner.' },
+      { option: 'disableBlockEntityTextures', text: 'No Block Entity Textures', tooltip: 'Disables rendering of textures for block entities like signs, banners, heads, and maps' },
       { option: 'rendererPerfDebugOverlay', text: 'Performance Debug' },
       {
         option: 'preserveDrawingBuffer',
@@ -412,9 +458,11 @@ export const settingsTabs: SettingsTab[] = [
       { section: 'Display', anchor: 'interface' },
       { option: 'guiScale', max: 4, min: 1, unit: '', delayApply: true, text: 'GUI Scale', tooltip: 'Size of the whole interface. Applies when you release the slider.' },
       { option: 'highlightBlockColor', text: 'Block Highlight Color' },
-      { option: 'showMinimap', text: 'Minimap', enableWarning: 'App reload is required to apply this setting' },
+      { option: 'showMinimap', text: 'Minimap', requiresRestart: true },
       { option: 'displayBossBars', text: 'Boss Bars' },
-      { option: 'displayLoadingMessages', text: 'Loading Messages' },
+      { section: 'First Person' },
+      { option: 'viewBobbing', text: 'View Bobbing', tooltip: 'The camera sways while walking.' },
+      { option: 'showHand', text: 'Show Hand' },
       { section: 'HUD' },
       custom('Show Hotbar', () => <UiPartRow name='hotbar' label='Hotbar' />, 'hud ui'),
       custom('Show Chat', () => <UiPartRow name='chat' label='Chat' />, 'hud ui'),
@@ -427,17 +475,22 @@ export const settingsTabs: SettingsTab[] = [
       { option: 'chatHeight', max: 180, unit: 'px' },
       { option: 'chatOpacity' },
       { option: 'chatOpacityOpened' },
+      { section: 'Inventory & Containers', anchor: 'inventory' },
+      custom('Item List (JEI)', () => <JeiRow />, 'jei recipes'),
+      { option: 'inventoryPlayerModel', text: 'Player Preview', tooltip: 'Show the rotating player model in the survival inventory when supported.' },
+    ],
+    advanced: [
+      { section: 'Chat Details' },
       { option: 'chatSelect', text: 'Text Select' },
       { option: 'chatPingExtension' },
       { option: 'chatAlwaysDisplayTypingIndicator', text: 'Always Show Typing' },
+      { option: 'displayLoadingMessages', text: 'Loading Messages' },
       { section: 'Signs' },
       { option: 'autoSignEditor', text: 'Sign Editor' },
       { option: 'wysiwygSignEditor', text: 'WYSIWYG Editor' },
-      { section: 'Inventory & Containers', anchor: 'inventory' },
-      custom('Item List (JEI)', () => <JeiRow />, 'jei recipes'),
+      { section: 'Containers' },
       { option: 'inventoryNotes', text: 'Side Notes Panel', tooltip: 'Show extra note slots in container UIs where supported.' },
       { option: 'inventoryPlaceholders', text: 'Slot Hints', tooltip: 'Show placeholder hints in empty inventory slots when supported.' },
-      { option: 'inventoryPlayerModel', text: 'Player Preview', tooltip: 'Show the rotating player model in the survival inventory when supported.' },
       { option: 'unimplementedContainers', text: 'Try Unknown Containers', tooltip: 'If the server opens a container type the client does not implement yet, show a generic chest-style UI instead of failing.' },
     ],
   },
@@ -447,9 +500,22 @@ export const settingsTabs: SettingsTab[] = [
     icon: 'gamepad',
     items: [
       { section: 'Keyboard & Mouse', anchor: 'controls' },
-      custom('Keybindings', () => <ActionRow label='Keybindings' description='Keyboard and gamepad buttons for every action.' buttonLabel='Edit...' onClick={() => showModal({ reactType: 'keybindings' })} />, 'keys keyboard bindings'),
+      keybindingsRow,
       { option: 'mouseSensX', text: 'Mouse Sensitivity X' },
       { option: 'mouseSensY', text: 'Mouse Sensitivity Y', min: -1, valueText: (value) => (value === -1 ? 'Same as X' : `${value} %`) },
+      { section: 'Movement' },
+      { option: 'autoJump', disableIf: ['autoParkour', true], tooltip: 'Jump up one block without pressing jump.' },
+      { option: 'autoParkour', tooltip: 'Also jump over gaps automatically.' },
+      { section: 'Touch' },
+      { option: 'touchMovementType', text: 'Movement Controls' },
+      { option: 'touchInteractionType', text: 'Interaction Controls' },
+      custom('Touch Buttons Layout', () => <TouchLayoutRow />, 'touch buttons setup position size'),
+      { option: 'alwaysShowMobileControls', text: 'Always Show Touch Controls', disableIf: ['forceDisableTouchControls', true] },
+      { option: 'forceDisableTouchControls', text: 'Never Show Touch Controls', tooltip: 'Never show touch controls, even if your device has a touchscreen. Useful for touch laptops used with mouse and keyboard.' },
+      { option: 'autoDisplayRotation', text: 'Auto Landscape Rotation', tooltip: 'On portrait screens, automatically rotate the game to landscape layout (same as the rotate button).' },
+    ],
+    advanced: [
+      { section: 'Mouse & Fullscreen' },
       {
         option: 'mouseRawInput',
         text: 'Raw Input',
@@ -463,16 +529,7 @@ export const settingsTabs: SettingsTab[] = [
         disabledReason: navigator['keyboard'] ? undefined : 'Your browser doesn\'t support keyboard lock API'
       },
       { option: 'autoExitFullscreen', tooltip: 'Exit fullscreen on escape (pause menu open). But note you can always do it with F11.' },
-      { section: 'Movement' },
-      { option: 'autoJump', disableIf: ['autoParkour', true], tooltip: 'Jump up one block without pressing jump.' },
-      { option: 'autoParkour', tooltip: 'Also jump over gaps automatically.' },
-      { section: 'Touch' },
-      { option: 'alwaysShowMobileControls', text: 'Always Show Touch Controls', disableIf: ['forceDisableTouchControls', true] },
-      { option: 'forceDisableTouchControls', text: 'Never Show Touch Controls', tooltip: 'Never show touch controls, even if your device has a touchscreen. Useful for touch laptops used with mouse and keyboard.' },
-      { option: 'autoDisplayRotation', text: 'Auto Landscape Rotation', tooltip: 'On portrait screens, automatically rotate the game to landscape layout (same as the rotate button).' },
-      { option: 'touchMovementType', text: 'Movement Controls' },
-      { option: 'touchInteractionType', text: 'Interaction Controls' },
-      custom('Touch Buttons Layout', () => <TouchLayoutRow />, 'touch buttons setup position size'),
+      { section: 'Classic Touch Buttons' },
       { option: 'touchButtonsSize', min: 40, disableIf: ['touchMovementType', 'modern'] },
       { option: 'touchButtonsOpacity', min: 10, max: 90, disableIf: ['touchMovementType', 'modern'] },
       { option: 'touchButtonsPosition', max: 80, disableIf: ['touchMovementType', 'modern'] },
@@ -486,7 +543,7 @@ export const settingsTabs: SettingsTab[] = [
       { section: 'Volume', anchor: 'sound' },
       { option: 'volume', text: 'Master Volume' },
       { option: 'enableMusic', text: 'Music' },
-      custom('Music Volume', () => <MusicVolumeRow />, 'music volume'),
+      musicVolumeRow,
       custom('Sound Muffler', () => <ActionRow label='Sound Muffler' description='Mute or quiet down single sounds that annoy you.' buttonLabel='Open...' onClick={() => showModal({ reactType: 'sound-muffler' })} />, 'mute sounds'),
       { section: 'Voice Chat' },
       { option: 'voiceChatEnabled', text: 'Voice Chat', tooltip: 'Join voice chat when a server offers it.' },
@@ -501,7 +558,11 @@ export const settingsTabs: SettingsTab[] = [
       { option: 'serverResourcePacks', text: 'Server Resource Packs' },
       { option: 'saveLoginPassword', text: 'Save Login Passwords', tooltip: 'Controls whether to save login passwords for servers in this browser memory.' },
       custom('Default Version', () => <DefaultVersionRow />, 'version auto latest'),
-      { option: 'preventBackgroundTimeoutKick', text: 'Stay Connected In Background' },
+      {
+        option: 'preventBackgroundTimeoutKick',
+        text: 'Stay Connected In Background',
+        tooltip: 'Browsers slow down the timers of background tabs, and servers then kick you for not responding. This plays a silent sound while connected, so the browser keeps the tab running at full speed.',
+      },
       {
         option: 'preventSleep',
         text: 'Prevent Device Sleep',
@@ -528,12 +589,23 @@ export const settingsTabs: SettingsTab[] = [
         }}
       />, 'clear wipe'),
       { section: 'Developer' },
-      custom('All Settings Editor', () => <ActionRow label='All Settings Editor' description='Every setting by its key, including ones without a row here.' buttonLabel='Open...' onClick={showAllSettingsEditor} />, 'raw json'),
+      custom('All Settings', () => <AllSettingsRow />, 'raw json editor every key'),
       custom('Packets Replay Logging', () => <PacketsLoggingRow />, 'packets record replay download'),
       { option: 'packetsLoggerPreset', text: 'Packets Logger Preset' },
       { option: 'debugContro', text: 'Debug Controls' },
       { option: 'debugResponseTimeIndicator', text: 'Debug Input Lag' },
       { option: 'debugChatScroll' },
+    ],
+  },
+  {
+    id: 'vr',
+    label: 'VR',
+    icon: 'eye',
+    items: [
+      { section: 'VR', anchor: 'VR' },
+      custom('VR note', () => <div className={schemeStyles.note}>{translate('VR currently has basic support.')}</div>),
+      { option: 'vrSupport' },
+      { option: 'vrPageGameRendering', text: 'Page Game Rendering', tooltip: 'Wether to continue rendering page even when vr is active.' },
     ],
   },
 ]

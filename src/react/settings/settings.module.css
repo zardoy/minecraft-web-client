@@ -17,6 +17,8 @@
   align-items: center;
   padding: 6px calc(6px + env(safe-area-inset-right) / 2) 6px calc(6px + env(safe-area-inset-left) / 2);
   font-family: minecraft, mojangles, monospace;
+  /* one line box for text and icons: they centre on the same axis */
+  line-height: 1;
   color: var(--settings-text);
   text-shadow: 1px 1px #000;
   box-sizing: border-box;
@@ -465,6 +467,15 @@
   color: var(--settings-muted);
 }
 
+.pickerArrow:hover,
+.pickerArrow:focus-visible,
+.pickerValue:hover,
+.pickerValue:focus-visible {
+  /* the hovered part's border is drawn over its neighbour's */
+  position: relative;
+  z-index: 1;
+}
+
 .pickerValue {
   flex: 1;
   min-width: 0;
@@ -586,6 +597,104 @@
 .button :global([class*='pixelart-icons-font-'])::before {
   display: block;
   line-height: 1;
-  /* measured: the icon font draws ~0.085em above the middle of its box, the game font ~0.04em below; this puts both on one axis */
-  transform: translateY(0.125em);
+  /* measured: the icons are centred in their box, the game font's letters sit ~0.04em below the middle of theirs */
+  transform: translateY(0.04em);
+}
+
+/* icon alone in a button: centred in its box, without the shift that lines icons up with text */
+.pickerArrow :global([class*='pixelart-icons-font-'])::before,
+.searchIcon::before,
+.searchClear :global([class*='pixelart-icons-font-'])::before {
+  transform: none;
+}
+
+/* "Changed settings" button left of the search */
+.changedButton {
+  flex-shrink: 0;
+  margin-left: auto;
+  height: 16px !important;
+  font-size: 9px !important;
+}
+
+.changedButtonActive {
+  --flat-border: var(--settings-accent);
+}
+
+.header .search {
+  margin-left: 0;
+}
+
+.advancedToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 5px 3px;
+  font: inherit;
+  font-size: 9px;
+  color: var(--settings-muted);
+  text-align: left;
+  text-shadow: inherit;
+  background: none;
+  border: none;
+  border-top: 1px dashed var(--settings-border);
+  cursor: pointer;
+}
+
+.advancedToggle:hover,
+.advancedToggle:focus-visible {
+  color: var(--settings-text);
+  outline: none;
+}
+
+.advancedCount {
+  padding: 1px 3px;
+  font-size: 7px;
+  border: 1px solid var(--settings-border);
+}
+
+/* "Reload" tag: the setting applies after reloading the page */
+.pending {
+  flex-shrink: 0;
+  padding: 1px 2px;
+  font: inherit;
+  font-size: 7px;
+  color: #f0a24a;
+  text-transform: uppercase;
+  text-shadow: none;
+  background: none;
+  border: 1px solid currentColor;
+  cursor: pointer;
+}
+
+.pending:hover {
+  color: #fff;
+}
+
+/* Graphics: which engine draws the world */
+.poweredBy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 6px 0 2px;
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--settings-muted);
+  text-transform: uppercase;
+}
+
+.poweredBy img {
+  height: 14px;
+  /* the logo is drawn on white: inverted (hue kept) and screened, only the letters stay on the dark panel */
+  filter: invert(1) hue-rotate(180deg) saturate(0.7);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+.note {
+  padding: 4px 3px;
+  font-size: 8px;
+  color: var(--settings-muted);
 }

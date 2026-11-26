@@ -11,6 +11,8 @@
   align-items: center;
   padding: 6px calc(6px + env(safe-area-inset-right) / 2) 6px calc(6px + env(safe-area-inset-left) / 2);
   font-family: minecraft, mojangles, monospace;
+  /* one line box for text and icons: they centre on the same axis */
+  line-height: 1;
   color: #fff;
   text-shadow: 1px 1px #000;
   box-sizing: border-box;
@@ -60,11 +62,14 @@
   white-space: nowrap;
 }
 
+.headerSpacer {
+  flex: 1;
+}
+
 .username {
   display: flex;
   align-items: center;
   height: 16px;
-  margin-left: auto;
   background: #000;
   border: 1px solid var(--servers-field-border);
 }
@@ -74,9 +79,27 @@
 }
 
 .usernameIcon {
-  margin: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 3px;
   font-size: 9px;
   color: var(--servers-muted);
+  background: none;
+  border: none;
+  border-right: 1px solid var(--servers-field-border);
+  cursor: pointer;
+}
+
+.usernameIcon:hover,
+.usernameIcon:focus-visible {
+  color: #fff;
+  outline: none;
+}
+
+.username input {
+  padding-left: 3px;
 }
 
 .username input,
@@ -126,7 +149,7 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 5px 5px 0;
+  padding: 5px;
 }
 
 .addressField {
@@ -449,6 +472,7 @@
   gap: 3px;
   height: 16px;
   margin-left: auto;
+  flex: 0 1 140px;
   padding: 0 3px;
   font-size: 8px;
   color: var(--servers-muted);
@@ -457,7 +481,8 @@
 }
 
 .filter input {
-  width: 70px;
+  flex: 1;
+  width: 0;
 }
 
 /* add / edit server form (same panel) */
@@ -487,7 +512,7 @@
 
 .formLabel {
   flex-shrink: 0;
-  width: 58px;
+  width: 70px;
   padding-top: 5px;
   font-size: 9px;
   color: var(--servers-muted);
@@ -634,6 +659,22 @@
 .button :global([class*='pixelart-icons-font-'])::before {
   display: block;
   line-height: 1;
-  /* measured: the icon font draws ~0.085em above the middle of its box, the game font ~0.04em below; this puts both on one axis */
+  /* measured: the icons are centred in their box, the game font's letters sit ~0.04em below the middle of theirs */
+  transform: translateY(0.04em);
+}
+
+/* icon alone: centred, without the shift that lines icons up with text */
+.usernameIcon :global([class*='pixelart-icons-font-'])::before,
+.addressIcon::before {
+  transform: none;
+}
+
+/* the "users" icon is drawn 0.085em above the middle of its glyph */
+.root :global(.pixelart-icons-font-users)::before {
   transform: translateY(0.125em);
+}
+
+/* after the avatar button's divider */
+.username > input {
+  padding-left: 4px;
 }

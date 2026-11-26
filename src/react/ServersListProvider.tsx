@@ -375,7 +375,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
       qs.set('username', server.usernameOverride ?? '')
       const shareUrl = `${window.location.origin}${window.location.pathname}?${qs.toString()}`
       await navigator.clipboard.writeText(shareUrl)
-      const MESSAGE = 'Server link copied to clipboard'
+      const MESSAGE = 'Join link copied: send it to friends to join this server'
       if (EXPLICIT_SHARE_SERVER_MODE) {
         await showOptionsModal(MESSAGE, [])
       } else {
@@ -383,7 +383,7 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
       }
     } catch (err) {
       console.error(err)
-      showNotification('Failed to copy server link to clipboard')
+      showNotification('Failed to copy the join link')
     }
   }
 
@@ -393,7 +393,11 @@ const Inner = ({ hidden, customServersList }: { hidden?: boolean, customServersL
     customListTitle={customServersList ? 'Provided Servers' : undefined}
     setQuickConnectIp={setQuickConnectIp}
     onProfileClick={async () => {
-      const username = await showOptionsModal('Select authenticated account to remove', authenticatedAccounts.map(a => a.username))
+      if (authenticatedAccounts.length === 0) {
+        await showOptionsModal('No Microsoft accounts signed in. You sign in when joining a server that needs it, or with Account in the Advanced options of a server.', [])
+        return
+      }
+      const username = await showOptionsModal('Signed in Microsoft accounts: pick one to sign out', authenticatedAccounts.map(a => a.username))
       if (!username) return
       appStorage.authenticatedAccounts = authenticatedAccounts.filter(a => a.username !== username)
     }}

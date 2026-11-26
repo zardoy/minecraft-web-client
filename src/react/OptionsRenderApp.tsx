@@ -2,8 +2,11 @@ import { useSnapshot } from 'valtio'
 import { activeModalStack, hideCurrentModal } from '../globalState'
 import { OptionsGroupType } from '../optionsGuiScheme'
 import SettingsScreen from './settings/SettingsScreen'
+import { useIsModalActive } from './utilsApp'
 
 export default () => {
+  // registers the options-* modals as handled (otherwise the "modal is unavailable" fallback shows under the settings)
+  useIsModalActive('options-*')
   const stack = useSnapshot(activeModalStack)
   // the settings stay mounted under a modal opened from them (value list, reload prompt, keybindings): tab, search and scroll are kept
   const index = stack.findLastIndex(modal => modal.reactType.startsWith('options-'))

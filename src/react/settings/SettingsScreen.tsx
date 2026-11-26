@@ -1,5 +1,12 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useSnapshot } from 'valtio'
+import { noCase } from 'change-case'
+import { titleCase } from 'title-case'
 import { isMobile } from 'minecraft-renderer/src/lib/simpleUtils'
+import { hideAllModals, miscUiState } from '../../globalState'
+import { options } from '../../optionsStorage'
+import { appStorage } from '../appStorageProvider'
+import { showResetSettingsModal } from '../AllSettingsEditor'
 import {
   groupToTab,
   isCustomItem,
@@ -9,13 +16,14 @@ import {
   settingsTabs,
   SettingsItem,
   SettingsTab,
-  SettingsTabId
+  SettingsTabId,
+  OptionItem
 } from '../../optionsGuiScheme'
 import { optionsMeta } from '../../defaultOptions'
 import PixelartIcon from '../PixelartIcon'
 import FlatButton from '../ui/FlatButton'
 import { withInjectableUi } from '../extendableSystem'
-import { getItemDescription, getItemText, OptionRow, SectionHeader, SettingInfo, SettingInfoContext } from './SettingsControls'
+import { ActionRow, getItemDescription, getItemText, isOptionChanged, KeyRow, OptionRow, SectionHeader, SettingInfo, SettingInfoContext, SettingsView, SettingsViewContext } from './SettingsControls'
 import styles from './settings.module.css'
 
 const CustomItemRender = ({ render }: { render: () => React.ReactNode }) => <>{render()}</>
@@ -41,6 +49,24 @@ const searchText = (item: SettingsItem) => {
   return `${getItemText(item)} ${getItemDescription(item) ?? ''} ${item.option} ${JSON.stringify(item.possibleValues ?? optionsMeta[item.option]?.possibleValues ?? '')}`
 }
 
+/** each setting key with the row the tabs define for it (first definition wins) */
+const optionItemsByKey = new Map<string, OptionItem>()
+for (const t of settingsTabs) {
+  for (const item of [...t.items, ...t.advanced ?? []]) {
+    if (isOptionItem(item) && !optionItemsByKey.has(item.option)) optionItemsByKey.set(item.option, item)
+  }
+}
+
+const keyMatches = (key: string, words: string[]) => {
+  const text = `${key} ${titleCase(noCase(key))} ${optionsMeta[key]?.text ?? ''} ${optionsMeta[key]?.tooltip ?? ''}`.toLowerCase()
+  return words.every(word => text.includes(word))
+}
+
+/** whether search found a tab row that already shows this key (also the custom rows built on one option) */
+const shownKeysOf = (items: SettingsItem[]) => items.filter(isOptionItem).map(item => item.option as string)
+
+const allKeys = () => Object.keys(options).sort((a, b) => a.localeCompare(b))
+
 const matchesSearch = (item: SettingsItem, words: string[]) => {
   if (!isAvailable(item)) return false
   const text = searchText(item).toLowerCase()
@@ -55,8 +81,21 @@ interface Props {
   active?: boolean
 }
 
+/** "Show advanced settings" stays open per tab while the page lives */
+const expandedAdvanced = new Set<SettingsTabId>()
+
 const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) => {
-  const [activeTab, setActiveTab] = useState<SettingsTabId>(groupToTab[group] ?? 'general')
+  const [activeTab, setActiveTab] = useState<SettingsTabId>(groupToTab[group] ?? 'quick')
+  const [view, setView] = useState<SettingsView>('tabs')
+  const [showAdvanced, setShowAdvanced] = useState(() => {
+    const tabId = groupToTab[group] ?? 'quick'
+    const t = settingsTabs.find(t => t.id === tabId)
+    // opened for a sub-page that lives in the advanced part (renderer-advanced): show it
+    return expandedAdvanced.has(tabId) || !!t?.advanced?.some(item => isSectionItem(item) && item.anchor === group)
+  })
+  const { gameLoaded } = useSnapshot(miscUiState)
+  const { changedSettings } = useSnapshot(appStorage)
+  const changedKeys = Object.keys(changedSettings).filter(key => key in options && isOptionChanged(key))
   const [search, setSearch] = useState('')
   const [info, setInfo] = useState<SettingInfo | undefined>()
   const contentRef = useRef<HTMLDivElement>(null)
@@ -67,9 +106,14 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
 
   const searchResults = useMemo(() => {
     if (words.length === 0) return null
-    return settingsTabs
-      .map(t => ({ tab: t, items: t.items.filter(item => matchesSearch(item, words)) }))
+    const results = settingsTabs
+      .filter(t => !t.shortcuts)
+      .map(t => ({ tab: t, items: [...t.items, ...t.advanced ?? []].filter(item => matchesSearch(item, words)) }))
       .filter(r => r.items.length > 0)
+    // settings without a row in the tabs (or whose row did not match): found by key
+    const shown = new Set(results.flatMap(r => shownKeysOf(r.items)))
+    const other = allKeys().filter(key => !shown.has(key) && !optionItemsByKey.has(key) && keyMatches(key, words))
+    return { results, other }
   }, [search])
 
   // opened for a sub-page (inventory settings from the inventory, VR...): scroll to its section
@@ -77,7 +121,8 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
     const content = contentRef.current
     if (!content) return
     const anchor = content.querySelector<HTMLElement>(`[data-anchor="${group}"]`)
-    const isFirstSection = tab.items[0] && isSectionItem(tab.items[0]) && tab.items[0].anchor === group
+    const firstItem = tab.items.find(item => !isCustomItem(item))
+    const isFirstSection = firstItem && isSectionItem(firstItem) && firstItem.anchor === group
     if (anchor && !isFirstSection) content.scrollTop = anchor.offsetTop - content.offsetTop
   }, [])
 
@@ -118,11 +163,70 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
 
   const selectTab = (id: SettingsTabId) => {
     setSearch('')
+    setView('tabs')
     setActiveTab(id)
+    setShowAdvanced(expandedAdvanced.has(id))
+    if (contentRef.current) contentRef.current.scrollTop = 0
+  }
+
+  const openView = (next: SettingsView) => {
+    setSearch('')
+    setView(next)
     if (contentRef.current) contentRef.current.scrollTop = 0
   }
 
   const renderItems = (items: SettingsItem[]) => items.filter(isAvailable).map(item => <ItemRender key={itemKey(item)} item={item} />)
+  const renderKeys = (keys: string[]) => keys.map(key => <KeyRow key={`key-${key}`} option={key as keyof typeof options} item={optionItemsByKey.get(key)} />)
+
+  const advancedCount = tab.advanced?.filter(item => !isSectionItem(item)).length ?? 0
+  const toggleAdvanced = () => {
+    if (showAdvanced) expandedAdvanced.delete(tab.id)
+    else expandedAdvanced.add(tab.id)
+    setShowAdvanced(!showAdvanced)
+  }
+
+  const content = (() => {
+    if (searchResults) {
+      if (searchResults.results.length === 0 && searchResults.other.length === 0) return <div className={styles.empty}>{translate('Nothing found')}</div>
+      return <>
+        {searchResults.results.map(r => <Fragment key={r.tab.id}>
+          <SectionHeader title={r.tab.label} />
+          {renderItems(r.items)}
+        </Fragment>)}
+        {searchResults.other.length > 0 && <>
+          <SectionHeader title='Other' />
+          {renderKeys(searchResults.other)}
+        </>}
+      </>
+    }
+    if (view === 'changed') {
+      return <>
+        <SectionHeader title={`Changed settings (${changedKeys.length})`} />
+        {changedKeys.length === 0
+          ? <div className={styles.empty}>{translate('All settings are at their defaults')}</div>
+          : <>
+            <ActionRow label='Reset Changed Settings' description='Pick which of these go back to their defaults.' buttonLabel='Reset...' onClick={() => { void showResetSettingsModal() }} />
+            {renderKeys([...changedKeys].sort((a, b) => a.localeCompare(b)))}
+          </>}
+      </>
+    }
+    if (view === 'all') {
+      const keys = allKeys()
+      return <>
+        <SectionHeader title={`All settings (${keys.length})`} />
+        {renderKeys(keys)}
+      </>
+    }
+    return <>
+      {renderItems(tab.items)}
+      {advancedCount > 0 && <button type='button' className={styles.advancedToggle} aria-expanded={showAdvanced} onClick={toggleAdvanced}>
+        <PixelartIcon iconName={showAdvanced ? 'chevron-down' : 'chevron-right'} />
+        {translate(showAdvanced ? 'Hide advanced settings' : 'Show advanced settings')}
+        <span className={styles.advancedCount}>{advancedCount}</span>
+      </button>}
+      {showAdvanced && tab.advanced && renderItems(tab.advanced)}
+    </>
+  })()
 
   // tabs: one Tab stop, arrow keys move between them (up/down on the rail, left/right on the phone strip)
   const onTabsKeyDown = (e: React.KeyboardEvent) => {
@@ -135,13 +239,22 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
     document.getElementById(`settings-tab-${next.id}`)?.focus()
   }
 
-  return <SettingInfoContext.Provider value={setInfo}>
+  return <SettingsViewContext.Provider value={openView}><SettingInfoContext.Provider value={setInfo}>
     <div className='backdrop' style={active ? undefined : { visibility: 'hidden' }} />
     <div className={`fullscreen ${styles.root} settings-screen`} style={active ? undefined : { visibility: 'hidden' }}>
       <div className={styles.panel}>
         <div className={styles.header}>
           <FlatButton className={styles.headerButton} icon='chevron-left' title={translate('Back')} onClick={onClose} />
           <span className={styles.title}>{translate('Settings')}</span>
+          <FlatButton
+            className={`${styles.changedButton} ${view === 'changed' && !searchResults ? styles.changedButtonActive : ''}`}
+            icon='edit'
+            label={String(changedKeys.length)}
+            title={translate('Changed settings')}
+            aria-label={`${translate('Changed settings')}: ${changedKeys.length}`}
+            aria-pressed={view === 'changed'}
+            onClick={() => openView(view === 'changed' ? 'tabs' : 'changed')}
+          />
           <label className={styles.search}>
             <PixelartIcon iconName='search' className={styles.searchIcon} />
             <input
@@ -160,21 +273,16 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
             />
             {search && <button type='button' className={styles.searchClear} aria-label='Clear search' onClick={() => setSearch('')}><PixelartIcon iconName='close' /></button>}
           </label>
+          {/* in a game: close the settings and everything under them (pause menu) to get back to playing */}
+          {gameLoaded && <FlatButton className={styles.headerButton} icon='close' title={translate('Close all and return to the game')} onClick={() => hideAllModals()} />}
         </div>
         <div className={styles.body}>
           <nav className={styles.tabs} role='tablist' aria-label={translate('Settings sections')} onKeyDown={onTabsKeyDown}>
-            {settingsTabs.map(t => <TabButton key={t.id} tab={t} active={!searchResults && t.id === activeTab} focusable={t.id === activeTab} onClick={() => selectTab(t.id)} />)}
+            {settingsTabs.map(t => <TabButton key={t.id} tab={t} active={!searchResults && view === 'tabs' && t.id === activeTab} focusable={t.id === activeTab} onClick={() => selectTab(t.id)} />)}
           </nav>
           <div className={styles.main}>
-            <div className={styles.content} ref={contentRef} role='tabpanel' id='settings-tabpanel' aria-labelledby={searchResults ? undefined : `settings-tab-${activeTab}`}>
-              {searchResults
-                ? searchResults.length === 0
-                  ? <div className={styles.empty}>{translate('Nothing found')}</div>
-                  : searchResults.map(r => <Fragment key={r.tab.id}>
-                    <SectionHeader title={r.tab.label} />
-                    {renderItems(r.items)}
-                  </Fragment>)
-                : renderItems(tab.items)}
+            <div className={styles.content} ref={contentRef} role='tabpanel' id='settings-tabpanel' aria-labelledby={searchResults || view !== 'tabs' ? undefined : `settings-tab-${activeTab}`}>
+              {content}
             </div>
             <div className={`${styles.info} ${!info && isMobile() ? styles.infoHidden : ''}`} aria-live='polite'>
               {info
@@ -189,7 +297,7 @@ const SettingsScreenBase = ({ group = 'main', onClose, active = true }: Props) =
         </div>
       </div>
     </div>
-  </SettingInfoContext.Provider>
+  </SettingInfoContext.Provider></SettingsViewContext.Provider>
 }
 
 const TabButton = ({ tab, active, focusable, onClick }: { tab: SettingsTab, active: boolean, focusable: boolean, onClick: () => void }) => {

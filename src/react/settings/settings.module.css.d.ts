@@ -2,9 +2,13 @@
 // Please do not change this file!
 interface CssExports {
   actionButton: string;
+  advancedCount: string;
+  advancedToggle: string;
   body: string;
   button: string;
   changed: string;
+  changedButton: string;
+  changedButtonActive: string;
   content: string;
   cost: string;
   costFree: string;
@@ -26,10 +30,13 @@ interface CssExports {
   infoText: string;
   infoTitle: string;
   main: string;
+  note: string;
   panel: string;
+  pending: string;
   picker: string;
   pickerArrow: string;
   pickerValue: string;
+  poweredBy: string;
   root: string;
   row: string;
   rowControl: string;

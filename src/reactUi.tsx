@@ -181,7 +181,6 @@ const InGameUi = () => {
           {!disabledUiParts.includes('mobile-top-buttons') && <MobileTopButtons />}
           {!disabledUiParts.includes('players-list') && <PlayerListOverlayProvider />}
           {!disabledUiParts.includes('chat') && <ChatProvider />}
-          <SoundMuffler />
           {showMinimap !== 'never' && <MinimapProvider adapter={adapter} displayMode='minimapOnly' />}
           {!disabledUiParts.includes('title') && <TitleProvider />}
           {!disabledUiParts.includes('scoreboard') && <ScoreboardProvider />}
@@ -265,6 +264,8 @@ const AppBase = () => {
             <VoiceChatMenuProvider />
             <ServersListProvider />
             <OptionsRenderApp />
+            {/* opened from Audio settings, also from the main menu */}
+            <SoundMuffler />
             <VisualEffectsPanel />
             <MainMenuRenderApp />
             <ConnectOnlyServerUi />

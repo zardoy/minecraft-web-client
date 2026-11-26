@@ -98,6 +98,9 @@ export const options: AppOptions = proxy({
 
 window.options = window.settings = options
 
+/** the settings as the page loaded them: a setting that applies after a reload is still pending while it differs from this */
+export const optionsAtPageLoad: Readonly<AppOptions> = JSON.parse(JSON.stringify(options))
+
 export const resetOptions = () => {
   Object.assign(options, defaultOptions)
   appStorage.changedSettings = {}

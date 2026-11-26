@@ -101,6 +101,11 @@
 .button :global([class*='pixelart-icons-font-'])::before {
   display: block;
   line-height: 1;
-  /* measured: the icon font draws ~0.085em above the middle of its box, the game font ~0.04em below; this puts both on one axis */
-  transform: translateY(0.125em);
+  /* measured: the icons are centred in their box, the game font's letters sit ~0.04em below the middle of theirs */
+  transform: translateY(0.04em);
+}
+
+/* icon alone: centred in the button, without the shift that lines icons up with text */
+.iconOnly :global([class*='pixelart-icons-font-'])::before {
+  transform: none;
 }

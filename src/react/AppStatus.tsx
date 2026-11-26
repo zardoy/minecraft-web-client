@@ -99,7 +99,8 @@ const AppStatusBase = ({
                 {progress.step && <div className={styles.progressStep}>{progress.step}</div>}
                 {stalledSeconds !== undefined && <div className={styles.progressStall}>
                   <span>No progress for {stalledSeconds} s</span>
-                  <Button style={{ width: 60 }} onClick={() => window.location.reload()}>Reload</Button>
+                  {/* reloads and joins again with the same connection options */}
+                  <Button style={{ width: 70 }} onClick={() => (onReconnect ? onReconnect() : window.location.reload())}>Reconnect</Button>
                 </div>}
               </div>}
             </div>}

@@ -34,6 +34,7 @@ interface CssExports {
   formSelect: string;
   groupHeader: string;
   header: string;
+  headerSpacer: string;
   invalid: string;
   joinButton: string;
   list: string;

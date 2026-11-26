@@ -3,14 +3,15 @@ import { useSnapshot } from 'valtio'
 import { noCase } from 'change-case'
 import { titleCase } from 'title-case'
 import { rendererOptionPerformanceLevel, RENDERER_OPTIONS_META, RENDERER_PERFORMANCE_LEVEL_LABELS } from 'minecraft-renderer/src/graphicsBackend/rendererDefaultOptions'
-import { defaultOptions, disabledSettings, options, resetSelectedOptions } from '../../optionsStorage'
+import { defaultOptions, disabledSettings, options, optionsAtPageLoad, resetSelectedOptions } from '../../optionsStorage'
 import { optionsMeta, type OptionPossibleValues } from '../../defaultOptions'
 import { miscUiState } from '../../globalState'
 import { appStorage } from '../appStorageProvider'
 import FlatButton from '../ui/FlatButton'
 import Slider from '../Slider'
 import PixelartIcon from '../PixelartIcon'
-import { showOptionsModal } from '../SelectOption'
+import { showInputsModal, showOptionsModal } from '../SelectOption'
+import { reconnectReload } from '../AppStatusProvider'
 import { settingNeedsReloadPrompt } from '../SettingReloadModal'
 import { applySettingReloadResult, promptAndApplyReloadSetting } from '../settingReloadApply'
 import type { OptionItem } from '../../optionsGuiScheme'
@@ -27,6 +28,10 @@ export interface SettingInfo {
 }
 
 export const SettingInfoContext = createContext<(info: SettingInfo | undefined) => void>(() => {})
+
+/** other views of the settings screen, opened from rows (All Settings in Advanced) */
+export type SettingsView = 'tabs' | 'changed' | 'all'
+export const SettingsViewContext = createContext<(view: SettingsView) => void>(() => {})
 
 /** id of the row label: the row's control is named by it (screen readers read "Music, switch, on") */
 const RowLabelContext = createContext<string | undefined>(undefined)
@@ -140,8 +145,10 @@ const SliderControl = (props: Omit<React.ComponentProps<typeof Slider>, 'label' 
 
 // #region rows
 
-export const SettingRow = ({ label, description, changed, onReset, cost, disabledReason, children, wide }: {
+export const SettingRow = ({ label, description, changed, onReset, cost, disabledReason, pendingReload, children, wide }: {
   label: string
+  /** changed, but applies only after reloading the page */
+  pendingReload?: boolean
   description?: string
   changed?: boolean
   onReset?: () => void
@@ -163,6 +170,13 @@ export const SettingRow = ({ label, description, changed, onReset, cost, disable
     <div className={styles.rowLabel}>
       <span className={styles.rowLabelText} id={labelId}>{translate(label)}</span>
       {cost && <span className={`${styles.cost} ${styles[`cost_${cost.level}`]}`} title={cost.note}>{RENDERER_PERFORMANCE_LEVEL_LABELS[cost.level] ?? cost.level}</span>}
+      {pendingReload && <button
+        type='button'
+        className={styles.pending}
+        title={translate('Applies after reloading the page. Click to reload now')}
+        onClick={reloadNow}
+      >{translate('Reload')}
+      </button>}
       {/* a locked or disabled row shows that it was changed but can't be reset from here */}
       {changed && (onReset && !disabledReason
         ? <button
@@ -207,6 +221,14 @@ export const ActionRow = ({ label, description, buttonLabel, onClick, disabled, 
 // #endregion
 
 // #region option rows (bound to `options`)
+
+/** in a game the connection is restored after the reload */
+const reloadNow = () => {
+  if (miscUiState.gameLoaded) reconnectReload()
+  else window.location.reload()
+}
+
+const differsFromPageLoad = (id: string, value: unknown) => JSON.stringify(value) !== JSON.stringify(optionsAtPageLoad[id])
 
 const isSettingChanged = (id: string) => {
   return id in appStorage.changedSettings &&
@@ -274,6 +296,9 @@ export const OptionRow = ({ item }: { item: OptionItem }) => {
   const disabledReason = useItemDisabledReason(item)
   const disabled = !!disabledReason
   const changed = isSettingChanged(item.option)
+  const { gameLoaded } = useSnapshot(miscUiState)
+  const pendingReload = differsFromPageLoad(item.option, value) &&
+    !!(item.requiresRestart ?? meta?.requiresRestart ?? (item.requiresRestartWhenInGame && gameLoaded))
   const perfLevel = RENDERER_OPTIONS_META[item.option]?.performance ? rendererOptionPerformanceLevel(item.option as any, value) : undefined
   const cost = perfLevel ? { level: perfLevel, note: RENDERER_OPTIONS_META[item.option]!.performance!.note } : undefined
   const choices = useMemo(() => normalizeChoices(item.possibleValues ?? meta?.possibleValues), [item.option])
@@ -327,9 +352,72 @@ export const OptionRow = ({ item }: { item: OptionItem }) => {
     onReset={() => resetSelectedOptions([item.option])}
     cost={cost}
     disabledReason={disabledReason}
+    pendingReload={pendingReload}
   >
     <div data-setting={item.option} title={disabledReason ? translate(disabledReason) : undefined}>{control}</div>
   </SettingRow>
 }
+
+// #endregion
+
+// #region rows for any setting key (All settings, Changed, search results without a row in the tabs)
+
+const formatValue = (value: unknown) => {
+  if (typeof value === 'string') return value || '""'
+  const json = JSON.stringify(value)
+  return json === undefined ? 'unset' : json
+}
+
+/** the value as text (strings as they are, the rest as JSON), edited in a dialog */
+const ValueEditRow = ({ option }: { option: keyof typeof options }) => {
+  const value = useSnapshot(options)[option] as unknown
+  useSnapshot(appStorage)
+  const disabledReason = disabledSettings.value.has(option) ? 'Locked by the server or the page link' : undefined
+  const text = optionsMeta[option]?.text ?? titleCase(noCase(option))
+  return <SettingRow
+    label={text}
+    description={`${option}: ${formatValue(value).slice(0, 300)}`}
+    changed={isSettingChanged(option)}
+    onReset={() => resetSelectedOptions([option])}
+    disabledReason={disabledReason}
+  >
+    <FlatButton
+      className={styles.actionButton}
+      disabled={!!disabledReason}
+      title={formatValue(value)}
+      label={formatValue(value).slice(0, 18)}
+      onClick={async () => {
+        const isString = typeof defaultOptions[option] === 'string' || typeof value === 'string'
+        const result = await showInputsModal(text, {
+          value: { type: 'text', defaultValue: isString ? String(value ?? '') : formatValue(value), label: isString ? 'Value' : 'Value (JSON)' },
+        })
+        if (!result) return
+        const raw = String(result.value)
+        if (isString) {
+          options[option] = raw as never
+          return
+        }
+        try {
+          options[option] = JSON.parse(raw) as never
+        } catch {
+          await showOptionsModal(`Not valid JSON: ${raw}`, [])
+        }
+      }}
+    />
+  </SettingRow>
+}
+
+/** a row for any setting key: the tab's own definition when there is one, otherwise a control by value type */
+export const KeyRow = ({ option, item }: { option: keyof typeof options, item?: OptionItem }) => {
+  if (item) return <OptionRow item={item} />
+  const meta = optionsMeta[option]
+  const value = options[option] as unknown
+  if (typeof value === 'boolean' || (meta?.possibleValues && meta.possibleValues.length > 0) || (typeof value === 'number' && meta?.min !== undefined && meta.max !== undefined)) {
+    return <OptionRow item={{ option }} />
+  }
+  return <ValueEditRow option={option} />
+}
+
+export const isOptionChanged = isSettingChanged
 
 // #endregion

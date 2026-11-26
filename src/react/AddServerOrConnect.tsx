@@ -73,7 +73,7 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
 
   const initialAccount = initialData?.authenticatedAccountOverride
   const [accountIndex, setAccountIndex] = useState(initialAccount === true ? -2 : initialAccount ? (accounts?.includes(initialAccount) ? accounts.indexOf(initialAccount) : -2) : -1)
-  const [showAdvanced, setShowAdvanced] = useState(!!(versionOverride || proxyOverride || usernameOverride || initialAccount))
+  const [showAdvanced, setShowAdvanced] = useState(!!(versionOverride || proxyOverride || initialAccount))
 
   const freshAccount = accountIndex === -2
   const noAccountSelected = accountIndex === -1
@@ -167,14 +167,30 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
             invalid={check.state === 'offline'}
           />
         </Field>
-        {!lockConnect && <Field label='Name'>
+        {!lockConnect && <Field label='Server Name'>
           <TextInput value={serverName} placeholder={translate('Defaults to the address')} onChange={({ target: { value } }) => setServerName(value)} />
         </Field>}
+
+        {/* the username is generated on first start: visible here so it is clear which name the server sees */}
+        <Field
+          label='Username'
+          hint={noAccountSelected
+            ? usernameProblem && <span className={styles.offlineText}>{translate(usernameProblem)}</span>
+            : <span className={styles.muted}>{translate('The Microsoft account name is used')}</span>}
+        >
+          <TextInput
+            value={noAccountSelected ? usernameOverride : ''}
+            disabled={!noAccountSelected || (lockConnect && qsParamUsername !== null)}
+            placeholder={placeholders?.usernameOverride ? `${translate('Default')}: ${placeholders.usernameOverride}` : ''}
+            onChange={({ target: { value } }) => setUsernameOverride(value)}
+            invalid={!!usernameProblem}
+          />
+        </Field>
 
         <button type='button' className={styles.advancedToggle} aria-expanded={showAdvanced} onClick={() => setShowAdvanced(!showAdvanced)}>
           <PixelartIcon iconName={showAdvanced ? 'chevron-down' : 'chevron-right'} />
           {translate('Advanced')}
-          {!showAdvanced && <span className={styles.muted}>{translate('version, proxy, username, account')}</span>}
+          {!showAdvanced && <span className={styles.muted}>{translate('version, proxy, account')}</span>}
         </button>
 
         {showAdvanced && <>
@@ -218,15 +234,7 @@ const AddServerOrConnectBase = ({ onBack, onConfirm, title = 'Add a Server', ini
               <PixelartIcon iconName='chevron-down' className={styles.selectChevron} />
             </span>
           </Field>
-          {noAccountSelected && <Field label='Username' hint={usernameProblem && <span className={styles.offlineText}>{translate(usernameProblem)}</span>}>
-            <TextInput
-              value={usernameOverride}
-              disabled={lockConnect && qsParamUsername !== null}
-              placeholder={placeholders?.usernameOverride ? `${translate('Default')}: ${placeholders.usernameOverride}` : ''}
-              onChange={({ target: { value } }) => setUsernameOverride(value)}
-              invalid={!!usernameProblem}
-            />
-          </Field>}
+
         </>}
       </div>
 

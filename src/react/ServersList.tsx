@@ -146,7 +146,7 @@ const ServerRow = ({ server, selected, lockedEditing, onSelect, onAction, rowRef
     </div>
     {selected && <div className={styles.serverActions}>
       {canEdit && <FlatButton small icon='edit' label='Edit' onClick={() => onAction('edit')} />}
-      <FlatButton small icon='link' label='Copy Link' onClick={() => onAction('share')} />
+      <FlatButton small icon='link' label='Copy Join Link' title={translate('Copy a link that opens this server: send it to friends so they can join')} onClick={() => onAction('share')} />
       {canEdit && <FlatButton small variant='danger' icon='trash' label='Remove' onClick={() => onAction('delete')} />}
       {canEdit && !isMobile() && <span className={styles.reorderHint}>{translate('Shift+↑↓ to reorder')}</span>}
     </div>}
@@ -223,9 +223,14 @@ const UsernameField = ({ onAccountsClick }: { onAccountsClick?: () => void }) =>
   const username = appQueryParams.username ?? snap.username ?? ''
   const locked = appQueryParams.username !== undefined
   const valid = /^\w{3,16}$/.test(username)
-  return <label className={styles.username} title={translate('Name used on offline (cracked) servers. Servers with Microsoft login use your account name.')}>
-    <PixelartIcon iconName='user' className={styles.usernameIcon} />
+  return <div className={styles.username}>
+    {/* the avatar manages the signed in Microsoft accounts, as before */}
+    <button type='button' className={styles.usernameIcon} title={translate('Microsoft accounts')} onClick={onAccountsClick}>
+      <PixelartIcon iconName='user' />
+    </button>
     <input
+      title={translate('Name used on offline (cracked) servers. Servers with Microsoft login use your account name.')}
+      aria-label={translate('Username')}
       value={username}
       disabled={locked}
       placeholder={translate('Username')}
@@ -240,7 +245,7 @@ const UsernameField = ({ onAccountsClick }: { onAccountsClick?: () => void }) =>
     {snap.authenticatedAccounts.length > 0 && <button type='button' className={styles.accountsButton} title={translate('Signed in Microsoft accounts')} onClick={onAccountsClick}>
       <PixelartIcon iconName='shield' />{snap.authenticatedAccounts.length}
     </button>}
-  </label>
+  </div>
 }
 
 // #endregion
@@ -335,6 +340,8 @@ const ServersListBase = ({
         <div className={styles.header}>
           <FlatButton icon='chevron-left' title={translate('Back')} onClick={onClose} />
           <span className={styles.title}>{translate('Multiplayer')}</span>
+          <span className={styles.headerSpacer} />
+          <ProxyButton />
           <UsernameField onAccountsClick={onProfileClick} />
         </div>
 
@@ -351,6 +358,7 @@ const ServersListBase = ({
             <input
               value={serverIp}
               placeholder={translate('Server address, e.g. play.example.net')}
+              title={translate('A version after the address picks it: play.example.net:1.20.4')}
               list='server-history'
               autoComplete='on'
               autoCorrect='off'
@@ -379,7 +387,6 @@ const ServersListBase = ({
           </button>
           <FlatButton type='submit' variant='primary' className={styles.connectButton} label='Join' />
         </form>
-        <div className={styles.quickHint}>{translate('Add :version to force one, e.g. mc.example.net:1.20.4. Websocket servers start with ws:// or wss://')}</div>
 
         <div
           className={styles.list}
@@ -409,13 +416,12 @@ const ServersListBase = ({
             : <div className={styles.empty}>{translate('Loading servers...')}</div>}
         </div>
 
-        <div className={styles.footer}>
-          <ProxyButton />
-          {((servers?.length ?? 0) > 6 || search) && <label className={styles.filter}>
+        {((servers?.length ?? 0) > 6 || search) && <div className={styles.footer}>
+          <label className={styles.filter}>
             <PixelartIcon iconName='search' />
-            <input value={search} placeholder={translate('Filter')} onChange={e => setSearch(e.target.value)} />
-          </label>}
-        </div>
+            <input value={search} placeholder={translate('Filter servers')} onChange={e => setSearch(e.target.value)} />
+          </label>
+        </div>}
       </div>
     </div>
   </div>
