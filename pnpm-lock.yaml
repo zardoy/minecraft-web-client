@@ -126,8 +126,8 @@ importers:
         specifier: ^10.0.12
         version: 10.1.6
       flying-squid:
-        specifier: npm:@zardoy/flying-squid@^0.0.133
-        version: '@zardoy/flying-squid@0.0.133(encoding@0.1.13)'
+        specifier: npm:@zardoy/flying-squid@^0.0.136
+        version: '@zardoy/flying-squid@0.0.136(encoding@0.1.13)'
       framer-motion:
         specifier: ^12.9.2
         version: 12.9.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -3208,8 +3208,8 @@ packages:
     resolution: {integrity: sha512-6xm38yGVIa6mKm/DUCF2zFFJhERh/QWp1ufm4cNUvxsONBmfPg8uZ9pZBdOmF6qFGr/HlT6ABBkCSx/dlEtvWg==}
     engines: {node: '>=12 <14 || 14.2 - 14.9 || >14.10.0'}
 
-  '@zardoy/flying-squid@0.0.133':
-    resolution: {integrity: sha512-apAVswJKeK95ZzY8SycEvu2HYxkVDUT+kcbIRBHlEIwzh4qZvTTA2w2QfA7TWTfuP1EcKtfwkoXSfIj89oUmSQ==}
+  '@zardoy/flying-squid@0.0.136':
+    resolution: {integrity: sha512-4TG22nCwAwIHmZs80USLW/qydyf7RaTAGBjVzs+MUCJCJb5Qs0CeIXk1+KRSOZseDqSLndQsFmLrXWo88qdl/A==}
     engines: {node: '>=8'}
     hasBin: true
 
@@ -11444,7 +11444,7 @@ snapshots:
       '@types/emscripten': 1.40.0
       tslib: 1.14.1
 
-  '@zardoy/flying-squid@0.0.133(encoding@0.1.13)':
+  '@zardoy/flying-squid@0.0.136(encoding@0.1.13)':
     dependencies:
       '@tootallnate/once': 2.0.0
       chalk: 5.4.1
