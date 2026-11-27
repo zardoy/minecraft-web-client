@@ -41,6 +41,13 @@ export const watchOptionsAfterViewerInit = () => {
     },
   })
 
+  // VR prompt X sets inWorldRenderingConfig.vrSupport only; mirror to stored settings so it stays off.
+  subscribeKey(appViewer.inWorldRenderingConfig, 'vrSupport', value => {
+    if (!value && options.vrSupport) {
+      options.vrSupport = false
+    }
+  })
+
   // Volume — app-only (not in renderer sync)
   watchValue(options, o => {
     appViewer.inWorldRenderingConfig.volume = Math.max(o.volume / 100, 0)
