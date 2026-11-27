@@ -21,18 +21,17 @@ export const getWebsocketStream = async (host: string) => {
   const hostParams = hostURL.searchParams
   hostParams.append('client_mcraft', '')
   const ws = new WebSocket(`${baseProtocol}://${hostURL.host}${hostURL.pathname}?${hostParams.toString()}`)
+  // ArrayBuffer messages: with the default Blob type every packet went through an async `blob.arrayBuffer()` copy, about 13 % of the
+  // main thread on a Mali-G57 phone in a busy area of play.mcraft.fun
+  ws.binaryType = 'arraybuffer'
   const clientDuplex = new CustomDuplex(undefined, data => {
     ws.send(data)
   })
 
   clientDuplex.on('error', () => {})
 
-  ws.addEventListener('message', async message => {
-    let { data } = message
-    if (data instanceof Blob) {
-      data = await data.arrayBuffer()
-    }
-    clientDuplex.push(Buffer.from(data))
+  ws.addEventListener('message', message => {
+    clientDuplex.push(Buffer.from(message.data))
   })
 
   ws.addEventListener('close', () => {
