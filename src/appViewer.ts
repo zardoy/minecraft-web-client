@@ -219,6 +219,14 @@ const connectAppWorldViewToBot = () => {
       const stateId = newBlock.stateId ?? ((newBlock.type << 4) | newBlock.metadata)
       appViewer.worldView?.emit('blockUpdate', { pos: oldBlock.position, stateId })
     },
+    // Sign text, head skins and banner patterns are read from the block entity when the section is meshed. The server sends
+    // block entities in their own packets after the chunk: when one lands after the section was meshed, the sign stayed blank /
+    // the head a default skin until something else happened to remesh the section (moving around). Remesh it now.
+    blockEntityData (block) {
+      if (!block) return
+      const stateId = block.stateId ?? ((block.type << 4) | block.metadata)
+      appViewer.worldView?.emit('blockUpdate', { pos: block.position, stateId })
+    },
     time () {
       appViewer.worldView?.emit('time', bot.time.timeOfDay)
     },
