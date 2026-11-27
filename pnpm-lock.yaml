@@ -126,8 +126,8 @@ importers:
         specifier: ^10.0.12
         version: 10.1.6
       flying-squid:
-        specifier: npm:@zardoy/flying-squid@^0.0.132
-        version: '@zardoy/flying-squid@0.0.132(encoding@0.1.13)'
+        specifier: npm:@zardoy/flying-squid@^0.0.133
+        version: '@zardoy/flying-squid@0.0.133(encoding@0.1.13)'
       framer-motion:
         specifier: ^12.9.2
         version: 12.9.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -358,8 +358,8 @@ importers:
         specifier: ^0.2.91
         version: 0.2.91
       minecraft-worldgen:
-        specifier: ^0.1.3
-        version: 0.1.3
+        specifier: ^0.1.4
+        version: 0.1.4
       mineflayer:
         specifier: github:zardoy/mineflayer#gen-the-master
         version: https://codeload.github.com/zardoy/mineflayer/tar.gz/51266af3b679da448978a4e54afd7e242298093b(encoding@0.1.13)
@@ -3208,8 +3208,8 @@ packages:
     resolution: {integrity: sha512-6xm38yGVIa6mKm/DUCF2zFFJhERh/QWp1ufm4cNUvxsONBmfPg8uZ9pZBdOmF6qFGr/HlT6ABBkCSx/dlEtvWg==}
     engines: {node: '>=12 <14 || 14.2 - 14.9 || >14.10.0'}
 
-  '@zardoy/flying-squid@0.0.132':
-    resolution: {integrity: sha512-W0LKpUg296YEhRbDwCYa9tMmkwr4fM1i2lK/N0NYMr5Q+epIbj6tf3mEP431JSnHuPcl+d3T12xNiqHWV7OJxw==}
+  '@zardoy/flying-squid@0.0.133':
+    resolution: {integrity: sha512-apAVswJKeK95ZzY8SycEvu2HYxkVDUT+kcbIRBHlEIwzh4qZvTTA2w2QfA7TWTfuP1EcKtfwkoXSfIj89oUmSQ==}
     engines: {node: '>=8'}
     hasBin: true
 
@@ -5819,8 +5819,8 @@ packages:
       minecraft-data:
         optional: true
 
-  minecraft-worldgen@0.1.3:
-    resolution: {integrity: sha512-s3JIaquxbRTJEwLReQ5B54N/STaH71fDnCeCoLe/DrS5Nr+W7vOkZvSWl1FtjoouJ6/PAe3zsVlWelXrU97Zhw==}
+  minecraft-worldgen@0.1.4:
+    resolution: {integrity: sha512-W+1zAZTDF4d7U+CjYL8iKaG01JFPo5fzQ+OwU1ZQaJIKC1fKmk3CS6xH2lwwMLa4zsXZEPd2lnZPCIcpWcgx9g==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -11444,7 +11444,7 @@ snapshots:
       '@types/emscripten': 1.40.0
       tslib: 1.14.1
 
-  '@zardoy/flying-squid@0.0.132(encoding@0.1.13)':
+  '@zardoy/flying-squid@0.0.133(encoding@0.1.13)':
     dependencies:
       '@tootallnate/once': 2.0.0
       chalk: 5.4.1
@@ -11455,7 +11455,7 @@ snapshots:
       mc-bridge: 0.1.3(minecraft-data@3.117.0)
       minecraft-data: 3.117.0
       minecraft-protocol: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/dacf62ef40cc559429537a303ac246ee9cede175(patch_hash=09462c5aa19586a0c2b55f33724cda3e415281669f5b11f7d3c8470e9eea7b99)(encoding@0.1.13)
-      minecraft-worldgen: 0.1.3
+      minecraft-worldgen: 0.1.4
       mkdirp: 2.1.6
       node-gzip: 1.1.2
       node-rsa: 1.1.1
@@ -14700,7 +14700,7 @@ snapshots:
       - react
       - supports-color
 
-  minecraft-worldgen@0.1.3:
+  minecraft-worldgen@0.1.4:
     dependencies:
       adm-zip: 0.5.16
       prismarine-nbt: 2.8.0

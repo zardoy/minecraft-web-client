@@ -195,6 +195,15 @@ customEvents.on('gameLoaded', () => {
     bot.tracker.stopTrackingEntity(entity, true)
   })
 
+  // mineflayer predicts every non-player entity (gravity, water) between server packets. Things the server steers itself must not be predicted: a hovering blaze, the ender
+  // dragon, end crystals, arrows, fireballs, ender pearls and eyes of ender would fall (the server sends small relative moves, so the error also never goes away).
+  const serverSteered = /^(blaze|ghast|phantom|bat|allay|vex|bee|parrot|ender_dragon|end_crystal|eye_of_ender|ender_pearl|arrow|spectral_arrow|trident|small_fireball|fireball|dragon_fireball|wither_skull|firework_rocket|llama_spit|shulker_bullet|snowball|egg|potion|experience_bottle|eye_of_ender_signal|thrown_enderpearl|ender_crystal|ender_dragon_part)$/
+  const dropPrediction = (e: Entity) => {
+    if (e.name && serverSteered.test(e.name)) bot.entityPhysics?.contexts.delete(e.id)
+  }
+  // registered after the plugin's own listeners, which (re)create the prediction context
+  for (const event of ['entitySpawn', 'entityMoved', 'entityVelocity', 'entityUpdate'] as const) bot.on(event, dropPrediction)
+
   bot.on('entityMoved', (e) => {
     checkEntityData(e)
     if (appViewer.playerState.reactive.cameraSpectatingEntity === e.id) {
