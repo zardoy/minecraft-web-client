@@ -231,13 +231,28 @@ subscribeKey(miscUiState, 'gameLoaded', async () => {
       }
     })
 
+    // the block that is dug comes with the event: the block under the cursor ray is not it for thin blocks like snow layers (they were silent)
     let diggingBlock: Block | null = null
-    customEvents.on('digStart', () => {
-      diggingBlock = bot.blockAtCursor(5)
+    bot.on('startDigging', (block) => {
+      diggingBlock = block ?? bot.blockAtCursor(5)
     })
     bot.on('diggingCompleted', async () => {
       if (diggingBlock) {
         await playBlockBreak(diggingBlock.name, diggingBlock.position)
+      }
+    })
+
+    // a tool that is used up: the server removes it and sends the break status (47 main hand, 48 off hand, 49-52 armour)
+    bot._client.on('entity_status', async ({ entityId, entityStatus }: { entityId: number, entityStatus: number }) => {
+      if (entityStatus < 47 || entityStatus > 52) {
+        return
+      }
+      const pitch = 0.8 + Math.random() * 0.4
+      if (entityId === bot.entity?.id) {
+        await playHardcodedSound('entity.item.break', undefined, 0.8, pitch)
+      } else {
+        const e = bot.entities[entityId]
+        if (e?.position) await playHardcodedSound('entity.item.break', e.position, 0.8, pitch)
       }
     })
   }
@@ -274,8 +289,8 @@ subscribeKey(miscUiState, 'gameLoaded', () => {
   }
 
   let diggingBlock: Block | null = null
-  customEvents.on('digStart', () => {
-    diggingBlock = bot.blockAtCursor(5)
+  bot.on('startDigging', (block) => {
+    diggingBlock = block ?? bot.blockAtCursor(5)
   })
   bot.on('diggingCompleted', () => {
     if (diggingBlock) {
