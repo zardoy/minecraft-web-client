@@ -1,0 +1,5 @@
+{
+  "latestTag": "v3.1.1",
+  "changelog": "\n\n## [vv3.1.1](releases/tag/vv3.1.1) - 2026-11-28\n<!-- bump-type:patch -->\n### Bug Fixes\n\n- no gray frame flashes, no sky through broken blocks, ground stays when flying high (renderer 0.1.149) ([#672](/issues/672))\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com> [`519daa1`](/commit/519daa131a50987f4d54d5511cb1d6052dc36241)\n- Improve single file builds and fix slim build to be completable ([#671](/issues/671))\nCo-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com> [`43af603`](/commit/43af603a8c854703a856cdf03f7139111e193d82)",
+  "previousTag": "v3.1.0"
+}
