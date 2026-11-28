@@ -859,13 +859,19 @@ export async function connect (connectOptions: ConnectOptions) {
           }
         })
       })
-      await appViewer.resourcesManager.promiseAssetsReady
     }
     if (appStatusState.isError) return
 
     if (!appViewer.resourcesManager.currentResources?.itemsRenderer) {
       await appViewer.resourcesManager.updateAssetsData({})
     }
+    // The block and item icons (GUI atlas) start right after the textures, usually before connecting. Waiting for them here keeps that
+    // work off the first seconds of play; it is normally done by now (about 1 s on a Mali-G57 phone).
+    const iconsWaitStart = performance.now()
+    await appViewer.resourcesManager.promiseAssetsReady.catch(err => {
+      console.warn('GUI icons failed', err)
+    })
+    console.log(`GUI icons waited ${Math.round(performance.now() - iconsWaitStart)} ms before showing the world`)
 
     const loadWorldStart = Date.now()
     console.log('try to focus window')
