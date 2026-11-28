@@ -358,8 +358,8 @@ importers:
         specifier: ^0.2.91
         version: 0.2.91
       minecraft-worldgen:
-        specifier: ^0.1.4
-        version: 0.1.4
+        specifier: ^0.1.6
+        version: 0.1.6
       mineflayer:
         specifier: github:zardoy/mineflayer#gen-the-master
         version: https://codeload.github.com/zardoy/mineflayer/tar.gz/51266af3b679da448978a4e54afd7e242298093b(encoding@0.1.13)
@@ -5819,8 +5819,8 @@ packages:
       minecraft-data:
         optional: true
 
-  minecraft-worldgen@0.1.4:
-    resolution: {integrity: sha512-W+1zAZTDF4d7U+CjYL8iKaG01JFPo5fzQ+OwU1ZQaJIKC1fKmk3CS6xH2lwwMLa4zsXZEPd2lnZPCIcpWcgx9g==}
+  minecraft-worldgen@0.1.6:
+    resolution: {integrity: sha512-Y6oMeT0DRuQMhM2VsOPjK+DXwcLEWRbFZd80tJ/eKPpQX5pJYEqbRYNL+hIzAqlQwjt0MfgJf3o35iZcHNq2xA==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -11455,7 +11455,7 @@ snapshots:
       mc-bridge: 0.1.3(minecraft-data@3.117.0)
       minecraft-data: 3.117.0
       minecraft-protocol: https://codeload.github.com/PrismarineJS/node-minecraft-protocol/tar.gz/dacf62ef40cc559429537a303ac246ee9cede175(patch_hash=09462c5aa19586a0c2b55f33724cda3e415281669f5b11f7d3c8470e9eea7b99)(encoding@0.1.13)
-      minecraft-worldgen: 0.1.4
+      minecraft-worldgen: 0.1.6
       mkdirp: 2.1.6
       node-gzip: 1.1.2
       node-rsa: 1.1.1
@@ -14700,7 +14700,7 @@ snapshots:
       - react
       - supports-color
 
-  minecraft-worldgen@0.1.4:
+  minecraft-worldgen@0.1.6:
     dependencies:
       adm-zip: 0.5.16
       prismarine-nbt: 2.8.0

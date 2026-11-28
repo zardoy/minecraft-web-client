@@ -6,6 +6,8 @@ declare namespace NodeJS {
     MAX_MC_VERSION?: string
     ALWAYS_COMPRESS_LARGE_DATA?: 'true' | 'false'
     SINGLE_FILE_BUILD?: 'true' | 'false'
+    /** slim single file build, see rsbuild.config.ts */
+    SLIM_BUILD?: 'true' | 'false'
     WS_PORT?: string
     DISABLE_SERVICE_WORKER?: 'true' | 'false'
     CONFIG_JSON_SOURCE?: 'BUNDLED' | 'REMOTE'

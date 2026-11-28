@@ -24,13 +24,15 @@ export const appAndRendererSharedConfig = () => defineConfig({
     },
     source: {
         alias: {
-            // bundled vanilla worldgen datapack (slim build: without structures)
-            'worldgen-bundled-pack.zip': path.join(__dirname, process.env.SLIM_BUILD === 'true' ? 'generated/mc-worldgen-data-slim.zip' : 'generated/mc-worldgen-data.zip'),
+            // bundled vanilla worldgen datapack (slim build: only the essential structures, see SLIM_STRUCTURES in rsbuild.config.ts)
+            'worldgen-bundled-pack.zip': path.join(__dirname, process.env.SLIM_BUILD === 'true' ? 'generated/mc-worldgen-data-slim-structures.zip' : 'generated/mc-worldgen-data.zip'),
             // chest loot tables + cooking recipes of the local server (JSON bundle, ~10 KB gzipped), see scripts/buildGamedataPack.mjs
             'gamedata-bundle.gamedata': path.join(__dirname, 'generated/mc-gamedata.gamedata'),
             // slim build: drop big optional dependencies (see scripts/slim)
             ...(process.env.SLIM_BUILD === 'true' ? {
                 'mc-assets/dist/blockStatesModels.json$': path.join(__dirname, 'scripts/slim/blockStatesModels.ts'),
+                // default world icon, shown small in the world list: 128x128 instead of 256x256 (-0.1 MB)
+                'mc-assets/dist/other-textures/latest/gui/presets/isles.png$': path.join(__dirname, 'scripts/slim/isles.png'),
             } : {}),
             ...(fs.existsSync(physicsUtilSrcRoot) ? {
                 '@nxg-org/mineflayer-physics-util': path.join(__dirname, './scripts/mineflayerPhysicsUtilEntry.ts'),

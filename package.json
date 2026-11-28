@@ -154,7 +154,7 @@
     "http-server": "^14.1.1",
     "https-browserify": "^1.0.0",
     "mc-assets": "^0.2.91",
-    "minecraft-worldgen": "^0.1.4",
+    "minecraft-worldgen": "^0.1.6",
     "mineflayer": "0.0.0",
     "mineflayer-mouse": "0.1.28",
     "npm-run-all": "^4.1.5",

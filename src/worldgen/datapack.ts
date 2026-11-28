@@ -7,7 +7,7 @@
 // The vanilla zip is emitted as a file (regular build) or inlined as a data: url (single file build), see the .zip rule in rsbuildSharedConfig.ts.
 import { proxy } from 'valtio'
 import { filterDatapack } from 'minecraft-worldgen/dist/data/pack'
-// `generated/mc-worldgen-data.zip`, or the structure-less `mc-worldgen-data-slim.zip` in the slim build (see the alias in rsbuildSharedConfig.ts)
+// `generated/mc-worldgen-data.zip`, or `mc-worldgen-data-slim-structures.zip` (essential structures only) in the slim build (see the alias in rsbuildSharedConfig.ts)
 import bundledUrl from 'worldgen-bundled-pack.zip'
 
 export const worldgenPackState = proxy({
