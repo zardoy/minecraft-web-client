@@ -24,8 +24,13 @@ import { applyWatermarkPackagesToConfig } from './scripts/watermarkLockfilePins'
 import { copyMesherArtifacts } from './scripts/copyMesherWorkers'
 
 const SINGLE_FILE_BUILD = process.env.SINGLE_FILE_BUILD === 'true'
-/** smaller single file build (`pnpm build-single-file-slim`): clipped Minecraft versions, no structures in the bundled worldgen data, no voice chat, no polyfills */
+/** smaller single file build (`pnpm build-single-file-slim`): clipped Minecraft versions, only the structures of SLIM_STRUCTURES (no villages, ...) in the bundled worldgen data, no voice chat, no polyfills */
 const SLIM_BUILD = process.env.SLIM_BUILD === 'true'
+/**
+ * structures the slim single file keeps (worldgen/structure/*.json names, `*` = prefix): the ones the game needs or that give loot, all generated from code or from a few small templates (+139 KB in the file), plus the desert village, the cheapest of the five (+0.18 MB in the file; plains +0.29, savanna / taiga / snowy about +0.2-0.3 each; the slim file has to stay under 10 MB).
+ * Everything else with big templates (bastions, trial chambers, ancient cities, mansions, ocean ruins ...) stays out: see `minecraft-worldgen-pack --structures`.
+ */
+const SLIM_STRUCTURES = 'stronghold,fortress,mineshaft*,desert_pyramid,jungle_pyramid,swamp_hut,igloo,buried_treasure,monument,ruined_portal*,nether_fossil,end_city,village_desert'
 const SINGLE_DIR = SLIM_BUILD ? 'single-slim' : 'single'
 
 if (SINGLE_FILE_BUILD) {
@@ -255,8 +260,8 @@ const appConfig = defineConfig({
                             }
                         }
                     }
-                    // bundled vanilla worldgen data (Mojang's jar is downloaded when it is not cached): full pack and the structure-less slim pack
-                    for (const [file, flags] of [['mc-worldgen-data.zip', ''], ['mc-worldgen-data-slim.zip', '--no-structures']]) {
+                    // bundled vanilla worldgen data (Mojang's jar is downloaded when it is not cached): full pack and the slim pack with the essential structures only
+                    for (const [file, flags] of [['mc-worldgen-data.zip', ''], ['mc-worldgen-data-slim-structures.zip', `--structures '${SLIM_STRUCTURES}'`]]) {
                         if ((file.includes('slim') ? SLIM_BUILD : !SLIM_BUILD) && !fs.existsSync(`./generated/${file}`)) {
                             childProcess.execSync(`node node_modules/minecraft-worldgen/dist/cli.js generated/${file} --vanilla --download 26.3 ${flags}`, { stdio: 'inherit' })
                         }
@@ -365,8 +370,8 @@ const appConfig = defineConfig({
                             // basic sounds (hurt, steps, place / break, one music track), read by src/sounds/embeddedSounds.ts
                             const embeddedSounds = await buildEmbeddedSounds()
                             if (embeddedSounds) html += `<script type="application/json" id="embedded-sounds">${embeddedSounds}</script>`
-                            // slim build: gzip the inline scripts (decompressed at load time), roughly halves the file
-                            if (SLIM_BUILD) html = compressSingleFile(html)
+                            // gzip the inline scripts (inflated at load time, needs DecompressionStream): the full file gets about 45% smaller, the slim one about half
+                            html = compressSingleFile(html)
                             fs.writeFileSync(singleBuildHtml, html, 'utf8')
                             // write output file size
                             console.log('single file size', (fs.statSync(singleBuildHtml).size / 1024 / 1024).toFixed(2), 'mb')

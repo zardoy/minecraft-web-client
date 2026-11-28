@@ -234,6 +234,12 @@ const CreateWorldBase = ({ cancelClick, createClick, customizeClick, versions, d
       >Use Mods ({plugins.length})
       </Button>
     </div>
+    {/* the slim single file ships a stripped worldgen pack (see SLIM_STRUCTURES in rsbuild.config.ts) and a small sound set */}
+    {process.env.SLIM_BUILD === 'true' && (
+      <div style={{ fontSize: 8, color: '#e6c84c', textAlign: 'center', lineHeight: 1.3, maxWidth: 300 }}>
+        Slim build: it has limited sounds set and only some structures (villages: desert only)
+      </div>
+    )}
     <div style={{ display: 'flex' }}>
       <Button onClick={() => {
         cancelClick()

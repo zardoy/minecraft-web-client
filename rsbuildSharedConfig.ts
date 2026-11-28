@@ -24,8 +24,8 @@ export const appAndRendererSharedConfig = () => defineConfig({
     },
     source: {
         alias: {
-            // bundled vanilla worldgen datapack (slim build: without structures)
-            'worldgen-bundled-pack.zip': path.join(__dirname, process.env.SLIM_BUILD === 'true' ? 'generated/mc-worldgen-data-slim.zip' : 'generated/mc-worldgen-data.zip'),
+            // bundled vanilla worldgen datapack (slim build: only the essential structures, see SLIM_STRUCTURES in rsbuild.config.ts)
+            'worldgen-bundled-pack.zip': path.join(__dirname, process.env.SLIM_BUILD === 'true' ? 'generated/mc-worldgen-data-slim-structures.zip' : 'generated/mc-worldgen-data.zip'),
             // chest loot tables + cooking recipes of the local server (JSON bundle, ~10 KB gzipped), see scripts/buildGamedataPack.mjs
             'gamedata-bundle.gamedata': path.join(__dirname, 'generated/mc-gamedata.gamedata'),
             // slim build: drop big optional dependencies (see scripts/slim)
