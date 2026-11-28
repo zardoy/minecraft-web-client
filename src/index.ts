@@ -872,6 +872,8 @@ export async function connect (connectOptions: ConnectOptions) {
       console.warn('GUI icons failed', err)
     })
     console.log(`GUI icons waited ${Math.round(performance.now() - iconsWaitStart)} ms before showing the world`)
+    // the player may have disconnected while waiting
+    if (ended || appStatusState.isError) return
 
     const loadWorldStart = Date.now()
     console.log('try to focus window')
