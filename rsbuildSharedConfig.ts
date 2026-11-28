@@ -31,6 +31,8 @@ export const appAndRendererSharedConfig = () => defineConfig({
             // slim build: drop big optional dependencies (see scripts/slim)
             ...(process.env.SLIM_BUILD === 'true' ? {
                 'mc-assets/dist/blockStatesModels.json$': path.join(__dirname, 'scripts/slim/blockStatesModels.ts'),
+                // default world icon, shown small in the world list: 128x128 instead of 256x256 (-0.1 MB)
+                'mc-assets/dist/other-textures/latest/gui/presets/isles.png$': path.join(__dirname, 'scripts/slim/isles.png'),
             } : {}),
             ...(fs.existsSync(physicsUtilSrcRoot) ? {
                 '@nxg-org/mineflayer-physics-util': path.join(__dirname, './scripts/mineflayerPhysicsUtilEntry.ts'),

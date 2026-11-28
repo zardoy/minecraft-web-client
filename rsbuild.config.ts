@@ -15,6 +15,7 @@ import { appAndRendererSharedConfig } from './rsbuildSharedConfig'
 import { genLargeDataAliases } from './scripts/genLargeDataAliases'
 // @ts-ignore
 import { compressSingleFile } from './scripts/compressSingleFile.mjs'
+import { pngDataUrlsToWebp } from './scripts/webpImages.mjs'
 // @ts-ignore
 import { buildEmbeddedSounds } from './scripts/embeddedSounds.mjs'
 import sharp from 'sharp'
@@ -27,10 +28,10 @@ const SINGLE_FILE_BUILD = process.env.SINGLE_FILE_BUILD === 'true'
 /** smaller single file build (`pnpm build-single-file-slim`): clipped Minecraft versions, only the structures of SLIM_STRUCTURES (no villages, ...) in the bundled worldgen data, no voice chat, no polyfills */
 const SLIM_BUILD = process.env.SLIM_BUILD === 'true'
 /**
- * structures the slim single file keeps (worldgen/structure/*.json names, `*` = prefix): the ones the game needs or that give loot, all generated from code or from a few small templates (+139 KB in the file), plus the desert village, the cheapest of the five (+0.18 MB in the file; plains +0.29, savanna / taiga / snowy about +0.2-0.3 each; the slim file has to stay under 10 MB).
+ * structures the slim single file keeps (worldgen/structure/*.json names, `*` = prefix): the ones the game needs or that give loot, all generated from code or from a few small templates (+139 KB in the file), plus the plains and desert villages (+0.47 MB in the file; savanna / taiga / snowy would be about +0.2-0.3 each; the slim file has to stay under 10 MB).
  * Everything else with big templates (bastions, trial chambers, ancient cities, mansions, ocean ruins ...) stays out: see `minecraft-worldgen-pack --structures`.
  */
-const SLIM_STRUCTURES = 'stronghold,fortress,mineshaft*,desert_pyramid,jungle_pyramid,swamp_hut,igloo,buried_treasure,monument,ruined_portal*,nether_fossil,end_city,village_desert'
+const SLIM_STRUCTURES = 'stronghold,fortress,mineshaft*,desert_pyramid,jungle_pyramid,swamp_hut,igloo,buried_treasure,monument,ruined_portal*,nether_fossil,end_city,village_plains,village_desert'
 const SINGLE_DIR = SLIM_BUILD ? 'single-slim' : 'single'
 
 if (SINGLE_FILE_BUILD) {
@@ -370,6 +371,12 @@ const appConfig = defineConfig({
                             // basic sounds (hurt, steps, place / break, one music track), read by src/sounds/embeddedSounds.ts
                             const embeddedSounds = await buildEmbeddedSounds()
                             if (embeddedSounds) html += `<script type="application/json" id="embedded-sounds">${embeddedSounds}</script>`
+                            // slim build: the PNG atlases as lossless WebP (about -0.6 MB)
+                            if (SLIM_BUILD) {
+                                const webp = await pngDataUrlsToWebp(html)
+                                html = webp.html
+                                console.log(`slim: ${webp.count} PNG images as WebP, ${(webp.before / 1024).toFixed(0)} -> ${(webp.after / 1024).toFixed(0)} KB`)
+                            }
                             // gzip the inline scripts (inflated at load time, needs DecompressionStream): the full file gets about 45% smaller, the slim one about half
                             html = compressSingleFile(html)
                             fs.writeFileSync(singleBuildHtml, html, 'utf8')
